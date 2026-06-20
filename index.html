@@ -21,8 +21,8 @@
   --accent: #0075ff; /* Vision UI vibrant blue */
   --accent-soft: rgba(0, 117, 255, 0.15);
   --text-main: #ffffff;
-  --text-muted: #64748b;
-  --text-mid: #94a3b8;
+--text-muted: #8493ab;
+--text-mid: #94a3b8;
   --c-loan: #60a5fa;
   --c-inv: #fbbf24;
   --c-exp: #f472b6;
@@ -509,20 +509,25 @@ body { background: radial-gradient(circle at 15% 0%, rgba(0,117,255,0.08), trans
 
 .glass-panel { background: linear-gradient(127.09deg, rgba(6, 11, 38, 0.94) 19.41%, rgba(10, 14, 35, 0.49) 76.65%); backdrop-filter: blur(20px); border: 1px solid rgba(255,255,255,0.06); border-radius: 20px; box-shadow: 0 4px 18px rgba(0, 117, 255, 0.05), inset 0 1px 0 rgba(255,255,255,0.04); padding: 1.2rem 1.4rem; margin-bottom: 1.4rem; transition: border-color .25s, transform .25s; }
 .panel-title { font-size:0.72rem; font-weight:700; color:#64748b; text-transform:uppercase; letter-spacing:2px; margin-bottom:1rem; display:flex; align-items:center; gap:7px; }
+body.light-mode .panel-title { color:#334155; font-weight: 800; }
 
 .kpi-grid { display:grid; grid-template-columns:repeat(5,1fr); gap:.9rem; margin-bottom:1.4rem; }
 .kpi-card { background: linear-gradient(127.09deg, rgba(6, 11, 38, 0.94) 19.41%, rgba(10, 14, 35, 0.49) 76.65%); border: 1px solid rgba(0, 117, 255, 0.1); border-radius: 20px; padding: 1rem 1.1rem; transition: all 0.25s; box-shadow: 0px 4px 18px rgba(0, 117, 255, 0.03); position: relative; overflow: hidden; }
 .kpi-card::before { content:''; position:absolute; inset:0; background: linear-gradient(180deg, rgba(255,255,255,0.05), transparent 50%); pointer-events:none; }
 .kpi-card:hover { border-color:rgba(0,117,255,0.25); transform:translateY(-2px); box-shadow:0 10px 30px rgba(0,117,255,0.12); }
 .kpi-label { font-size:0.7rem; color:#94a3b8; text-transform:uppercase; letter-spacing:1.2px; font-weight:700; margin-bottom:6px; }
+body.light-mode .kpi-label { color: #1e293b; font-weight: 800; }
 .kpi-value { font-size:1.5rem; font-weight:700; font-family:'DM Mono',monospace; letter-spacing:-1.5px; line-height:1; background: linear-gradient(135deg, #ffffff 0%, #b8c4d9 100%); -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent; }
 body.light-mode .kpi-value {
-  background: linear-gradient(135deg, #0f172a 0%, #1e40af 100%);
-  -webkit-background-clip: text;
-  background-clip: text;
-  -webkit-text-fill-color: transparent;
+  background: linear-gradient(135deg, #0f172a 0%, #1e40af 100%) !important;
+  -webkit-background-clip: text !important;
+  background-clip: text !important;
+  -webkit-text-fill-color: transparent !important;
+  color: #0f172a;
 }
+
 .kpi-sub { font-size:0.7rem; color:#94a3b8; margin-top:3px; font-weight:500; }
+body.light-mode .kpi-sub { color: #1e293b; font-weight: 600; }
 
 .budget-status-grid { display:flex; flex-wrap:wrap; gap:7px; }
 .budget-alert-item { 
@@ -644,7 +649,8 @@ body.light-mode .inventory-pill span:last-child { color: #475569 !important; }
 .modal-title { font-size:1.05rem; font-weight:700; margin-bottom:1.3rem; }
 .budget-modal .modal-title { font-size:1.15rem; margin-bottom:0.35rem; }
 .budget-modal .modal-subtitle { font-size:0.78rem; color:var(--text-muted); margin-bottom:1rem; }
-.budget-modal-list { display:flex; flex-direction:column; gap:10px; margin: 0.9rem 0 1.15rem; max-height: 52vh; overflow:auto; padding-right: 2px; }
+.budget-modal-list { display:flex; flex-direction:column; gap:10px; margin: 0.9rem 0 1.15rem; max-height: 52vh; overflow:auto; padding-right: 2px; scrollbar-width: none; -ms-overflow-style: none; }
+.budget-modal-list::-webkit-scrollbar { display: none; }
 .budget-row { display:grid; grid-template-columns: 120px minmax(0, 1fr); align-items:center; gap:10px; }
 .budget-row label { font-size:0.78rem; color:var(--text-mid); min-width:0; }
 .budget-row .budget-input { margin-top:0; padding:9px 12px; font-size:0.84rem; border-radius:10px; }
@@ -788,6 +794,7 @@ body.light-mode .toggle-switch input:checked + .toggle-slider { background:var(-
   margin-top: 0.5rem;
 }
 .market-card {
+  #dash-port-donut-wrap canvas { width: 130px !important; height: 130px !important; }
   background: linear-gradient(135deg, rgba(255, 255, 255, 0.03) 0%, rgba(0, 0, 0, 0.2) 100%);
   border: 1px solid rgba(255, 255, 255, 0.05);
   border-radius: 16px;
@@ -1080,8 +1087,8 @@ body.light-mode {
   --glass-border: #e2e8f0; 
   --glass-bg: #ffffff !important; 
   --text-main: #0f172a; 
-  --text-muted: #64748b; 
-  --text-mid: #475569;
+  --text-muted: #334155; 
+  --text-mid: #1e293b;
   background: #f4f7f9; 
   color: var(--text-main);
   
@@ -1140,16 +1147,17 @@ body.light-mode .export-modal-box {
 /* Safety Net: Aggressively target ALL forms of hardcoded white text */
 body.light-mode .text-white,
 body.light-mode [class*="text-white"],
-body.light-mode div[style*="color:white"], 
-body.light-mode div[style*="color: white"],
-body.light-mode div[style*="color:#fff"],
-body.light-mode div[style*="color: #fff"],
-body.light-mode div[style*="color:#ffffff"],
-body.light-mode div[style*="color: #ffffff"],
-body.light-mode span[style*="color:white"],
-body.light-mode span[style*="color:#fff"] {
+body.light-mode [style*="color:white"], 
+body.light-mode [style*="color: white"],
+body.light-mode [style*="color:#fff"],
+body.light-mode [style*="color: #fff"],
+body.light-mode [style*="color:#ffffff"],
+body.light-mode [style*="color: #ffffff"],
+body.light-mode [style*="color: rgb(255, 255, 255)"],
+body.light-mode [style*="color:rgb(255, 255, 255)"] {
   color: var(--text-main) !important;
   text-shadow: none !important;
+  -webkit-text-stroke: 0 !important;
 }
 
 /* Clean SaaS Elements */
@@ -1164,14 +1172,33 @@ body.light-mode .filter-select, body.light-mode .port-filter-select {
 }
 body.light-mode .filter-select option, body.light-mode .port-filter-select option { background-color: #ffffff; color: #0f172a; }
 
-body.light-mode td { color: #1e293b; border-bottom-color: #f1f5f9; }
-body.light-mode th { color: #64748b; border-bottom-color: #e2e8f0; background: #f8fafc; }
+body.light-mode td { color: #0f172a; border-bottom-color: #f1f5f9; }
+body.light-mode th { color: #1e293b; font-weight: 800; border-bottom-color: #e2e8f0; background: #f8fafc; }
 body.light-mode tr:hover td { background: #f8fafc; }
 
 body.light-mode .port-filter-box { background: #f8fafc; border-color: var(--glass-border); }
 
-body.light-mode .kpi-label, body.light-mode .spark-card-label { color: #64748b; font-weight: 700; }
-body.light-mode .panel-title { color: #334155; font-weight: 700; border-bottom: 1px solid #f1f5f9; padding-bottom: 8px; margin-bottom: 12px; }
+body.light-mode .kpi-label, body.light-mode .spark-card-label { color: #1e293b; font-weight: 700; }
+body.light-mode .panel-title { color: #1e293b; font-weight: 800; border-bottom: 1px solid #f1f5f9; padding-bottom: 8px; margin-bottom: 12px; }
+
+/* GLOBAL TEXT DARKENER — catches every var(--text-muted)/var(--text-mid) consumer */
+body.light-mode {
+  --text-muted: #1e293b !important;
+  --text-mid: #0f172a !important;
+}
+body.light-mode .kpi-sub,
+body.light-mode .spark-card-trend.flat,
+body.light-mode .nav-section-label,
+body.light-mode .welcome-msg,
+body.light-mode .port-brand-sub,
+body.light-mode .calc-item-label,
+body.light-mode .budget-amounts,
+body.light-mode .insight-rec-desc,
+body.light-mode .empty-state,
+body.light-mode .set-desc,
+body.light-mode th {
+  color: #334155 !important;
+}
 
 body.light-mode .input-field { background-color: #ffffff; border-color: #cbd5e1; color: #0f172a; box-shadow: none; }
 body.light-mode .input-field:focus { border-color: var(--accent); box-shadow: none; }
@@ -5525,12 +5552,16 @@ function renderDashboard() {
 }
 
 function renderDashboardImmediate() {
-  // Wait for canvases to be fully painted
-  const requiredCanvases = ['dashChart', 'dashDonut', 'dash-port-donut', 'dash-roi-bar'];
-  const allReady = requiredCanvases.every(id => {
-    const el = document.getElementById(id);
-    return el && el.offsetParent !== null && el.offsetWidth > 0;
-  });
+  // Wait for elements to be fully painted (accounting for dynamic HTML wrappers)
+  const requiredElements = [
+    document.getElementById('dashChart') || document.getElementById('dashChart-liquid-wrap'),
+    document.getElementById('dashDonut') || document.getElementById('dashDonut-mix-wrap'),
+    document.getElementById('dash-port-donut') || document.getElementById('dash-port-donut-wrap'),
+    document.getElementById('dash-roi-bar')
+  ];
+  
+  const allReady = requiredElements.every(el => el && el.offsetParent !== null && el.offsetWidth > 0);
+  
   if (!allReady) {
     setTimeout(renderDashboardImmediate, 100);
     return;
@@ -5563,137 +5594,112 @@ function renderDashboardImmediate() {
   roiEl.textContent = pStats.avgRoi.toFixed(1) + '%';
   roiEl.style.color = pStats.avgRoi >= 0 ? 'var(--c-inc)' : 'var(--danger)';
 
-// 1. Cash Flow Snapshot - Matte Orbital Rings
+// 1. Cash Flow Snapshot - Glowing Liquid Flow Bars
   destroyChart('dash');
-  const dashCtx = document.getElementById('dashChart').getContext('2d');
-  
+  const dashEl = document.getElementById('dashChart');
+
   const cfLabels = ['Income', 'Investments', 'Expenses', 'Loans'];
-  const orbitalColors = ['#34d399', '#fbbf24', '#f472b6', '#60a5fa'];
-  const orbitalData = [totalInc, totalInv, totalExp, totalLoan];
-  const maxVal = Math.max(...orbitalData) * 1.1;
+  const flowColors = ['#34d399', '#fbbf24', '#f472b6', '#60a5fa'];
+  const flowData = [totalInc, totalInv, totalExp, totalLoan];
+  const flowTotal = flowData.reduce((a,b) => a+b, 0) || 1;
 
-  charts['dash'] = new Chart(dashCtx, {
-    type: 'doughnut',
-    data: {
-      labels: cfLabels,
-      datasets: orbitalData.map((val, i) => {
-        // FIX 1: Stretched the gradient to 360 to match the new taller container
-        const isLight = document.body.classList.contains('light-mode');
-        const g = dashCtx.createLinearGradient(0, 0, 0, 360);
-        g.addColorStop(0, orbitalColors[i] + (isLight ? 'ff' : 'dd')); // Crisp solid in light mode
-        g.addColorStop(1, orbitalColors[i] + (isLight ? 'dd' : '33')); // No dirty fade in light mode
+  // Replace canvas with an HTML container so we can build a richer liquid-bar UI
+  let dashWrap = document.getElementById('dashChart-liquid-wrap');
+  if (dashEl && dashEl.tagName === 'CANVAS') {
+    dashWrap = document.createElement('div');
+    dashWrap.id = 'dashChart-liquid-wrap';
+    dashWrap.style.cssText = 'width:100%;height:100%;display:flex;flex-direction:column;justify-content:center;gap:18px;padding:6px 4px';
+    dashEl.parentNode.replaceChild(dashWrap, dashEl);
+  }
 
-        return {
-          data: [val, maxVal - val],
-          backgroundColor: [g, 'transparent'], 
-          borderWidth: 0,
-          borderRadius: 100, 
-          circumference: 270,
-          rotation: 225,
-          weight: 0.5
-        };
-      })
-    },
-    options: {
-      responsive: true, maintainAspectRatio: false,
-      cutout: '30%',
-      spacing: 8,
-      layout: { padding: { bottom: 20, top: 10 } }, // FIX 2: Prevents the 3D drop-shadow from clipping at the bottom edge
-      plugins: {
-        legend: { 
-          position: 'right', 
-          labels: { 
-            usePointStyle: true, 
-            font: { size: 11, weight: '700' },
-            generateLabels: function(chart) {
-              return chart.data.labels.map((label, i) => ({
-                text: label,
-                fillStyle: orbitalColors[i],
-                strokeStyle: 'transparent',
-                lineWidth: 0,
-                datasetIndex: i,
-                fontColor: chartTextColor()
-              }));
-            }
-          },
-          onClick: null 
-        },
-        tooltip: { 
-          filter: function(tooltipItem) { return tooltipItem.dataIndex === 0; },
-          callbacks: { 
-            label: function(context) {
-              const label = context.chart.data.labels[context.datasetIndex];
-              return ` ${label}: ₹${context.raw.toLocaleString('en-IN')}`;
-            }
-          } 
-        }
-      }
-    }
+  const maxFlow = Math.max(...flowData) || 1;
+  const isLightDash = document.body.classList.contains('light-mode');
+
+  dashWrap.innerHTML = cfLabels.map((label, i) => {
+    const val = flowData[i];
+    const hex = flowColors[i];
+    const pctOfMax = Math.max(2, (val / maxFlow) * 100);
+    const pctOfTotal = ((val / flowTotal) * 100).toFixed(1);
+    const trackBg = isLightDash ? 'rgba(0,0,0,0.05)' : 'rgba(255,255,255,0.05)';
+    return `
+      <div style="display:flex;flex-direction:column;gap:6px">
+        <div style="display:flex;justify-content:space-between;align-items:baseline">
+          <div style="display:flex;align-items:center;gap:8px">
+            <span style="width:8px;height:8px;border-radius:50%;background:${hex};box-shadow:0 0 10px ${hex}"></span>
+            <span style="font-size:0.8rem;font-weight:700;color:${chartTextColor()}">${label}</span>
+          </div>
+          <div style="display:flex;align-items:baseline;gap:8px">
+            <span style="font-family:'DM Mono',monospace;font-size:0.92rem;font-weight:700;color:${isLightDash ? '#0f172a' : hex}">₹${Math.round(val).toLocaleString('en-IN')}</span>
+            <span style="font-size:0.65rem;color:var(--text-muted);font-family:'DM Mono',monospace">${pctOfTotal}%</span>
+          </div>
+        </div>
+        <div style="height:14px;border-radius:99px;background:${trackBg};overflow:hidden;position:relative;border:1px solid ${hex}22">
+          <div style="height:100%;width:${pctOfMax}%;border-radius:99px;background:linear-gradient(90deg, ${hex}aa, ${hex});box-shadow:0 0 14px ${hex}80, inset 0 1px 0 rgba(255,255,255,0.3);transition:width 0.8s cubic-bezier(0.16,1,0.3,1);position:relative">
+            <div style="position:absolute;inset:0;background:linear-gradient(180deg, rgba(255,255,255,0.25), transparent 60%);border-radius:99px"></div>
+          </div>
+        </div>
+      </div>
+    `;
+  }).join('');
+
+
+/// 2. Spending Mix - Premium Ranked Flow Bars
+  const mixEl = document.getElementById('dashDonut');
+
+  let mixWrap = document.getElementById('dashDonut-mix-wrap');
+  if (mixEl && mixEl.tagName === 'CANVAS') {
+    mixWrap = document.createElement('div');
+    mixWrap.id = 'dashDonut-mix-wrap';
+    mixEl.parentNode.replaceChild(mixWrap, mixEl);
+  }
+  if (!mixWrap) mixWrap = document.getElementById('dashDonut-mix-wrap');
+
+  mixWrap.style.cssText = 'width:100%;height:360px;overflow-y:auto;overflow-x:hidden;padding:4px 6px 4px 2px;scrollbar-width:none;-ms-overflow-style:none';
+
+  const expByCat2 = {};
+  const filteredData2 = getFilteredData();
+  filteredData2.filter(t => t.type === 'Expense').forEach(t => {
+    const catName = t.sub || t.category || 'General';
+    expByCat2[catName] = (expByCat2[catName] || 0) + t.amount;
   });
 
+  const mixEntries = Object.entries(expByCat2).sort((a,b) => b[1] - a[1]);
+  const mixTotal = mixEntries.reduce((a,[,v]) => a+v, 0) || 1;
+  const mixMax = mixEntries.length ? mixEntries[0][1] : 1;
+  const mixPalette = ['#34d399','#60a5fa','#f472b6','#fbbf24','#a78bfa','#2dd4bf','#fb923c','#38bdf8','#f87171','#4ade80','#c084fc','#facc15','#22d3ee'];
+  const isLightMix = document.body.classList.contains('light-mode');
 
-// 2. Sankey Spending Flow (Income → Categories) - THEME & OVERLAP FIX
-  const mixEl = document.getElementById('dashDonut');
-  
-  if (mixEl && mixEl.tagName === 'CANVAS') {
-    const sankeyDiv = document.createElement('div');
-    sankeyDiv.id = 'dashDonut';
-    sankeyDiv.style.width = '100%';
-    sankeyDiv.style.height = '360px'; // Matching the new massive container
-    sankeyDiv.style.position = 'relative'; // Creates strict boundary
-    sankeyDiv.style.overflow = 'hidden'; // STRICT clipping to kill spidey lines
-    sankeyDiv.style.borderRadius = '12px'; // Smooth rounded corners
-    mixEl.parentNode.replaceChild(sankeyDiv, mixEl);
+  if (mixEntries.length === 0) {
+    mixWrap.innerHTML = `<div class="empty-state" style="padding-top:2.5rem"><i class="fas fa-receipt"></i><p>No expense data for this period</p></div>`;
+  } else {
+    mixWrap.innerHTML = `<style>#dashDonut-mix-wrap::-webkit-scrollbar{display:none}</style>` + mixEntries.map(([cat, amt], i) => {
+      const hex = mixPalette[i % mixPalette.length];
+      const pctOfMax = Math.max(3, (amt / mixMax) * 100);
+      const pctOfTotal = ((amt / mixTotal) * 100).toFixed(1);
+      const trackBg = isLightMix ? 'rgba(0,0,0,0.04)' : 'rgba(255,255,255,0.04)';
+      return `
+        <div style="display:flex;align-items:center;gap:10px;padding:6px 0">
+          <div style="width:108px;flex-shrink:0;display:flex;align-items:center;gap:7px;overflow:hidden">
+            <span style="width:7px;height:7px;border-radius:50%;background:${hex};box-shadow:0 0 8px ${hex};flex-shrink:0"></span>
+            <span style="font-size:0.74rem;font-weight:600;color:${chartTextColor()};white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${cat}</span>
+          </div>
+          <div style="flex:1;height:11px;border-radius:99px;background:${trackBg};overflow:hidden;position:relative">
+            <div style="height:100%;width:${pctOfMax}%;border-radius:99px;background:linear-gradient(90deg, ${hex}99, ${hex});box-shadow:0 0 10px ${hex}66;position:relative">
+              <div style="position:absolute;inset:0;background:linear-gradient(180deg, rgba(255,255,255,0.25), transparent 60%);border-radius:99px"></div>
+            </div>
+          </div>
+          <div style="width:78px;flex-shrink:0;text-align:right">
+            <span style="font-family:'DM Mono',monospace;font-size:0.74rem;font-weight:700;color:${isLightMix ? '#0f172a' : hex}">₹${Math.round(amt).toLocaleString('en-IN')}</span>
+          </div>
+          <div style="width:42px;flex-shrink:0;text-align:right">
+            <span style="font-family:'DM Mono',monospace;font-size:0.65rem;color:var(--text-muted)">${pctOfTotal}%</span>
+          </div>
+        </div>
+      `;
+    }).join('');
   }
 
-  if (window.google && google.charts) {
-    google.charts.load('current', {'packages':['sankey']});
-    google.charts.setOnLoadCallback(() => {
-      const dataTable = new google.visualization.DataTable();
-      dataTable.addColumn('string', 'From');
-      dataTable.addColumn('string', 'To');
-      dataTable.addColumn('number', 'Amount');
-
-      const expByCat = {};
-      const filteredData = getFilteredData();
-      filteredData.filter(t => t.type === 'Expense').forEach(t => {
-        const catName = t.sub || t.category || 'General';
-        expByCat[catName] = (expByCat[catName] || 0) + t.amount;
-      });
-
-      const rows = [];
-      Object.keys(expByCat).forEach(cat => {
-        rows.push(['Income', cat, expByCat[cat]]);
-      });
-
-      if (rows.length === 0) rows.push(['Income', 'No Expenses', 0.1]);
-      dataTable.addRows(rows);
-
-      const isLight = document.body.classList.contains('light-mode');
-      const options = {
-        height: 350, // Gives a safe 10px buffer inside the 360px box
-        width: '100%',
-        tooltip: { isHtml: true }, 
-        sankey: {
-          node: {
-            colors: ['#34d399', '#f472b6', '#60a5fa', '#fbbf24', '#a78bfa', '#2dd4bf'],
-            label: { fontName: 'DM Sans', fontSize: 11, color: isLight ? '#0f172a' : '#ffffff', bold: true },
-            width: 10,
-            nodePadding: 16 // REDUCED: Prevents the bottom nodes from pushing the lines into the floor
-          },
-          link: {
-            colorMode: 'gradient',
-            fillOpacity: 0.15 
-          }
-        }
-      };
-
-      const chart = new google.visualization.Sankey(document.getElementById('dashDonut'));
-      chart.draw(dataTable, options);
-    });
-  }
-
-  // Portfolio by asset type donut — colours keyed by asset type
+ // Portfolio by asset type - Center-Stat Ring + Progress Legend
   const byType = {};
   pd.forEach(e => {
     const c = portCalc(e);
@@ -5703,21 +5709,84 @@ function renderDashboardImmediate() {
   const typeKeys   = Object.keys(byType);
   const typeLabels = typeKeys.map(k => assetTypeLabel(k));
   const hasPortData = typeKeys.length > 0;
-  
-  if (hasPortData && !charts['dash-port-donut']) {
-    charts['dash-port-donut'] = makeDonut(
-      'dash-port-donut',
-      typeLabels,
-      typeKeys.map(k => byType[k]),
-      typeKeys.map(k => assetColor(k))
-    );
-  } else if (hasPortData && charts['dash-port-donut']) {
-    charts['dash-port-donut'].data.labels = typeLabels;
-    charts['dash-port-donut'].data.datasets[0].data = typeKeys.map(k => byType[k]);
-    charts['dash-port-donut'].options.plugins.legend.labels.color = chartTextColor();
-    charts['dash-port-donut'].update('none');
-  } else if (!hasPortData && charts['dash-port-donut']) {
-    destroyChart('dash-port-donut');
+
+  destroyChart('dash-port-donut');
+  const portDonutEl = document.getElementById('dash-port-donut');
+
+  let portDonutWrap = document.getElementById('dash-port-donut-wrap');
+  if (portDonutEl && portDonutEl.tagName === 'CANVAS') {
+    portDonutWrap = document.createElement('div');
+    portDonutWrap.id = 'dash-port-donut-wrap';
+    portDonutEl.parentNode.replaceChild(portDonutWrap, portDonutEl);
+  }
+  if (!portDonutWrap) portDonutWrap = document.getElementById('dash-port-donut-wrap');
+
+  if (!hasPortData) {
+    portDonutWrap.innerHTML = '<div class="empty-state" style="padding-top:2rem"><i class="fas fa-gem"></i><p>No portfolio data</p></div>';
+  } else {
+    const portDonutTotal = typeKeys.reduce((a,k) => a + byType[k], 0) || 1;
+    portDonutWrap.style.cssText = 'display:flex;align-items:center;gap:18px;height:100%;padding:4px';
+    portDonutWrap.innerHTML = `
+      <div style="position:relative;width:130px;height:130px;flex-shrink:0">
+        <canvas id="dash-port-donut-ring"></canvas>
+        <div style="position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;pointer-events:none">
+          <div style="font-family:'DM Mono',monospace;font-weight:700;font-size:1rem;color:${chartTextColor()}">${typeKeys.length}</div>
+          <div style="font-size:0.6rem;color:var(--text-muted);font-weight:600;text-transform:uppercase;letter-spacing:0.5px;margin-top:1px">Assets</div>
+        </div>
+      </div>
+      <div style="flex:1;display:flex;flex-direction:column;gap:9px;min-width:0;max-height:170px;overflow-y:auto;scrollbar-width:none;-ms-overflow-style:none">
+        <style>#dash-port-donut-wrap .legend-scroll::-webkit-scrollbar{display:none}</style>
+        ${typeKeys.map(k => {
+          const hex = assetColor(k);
+          const pct = (byType[k] / portDonutTotal) * 100;
+          return `
+            <div style="display:flex;flex-direction:column;gap:4px">
+              <div style="display:flex;align-items:center;justify-content:space-between;gap:8px">
+                <div style="display:flex;align-items:center;gap:6px;min-width:0">
+                  <span style="width:7px;height:7px;border-radius:50%;background:${hex};box-shadow:0 0 8px ${hex};flex-shrink:0"></span>
+                  <span style="font-size:0.74rem;font-weight:600;color:${chartTextColor()};white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${assetTypeLabel(k)}</span>
+                </div>
+                <span style="font-family:'DM Mono',monospace;font-size:0.74rem;font-weight:700;color:${hex};flex-shrink:0">${pct.toFixed(0)}%</span>
+              </div>
+              <div style="height:4px;border-radius:99px;background:rgba(255,255,255,0.06);overflow:hidden">
+                <div style="height:100%;width:${pct}%;border-radius:99px;background:${hex};box-shadow:0 0 6px ${hex}80"></div>
+              </div>
+            </div>
+          `;
+        }).join('')}
+      </div>
+    `;
+
+    const ringCtx = document.getElementById('dash-port-donut-ring').getContext('2d');
+    charts['dash-port-donut'] = new Chart(ringCtx, {
+      type: 'doughnut',
+      data: {
+        labels: typeLabels,
+        datasets: [{
+          data: typeKeys.map(k => byType[k]),
+          backgroundColor: typeKeys.map(k => assetColor(k)),
+          borderColor: 'transparent',
+          borderWidth: 0,
+          spacing: 3,
+          hoverOffset: 6
+        }]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        cutout: '72%',
+        animation: { animateRotate: true, duration: 800, easing: 'easeOutQuart' },
+        plugins: {
+          legend: { display: false },
+          tooltip: {
+            backgroundColor: 'rgba(8,11,26,0.97)',
+            titleFont: { family:'DM Sans', size:12, weight:'700' },
+            bodyFont:  { family:'DM Mono', size:11 },
+            callbacks: { label: ctx => `  ₹${Math.round(ctx.raw).toLocaleString('en-IN')}` }
+          }
+        }
+      }
+    });
   }
 
 
@@ -5790,92 +5859,40 @@ function renderDashboardImmediate() {
     });
   }
 
-  // Top 3 Holdings - Modern Floating Pill Leaderboard
+  // Top 3 Holdings - Liquid Flow Bars (matches Cash Flow Snapshot style)
   const sorted = pd.map(e => ({...e, ...portCalc(e)})).sort((a,b) => b.roi - a.roi).slice(0,3);
   const top3El = document.getElementById('dash-top3');
-  
+
   if (sorted.length) {
-    // Inject a canvas container safely
-    top3El.innerHTML = `<div style="height:190px; position:relative; margin-top:-5px;"><canvas id="dash-top3-chart"></canvas></div>`;
-    destroyChart('dash-top3-chart');
-    
-    // Safety delay to ensure canvas is drawn before Chart.js takes over
-    setTimeout(() => {
-      const canvas = document.getElementById('dash-top3-chart');
-      if (!canvas) return;
-      const ctx = canvas.getContext('2d');
-      
-      charts['dash-top3-chart'] = new Chart(ctx, {
-        type: 'bar',
-        data: {
-          // Cleanly formats the label (e.g. "Silver 20g" or "Real Estate 1u")
-          labels: sorted.map(s => {
-            const u = s.unit === 'grams' ? 'g' : s.unit === 'units' ? 'u' : '';
-            return `${assetTypeLabel(s.assetType)} ${s.quantity}${u}`;
-          }),
-          datasets: [{
-            data: sorted.map(s => s.roi),
-            backgroundColor: sorted.map(s => {
-              const hex = assetColor(s.assetType);
-              
-              // Generate the sleek diagonal glass stripe overlay
-              const pCanvas = document.createElement('canvas');
-              pCanvas.width = 16; pCanvas.height = 16;
-              const pCtx = pCanvas.getContext('2d');
-              
-              pCtx.fillStyle = hex + 'cc'; // Matte solid base
-              pCtx.fillRect(0, 0, 16, 16);
-              
-              pCtx.strokeStyle = 'rgba(0, 0, 0, 0.3)'; // 25% white glassy lines
-              pCtx.lineWidth = 3;
-              pCtx.beginPath(); pCtx.moveTo(-5, 21); pCtx.lineTo(21, -5); pCtx.stroke();
-              
-              const targetCtx = document.getElementById('dash-top3-chart').getContext('2d');
-              return targetCtx.createPattern(pCanvas, 'repeat');
-            }),
-            borderColor: 'transparent',
-            borderWidth: 0,
-            borderRadius: 100, // Forces the perfectly rounded floating pill
-            borderSkipped: false, // Ensures the base is rounded too!
-            barThickness: 26 // Premium, thick leaderboard capsules
-          }]
-        },
-        options: {
-          responsive: true, maintainAspectRatio: false,
-          indexAxis: 'y', // Horizontal bars
-          plugins: {
-            legend: { display: false }, // Hides the legend for a cleaner UI
-            tooltip: {
-              backgroundColor: 'rgba(8,11,26,0.97)',
-              titleFont: { family:'DM Sans', size:12, weight:'700' },
-              bodyFont:  { family:'DM Mono', size:11 },
-              callbacks: { 
-                title: ctx => {
-                  const s = sorted[ctx[0].dataIndex];
-                  return `${assetTypeLabel(s.assetType)} · Purchased ${s.date}`;
-                },
-                label: ctx => {
-                  const s = sorted[ctx.dataIndex];
-                  return `  ${s.roi.toFixed(1)}% ROI  (₹${s.gainLoss.toLocaleString('en-IN')} gain)`;
-                }
-              }
-            }
-          },
-          scales: {
-            x: { 
-              display: false, 
-              grid: { display: false },
-              grace: '15%' 
-            },
-            y: { 
-              grid: { display: false }, 
-              border: { display: false }, // <-- Removes the vertical line
-              ticks: { color: chartTextColor(), font: { size: 11, weight: '600' } }
-            }
-          }
-        }
-      });
-    }, 10);
+    const top3Max = Math.max(...sorted.map(s => Math.abs(s.roi))) || 1;
+    const isLightTop3 = document.body.classList.contains('light-mode');
+    top3El.innerHTML = `<div style="display:flex;flex-direction:column;gap:18px;padding:6px 4px">` +
+      sorted.map(s => {
+        const u = s.unit === 'grams' ? 'g' : s.unit === 'units' ? 'u' : '';
+        const label = `${assetTypeLabel(s.assetType)} ${s.quantity}${u}`;
+        const hex = assetColor(s.assetType);
+        const pct = Math.max(3, (Math.abs(s.roi) / top3Max) * 100);
+        const trackBg = isLightTop3 ? 'rgba(0,0,0,0.05)' : 'rgba(255,255,255,0.05)';
+        return `
+          <div style="display:flex;flex-direction:column;gap:6px">
+            <div style="display:flex;justify-content:space-between;align-items:baseline">
+              <div style="display:flex;align-items:center;gap:8px">
+                <span style="width:8px;height:8px;border-radius:50%;background:${hex};box-shadow:0 0 10px ${hex}"></span>
+                <span style="font-size:0.8rem;font-weight:700;color:${chartTextColor()}">${label}</span>
+              </div>
+              <div style="display:flex;align-items:baseline;gap:8px">
+                <span style="font-family:'DM Mono',monospace;font-size:0.92rem;font-weight:700;color:${hex}">${s.roi.toFixed(1)}%</span>
+                <span style="font-size:0.65rem;color:var(--text-muted);font-family:'DM Mono',monospace">₹${Math.round(s.gainLoss).toLocaleString('en-IN')}</span>
+              </div>
+            </div>
+            <div style="height:14px;border-radius:99px;background:${trackBg};overflow:hidden;position:relative;border:1px solid ${hex}22">
+              <div style="height:100%;width:${pct}%;border-radius:99px;background:linear-gradient(90deg, ${hex}aa, ${hex});box-shadow:0 0 14px ${hex}80, inset 0 1px 0 rgba(255,255,255,0.3);transition:width 0.8s cubic-bezier(0.16,1,0.3,1);position:relative">
+                <div style="position:absolute;inset:0;background:linear-gradient(180deg, rgba(255,255,255,0.25), transparent 60%);border-radius:99px"></div>
+              </div>
+            </div>
+          </div>
+        `;
+      }).join('') + `</div>`;
   } else {
     top3El.innerHTML = '<div class="empty-state"><i class="fas fa-inbox"></i>No portfolio data</div>';
   }
@@ -7311,55 +7328,40 @@ function renderPortOverview() {
     });
   }
 
-  // ── BEST PERFORMERS: ELEVATED PODIUM CARDS ──
+// ── BEST PERFORMERS: Liquid Flow Bars (matches Cash Flow Snapshot style) ──
   const rawTop3 = data.map(e => ({...e, ...portCalc(e)})).sort((a,b) => b.roi - a.roi).slice(0,3);
   const portTop3El = document.getElementById('port-top3');
 
   if (rawTop3.length) {
-    // Layout for visual elevation: [2nd (Left), 1st (Center), 3rd (Right)]
-    const podiumOrder = [];
-    if (rawTop3[1]) podiumOrder.push({ ...rawTop3[1], rank: 2, medal: '🥈', color: '#cbd5e1', podiumH: '72%' });
-    if (rawTop3[0]) podiumOrder.push({ ...rawTop3[0], rank: 1, medal: '🥇', color: '#fbbf24', podiumH: '100%' });
-    if (rawTop3[2]) podiumOrder.push({ ...rawTop3[2], rank: 3, medal: '🥉', color: '#cd7f32', podiumH: '58%' });
-
-    portTop3El.innerHTML = `
-      <div style="display: flex; align-items: flex-end; justify-content: center; gap: 10px; height: 180px; padding: 10px 5px;">
-        ${podiumOrder.map(item => {
-          const isFirst = item.rank === 1;
-          // Set physical elevation heights
-          const h = isFirst ? '100%' : item.rank === 2 ? '82%' : '72%';
-          const unitLabel = item.unit === 'grams' ? 'g' : item.unit === 'units' ? 'u' : '';
-          const themeColor = assetColor(item.assetType);
-          
-    const isLight = document.body.classList.contains('light-mode');
-          const podBg = isLight ? 'linear-gradient(180deg, #ffffff 0%, #f1f5f9 100%)' : 'linear-gradient(180deg, rgba(255,255,255,0.08) 0%, rgba(0,0,0,0.5) 100%)';
-          const podShadow = isLight ? 'none' : '0 12px 40px rgba(0,0,0,0.6)';
-          const podText = isLight ? '#0f172a' : 'white';
-          
-          return `
-            <div style="flex: 1; height: ${h}; display: flex; flex-direction: column; align-items: center; justify-content: flex-end; position: relative;">
-              <div style="font-size: 1.4rem; margin-bottom: 6px; filter: drop-shadow(0 0 10px ${item.color}${isLight ? '40' : '80'});">${item.medal}</div>
-              
-              <div style="
-                width: 100%; 
-                background: ${podBg}; 
-                border: 1px solid ${isLight ? '#e2e8f0' : item.color+'30'}; 
-                border-top: 3px solid ${themeColor};
-                border-radius: 14px 14px 6px 6px; 
-                padding: 12px 4px; 
-                text-align: center;
-                box-shadow: ${podShadow};
-                transition: transform 0.3s ease;
-              ">
-                <div style="font-size: 0.62rem; color: var(--text-muted); text-transform: uppercase; font-weight: 800; letter-spacing: 1px; margin-bottom: 2px;">${assetTypeLabel(item.assetType)}</div>
-                <div style="font-size: 0.75rem; font-weight: 700; color: ${podText}; margin-bottom: 4px;">${item.quantity}${unitLabel}</div>
-                <div style="font-family: 'DM Mono', monospace; font-size: 1.1rem; font-weight: 800; color: #34d399; text-shadow: ${isLight ? 'none' : '0 0 12px rgba(52,211,153,0.5)'};">+${item.roi.toFixed(0)}%</div>
+    const portTop3Max = Math.max(...rawTop3.map(s => Math.abs(s.roi))) || 1;
+    const isLightPortTop3 = document.body.classList.contains('light-mode');
+    portTop3El.innerHTML = `<div style="display:flex;flex-direction:column;gap:18px;padding:6px 4px">` +
+      rawTop3.map(item => {
+        const unitLabel = item.unit === 'grams' ? 'g' : item.unit === 'units' ? 'u' : '';
+        const label = `${assetTypeLabel(item.assetType)} ${item.quantity}${unitLabel}`;
+        const hex = assetColor(item.assetType);
+        const pct = Math.max(3, (Math.abs(item.roi) / portTop3Max) * 100);
+        const trackBg = isLightPortTop3 ? 'rgba(0,0,0,0.05)' : 'rgba(255,255,255,0.05)';
+        return `
+          <div style="display:flex;flex-direction:column;gap:6px">
+            <div style="display:flex;justify-content:space-between;align-items:baseline">
+              <div style="display:flex;align-items:center;gap:8px">
+                <span style="width:8px;height:8px;border-radius:50%;background:${hex};box-shadow:0 0 10px ${hex}"></span>
+                <span style="font-size:0.8rem;font-weight:700;color:${chartTextColor()}">${label}</span>
+              </div>
+              <div style="display:flex;align-items:baseline;gap:8px">
+                <span style="font-family:'DM Mono',monospace;font-size:0.92rem;font-weight:700;color:${hex}">+${item.roi.toFixed(1)}%</span>
+                <span style="font-size:0.65rem;color:var(--text-muted);font-family:'DM Mono',monospace">₹${Math.round(item.gainLoss).toLocaleString('en-IN')}</span>
               </div>
             </div>
-          `;
-        }).join('')}
-      </div>
-    `;
+            <div style="height:14px;border-radius:99px;background:${trackBg};overflow:hidden;position:relative;border:1px solid ${hex}22">
+              <div style="height:100%;width:${pct}%;border-radius:99px;background:linear-gradient(90deg, ${hex}aa, ${hex});box-shadow:0 0 14px ${hex}80, inset 0 1px 0 rgba(255,255,255,0.3);transition:width 0.8s cubic-bezier(0.16,1,0.3,1);position:relative">
+                <div style="position:absolute;inset:0;background:linear-gradient(180deg, rgba(255,255,255,0.25), transparent 60%);border-radius:99px"></div>
+              </div>
+            </div>
+          </div>
+        `;
+      }).join('') + `</div>`;
   } else {
     portTop3El.innerHTML = '<div class="empty-state" style="padding:1rem"><i class="fas fa-gem"></i><p>No data</p></div>';
   }
@@ -7771,53 +7773,63 @@ function renderPortAnalytics() {
     });
   }
 
-  // 7. CAPITAL GAINS ENGINE (Stacked Horizontal Bar)
+  // 7. CAPITAL GAINS ENGINE - Dual Liquid Flow Bars (Principal + Gains)
   destroyChart('portgains');
   const gainsCanvas = document.getElementById('chart-port-gains');
-  if (gainsCanvas && types.length > 0) {
-    charts['portgains'] = new Chart(gainsCanvas.getContext('2d'), {
-      type: 'bar',
-      data: {
-        labels: typeLabels,
-        datasets: [
-          { 
-            label: 'Principal', 
-            data: typeInvested, 
-            backgroundColor: document.body.classList.contains('light-mode') ? 'rgba(0,0,0,0.05)' : 'rgba(255,255,255,0.05)', 
-            borderColor: document.body.classList.contains('light-mode') ? 'rgba(0,0,0,0.1)' : 'rgba(255,255,255,0.2)', 
-            borderWidth: 1 
-          },
-          { 
-            label: 'Unrealized Gains', 
-            data: typeGains, 
-            backgroundColor: 'rgba(16, 185, 129, 0.6)', // Increased opacity for better visibility
-            borderColor: '#10b981', 
-            borderWidth: 2 
-          }
-        ]
-      },
-      options: {
-          ...cOpts(true), maintainAspectRatio: false, indexAxis: 'y',
-          scales: {
-            x: { 
-              stacked: true, 
-              grid: { display: false }, 
-              border: { display: false }, // <-- Removes the bottom horizontal line
-              ticks: { display: false } 
-            },
-            y: { 
-              stacked: true, 
-              grid: { display: false }, 
-              border: { display: false }, // <-- Removes the left vertical line
-              ticks: { color: chartTextColor(), font: {family: 'DM Sans', weight: '700'} } 
-            }
-          },
-        plugins: {
-           legend: { display: false },
-           tooltip: { ...cOpts(true).plugins.tooltip, callbacks: { label: ctx => `  ${ctx.dataset.label}: ₹${ctx.raw.toLocaleString('en-IN')}` } }
-        }
-      }
-    });
+
+  let gainsWrap = document.getElementById('chart-port-gains-wrap');
+  if (gainsCanvas && gainsCanvas.tagName === 'CANVAS') {
+    gainsWrap = document.createElement('div');
+    gainsWrap.id = 'chart-port-gains-wrap';
+    gainsCanvas.parentNode.replaceChild(gainsWrap, gainsCanvas);
+  }
+  if (!gainsWrap) gainsWrap = document.getElementById('chart-port-gains-wrap');
+
+  if (!types.length) {
+    gainsWrap.innerHTML = '<div class="empty-state" style="padding-top:2rem"><i class="fas fa-layer-group"></i><p>No portfolio data</p></div>';
+  } else {
+    const gainsMaxInv  = Math.max(...typeInvested, 1);
+    const gainsMaxGain = Math.max(...typeGains.map(g => Math.abs(g)), 1);
+    const isLightGains = document.body.classList.contains('light-mode');
+    const principalHex = isLightGains ? '#94a3b8' : '#64748b';
+    const trackBg = isLightGains ? 'rgba(0,0,0,0.05)' : 'rgba(255,255,255,0.05)';
+
+    gainsWrap.style.cssText = 'display:flex;flex-direction:column;gap:16px;padding:8px 4px;height:100%;overflow-y:auto;scrollbar-width:none;-ms-overflow-style:none';
+    gainsWrap.innerHTML = `<style>#chart-port-gains-wrap::-webkit-scrollbar{display:none}</style>` +
+      types.map((t, i) => {
+        const inv  = typeInvested[i] || 0;
+        const gain = typeGains[i] || 0;
+        const gainHex = gain >= 0 ? '#10b981' : '#ef4444';
+        const invPct  = Math.max(inv > 0 ? 3 : 0, (inv / gainsMaxInv) * 100);
+        const gainPct = Math.max(gain !== 0 ? 3 : 0, (Math.abs(gain) / gainsMaxGain) * 100);
+        return `
+          <div style="display:flex;flex-direction:column;gap:6px">
+            <div style="font-size:0.78rem;font-weight:700;color:${chartTextColor()}">${assetTypeLabel(t)}</div>
+            <div style="display:flex;flex-direction:column;gap:4px">
+              <div style="display:flex;align-items:center;gap:8px">
+                <div style="flex:1;height:9px;border-radius:99px;background:${trackBg};overflow:hidden;position:relative">
+                  <div style="height:100%;width:${invPct}%;border-radius:99px;background:linear-gradient(90deg, ${principalHex}99, ${principalHex});box-shadow:0 0 8px ${principalHex}55;position:relative">
+                    <div style="position:absolute;inset:0;background:linear-gradient(180deg, rgba(255,255,255,0.2), transparent 60%);border-radius:99px"></div>
+                  </div>
+                </div>
+                <span style="font-family:'DM Mono',monospace;font-size:0.66rem;color:${principalHex};font-weight:700;width:70px;text-align:right;flex-shrink:0">₹${Math.round(inv).toLocaleString('en-IN')}</span>
+              </div>
+              <div style="display:flex;align-items:center;gap:8px">
+                <div style="flex:1;height:9px;border-radius:99px;background:${trackBg};overflow:hidden;position:relative">
+                  <div style="height:100%;width:${gainPct}%;border-radius:99px;background:linear-gradient(90deg, ${gainHex}99, ${gainHex});box-shadow:0 0 10px ${gainHex}70;position:relative">
+                    <div style="position:absolute;inset:0;background:linear-gradient(180deg, rgba(255,255,255,0.25), transparent 60%);border-radius:99px"></div>
+                  </div>
+                </div>
+                <span style="font-family:'DM Mono',monospace;font-size:0.66rem;color:${gainHex};font-weight:700;width:70px;text-align:right;flex-shrink:0">${gain>=0?'+':''}₹${Math.round(gain).toLocaleString('en-IN')}</span>
+              </div>
+            </div>
+          </div>
+        `;
+      }).join('') +
+      `<div style="display:flex;gap:16px;justify-content:center;margin-top:4px;padding-top:8px;border-top:1px solid ${trackBg}">
+         <div style="display:flex;align-items:center;gap:6px"><span style="width:7px;height:7px;border-radius:50%;background:${principalHex}"></span><span style="font-size:0.68rem;color:var(--text-muted);font-weight:600">Principal</span></div>
+         <div style="display:flex;align-items:center;gap:6px"><span style="width:7px;height:7px;border-radius:50%;background:#10b981"></span><span style="font-size:0.68rem;color:var(--text-muted);font-weight:600">Gains</span></div>
+       </div>`;
   }
 
   // 8. SYSTEMIC EXPOSURE (Bloomberg-Style Bullet Graph)
@@ -10098,7 +10110,7 @@ function destroyChart(key) {
     delete charts[key];
   }
 }
-function chartTextColor() { return document.body.classList.contains('light-mode') ? '#334155' : '#e2e8f0'; }
+function chartTextColor() { return document.body.classList.contains('light-mode') ? '#0f172a' : '#e2e8f0'; }
 function chartGridColor() { return document.body.classList.contains('light-mode') ? 'rgba(0,0,0,0.06)' : 'rgba(255,255,255,0.04)'; }
 function donutBorderColor() { return document.body.classList.contains('light-mode') ? 'rgba(255,255,255,0.9)' : 'rgba(7,9,26,0.9)'; }
 
@@ -10731,7 +10743,15 @@ function renderCreditCharts() {
   const colors  = ['#f97316','#fb923c','#fdba74','#fbbf24','#f59e0b','#ef4444','#ec4899','#a78bfa','#0075ff','#38bdf8','#34d399'];
 
 destroyChart('credit-bar');
-  const creditBarCtx = document.getElementById('credit-bar-chart').getContext('2d');
+  const creditBarEl = document.getElementById('credit-bar-chart');
+
+  let creditBarWrap = document.getElementById('credit-bar-chart-wrap');
+  if (creditBarEl && creditBarEl.tagName === 'CANVAS') {
+    creditBarWrap = document.createElement('div');
+    creditBarWrap.id = 'credit-bar-chart-wrap';
+    creditBarEl.parentNode.replaceChild(creditBarWrap, creditBarEl);
+  }
+  if (!creditBarWrap) creditBarWrap = document.getElementById('credit-bar-chart-wrap');
 
   // Group duplicate lender names and sum their balances
   const groupedCredit = creditDb.reduce((acc, curr) => {
@@ -10744,49 +10764,31 @@ destroyChart('credit-bar');
     .map(name => ({ lenderName: name, outstandingBalance: groupedCredit[name] }))
     .sort((a,b) => b.outstandingBalance - a.outstandingBalance);
 
-  charts['credit-bar'] = new Chart(creditBarCtx, {
-    type: 'bar',
-    data: {
-      labels: sortedCreditData.map(c => c.lenderName),
-      datasets: [{
-          label: 'Outstanding Balance',
-          data: sortedCreditData.map(c => c.outstandingBalance),
-          backgroundColor: '#4169e1', // Sleek Royal Blue
-          hoverBackgroundColor: '#ffd700', // Gold on hover for premium feel
-          borderColor: 'transparent',
-          borderWidth: 0,                    
-          borderRadius: 6, // Subtle rounded corners on the ends        
-          borderSkipped: false,
-          barPercentage: 0.75 // Gives the bars breathing room
-        }]
-    },
-    options: { 
-      ...cOpts(false),
-      indexAxis: 'y', // CRITICAL: This flips the chart horizontally
-      scales: { 
-          x: { 
-            display: true,
-            grid: { color: 'rgba(255, 255, 255, 0.05)' }, 
-            border: { display: false }, // <-- Removes the bottom horizontal line
-            ticks: { 
-              color: chartTextColor(), 
-              font: { size: 10, weight: '500' },
-              // Auto-format large numbers to 'k' or 'L' to save space
-              callback: function(value) {
-                  if (value >= 100000) return '₹' + (value / 100000).toFixed(1) + 'L';
-                  if (value >= 1000) return '₹' + (value / 1000).toFixed(0) + 'k';
-                  return '₹' + value;
-              }
-            } 
-          },
-          y: { 
-            grid: { display: false }, 
-            border: { display: false }, // <-- Removes the left vertical line
-            ticks: { color: chartTextColor(), font: { size: 11, weight: '600' } } 
-          } 
-        }
-    }
-  });
+  if (sortedCreditData.length === 0) {
+    creditBarWrap.innerHTML = '<div class="empty-state" style="padding-top:2rem"><i class="fas fa-credit-card"></i><p>No credit data</p></div>';
+  } else {
+    const creditBarMax = Math.max(...sortedCreditData.map(c => c.outstandingBalance)) || 1;
+    const isLightCreditBar = document.body.classList.contains('light-mode');
+    const creditBarHex = '#f97316';
+    creditBarWrap.style.cssText = 'display:flex;flex-direction:column;gap:14px;padding:6px 4px;overflow-y:auto;height:100%;scrollbar-width:none;-ms-overflow-style:none';
+    creditBarWrap.innerHTML = `<style>#credit-bar-chart-wrap::-webkit-scrollbar{display:none}</style>` + sortedCreditData.map(c => {
+      const pct = Math.max(3, (c.outstandingBalance / creditBarMax) * 100);
+      const trackBg = isLightCreditBar ? 'rgba(0,0,0,0.05)' : 'rgba(255,255,255,0.05)';
+      return `
+        <div style="display:flex;flex-direction:column;gap:6px">
+          <div style="display:flex;justify-content:space-between;align-items:baseline">
+            <span style="font-size:0.8rem;font-weight:700;color:${chartTextColor()}">${c.lenderName}</span>
+            <span style="font-family:'DM Mono',monospace;font-size:0.88rem;font-weight:700;color:${creditBarHex}">₹${Math.round(c.outstandingBalance).toLocaleString('en-IN')}</span>
+          </div>
+          <div style="height:13px;border-radius:99px;background:${trackBg};overflow:hidden;position:relative;border:1px solid ${creditBarHex}22">
+            <div style="height:100%;width:${pct}%;border-radius:99px;background:linear-gradient(90deg, ${creditBarHex}aa, ${creditBarHex});box-shadow:0 0 14px ${creditBarHex}80,inset 0 1px 0 rgba(255,255,255,0.3);transition:width 0.8s cubic-bezier(0.16,1,0.3,1);position:relative">
+              <div style="position:absolute;inset:0;background:linear-gradient(180deg, rgba(255,255,255,0.25), transparent 60%);border-radius:99px"></div>
+            </div>
+          </div>
+        </div>
+      `;
+    }).join('');
+  }
 
   // Type mix donut
   const typeMap = {};
@@ -10906,65 +10908,53 @@ function renderDashCreditCharts() {
     document.getElementById('kpi-credit-sub').textContent = `${activeCredit.length} active · ₹${Math.round(totalEmi).toLocaleString('en-IN')}/mo EMI`;
   }
 
-// Outstanding by lender bar (Floating Capsule UI)
+// Outstanding by lender - Liquid Flow Bars
   // Group duplicate lender names and sum their balances for the dashboard
   const groupedDashCredit = creditDb.reduce((acc, curr) => {
     acc[curr.lenderName] = (acc[curr.lenderName] || 0) + curr.outstandingBalance;
     return acc;
   }, {});
-  
+
   const sorted = Object.keys(groupedDashCredit)
     .map(name => ({ lenderName: name, outstandingBalance: groupedDashCredit[name] }))
     .sort((a,b) => b.outstandingBalance - a.outstandingBalance)
     .slice(0, 6);
-    
+
   destroyChart('dash-credit-bar');
-  
-  if (sorted.length) {
-    const outCtx = document.getElementById('dash-credit-bar').getContext('2d');
-    
-    charts['dash-credit-bar'] = new Chart(outCtx, {
-      type: 'bar',
-      data: {
-        labels: sorted.map(c => c.lenderName.length > 12 ? c.lenderName.slice(0,12)+'…' : c.lenderName),
-        datasets: [{
-          data: sorted.map(c => c.outstandingBalance),
-          backgroundColor: '#4169e1', 
-          hoverBackgroundColor: '#ffd700',
-          borderColor: 'transparent', 
-          borderWidth: 0, 
-          borderRadius: 6,
-          borderSkipped: false,
-          barPercentage: 0.75 
-        }]
-      },
-      options: { 
-        responsive: true,
-        maintainAspectRatio: false,
-        indexAxis: 'y', // Flipped to horizontal
-        plugins: {
-          legend: { display: false },
-          tooltip: {
-            backgroundColor: 'rgba(8,11,26,0.97)',
-            titleFont: { family:'DM Sans', size:12, weight:'700' },
-            bodyFont:  { family:'DM Mono', size:11 },
-            callbacks: { label: ctx => `  ₹${ctx.raw.toLocaleString('en-IN')}` }
-          }
-        },
-        scales: { 
-          x: { 
-            display: false, // Keep the dashboard clean by hiding the X axis
-            grid: { display: false, drawBorder: false }, 
-            beginAtZero: true,
-            grace: '10%' 
-          }, 
-          y: { 
-            grid: { display: false, drawBorder: false },
-            ticks: { color: chartTextColor(), font: { size: 11, weight: '600' } }
-          } 
-        } 
-      }
-    });
+  const dashCreditEl = document.getElementById('dash-credit-bar');
+
+  let dashCreditWrap = document.getElementById('dash-credit-bar-wrap');
+  if (dashCreditEl && dashCreditEl.tagName === 'CANVAS') {
+    dashCreditWrap = document.createElement('div');
+    dashCreditWrap.id = 'dash-credit-bar-wrap';
+    dashCreditEl.parentNode.replaceChild(dashCreditWrap, dashCreditEl);
+  }
+  if (!dashCreditWrap) dashCreditWrap = document.getElementById('dash-credit-bar-wrap');
+
+  if (sorted.length === 0) {
+    dashCreditWrap.innerHTML = '<div class="empty-state" style="padding-top:2rem"><i class="fas fa-credit-card"></i><p>No credit data</p></div>';
+  } else {
+    const dashCreditMax = Math.max(...sorted.map(c => c.outstandingBalance)) || 1;
+    const isLightDashCredit = document.body.classList.contains('light-mode');
+    const creditHex = '#f97316';
+    dashCreditWrap.style.cssText = 'display:flex;flex-direction:column;gap:10px;padding:6px 4px 0;height:100%;justify-content:flex-start;overflow-y:auto;overflow-x:hidden;scrollbar-width:none;-ms-overflow-style:none';
+    dashCreditWrap.innerHTML = `<style>#dash-credit-bar-wrap::-webkit-scrollbar{display:none}</style>` + sorted.map(c => {
+      const pct = Math.max(3, (c.outstandingBalance / dashCreditMax) * 100);
+      const trackBg = isLightDashCredit ? 'rgba(0,0,0,0.05)' : 'rgba(255,255,255,0.05)';
+      return `
+        <div style="display:flex;flex-direction:column;gap:5px">
+          <div style="display:flex;justify-content:space-between;align-items:baseline">
+            <span style="font-size:0.76rem;font-weight:700;color:${chartTextColor()};white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${c.lenderName}</span>
+            <span style="font-family:'DM Mono',monospace;font-size:0.8rem;font-weight:700;color:${creditHex}">₹${Math.round(c.outstandingBalance).toLocaleString('en-IN')}</span>
+          </div>
+          <div style="height:11px;border-radius:99px;background:${trackBg};overflow:hidden;position:relative;border:1px solid ${creditHex}22">
+            <div style="height:100%;width:${pct}%;border-radius:99px;background:linear-gradient(90deg, ${creditHex}aa, ${creditHex});box-shadow:0 0 12px ${creditHex}70,inset 0 1px 0 rgba(255,255,255,0.3);transition:width 0.8s cubic-bezier(0.16,1,0.3,1);position:relative">
+              <div style="position:absolute;inset:0;background:linear-gradient(180deg, rgba(255,255,255,0.25), transparent 60%);border-radius:99px"></div>
+            </div>
+          </div>
+        </div>
+      `;
+    }).join('');
   }
 
 // EMI vs Outstanding comparison - Modern Dual-Axis (Bar + Line)
@@ -15279,6 +15269,7 @@ function calcFn(key) {
     Calc.operand = parseFloat(Calc.display || '0');
     Calc.operator = key;
     Calc.history = (Calc.display || '0') + ' ' + key;
+    Calc.display = '';
     Calc.justEvaled = true;
   }
   else if (key === '=') calcDoEquals();
@@ -15382,8 +15373,16 @@ function sciFn(key) {
 }
 
 function sciHandleInput(val) {
+  if (Sci.justEvaled) {
+    // Starting a fresh number after a result/operator — ignore whatever
+    // leftover text the browser left in the box and start clean.
+    Sci.display = val.slice(-1) === '.' ? '0.' : val.slice(-1) || '';
+    Sci.justEvaled = false;
+    const d = document.getElementById('sci-display');
+    if (d) d.value = Sci.display;
+    return;
+  }
   Sci.display = val;
-  Sci.justEvaled = false;
 }
 
 // ══════════════════════════════════════════════
@@ -15419,8 +15418,36 @@ const UNIT_DATA = {
   temperature: { celsius:1, fahrenheit:1, kelvin:1 },
   area:        { sqm:1, sqkm:0.000001, sqft:10.7639, sqyard:1.19599, acre:0.000247105, hectare:0.0001 },
   volume:      { liter:1, ml:1000, gallon:0.264172, pint:2.11338, cup:4.22675, tbsp:67.628, tsp:202.884 },
-  currency:    { INR:1, USD:0.012, EUR:0.011, GBP:0.0095, JPY:1.79, AED:0.044, SGD:0.016 }
+  // Fallback rates only — used if live fetch fails or hasn't loaded yet
+  currency:    { INR:1, USD:0.012, EUR:0.011, GBP:0.0095, JPY:1.79, AED:0.044, SGD:0.016, AUD:0.018, CAD:0.016, CHF:0.011, CNY:0.087, SAR:0.044 }
 };
+
+// ── LIVE CURRENCY RATES (relative to 1 INR) ──────────────────────────────
+let liveCurrencyRates = null;
+let liveCurrencyTimestamp = null;
+let liveCurrencyFetching = false;
+
+async function fetchLiveCurrencyRates() {
+  if (liveCurrencyFetching) return;
+  liveCurrencyFetching = true;
+  try {
+    const res = await fetch('https://open.er-api.com/v6/latest/INR');
+    if (res.ok) {
+      const data = await res.json();
+      if (data && data.rates) {
+        liveCurrencyRates = data.rates; // e.g. { USD: 0.012, EUR: 0.011, ... } per 1 INR
+        liveCurrencyTimestamp = new Date();
+        const catSel = document.getElementById('unit-category');
+        if (catSel && catSel.value === 'currency') convertUnit();
+      }
+    }
+  } catch(e) {
+    console.warn('Live currency fetch failed — using fallback rates.', e);
+  }
+  liveCurrencyFetching = false;
+}
+fetchLiveCurrencyRates();
+setInterval(fetchLiveCurrencyRates, 5 * 60 * 1000); // refresh every 5 minutes
 
 function loadUnitOptions() {
   const cat = document.getElementById('unit-category').value;
@@ -15429,6 +15456,7 @@ function loadUnitOptions() {
   const toSel   = document.getElementById('unit-to');
   fromSel.innerHTML = units.map(u => `<option value="${u}">${u}</option>`).join('');
   toSel.innerHTML   = units.map((u,i) => `<option value="${u}" ${i===1?'selected':''}>${u}</option>`).join('');
+  if (cat === 'currency') fetchLiveCurrencyRates();
   convertUnit();
 }
 
@@ -15442,6 +15470,8 @@ function convertUnit() {
   if (isNaN(val)) { resultEl.textContent = '—'; formulaEl.textContent = ''; return; }
 
   let result;
+  let usingLive = false;
+
   if (cat === 'temperature') {
     if (from === 'celsius' && to === 'fahrenheit') result = val * 9/5 + 32;
     else if (from === 'fahrenheit' && to === 'celsius') result = (val - 32) * 5/9;
@@ -15450,13 +15480,29 @@ function convertUnit() {
     else if (from === 'fahrenheit' && to === 'kelvin') result = (val - 32) * 5/9 + 273.15;
     else if (from === 'kelvin' && to === 'fahrenheit') result = (val - 273.15) * 9/5 + 32;
     else result = val;
+  } else if (cat === 'currency' && liveCurrencyRates && liveCurrencyRates[from] && liveCurrencyRates[to]) {
+    // liveCurrencyRates are per 1 INR, so convert via INR as the pivot
+    const inrValue = val / liveCurrencyRates[from];
+    result = inrValue * liveCurrencyRates[to];
+    usingLive = true;
   } else {
     const data = UNIT_DATA[cat];
     result = (val / data[from]) * data[to];
   }
 
   resultEl.textContent = parseFloat(result.toFixed(6)).toLocaleString();
-  formulaEl.textContent = `${val} ${from} = ${parseFloat(result.toFixed(6))} ${to}`;
+
+  if (cat === 'currency') {
+    if (usingLive) {
+      const timeStr = liveCurrencyTimestamp ? liveCurrencyTimestamp.toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'}) : '';
+      formulaEl.innerHTML = `${val} ${from} = ${parseFloat(result.toFixed(6))} ${to} &nbsp;<span style="color:#34d399;font-weight:700">● Live</span> <span style="color:var(--text-muted)">(${timeStr})</span>`;
+    } else {
+      formulaEl.innerHTML = `${val} ${from} = ${parseFloat(result.toFixed(6))} ${to} &nbsp;<span style="color:#f59e0b;font-weight:700">⚠ Fallback rate — fetching live…</span>`;
+      fetchLiveCurrencyRates();
+    }
+  } else {
+    formulaEl.textContent = `${val} ${from} = ${parseFloat(result.toFixed(6))} ${to}`;
+  }
 }
 
 function switchAdvTab(tab, btn) {
@@ -15508,20 +15554,41 @@ document.addEventListener('keydown', (e) => {
     // 1.5. CALCULATOR PHYSICAL KEYBOARD SYNC
     // =====================================================================
     if (activeView === 'calculator') {
-        const keyMap = {
-            '0':'0', '1':'1', '2':'2', '3':'3', '4':'4', '5':'5', '6':'6', '7':'7', '8':'8', '9':'9',
-            '.':'.', '+':'+', '-': '−', '*':'×', '/':'÷', 'Enter':'=', '=':'=', 'Escape':'C', 'Backspace':'⌫', 'Delete':'C'
-        };
-        
-        // Only route the keystroke if we ARE NOT currently focused on the input field manually
-        if (keyMap[e.key] !== undefined && document.activeElement.tagName !== 'INPUT') {
-            e.preventDefault(); 
-            // Send it to the active panel
-            if (document.getElementById('adv-panel-sci').style.display === 'block') sciFn(keyMap[e.key]);
-            else calcFn(keyMap[e.key]);
-            return; 
+    const keyMap = {
+        '0':'0', '1':'1', '2':'2', '3':'3', '4':'4', '5':'5', '6':'6', '7':'7', '8':'8', '9':'9',
+        '.':'.', '+':'+', '-': '−', '*':'×', '/':'÷', 'Enter':'=', '=':'=', 'Escape':'C', 'Backspace':'⌫', 'Delete':'C'
+    };
+
+    const focusedId = document.activeElement ? document.activeElement.id : '';
+    const isCalcInput = focusedId === 'calc-display';
+    const isSciInput  = focusedId === 'sci-display';
+    const isOtherInput = document.activeElement &&
+        document.activeElement.tagName === 'INPUT' &&
+        !isCalcInput && !isSciInput;
+
+    if (keyMap[e.key] !== undefined && !isOtherInput) {
+        // For operators/Enter/Escape/Backspace, let calcFn/sciFn handle it instead of the browser's default input behavior
+        if (e.key !== '.' && !(e.key >= '0' && e.key <= '9')) {
+            e.preventDefault();
+            // Route based on WHICH input is focused. If neither display is focused
+            // (e.g. user clicked elsewhere on the page), default to whichever
+            // advanced panel is currently visible.
+            if (isSciInput) {
+                sciFn(keyMap[e.key]);
+            } else if (isCalcInput) {
+                calcFn(keyMap[e.key]);
+            } else if (document.getElementById('adv-panel-sci').style.display !== 'none') {
+                sciFn(keyMap[e.key]);
+            } else {
+                calcFn(keyMap[e.key]);
+            }
+            return;
         }
+        // Digits and '.' typed directly into the display input are handled fine by
+        // calcHandleInput/sciHandleInput via their oninput attribute — no need to intercept here.
     }
+}
+
 
     // =====================================================================
     // 2. SAFETY CHECK: Ignore if typing in ANY input, textarea, or select dropdown
