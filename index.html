@@ -232,6 +232,81 @@ body { background: radial-gradient(circle at 15% 0%, rgba(0,117,255,0.08), trans
 #backup-banner .backup-dismiss:hover { color: #fbbf24; }
 .autosave-dot.saving { background:var(--warning); animation:none; }
 /* ── CC UTILIZATION VIEW ── */
+.ins-toolbar { display:flex; align-items:center; justify-content:space-between; gap:1rem; margin-bottom:1.1rem; flex-wrap:wrap; }
+.ins-filter-tabs { display:flex; gap:8px; background:rgba(255,255,255,0.04); padding:5px; border-radius:12px; }
+.ins-tab { background:transparent; border:none; color:var(--text-muted); padding:7px 16px; border-radius:8px; font-size:0.82rem; font-weight:600; cursor:pointer; transition:0.15s; }
+.ins-tab:hover { color:var(--text-main); }
+.ins-tab.active { background:rgba(52,211,153,0.18); color:#34d399; }
+body.light-mode .ins-tab.active { background:#d1fae5; color:#047857; }
+.ins-summary-strip { display:grid; grid-template-columns:repeat(4,1fr); gap:.8rem; margin-bottom:1.2rem; }
+.ins-summary-card { background:rgba(255,255,255,0.03); border:1px solid rgba(255,255,255,0.06); border-radius:14px; padding:14px 16px; }
+body.light-mode .ins-summary-card { background:#fff; border-color:#e2e8f0; }
+.ins-summary-label { font-size:0.72rem; color:var(--text-muted); text-transform:uppercase; letter-spacing:0.04em; margin-bottom:4px; }
+.ins-summary-val { font-size:1.25rem; font-weight:800; }
+.ins-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(320px,1fr)); gap:1rem; }
+.ins-card { background:rgba(255,255,255,0.03); border:1px solid rgba(255,255,255,0.07); border-radius:16px; padding:1.1rem 1.2rem; cursor:pointer; transition:0.18s; position:relative; }
+.ins-card:hover { border-color:rgba(52,211,153,0.4); transform:translateY(-2px); box-shadow:0 8px 24px rgba(0,0,0,0.25); }
+body.light-mode .ins-card { background:#fff; border-color:#e2e8f0; }
+.ins-card-top { display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:10px; }
+.ins-card-provider { font-weight:700; font-size:0.98rem; line-height:1.25; }
+.ins-card-type { font-size:0.76rem; color:var(--text-muted); margin-top:2px; }
+.ins-badge { font-size:0.68rem; font-weight:700; padding:3px 9px; border-radius:20px; text-transform:uppercase; letter-spacing:0.03em; white-space:nowrap; }
+.ins-badge.Personal { background:rgba(96,165,250,0.18); color:#60a5fa; }
+.ins-badge.Corporate { background:rgba(167,139,250,0.18); color:#a78bfa; }
+.ins-badge.status-Active { background:rgba(52,211,153,0.18); color:#34d399; }
+.ins-badge.status-Expired { background:rgba(239,68,68,0.18); color:#f87171; }
+.ins-badge.status-Lapsed { background:rgba(245,158,11,0.18); color:#f59e0b; }
+.ins-card-row { display:flex; justify-content:space-between; font-size:0.8rem; padding:5px 0; border-top:1px dashed rgba(255,255,255,0.07); }
+body.light-mode .ins-card-row { border-color:#e2e8f0; }
+.ins-card-row span:first-child { color:var(--text-muted); }
+.ins-card-row span:last-child { font-weight:600; }
+.ins-card-footer { display:flex; gap:6px; margin-top:10px; flex-wrap:wrap; }
+.ins-empty { text-align:center; padding:3rem 1rem; color:var(--text-muted); font-size:0.88rem; }
+
+.notes-wrap { display:flex; gap:1.2rem; height:100%; min-height:560px; }
+.notes-list-pane { width:300px; flex-shrink:0; display:flex; flex-direction:column; background:rgba(255,255,255,0.02); border:1px solid rgba(255,255,255,0.06); border-radius:16px; padding:14px; }
+body.light-mode .notes-list-pane { background:#fff; border-color:#e2e8f0; }
+.notes-list-header { display:flex; flex-direction:column; gap:10px; margin-bottom:12px; }
+.notes-search-box { display:flex; align-items:center; gap:8px; background:rgba(255,255,255,0.04); border:1px solid rgba(255,255,255,0.08); border-radius:10px; padding:8px 12px; font-size:0.82rem; color:var(--text-muted); }
+body.light-mode .notes-search-box { background:#f8fafc; border-color:#e2e8f0; }
+.notes-search-box input { flex:1; background:transparent; border:none; outline:none; color:var(--text-main); font-size:0.82rem; }
+.notes-list { flex:1; overflow-y:auto; display:flex; flex-direction:column; gap:8px; }
+.note-card { background:rgba(255,255,255,0.03); border:1px solid rgba(255,255,255,0.06); border-radius:12px; padding:11px 13px; cursor:pointer; transition:0.15s; position:relative; overflow:hidden; }
+.note-card:hover { border-color:rgba(251,191,36,0.4); }
+.note-card.active { border-color:#fbbf24; background:rgba(251,191,36,0.08); }
+body.light-mode .note-card { background:#f8fafc; border-color:#e2e8f0; }
+.note-card-title { font-weight:700; font-size:0.88rem; margin-bottom:3px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.note-card-snippet { font-size:0.76rem; color:var(--text-muted); display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden; line-height:1.35; }
+.note-card-date { font-size:0.68rem; color:var(--text-muted); margin-top:6px; opacity:0.7; }
+.note-card-locked { display:flex; flex-direction:column; align-items:center; justify-content:center; text-align:center; padding:18px 10px; min-height:74px; background:repeating-linear-gradient(45deg, rgba(148,163,184,0.18), rgba(148,163,184,0.18) 6px, rgba(148,163,184,0.06) 6px, rgba(148,163,184,0.06) 12px); filter:grayscale(1); }
+.note-card-locked:hover { filter:grayscale(0.4); }
+.note-card-locked .eye-circle { width:34px; height:34px; border-radius:50%; background:rgba(15,23,42,0.55); display:flex; align-items:center; justify-content:center; color:#e2e8f0; font-size:0.95rem; margin-bottom:6px; }
+body.light-mode .note-card-locked .eye-circle { background:rgba(255,255,255,0.85); color:#475569; }
+.note-card-locked-label { font-size:0.74rem; font-weight:700; color:#94a3b8; }
+.notes-editor-pane { flex:1; display:flex; flex-direction:column; background:rgba(255,255,255,0.02); border:1px solid rgba(255,255,255,0.06); border-radius:16px; padding:1.2rem 1.4rem; min-width:0; }
+body.light-mode .notes-editor-pane { background:#fff; border-color:#e2e8f0; }
+.notes-empty-state { flex:1; display:flex; flex-direction:column; align-items:center; justify-content:center; text-align:center; color:var(--text-muted); font-size:0.88rem; }
+.notes-editor-body { display:flex; flex-direction:column; height:100%; min-height:0; }
+.notes-title-input { background:transparent; border:none; outline:none; font-size:1.3rem; font-weight:800; color:var(--text-main); margin-bottom:6px; }
+.notes-meta-row { display:flex; align-items:center; justify-content:space-between; margin-bottom:10px; }
+.notes-meta-row #note-meta-updated { font-size:0.74rem; color:var(--text-muted); }
+.notes-meta-actions { display:flex; gap:6px; }
+.notes-icon-btn { width:30px; height:30px; border-radius:8px; border:1px solid rgba(255,255,255,0.08); background:rgba(255,255,255,0.04); color:var(--text-muted); cursor:pointer; transition:0.15s; display:flex; align-items:center; justify-content:center; font-size:0.78rem; }
+.notes-icon-btn:hover { color:var(--text-main); border-color:rgba(251,191,36,0.4); }
+body.light-mode .notes-icon-btn { background:#f8fafc; border-color:#e2e8f0; }
+.notes-format-toolbar { display:flex; align-items:center; gap:4px; padding:6px 8px; background:rgba(255,255,255,0.03); border:1px solid rgba(255,255,255,0.06); border-radius:10px; margin-bottom:10px; flex-wrap:wrap; }
+body.light-mode .notes-format-toolbar { background:#f8fafc; border-color:#e2e8f0; }
+.notes-format-toolbar button { width:28px; height:28px; border:none; background:transparent; color:var(--text-muted); border-radius:6px; cursor:pointer; font-size:0.78rem; }
+.notes-format-toolbar button:hover { background:rgba(251,191,36,0.15); color:#fbbf24; }
+.notes-format-sep { width:1px; height:18px; background:rgba(255,255,255,0.1); margin:0 4px; }
+.notes-editor { flex:1; min-height:280px; outline:none; font-size:0.92rem; line-height:1.6; overflow-y:auto; color:var(--text-main); }
+.notes-editor:empty:before { content:attr(placeholder); color:var(--text-muted); opacity:0.6; }
+.notes-editor h2 { font-size:1.15rem; margin:0.6em 0 0.3em; }
+.notes-editor ul, .notes-editor ol { padding-left:1.4em; }
+.notes-save-row { display:flex; align-items:center; justify-content:space-between; margin-top:12px; padding-top:10px; border-top:1px dashed rgba(255,255,255,0.08); }
+body.light-mode .notes-save-row { border-color:#e2e8f0; }
+.notes-save-status { font-size:0.74rem; color:var(--text-muted); }
+
 .cc-view-wrap { display:flex; gap:1.4rem; height:100%; }
 .cc-setup-panel {
   width:300px; flex-shrink:0; display:flex; flex-direction:column; gap:1rem;
@@ -2745,6 +2820,16 @@ function toggleLoginPass(inputId, btn) {
     <span id="notif-count-badge" style="display:none" class="budget-badge over"></span>
   </div>
 
+  <div class="nav-section-label">My Zone</div>
+  <div class="nav-item" id="fin-nav-insurance" onclick="switchView('insurance',this,'finance')">
+    <div class="nav-icon"><i class="fas fa-shield-alt" style="color:#34d399"></i></div>
+    <span class="nav-label">Insurance</span>
+  </div>
+  <div class="nav-item" id="fin-nav-notes" onclick="switchView('notes',this,'finance')">
+    <div class="nav-icon"><i class="fas fa-sticky-note" style="color:#fbbf24"></i></div>
+    <span class="nav-label">Notes</span>
+  </div>
+
   <div class="sidebar-footer" style="margin-top:auto">
     <!-- Expanded footer -->
     <div class="sidebar-footer-expanded">
@@ -4005,6 +4090,92 @@ function toggleLoginPass(inputId, btn) {
       </div>
     </div>
 
+    <div id="view-insurance" class="view-section">
+      <div class="ins-toolbar">
+        <div class="ins-filter-tabs">
+          <button class="ins-tab active" id="ins-tab-all" onclick="filterInsurance('all',this)">All Policies</button>
+          <button class="ins-tab" id="ins-tab-personal" onclick="filterInsurance('Personal',this)">Personal</button>
+          <button class="ins-tab" id="ins-tab-corporate" onclick="filterInsurance('Corporate',this)">Corporate</button>
+        </div>
+        <button class="btn-add" style="background:rgba(52,211,153,0.8)" onclick="openInsuranceModal()">
+          <i class="fas fa-plus"></i> Add Insurance
+        </button>
+      </div>
+
+      <div class="ins-summary-strip" id="ins-summary-strip"></div>
+
+      <div class="ins-grid" id="ins-grid"></div>
+
+      <div class="ins-empty" id="ins-empty" style="display:none">
+        <i class="fas fa-shield-alt" style="font-size:2.2rem;opacity:0.2;display:block;margin-bottom:10px"></i>
+        No insurance policies added yet. Click <b>Add Insurance</b> to get started.
+      </div>
+    </div>
+
+    <div id="view-notes" class="view-section">
+      <div class="notes-wrap">
+
+        <div class="notes-list-pane">
+          <div class="notes-list-header">
+            <button class="btn-add" style="width:100%;justify-content:center;background:rgba(251,191,36,0.85)" onclick="newNote()">
+              <i class="fas fa-plus"></i> New Note
+            </button>
+            <div class="notes-search-box">
+              <i class="fas fa-search"></i>
+              <input type="text" id="notes-search-input" placeholder="Search notes…" oninput="renderNotesList(this.value)">
+            </div>
+          </div>
+          <div class="notes-list" id="notes-list"></div>
+        </div>
+
+        <div class="notes-editor-pane">
+          <div class="notes-empty-state" id="notes-empty-state">
+            <i class="fas fa-sticky-note" style="font-size:2.2rem;opacity:0.2;display:block;margin-bottom:10px"></i>
+            Select a note or click <b>New Note</b> to get started.
+          </div>
+
+          <div class="notes-editor-body" id="notes-editor-body" style="display:none">
+            <input type="text" id="note-title-input" class="notes-title-input" placeholder="Note title…" oninput="markNoteDirty()">
+
+            <div class="notes-meta-row">
+              <span id="note-meta-updated"></span>
+              <div class="notes-meta-actions">
+                <button class="notes-icon-btn" id="note-changepass-btn" style="display:none" onclick="openNotePasswordModal(activeNoteId,'change')" title="Change password"><i class="fas fa-key"></i></button>
+                <button class="notes-icon-btn" id="note-removepass-btn" style="display:none" onclick="removeNoteProtection()" title="Remove protection"><i class="fas fa-unlock"></i></button>
+                <button class="notes-icon-btn" id="note-lock-btn" onclick="handleLockButtonClick()" title="Protect this note"><i class="fas fa-lock-open"></i></button>
+                <button class="notes-icon-btn" onclick="deleteActiveNote()" title="Delete note"><i class="fas fa-trash"></i></button>
+              </div>
+            </div>
+
+            <div class="notes-format-toolbar">
+              <button onclick="formatNote('bold')" title="Bold"><i class="fas fa-bold"></i></button>
+              <button onclick="formatNote('italic')" title="Italic"><i class="fas fa-italic"></i></button>
+              <button onclick="formatNote('underline')" title="Underline"><i class="fas fa-underline"></i></button>
+              <button onclick="formatNote('strikeThrough')" title="Strikethrough"><i class="fas fa-strikethrough"></i></button>
+              <span class="notes-format-sep"></span>
+              <button onclick="formatNoteBlock('h2')" title="Heading"><i class="fas fa-heading"></i></button>
+              <button onclick="formatNoteBlock('p')" title="Paragraph"><i class="fas fa-paragraph"></i></button>
+              <button onclick="formatNote('insertUnorderedList')" title="Bullet list"><i class="fas fa-list-ul"></i></button>
+              <button onclick="formatNote('insertOrderedList')" title="Numbered list"><i class="fas fa-list-ol"></i></button>
+              <span class="notes-format-sep"></span>
+              <button onclick="formatNote('justifyLeft')" title="Align left"><i class="fas fa-align-left"></i></button>
+              <button onclick="formatNote('justifyCenter')" title="Align center"><i class="fas fa-align-center"></i></button>
+              <span class="notes-format-sep"></span>
+              <button onclick="formatNote('removeFormat')" title="Clear formatting"><i class="fas fa-eraser"></i></button>
+            </div>
+
+            <div class="notes-editor" id="notes-editor" contenteditable="true" placeholder="Start typing…" oninput="markNoteDirty()"></div>
+
+            <div class="notes-save-row">
+              <span class="notes-save-status" id="notes-save-status">All changes saved</span>
+              <button class="btn-add" style="background:rgba(251,191,36,0.85)" onclick="saveActiveNote(true)">Save Note</button>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+
   </div>
 </div>
 
@@ -4257,6 +4428,207 @@ function toggleLoginPass(inputId, btn) {
       <button onclick="saveCreditEntry()" class="btn-add" style="flex:1;justify-content:center;background:rgba(249,115,22,0.8)" id="credit-save-btn">Save Entry</button>
       <button onclick="closeCreditModal()" class="btn-secondary">Cancel</button>
       <button onclick="deleteCurrentCreditEntry()" class="btn-delete" style="display:none" id="credit-delete-btn"><i class="fas fa-trash"></i> Delete</button>
+    </div>
+  </div>
+</div>
+
+
+<!-- MODAL: Add / Edit Insurance -->
+<div class="modal-overlay" id="insurance-modal">
+  <div class="modal-box" style="width:600px;border-color:rgba(52,211,153,0.28);box-shadow:0 0 60px rgba(52,211,153,0.12)">
+    <div class="modal-title" style="color:#34d399" id="insurance-modal-title">Add Insurance Policy</div>
+
+    <div class="modal-row">
+      <div class="input-group">
+        <label>Category</label>
+        <select id="ins-category" class="input-field" onchange="toggleInsuranceCategory()">
+          <option value="Personal">Personal</option>
+          <option value="Corporate">Corporate</option>
+        </select>
+      </div>
+      <div class="input-group">
+        <label>Insurance Type</label>
+        <select id="ins-type" class="input-field">
+          <option>Health Insurance</option>
+          <option>Life Insurance</option>
+          <option>Term Life Insurance</option>
+          <option>Motor Insurance - Car</option>
+          <option>Motor Insurance - Two Wheeler</option>
+          <option>Home / Property Insurance</option>
+          <option>Travel Insurance</option>
+          <option>Personal Accident Insurance</option>
+          <option>Critical Illness Insurance</option>
+          <option>ULIP</option>
+          <option>Group Health Insurance (Corporate)</option>
+          <option>Group Life Insurance (Corporate)</option>
+          <option>Group Personal Accident (Corporate)</option>
+          <option>Other</option>
+        </select>
+      </div>
+    </div>
+
+    <div class="modal-row">
+      <div class="input-group" style="grid-column:1/-1">
+        <label>Insurance Provider</label>
+        <select id="ins-provider" class="input-field" onchange="toggleInsuranceOtherProvider()">
+          <optgroup label="Life Insurers">
+            <option>LIC of India</option>
+            <option>HDFC Life</option>
+            <option>ICICI Prudential Life</option>
+            <option>SBI Life</option>
+            <option>Max Life Insurance</option>
+            <option>Bajaj Allianz Life</option>
+            <option>Tata AIA Life</option>
+            <option>Kotak Mahindra Life</option>
+            <option>Aditya Birla Sun Life</option>
+            <option>PNB MetLife</option>
+            <option>Canara HSBC Life</option>
+            <option>Pramerica Life (Future Generali India Life)</option>
+            <option>Bharti AXA Life</option>
+            <option>Shriram Life</option>
+            <option>Star Union Dai-ichi Life</option>
+            <option>Edelweiss Tokio Life</option>
+          </optgroup>
+          <optgroup label="Health Insurers">
+            <option>Star Health Insurance</option>
+            <option>Niva Bupa Health (Max Bupa)</option>
+            <option>Care Health Insurance (Religare)</option>
+            <option>Manipal Cigna Health</option>
+            <option>Aditya Birla Health Insurance</option>
+            <option>HDFC ERGO Health</option>
+            <option>ICICI Lombard Health</option>
+          </optgroup>
+          <optgroup label="General Insurers">
+            <option>HDFC ERGO General</option>
+            <option>ICICI Lombard General</option>
+            <option>Bajaj Allianz General</option>
+            <option>Tata AIG General</option>
+            <option>New India Assurance</option>
+            <option>National Insurance Company</option>
+            <option>United India Insurance</option>
+            <option>Oriental Insurance Company</option>
+            <option>Reliance General Insurance</option>
+            <option>SBI General Insurance</option>
+            <option>Future Generali India Insurance</option>
+            <option>Cholamandalam MS General</option>
+            <option>Universal Sompo General</option>
+            <option>IFFCO Tokio General</option>
+            <option>Liberty General Insurance</option>
+            <option>Royal Sundaram General</option>
+            <option>Go Digit General Insurance</option>
+            <option>Acko General Insurance</option>
+            <option>Magma HDI General</option>
+            <option>Shriram General Insurance</option>
+            <option>Kotak Mahindra General</option>
+            <option>Edelweiss General Insurance</option>
+          </optgroup>
+          <option value="__other__">Other (type manually)</option>
+        </select>
+        <input type="text" id="ins-provider-other" class="input-field" placeholder="Enter provider name" style="display:none;margin-top:8px">
+      </div>
+    </div>
+
+    <div class="modal-row">
+      <div class="input-group">
+        <label>Policy Number</label>
+        <input type="text" id="ins-policy-number" class="input-field" placeholder="e.g. POL123456789">
+      </div>
+      <div class="input-group">
+        <label>Policy Holder Name</label>
+        <input type="text" id="ins-holder" class="input-field" placeholder="Name on the policy">
+      </div>
+    </div>
+
+    <div class="modal-row" id="ins-employer-row">
+      <div class="input-group" style="grid-column:1/-1">
+        <label>Employer / Company Name</label>
+        <input type="text" id="ins-employer" class="input-field" placeholder="e.g. Provided by your employer">
+      </div>
+    </div>
+
+    <div class="modal-row">
+      <div class="input-group">
+        <label>Sum Insured / Cover Amount (₹)</label>
+        <input type="number" id="ins-sum-insured" class="input-field" placeholder="0">
+      </div>
+      <div class="input-group">
+        <label>Premium Amount (₹)</label>
+        <input type="number" id="ins-premium" class="input-field" placeholder="0">
+      </div>
+    </div>
+
+    <div class="modal-row">
+      <div class="input-group">
+        <label>Premium Frequency</label>
+        <select id="ins-frequency" class="input-field">
+          <option>Yearly</option>
+          <option>Half-Yearly</option>
+          <option>Quarterly</option>
+          <option>Monthly</option>
+          <option>One-Time</option>
+        </select>
+      </div>
+      <div class="input-group">
+        <label>Status</label>
+        <select id="ins-status" class="input-field">
+          <option>Active</option>
+          <option>Expired</option>
+          <option>Lapsed</option>
+        </select>
+      </div>
+    </div>
+
+    <div class="modal-row">
+      <div class="input-group">
+        <label>Start Date</label>
+        <input type="date" id="ins-start-date" class="input-field">
+      </div>
+      <div class="input-group">
+        <label>Renewal / Expiry Date</label>
+        <input type="date" id="ins-end-date" class="input-field">
+      </div>
+    </div>
+
+    <div class="input-group">
+      <label>Nominee Name</label>
+      <input type="text" id="ins-nominee" class="input-field" placeholder="e.g. Spouse, Parent name">
+    </div>
+
+    <div class="input-group">
+      <label>Notes</label>
+      <input type="text" id="ins-notes" class="input-field" placeholder="Any additional details">
+    </div>
+
+    <input type="hidden" id="ins-edit-id" value="">
+
+    <div style="display:flex;gap:8px;margin-top:1.3rem">
+      <button onclick="saveInsuranceEntry()" class="btn-add" style="flex:1;justify-content:center;background:rgba(52,211,153,0.8)" id="insurance-save-btn">Save Policy</button>
+      <button onclick="closeInsuranceModal()" class="btn-secondary">Cancel</button>
+      <button onclick="deleteCurrentInsuranceEntry()" class="btn-delete" style="display:none" id="insurance-delete-btn"><i class="fas fa-trash"></i> Delete</button>
+    </div>
+  </div>
+</div>
+
+
+<!-- MODAL: Note Password (Protect / Unlock / Change) -->
+<div class="modal-overlay" id="note-password-modal">
+  <div class="modal-box" style="width:380px;border-color:rgba(251,191,36,0.28);box-shadow:0 0 60px rgba(251,191,36,0.12)">
+    <div class="modal-title" style="color:#fbbf24" id="note-password-modal-title">Enter Password</div>
+    <div class="modal-subtitle" id="note-password-modal-subtitle" style="font-size:0.78rem;color:var(--text-muted);margin-bottom:1rem">This note is protected.</div>
+
+    <div class="input-group">
+      <label id="note-pass-label-1">Password</label>
+      <input type="password" id="note-pass-input-1" class="input-field" placeholder="Enter password" onkeydown="if(event.key==='Enter')submitNotePasswordAction()">
+    </div>
+    <div class="input-group" id="note-pass-group-2" style="display:none">
+      <label id="note-pass-label-2">Confirm Password</label>
+      <input type="password" id="note-pass-input-2" class="input-field" placeholder="Confirm password" onkeydown="if(event.key==='Enter')submitNotePasswordAction()">
+    </div>
+    <div id="note-pass-error" style="display:none;color:#f87171;font-size:0.78rem;margin-top:4px">❌ Incorrect password.</div>
+
+    <div style="display:flex;gap:8px;margin-top:1.2rem">
+      <button onclick="submitNotePasswordAction()" class="btn-add" style="flex:1;justify-content:center;background:rgba(251,191,36,0.85)" id="note-pass-submit-btn">Unlock</button>
+      <button onclick="closeNotePasswordModal()" class="btn-secondary">Cancel</button>
     </div>
   </div>
 </div>
@@ -5091,6 +5463,10 @@ let creditDb = JSON.parse(localStorage.getItem('fos_credit_v1')) || [
   {id:211, lenderName:"Poneeri Real Estate 2", type:"Assets",  principalAmount:258750, outstandingBalance:172750, interestRate:0, monthlyEmi:5000.00, dueDate:"1st",  tenureMonths:41, balanceTenure:0,  startDate:"2024-08-01", endDate:"2028-08-01", status:"Active", remarks:"Investment"},
 ];
 
+let insuranceDb = JSON.parse(localStorage.getItem('fos_insurance_v1')) || [];
+
+let notesDb = JSON.parse(localStorage.getItem('fos_notes_v1')) || [];
+
 let budgets = JSON.parse(localStorage.getItem('fos_budgets')) || {};
 
 // ── DATA STORAGE ────────────────────────────────────────────────────────────
@@ -5205,6 +5581,8 @@ async function doAutoSave() {
   localStorage.setItem('fos_db_v3',     JSON.stringify(db));
   localStorage.setItem('fos_port_v3',   JSON.stringify(portDb));
   localStorage.setItem('fos_credit_v1', JSON.stringify(creditDb));
+  localStorage.setItem('fos_insurance_v1', JSON.stringify(insuranceDb));
+  localStorage.setItem('fos_notes_v1', JSON.stringify(notesDb));
   localStorage.setItem('fos_budgets',   JSON.stringify(budgets));
   localStorage.setItem('financeOS_ccCards', JSON.stringify(ccCards));
   localStorage.setItem('fos_notifications', JSON.stringify(notifications));
@@ -5219,6 +5597,8 @@ async function doAutoSave() {
         db: db,
         portDb: portDb,
         creditDb: creditDb,
+        insuranceDb: insuranceDb,
+        notesDb: notesDb,
         budgets: budgets,
         ccCards: ccCards,
         notifications: notifications,
@@ -5487,6 +5867,8 @@ function switchView(viewName, btn, group) {
     'roughboard':     '<span>Playbook</span> <b>Rough Board</b>',
     'calculator':     '<span>Playbook</span> <b>Calculator</b>',
           'ccutil':         '<span>Credit Card</span> <b>Utilization</b>',
+    'insurance':      '<span>My Zone</span> <b>Insurance</b>',
+    'notes':          '<span>My Zone</span> <b>Notes</b>',
   };
 
   document.getElementById('page-header').innerHTML = headerMap[viewName] || '';
@@ -5506,6 +5888,8 @@ function switchView(viewName, btn, group) {
     'port-analytics': 'view-port-analytics',
     'roughboard':     'view-roughboard',
     'calculator':     'view-calculator',
+    'insurance':      'view-insurance',
+    'notes':          'view-notes',
   };
 
   const domId = viewIdMap[viewName];
@@ -5527,6 +5911,8 @@ function switchView(viewName, btn, group) {
   else if (viewName === 'ccutil') { setTimeout(initCCView, 50); }
   else if (viewName === 'roughboard') { setTimeout(initRoughBoard, 100); }
   else if (viewName === 'calculator') { setTimeout(initCalculator, 100); }
+  else if (viewName === 'insurance') { renderInsurance(); }
+  else if (viewName === 'notes') { renderNotesList(); }
 }
 
 // ── DASHBOARD ──────────────────────────────────────────────────────────────
@@ -11164,6 +11550,475 @@ function deleteCreditItem(id) {
   }
 }
 
+// ── INSURANCE (MY ZONE) ──────────────────────────────────────────────────
+let editingInsuranceId = null;
+let insuranceFilter = 'all';
+
+function toggleInsuranceCategory() {
+  const cat = document.getElementById('ins-category').value;
+  document.getElementById('ins-employer-row').style.display = (cat === 'Corporate') ? 'flex' : 'none';
+}
+
+function toggleInsuranceOtherProvider() {
+  const isOther = document.getElementById('ins-provider').value === '__other__';
+  document.getElementById('ins-provider-other').style.display = isOther ? 'block' : 'none';
+}
+
+function openInsuranceModal() {
+  editingInsuranceId = null;
+  document.getElementById('insurance-modal-title').textContent = 'Add Insurance Policy';
+  document.getElementById('insurance-save-btn').textContent = 'Save Policy';
+  document.getElementById('insurance-delete-btn').style.display = 'none';
+  ['ins-policy-number','ins-holder','ins-employer','ins-sum-insured','ins-premium','ins-nominee','ins-notes','ins-provider-other'].forEach(id => {
+    const el = document.getElementById(id); if (el) el.value = '';
+  });
+  document.getElementById('ins-category').value = 'Personal';
+  document.getElementById('ins-type').value = 'Health Insurance';
+  document.getElementById('ins-provider').value = 'LIC of India';
+  document.getElementById('ins-frequency').value = 'Yearly';
+  document.getElementById('ins-status').value = 'Active';
+  document.getElementById('ins-start-date').value = new Date().toISOString().split('T')[0];
+  document.getElementById('ins-end-date').value = '';
+  document.getElementById('ins-edit-id').value = '';
+  toggleInsuranceCategory();
+  toggleInsuranceOtherProvider();
+  document.getElementById('insurance-modal').style.display = 'flex';
+}
+
+function closeInsuranceModal() { document.getElementById('insurance-modal').style.display = 'none'; }
+
+function editInsuranceEntry(id) {
+  const p = insuranceDb.find(x => x.id === id);
+  if (!p) return;
+  editingInsuranceId = id;
+  document.getElementById('insurance-modal-title').textContent = 'Edit Insurance Policy';
+  document.getElementById('insurance-save-btn').textContent = 'Update Policy';
+  document.getElementById('insurance-delete-btn').style.display = 'block';
+  document.getElementById('ins-category').value      = p.category;
+  document.getElementById('ins-type').value          = p.insType;
+
+  const providerSelect = document.getElementById('ins-provider');
+  const knownProvider = Array.from(providerSelect.options).some(o => o.value === p.provider);
+  providerSelect.value = knownProvider ? p.provider : '__other__';
+  document.getElementById('ins-provider-other').value = knownProvider ? '' : p.provider;
+
+  document.getElementById('ins-policy-number').value = p.policyNumber || '';
+  document.getElementById('ins-holder').value         = p.holderName || '';
+  document.getElementById('ins-employer').value       = p.employer || '';
+  document.getElementById('ins-sum-insured').value    = p.sumInsured || '';
+  document.getElementById('ins-premium').value        = p.premium || '';
+  document.getElementById('ins-frequency').value      = p.frequency || 'Yearly';
+  document.getElementById('ins-status').value         = p.status || 'Active';
+  document.getElementById('ins-start-date').value     = p.startDate || '';
+  document.getElementById('ins-end-date').value       = p.endDate || '';
+  document.getElementById('ins-nominee').value        = p.nominee || '';
+  document.getElementById('ins-notes').value          = p.notes || '';
+
+  toggleInsuranceCategory();
+  toggleInsuranceOtherProvider();
+  document.getElementById('insurance-modal').style.display = 'flex';
+}
+
+function saveInsuranceEntry() {
+  const category     = document.getElementById('ins-category').value;
+  const insType       = document.getElementById('ins-type').value;
+  const providerSel    = document.getElementById('ins-provider').value;
+  const provider       = providerSel === '__other__' ? document.getElementById('ins-provider-other').value.trim() : providerSel;
+  const policyNumber   = document.getElementById('ins-policy-number').value.trim();
+  const holderName     = document.getElementById('ins-holder').value.trim();
+  const employer       = document.getElementById('ins-employer').value.trim();
+  const sumInsured     = Number(document.getElementById('ins-sum-insured').value) || 0;
+  const premium        = Number(document.getElementById('ins-premium').value) || 0;
+  const frequency      = document.getElementById('ins-frequency').value;
+  const status         = document.getElementById('ins-status').value;
+  const startDate       = document.getElementById('ins-start-date').value;
+  const endDate         = document.getElementById('ins-end-date').value;
+  const nominee         = document.getElementById('ins-nominee').value.trim();
+  const notes           = document.getElementById('ins-notes').value.trim();
+
+  if (!provider) { alert('Please select or enter an Insurance Provider'); return; }
+  if (!policyNumber) { alert('Please enter the Policy Number'); return; }
+  if (!holderName) { alert('Please enter the Policy Holder Name'); return; }
+
+  const entry = { category, insType, provider, policyNumber, holderName, employer, sumInsured, premium, frequency, status, startDate, endDate, nominee, notes };
+
+  if (editingInsuranceId) {
+    const idx = insuranceDb.findIndex(x => x.id === editingInsuranceId);
+    if (idx >= 0) insuranceDb[idx] = { ...insuranceDb[idx], ...entry };
+  } else {
+    insuranceDb.push({ id: Date.now(), ...entry });
+  }
+  scheduleSave();
+  closeInsuranceModal();
+  renderInsurance();
+}
+
+function deleteCurrentInsuranceEntry() {
+  if (editingInsuranceId && confirm('Delete this insurance policy?')) {
+    insuranceDb = insuranceDb.filter(x => x.id !== editingInsuranceId);
+    scheduleSave();
+    closeInsuranceModal();
+    renderInsurance();
+  }
+}
+
+function filterInsurance(cat, btn) {
+  insuranceFilter = cat;
+  document.querySelectorAll('.ins-tab').forEach(t => t.classList.remove('active'));
+  if (btn) btn.classList.add('active');
+  renderInsurance();
+}
+
+function fmtInsCurrency(n) {
+  return '₹' + Number(n || 0).toLocaleString('en-IN');
+}
+
+function renderInsurance() {
+  const grid = document.getElementById('ins-grid');
+  const empty = document.getElementById('ins-empty');
+  const summary = document.getElementById('ins-summary-strip');
+  if (!grid) return;
+
+  const list = insuranceFilter === 'all' ? insuranceDb : insuranceDb.filter(p => p.category === insuranceFilter);
+
+  // Summary strip (always based on full set, not filtered, except active count uses filtered)
+  const totalPolicies   = insuranceDb.length;
+  const totalCover      = insuranceDb.reduce((s,p) => s + Number(p.sumInsured||0), 0);
+  const totalPremium    = insuranceDb.reduce((s,p) => s + Number(p.premium||0), 0);
+  const expiringSoon    = insuranceDb.filter(p => {
+    if (!p.endDate) return false;
+    const days = (new Date(p.endDate) - new Date()) / 86400000;
+    return days >= 0 && days <= 45;
+  }).length;
+
+  summary.innerHTML = `
+    <div class="ins-summary-card">
+      <div class="ins-summary-label">Total Policies</div>
+      <div class="ins-summary-val" style="color:#34d399">${totalPolicies}</div>
+    </div>
+    <div class="ins-summary-card">
+      <div class="ins-summary-label">Total Cover</div>
+      <div class="ins-summary-val">${fmtInsCurrency(totalCover)}</div>
+    </div>
+    <div class="ins-summary-card">
+      <div class="ins-summary-label">Total Annual Premium</div>
+      <div class="ins-summary-val" style="color:#f59e0b">${fmtInsCurrency(totalPremium)}</div>
+    </div>
+    <div class="ins-summary-card">
+      <div class="ins-summary-label">Renewing Soon (45d)</div>
+      <div class="ins-summary-val" style="color:${expiringSoon ? '#f87171' : 'inherit'}">${expiringSoon}</div>
+    </div>`;
+
+  if (!list.length) {
+    grid.innerHTML = '';
+    empty.style.display = 'block';
+    return;
+  }
+  empty.style.display = 'none';
+
+  grid.innerHTML = list.map(p => `
+    <div class="ins-card" onclick="editInsuranceEntry(${p.id})">
+      <div class="ins-card-top">
+        <div>
+          <div class="ins-card-provider">${p.provider}</div>
+          <div class="ins-card-type">${p.insType}</div>
+        </div>
+        <div style="display:flex;flex-direction:column;gap:5px;align-items:flex-end">
+          <span class="ins-badge ${p.category}">${p.category}</span>
+          <span class="ins-badge status-${p.status}">${p.status}</span>
+        </div>
+      </div>
+      <div class="ins-card-row"><span>Policy No.</span><span>${p.policyNumber}</span></div>
+      <div class="ins-card-row"><span>Holder</span><span>${p.holderName}</span></div>
+      ${p.employer ? `<div class="ins-card-row"><span>Employer</span><span>${p.employer}</span></div>` : ''}
+      <div class="ins-card-row"><span>Sum Insured</span><span>${fmtInsCurrency(p.sumInsured)}</span></div>
+      <div class="ins-card-row"><span>Premium</span><span>${fmtInsCurrency(p.premium)} / ${p.frequency}</span></div>
+      <div class="ins-card-row"><span>Renewal Date</span><span>${p.endDate || '—'}</span></div>
+      ${p.nominee ? `<div class="ins-card-row"><span>Nominee</span><span>${p.nominee}</span></div>` : ''}
+      <div class="ins-card-footer">
+        <button class="btn-secondary" style="padding:5px 12px;font-size:0.75rem" onclick="event.stopPropagation();editInsuranceEntry(${p.id})"><i class="fas fa-edit"></i> Edit</button>
+      </div>
+    </div>
+  `).join('');
+}
+
+// ── NOTES (MY ZONE) ──────────────────────────────────────────────────────
+let activeNoteId = null;
+let unlockedNoteIds = new Set();
+let notePasswordMode = null;   // 'unlock' | 'set' | 'change'
+let notePasswordTargetId = null;
+let noteSaveTimer = null;
+
+function stripHtml(html) {
+  const tmp = document.createElement('div');
+  tmp.innerHTML = html || '';
+  return (tmp.textContent || tmp.innerText || '').trim();
+}
+
+function fmtNoteDate(iso) {
+  if (!iso) return '';
+  const d = new Date(iso);
+  return d.toLocaleDateString('en-IN', { day:'numeric', month:'short', year:'numeric' }) + ' · ' +
+         d.toLocaleTimeString('en-IN', { hour:'2-digit', minute:'2-digit' });
+}
+
+function renderNotesList(query) {
+  const listEl = document.getElementById('notes-list');
+  if (!listEl) return;
+  query = (query || '').toLowerCase();
+
+  let list = [...notesDb].sort((a,b) => new Date(b.updatedAt) - new Date(a.updatedAt));
+  if (query) {
+    list = list.filter(n => {
+      if (n.locked) return n.title.toLowerCase().includes(query); // don't search inside locked content
+      return n.title.toLowerCase().includes(query) || stripHtml(n.content).toLowerCase().includes(query);
+    });
+  }
+
+  if (!list.length) {
+    listEl.innerHTML = `<div style="text-align:center;padding:2rem 0.5rem;color:var(--text-muted);font-size:0.8rem">
+      <i class="fas fa-sticky-note" style="font-size:1.6rem;opacity:0.2;display:block;margin-bottom:8px"></i>
+      No notes found.
+    </div>`;
+    return;
+  }
+
+  listEl.innerHTML = list.map(n => {
+    const isLocked = n.locked && !unlockedNoteIds.has(n.id);
+    const activeCls = (n.id === activeNoteId) ? 'active' : '';
+    if (isLocked) {
+      return `
+        <div class="note-card ${activeCls}" onclick="selectNote(${n.id})">
+          <div class="note-card-locked">
+            <div class="eye-circle"><i class="fas fa-eye"></i></div>
+            <div class="note-card-locked-label">Protected Note</div>
+          </div>
+        </div>`;
+    }
+    const snippet = stripHtml(n.content).slice(0, 90) || 'No additional text';
+    return `
+      <div class="note-card ${activeCls}" onclick="selectNote(${n.id})">
+        <div class="note-card-title">${n.locked ? '<i class="fas fa-lock" style="font-size:0.68rem;margin-right:5px;color:#fbbf24"></i>' : ''}${n.title || 'Untitled Note'}</div>
+        <div class="note-card-snippet">${snippet}</div>
+        <div class="note-card-date">${fmtNoteDate(n.updatedAt)}</div>
+      </div>`;
+  }).join('');
+}
+
+function newNote() {
+  const note = { id: Date.now(), title: '', content: '', locked: false, password: null, createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() };
+  notesDb.unshift(note);
+  unlockedNoteIds.add(note.id);
+  scheduleSave();
+  renderNotesList(document.getElementById('notes-search-input')?.value || '');
+  loadNoteIntoEditor(note.id);
+  setTimeout(() => document.getElementById('note-title-input')?.focus(), 50);
+}
+
+function selectNote(id) {
+  const note = notesDb.find(n => n.id === id);
+  if (!note) return;
+  if (note.locked && !unlockedNoteIds.has(id)) {
+    openNotePasswordModal(id, 'unlock');
+    return;
+  }
+  loadNoteIntoEditor(id);
+}
+
+function loadNoteIntoEditor(id) {
+  const note = notesDb.find(n => n.id === id);
+  if (!note) return;
+  activeNoteId = id;
+
+  document.getElementById('notes-empty-state').style.display = 'none';
+  document.getElementById('notes-editor-body').style.display = 'flex';
+  document.getElementById('note-title-input').value = note.title || '';
+  document.getElementById('notes-editor').innerHTML = note.content || '';
+  document.getElementById('note-meta-updated').textContent = note.updatedAt ? `Last edited ${fmtNoteDate(note.updatedAt)}` : '';
+  document.getElementById('notes-save-status').textContent = 'All changes saved';
+
+  updateLockButtonUI(note);
+  renderNotesList(document.getElementById('notes-search-input')?.value || '');
+}
+
+function updateLockButtonUI(note) {
+  const lockBtn = document.getElementById('note-lock-btn');
+  const changeBtn = document.getElementById('note-changepass-btn');
+  const removeBtn = document.getElementById('note-removepass-btn');
+  if (!lockBtn) return;
+  if (note.locked) {
+    lockBtn.innerHTML = '<i class="fas fa-lock"></i>';
+    lockBtn.title = 'Lock note now';
+    lockBtn.style.color = '#fbbf24';
+    changeBtn.style.display = 'flex';
+    removeBtn.style.display = 'flex';
+  } else {
+    lockBtn.innerHTML = '<i class="fas fa-lock-open"></i>';
+    lockBtn.title = 'Protect this note';
+    lockBtn.style.color = '';
+    changeBtn.style.display = 'none';
+    removeBtn.style.display = 'none';
+  }
+}
+
+function markNoteDirty() {
+  document.getElementById('notes-save-status').textContent = 'Unsaved changes…';
+  clearTimeout(noteSaveTimer);
+  noteSaveTimer = setTimeout(() => saveActiveNote(false), 900);
+}
+
+function saveActiveNote(manual) {
+  if (!activeNoteId) return;
+  const note = notesDb.find(n => n.id === activeNoteId);
+  if (!note) return;
+  note.title = document.getElementById('note-title-input').value.trim() || 'Untitled Note';
+  note.content = document.getElementById('notes-editor').innerHTML;
+  note.updatedAt = new Date().toISOString();
+  scheduleSave();
+  document.getElementById('notes-save-status').textContent = 'All changes saved';
+  document.getElementById('note-meta-updated').textContent = `Last edited ${fmtNoteDate(note.updatedAt)}`;
+  renderNotesList(document.getElementById('notes-search-input')?.value || '');
+  if (manual) { /* keep editor open */ }
+}
+
+function deleteActiveNote() {
+  if (!activeNoteId) return;
+  if (!confirm('Delete this note? This cannot be undone.')) return;
+  notesDb = notesDb.filter(n => n.id !== activeNoteId);
+  unlockedNoteIds.delete(activeNoteId);
+  activeNoteId = null;
+  scheduleSave();
+  document.getElementById('notes-editor-body').style.display = 'none';
+  document.getElementById('notes-empty-state').style.display = 'flex';
+  renderNotesList(document.getElementById('notes-search-input')?.value || '');
+}
+
+function formatNote(cmd) {
+  document.getElementById('notes-editor').focus();
+  document.execCommand(cmd, false, null);
+  markNoteDirty();
+}
+
+function formatNoteBlock(tag) {
+  document.getElementById('notes-editor').focus();
+  document.execCommand('formatBlock', false, tag);
+  markNoteDirty();
+}
+
+function handleLockButtonClick() {
+  if (!activeNoteId) return;
+  const note = notesDb.find(n => n.id === activeNoteId);
+  if (!note) return;
+  if (!note.locked) {
+    openNotePasswordModal(activeNoteId, 'set');
+  } else {
+    // Lock the note right now and return to the list
+    saveActiveNote(false);
+    unlockedNoteIds.delete(activeNoteId);
+    activeNoteId = null;
+    document.getElementById('notes-editor-body').style.display = 'none';
+    document.getElementById('notes-empty-state').style.display = 'flex';
+    renderNotesList(document.getElementById('notes-search-input')?.value || '');
+  }
+}
+
+function removeNoteProtection() {
+  if (!activeNoteId) return;
+  if (!confirm('Remove password protection from this note?')) return;
+  const note = notesDb.find(n => n.id === activeNoteId);
+  if (!note) return;
+  note.locked = false;
+  note.password = null;
+  scheduleSave();
+  updateLockButtonUI(note);
+  renderNotesList(document.getElementById('notes-search-input')?.value || '');
+}
+
+function openNotePasswordModal(id, mode) {
+  notePasswordTargetId = id;
+  notePasswordMode = mode;
+
+  document.getElementById('note-pass-input-1').value = '';
+  document.getElementById('note-pass-input-2').value = '';
+  document.getElementById('note-pass-error').style.display = 'none';
+
+  const title = document.getElementById('note-password-modal-title');
+  const subtitle = document.getElementById('note-password-modal-subtitle');
+  const label1 = document.getElementById('note-pass-label-1');
+  const group2 = document.getElementById('note-pass-group-2');
+  const submitBtn = document.getElementById('note-pass-submit-btn');
+
+  if (mode === 'unlock') {
+    title.textContent = 'Enter Password';
+    subtitle.textContent = 'This note is protected. Enter the password to view it.';
+    label1.textContent = 'Password';
+    group2.style.display = 'none';
+    submitBtn.textContent = 'Unlock';
+  } else if (mode === 'set') {
+    title.textContent = 'Protect This Note';
+    subtitle.textContent = 'Set a password to lock this note. You will need it to view or edit the note later.';
+    label1.textContent = 'New Password';
+    group2.style.display = 'block';
+    submitBtn.textContent = 'Protect Note';
+  } else if (mode === 'change') {
+    title.textContent = 'Change Password';
+    subtitle.textContent = 'Set a new password for this note.';
+    label1.textContent = 'New Password';
+    group2.style.display = 'block';
+    submitBtn.textContent = 'Update Password';
+  }
+
+  document.getElementById('note-password-modal').style.display = 'flex';
+  setTimeout(() => document.getElementById('note-pass-input-1').focus(), 50);
+}
+
+function closeNotePasswordModal() {
+  document.getElementById('note-password-modal').style.display = 'none';
+  notePasswordTargetId = null;
+  notePasswordMode = null;
+}
+
+function submitNotePasswordAction() {
+  const note = notesDb.find(n => n.id === notePasswordTargetId);
+  if (!note) { closeNotePasswordModal(); return; }
+  const p1 = document.getElementById('note-pass-input-1').value;
+  const p2 = document.getElementById('note-pass-input-2').value;
+  const errEl = document.getElementById('note-pass-error');
+
+  if (notePasswordMode === 'unlock') {
+    if (note.password === p1) {
+      unlockedNoteIds.add(note.id);
+      closeNotePasswordModal();
+      loadNoteIntoEditor(note.id);
+    } else {
+      errEl.textContent = '❌ Incorrect password.';
+      errEl.style.display = 'block';
+    }
+  } else if (notePasswordMode === 'change') {
+    if (!p1) { errEl.textContent = '❌ Please enter a password.'; errEl.style.display = 'block'; return; }
+    if (p1 !== p2) { errEl.textContent = '❌ Passwords do not match.'; errEl.style.display = 'block'; return; }
+    note.locked = true;
+    note.password = p1;
+    unlockedNoteIds.add(note.id);
+    scheduleSave();
+    closeNotePasswordModal();
+    loadNoteIntoEditor(note.id);
+  } else { // 'set' — lock it immediately, don't leave it open
+    if (!p1) { errEl.textContent = '❌ Please enter a password.'; errEl.style.display = 'block'; return; }
+    if (p1 !== p2) { errEl.textContent = '❌ Passwords do not match.'; errEl.style.display = 'block'; return; }
+    saveActiveNote(false);
+    note.locked = true;
+    note.password = p1;
+    unlockedNoteIds.delete(note.id);
+    scheduleSave();
+    closeNotePasswordModal();
+    activeNoteId = null;
+    document.getElementById('notes-editor-body').style.display = 'none';
+    document.getElementById('notes-empty-state').style.display = 'flex';
+    renderNotesList(document.getElementById('notes-search-input')?.value || '');
+  }
+}
+
 // ── DASHBOARD CREDIT CHARTS ─────────────────────────────────────────────────
 function renderDashCreditCharts() {
   const activeCredit = creditDb.filter(c => c.status === 'Active');
@@ -12930,6 +13785,8 @@ function downloadBackup() {
     version: 3,
     exportedAt: new Date().toISOString(),
     db, portDb, creditDb, budgets,
+    insuranceDb,
+    notesDb,
     ccCards,
     notifications,
     gameStats,
@@ -12986,6 +13843,8 @@ function readRestoreFile(file) {
           ${(data.db||[]).length} transactions · 
           ${(data.portDb||[]).length} holdings · 
           ${(data.creditDb||[]).length} credit entries · 
+          ${(data.insuranceDb||[]).length} insurance policies · 
+          ${(data.notesDb||[]).length} notes · 
           ${(data.ccCards||[]).length} CC cards · 
           v${data.version||1} · 
           Exported ${data.exportedAt ? new Date(data.exportedAt).toLocaleDateString() : 'unknown date'}
@@ -13006,6 +13865,8 @@ function confirmRestore() {
   if (pendingRestoreData.db)       { db       = pendingRestoreData.db; localStorage.setItem('fos_db_v3', JSON.stringify(db)); }
   if (pendingRestoreData.portDb)   { portDb   = pendingRestoreData.portDb.map(normalizePortRecord); localStorage.setItem('fos_port_v3', JSON.stringify(portDb)); }
   if (pendingRestoreData.creditDb) { creditDb = pendingRestoreData.creditDb; localStorage.setItem('fos_credit_v1', JSON.stringify(creditDb)); }
+  if (pendingRestoreData.insuranceDb) { insuranceDb = pendingRestoreData.insuranceDb; localStorage.setItem('fos_insurance_v1', JSON.stringify(insuranceDb)); }
+  if (pendingRestoreData.notesDb) { notesDb = pendingRestoreData.notesDb; localStorage.setItem('fos_notes_v1', JSON.stringify(notesDb)); }
   if (pendingRestoreData.budgets)  { budgets  = pendingRestoreData.budgets; localStorage.setItem('fos_budgets', JSON.stringify(budgets)); }
 
   // CC Utilization cards
