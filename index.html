@@ -678,7 +678,7 @@ body.light-mode input[type="date"]::-webkit-calendar-picker-indicator {
 body.light-mode input[type="date"]::-webkit-calendar-picker-indicator:hover {
   opacity: 1;
 }
-body.light-mode #daily-summary-time { color-scheme: light; }
+body.light-mode #daily-summary-time { color-scheme: light !important; }
 
 .input-field.port-focus:focus { border-color:#a78bfa; }
 .input-field option { background:#1e293b; }
@@ -1827,6 +1827,13 @@ body.light-mode .settings-undo-btn:hover { color: white; }
   width: 100%;
   transform-origin: left;
 }
+
+#dash-port-donut-wrap canvas { width: 130px !important; height: 130px !important; }
+#dash-credit-summary canvas { width: 104px !important; height: 104px !important; }
+#credit-type-donut-wrap canvas { width: 130px !important; height: 130px !important; }
+#port-profit-donut-wrap canvas { width: 130px !important; height: 130px !important; }
+
+#chart-invest-wrap canvas { width: 130px !important; height: 130px !important; }
 
 </style>
 
@@ -3381,7 +3388,7 @@ function toggleLoginPass(inputId, btn) {
       </div>
 
       <!-- Growth Chart -->
-      <div class="charts-row" style="margin-top:1.3rem">
+      <div class="charts-row" style="margin-top:1.3rem;grid-template-columns:minmax(0,7fr) minmax(0,3fr)">
         <div class="glass-panel" style="margin-bottom:0">
           <div class="panel-title">Wealth Growth Over Time</div>
           <div style="height:300px"><canvas id="sc-growth-chart"></canvas></div>
@@ -3757,11 +3764,12 @@ function toggleLoginPass(inputId, btn) {
 
     <!-- PORTFOLIO: ANALYTICS -->
     <div id="view-port-analytics" class="view-section">
-      <div class="analytics-grid">
-        <div class="glass-panel span-full" style="margin-bottom:1.3rem">
-          <div class="panel-title">Appreciation Timeline (by Purchase Date)</div>
-          <div style="height:250px"><canvas id="port-timeline"></canvas></div>
-        </div>
+     <div class="glass-panel span-full" style="margin-bottom:1.3rem">
+        <div class="panel-title">Appreciation Timeline (by Purchase Date)</div>
+        <div style="height:250px"><canvas id="port-timeline"></canvas></div>
+      </div>
+
+      <div style="display:grid;grid-template-columns:minmax(0,7fr) minmax(0,3fr);gap:1.3rem;margin-bottom:1.3rem">
         <div class="glass-panel" style="margin-bottom:0">
           <div class="panel-title">ROI% Distribution (Scatter)</div>
           <div style="height:220px"><canvas id="port-roi-scatter"></canvas></div>
@@ -3770,6 +3778,9 @@ function toggleLoginPass(inputId, btn) {
           <div class="panel-title">Gain/Loss Waterfall</div>
           <div style="height:220px"><canvas id="port-waterfall"></canvas></div>
         </div>
+      </div>
+
+      <div class="analytics-grid">
         <div class="glass-panel" style="margin-bottom:0">
           <div class="panel-title">Investment vs Current Value</div>
           <div style="height:220px"><canvas id="port-compare-bar"></canvas></div>
@@ -3785,7 +3796,7 @@ function toggleLoginPass(inputId, btn) {
         <div id="port-insights-container" style="display:grid;grid-template-columns:repeat(3, 1fr);gap:1rem"></div>
       </div>
 
-      <div class="analytics-grid" style="margin-bottom:1.3rem">
+      <div class="analytics-grid" style="margin-bottom:1.3rem;grid-template-columns:minmax(0,4fr) minmax(0,6fr)">
         <div class="glass-panel" style="margin-bottom:0">
           <div class="panel-title">SECTOR ROI VELOCITY <i class="fas fa-tachometer-alt" style="margin-left:6px; color:#f43f5e; font-size: 0.85rem;"></i></div>
           <div style="height:260px"><canvas id="chart-port-roi"></canvas></div>
@@ -3795,12 +3806,12 @@ function toggleLoginPass(inputId, btn) {
           <div style="height:260px"><canvas id="chart-port-gains"></canvas></div>
         </div>
       </div>
-      <div class="analytics-grid" style="margin-bottom:1.3rem">
+     <div class="analytics-grid" style="margin-bottom:1.3rem;grid-template-columns:minmax(0,4fr) minmax(0,6fr)">
         <div class="glass-panel" style="margin-bottom:0">
   <div class="panel-title">CAPITAL LIQUIDITY MATRIX <i class="fas fa-water" style="margin-left:6px; color:#3b82f6; font-size: 0.85rem;"></i></div>
   <div style="height:320px"><canvas id="chart-port-liquidity"></canvas></div>
 </div>
-        <div class="glass-panel" style="margin-bottom:0">
+       <div class="glass-panel" style="margin-bottom:0">
   <div class="panel-title">SYSTEMIC EXPOSURE (ACTUAL VS IDEAL) <i class="fas fa-crosshairs" style="margin-left:6px; color:#38bdf8; font-size: 0.85rem;"></i></div>
   <div style="height:280px"><canvas id="chart-port-exposure"></canvas></div>
 </div>
@@ -7444,106 +7455,102 @@ function renderPortAnalytics() {
     } // <--- ADDED THIS MISSING BRACE
   });
 
- // 3. Asset Heatmap Matrix (Premium Glowing Tiles)
+ // 3. Capital Pulse Grid — Radial Gain/Loss Visualization
   destroyChart('port-waterfall');
   const wfContainer = document.getElementById('port-waterfall').parentNode;
-  
-  // Automatically rename the panel title above it
+
   const titleEl = wfContainer.previousElementSibling;
-  if(titleEl && titleEl.classList.contains('panel-title')) {
-      titleEl.textContent = 'Gain/Loss Heatmap Matrix';
+  if (titleEl && titleEl.classList.contains('panel-title')) {
+    titleEl.innerHTML = 'CAPITAL PULSE GRID <i class="fas fa-satellite-dish" style="margin-left:6px; color:#38bdf8; font-size: 0.85rem;"></i>';
   }
 
-  // Create or grab the custom HTML container
-  let matrixDiv = document.getElementById('port-matrix-heatmap');
-  if (!matrixDiv) {
-      matrixDiv = document.createElement('div');
-      matrixDiv.id = 'port-matrix-heatmap';
-      matrixDiv.style.height = '220px';
-      matrixDiv.style.width = '100%';
-      matrixDiv.style.overflowY = 'auto';
-      matrixDiv.style.display = 'flex';
-      matrixDiv.style.flexDirection = 'column';
-      matrixDiv.style.gap = '10px';
-      matrixDiv.style.padding = '5px 5px 5px 0';
-      matrixDiv.style.scrollbarWidth = 'thin';
-      matrixDiv.style.scrollbarColor = 'rgba(255,255,255,0.1) transparent';
-
-      wfContainer.appendChild(matrixDiv);
-      document.getElementById('port-waterfall').style.display = 'none'; // Hide the raw canvas
-      wfContainer.style.height = 'auto'; 
+  let pulseDiv = document.getElementById('port-pulse-grid');
+  if (!pulseDiv) {
+    pulseDiv = document.createElement('div');
+    pulseDiv.id = 'port-pulse-grid';
+    pulseDiv.style.cssText = 'height:280px;width:100%;position:relative;display:flex;align-items:center;justify-content:center;overflow:hidden';
+    wfContainer.appendChild(pulseDiv);
+    document.getElementById('port-waterfall').style.display = 'none';
+    wfContainer.style.height = 'auto';
   }
 
-  // Group data by Asset Type and calculate total investment per row
-  const grouped = {};
+  const pulseGrouped = {};
   data.forEach(e => {
-      const k = assetTypeLabel(e.assetType);
-      if (!grouped[k]) grouped[k] = { items: [], totalInv: 0 };
-      grouped[k].items.push(e);
-      grouped[k].totalInv += e.totalInvestment;
+    const k = normalizeAssetType(e.assetType);
+    if (!pulseGrouped[k]) pulseGrouped[k] = [];
+    pulseGrouped[k].push(e);
+  });
+  const pulseAssetKeys = Object.keys(pulseGrouped).sort((a,b) => {
+    const totalA = pulseGrouped[a].reduce((s,e)=>s+e.totalInvestment,0);
+    const totalB = pulseGrouped[b].reduce((s,e)=>s+e.totalInvestment,0);
+    return totalB - totalA;
   });
 
-  // Sort groups so your heaviest asset classes are at the top
-  const sortedGroups = Object.entries(grouped).sort((a,b) => b[1].totalInv - a[1].totalInv);
+  if (pulseAssetKeys.length === 0) {
+    pulseDiv.innerHTML = '<div class="empty-state"><i class="fas fa-satellite-dish"></i><p>No portfolio data</p></div>';
+  } else {
+    const pulseTotalGain = data.reduce((s,e)=>s+e.gainLoss,0);
+    const pulseTotalInv  = data.reduce((s,e)=>s+e.totalInvestment,0);
+    const pulseTotalPct  = pulseTotalInv > 0 ? ((pulseTotalGain/pulseTotalInv)*100) : 0;
+    const pulseCenterColor = pulseTotalGain >= 0 ? '#34d399' : '#ef4444';
 
-  let html = '';
-  sortedGroups.forEach(([label, group]) => {
-      // Sort individual tiles left-to-right by purchase date
-      const items = group.items.sort((a,b) => new Date(a.date) - new Date(b.date));
-      
-      html += `<div style="display:flex; align-items:center; gap:14px; width:100%;">`;
-      
-      // Row Label (e.g., "GOLD", "SILVER")
-      html += `<div style="width:75px; font-size:0.72rem; color:var(--text-muted); font-weight:700; text-transform:uppercase; letter-spacing:1px; flex-shrink:0; text-align:right;">${label}</div>`;
-      
-      // Background Track
-      html += `<div style="display:flex; flex:1; gap:6px; height:28px; background:rgba(255,255,255,0.03); border-radius:6px; padding:4px; overflow:hidden; border: 1px solid rgba(255,255,255,0.02)">`;
-      
+    const cx = 50, cy = 50;
+    const ringCount = pulseAssetKeys.length;
+    const maxRadius = 42, minRadius = 14;
+    const ringGap = ringCount > 1 ? (maxRadius - minRadius) / (ringCount - 1) : 0;
+
+    let svgRings = '';
+    let labelHtml = '';
+
+    pulseAssetKeys.forEach((key, ringIdx) => {
+      const radius = minRadius + ringIdx * ringGap;
+      const items = pulseGrouped[key];
+      const ringInv = items.reduce((s,e)=>s+e.totalInvestment,0) || 1;
+      const assetHex = assetColor(key);
+      let angleStart = -90;
+
+      // faint background track for the ring
+      svgRings += `<circle cx="${cx}" cy="${cy}" r="${radius}" fill="none" stroke="${assetHex}1a" stroke-width="3.2" />`;
+
       items.forEach(item => {
-          const isProfit = item.gainLoss >= 0;
-          const absRoi = Math.abs(item.roi);
-          const intensity = Math.min(1, 0.2 + (absRoi / 50)); 
-          
-          // 1. Grab the specific asset's theme color
-          const itemHex = assetColor(item.assetType);
-          
-          // 2. Convert that Hex to "R, G, B" so we can apply glowing opacity
-          let cleanHex = itemHex.replace('#', '');
-          if(cleanHex.length === 3) cleanHex = cleanHex.split('').map(c=>c+c).join('');
-          const assetRgb = `${parseInt(cleanHex.substring(0,2), 16)}, ${parseInt(cleanHex.substring(2,4), 16)}, ${parseInt(cleanHex.substring(4,6), 16)}`;
-          
-          // 3. Use Asset Color for Profits, Neon Red for Losses
-          const rgbColor = isProfit ? assetRgb : '239, 68, 68'; 
-          
-          const baseColor = `rgba(${rgbColor}, ${intensity})`;
-          const glowColor = `rgba(${rgbColor}, ${intensity * 0.6})`;
-          const borderColor = `rgba(${rgbColor}, ${Math.min(1, intensity + 0.3)})`;
-          
-          const flexGrow = Math.max(1, item.totalInvestment); 
-
-          html += `
-          <div style="
-              flex-grow: ${flexGrow};
-              flex-basis: 8px; 
-              height: 100%;
-              background: linear-gradient(135deg, ${baseColor}, rgba(${rgbColor}, ${intensity * 0.7}));
-              border: 1px solid ${borderColor};
-              border-radius: 4px;
-              box-shadow: 0 0 12px ${glowColor};
-              cursor: crosshair;
-              transition: transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1), filter 0.2s;
-              position: relative;
-          "
-          onmousemove="this.style.transform='scaleY(1.3) scaleX(1.05)'; this.style.filter='brightness(1.3)'; this.style.zIndex='10'; showMatrixTooltip(event, '${assetTypeLabel(item.assetType)}', '${item.date}', ${item.totalInvestment}, ${item.currentValue}, ${item.gainLoss}, ${item.roi}, '${itemHex}')"
-          onmouseout="this.style.transform='scale(1)'; this.style.filter='brightness(1)'; this.style.zIndex='1'; hideMatrixTooltip()"
-          ></div>
-          `;
+        const sweep = Math.max(4, (item.totalInvestment / ringInv) * 340);
+        const isProfit = item.gainLoss >= 0;
+        const intensity = Math.min(1, 0.35 + Math.abs(item.roi) / 80);
+        const segColor = isProfit ? assetHex : '#ef4444';
+        const a0 = (angleStart * Math.PI) / 180;
+        const a1 = ((angleStart + sweep) * Math.PI) / 180;
+        const x0 = cx + radius * Math.cos(a0), y0 = cy + radius * Math.sin(a0);
+        const x1 = cx + radius * Math.cos(a1), y1 = cy + radius * Math.sin(a1);
+        const largeArc = sweep > 180 ? 1 : 0;
+        svgRings += `<path d="M ${x0} ${y0} A ${radius} ${radius} 0 ${largeArc} 1 ${x1} ${y1}"
+          fill="none" stroke="${segColor}" stroke-width="3.2" stroke-linecap="round"
+          opacity="${intensity}"
+          style="cursor:pointer;filter:drop-shadow(0 0 3px ${segColor})"
+          onmousemove="showMatrixTooltip(event,'${assetTypeLabel(key)}','${item.date}',${item.totalInvestment},${item.currentValue},${item.gainLoss},${item.roi},'${assetHex}')"
+          onmouseout="hideMatrixTooltip()" />`;
+        angleStart += sweep + 3;
       });
-      
-      html += `</div></div>`;
-  });
 
-  matrixDiv.innerHTML = html;
+      labelHtml += `<div style="display:flex;align-items:center;gap:6px">
+        <span style="width:7px;height:7px;border-radius:50%;background:${assetHex};box-shadow:0 0 7px ${assetHex}"></span>
+        <span style="font-size:0.66rem;font-weight:600;color:${chartTextColor()}">${assetTypeLabel(key)}</span>
+      </div>`;
+    });
+
+    pulseDiv.innerHTML = `
+      <svg viewBox="0 0 100 100" style="width:240px;height:240px;flex-shrink:0;animation:pulseSpin 60s linear infinite">
+        ${svgRings}
+      </svg>
+      <div style="position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);text-align:center;pointer-events:none">
+        <div style="font-family:'DM Mono',monospace;font-weight:800;font-size:1.05rem;color:${pulseCenterColor};text-shadow:0 0 14px ${pulseCenterColor}80">${pulseTotalPct>=0?'+':''}${pulseTotalPct.toFixed(1)}%</div>
+        <div style="font-size:0.55rem;color:var(--text-muted);font-weight:600;text-transform:uppercase;letter-spacing:0.5px">Net ROI</div>
+      </div>
+      <div style="position:absolute;right:6px;top:50%;transform:translateY(-50%);display:flex;flex-direction:column;gap:8px">
+        ${labelHtml}
+      </div>
+      <style>@keyframes pulseSpin{from{transform:rotate(0deg)}to{transform:rotate(360deg)}}</style>
+    `;
+  }
 
   // Global Tooltip Engine (only injects once)
   if (!window.showMatrixTooltip) {
@@ -7569,7 +7576,7 @@ function renderPortAnalytics() {
           
           let x = e.clientX + 15;
           let y = e.clientY + 15;
-          if (x + 200 > window.innerWidth) x = e.clientX - 220; // Prevents bleeding off right edge
+          if (x + 200 > window.innerWidth) x = e.clientX - 220;
           
           ttip.style.left = x + 'px';
           ttip.style.top = y + 'px';
@@ -7581,7 +7588,7 @@ function renderPortAnalytics() {
       };
   }
 
-// 4. Investment vs Value - High-Tech Radar Chart
+// 4. Investment vs Current Value - Capital Terrain (3D Landscape)
   const cvByType = {};
   data.forEach(e => {
     const key = normalizeAssetType(e.assetType);
@@ -7589,41 +7596,124 @@ function renderPortAnalytics() {
     cvByType[key].inv += e.totalInvestment;
     cvByType[key].val += e.currentValue;
   });
-  const cvKeys = Object.keys(cvByType);
+  const cvKeys = Object.keys(cvByType).sort((a,b) => cvByType[b].val - cvByType[a].val);
   const cvLabels = cvKeys.map(k => assetTypeLabel(k));
   destroyChart('port-compare-bar');
-  charts['port-compare-bar'] = new Chart(document.getElementById('port-compare-bar').getContext('2d'), {
-    type: 'radar',
+
+  const terrainCtx = document.getElementById('port-compare-bar').getContext('2d');
+  const terrainH = terrainCtx.canvas.height || 220;
+
+  const investedGrad = terrainCtx.createLinearGradient(0, 0, 0, terrainH);
+  investedGrad.addColorStop(0, 'rgba(167,139,250,0.55)');
+  investedGrad.addColorStop(0.6, 'rgba(167,139,250,0.18)');
+  investedGrad.addColorStop(1, 'rgba(167,139,250,0.02)');
+
+  const valueGrad = terrainCtx.createLinearGradient(0, 0, 0, terrainH);
+  valueGrad.addColorStop(0, 'rgba(52,211,153,0.65)');
+  valueGrad.addColorStop(0.6, 'rgba(52,211,153,0.22)');
+  valueGrad.addColorStop(1, 'rgba(52,211,153,0.02)');
+
+  // Skyline depth plugin — adds a faint "ridge shadow" beneath the front layer for parallax depth
+  const terrainDepthPlugin = {
+    id: 'terrainDepth',
+    beforeDatasetsDraw: (chart) => {
+      chart.ctx.save();
+      chart.ctx.shadowColor = 'rgba(0,0,0,0.45)';
+      chart.ctx.shadowBlur = 14;
+      chart.ctx.shadowOffsetY = 8;
+    },
+    afterDatasetsDraw: (chart) => { chart.ctx.restore(); }
+  };
+
+  charts['port-compare-bar'] = new Chart(terrainCtx, {
+    type: 'line',
     data: {
       labels: cvLabels,
       datasets: [
-        { label:'Total Invested', data:cvKeys.map(k=>cvByType[k].inv), borderColor:'#a78bfa', backgroundColor:'rgba(167,139,250,0.15)', borderWidth:2, pointRadius:3 },
-        { label:'Current Value',  data:cvKeys.map(k=>cvByType[k].val), borderColor:'#34d399', backgroundColor:'rgba(52,211,153,0.15)', borderWidth:2, pointRadius:3 }
+        {
+          label: 'Total Invested',
+          data: cvKeys.map(k => cvByType[k].inv),
+          borderColor: '#a78bfa',
+          backgroundColor: investedGrad,
+          fill: 'origin',
+          borderWidth: 2,
+          tension: 0.42,
+          pointRadius: 3,
+          pointBackgroundColor: '#0f172a',
+          pointBorderColor: '#a78bfa',
+          pointBorderWidth: 2,
+          pointHoverRadius: 6,
+          order: 2
+        },
+        {
+          label: 'Current Value',
+          data: cvKeys.map(k => cvByType[k].val),
+          borderColor: '#34d399',
+          backgroundColor: valueGrad,
+          fill: 'origin',
+          borderWidth: 2.5,
+          tension: 0.42,
+          pointRadius: 4,
+          pointBackgroundColor: '#0f172a',
+          pointBorderColor: '#34d399',
+          pointBorderWidth: 2.5,
+          pointHoverRadius: 7,
+          pointHoverBackgroundColor: '#34d399',
+          pointHoverBorderColor: '#fff',
+          order: 1
+        }
       ]
     },
     options: {
-      ...cOpts(true),
+      responsive: true,
+      maintainAspectRatio: false,
+      interaction: { mode: 'index', intersect: false },
+      animation: { duration: 900, easing: 'easeOutQuart' },
+      layout: { padding: { top: 10, bottom: 4 } },
       scales: {
-        r: {
-          grid: { 
-            display: true, 
-            color: chartGridColor() // Uses your theme-aware grid color
-          },
-          angleLines: { 
-            display: true, 
-            color: chartGridColor() // Shows the lines radiating from center
-          },
-          pointLabels: { 
-            color: chartTextColor(), 
-            font: { size: 10, weight: '600' } 
-          },
-          ticks: { display: false }
+        y: {
+          beginAtZero: true,
+          grid: { color: chartGridColor(), drawBorder: false },
+          ticks: {
+            color: chartTextColor(),
+            font: { size: 10, family: 'DM Mono' },
+            callback: v => '₹' + (v/1000).toFixed(0) + 'k'
+          }
+        },
+        x: {
+          grid: { display: false, drawBorder: false },
+          ticks: { color: chartTextColor(), font: { size: 10.5, family: 'DM Sans', weight: '700' } }
+        }
+      },
+      plugins: {
+        legend: {
+          display: true,
+          position: 'top',
+          labels: {
+            color: chartTextColor(),
+            usePointStyle: true,
+            pointStyle: 'circle',
+            boxWidth: 8,
+            font: { size: 11, family: 'DM Sans', weight: '700' },
+            padding: 14
+          }
+        },
+        tooltip: {
+          backgroundColor: 'rgba(8,11,26,0.97)',
+          titleFont: { family:'DM Sans', size:12, weight:'700' },
+          bodyFont:  { family:'DM Mono', size:11 },
+          borderColor: 'rgba(52,211,153,0.35)',
+          borderWidth: 1,
+          callbacks: {
+            label: ctx => `  ${ctx.dataset.label}: ₹${Number(ctx.raw).toLocaleString('en-IN')}`
+          }
         }
       }
-    }
+    },
+    plugins: [terrainDepthPlugin]
   });
 
-  // 5. Profit% donut - FIXED LOGIC & TOOLTIP
+  // 5. Profit% Distribution - Center-Stat Ring + Progress Legend
   const profitBuckets = { 'Loss (< 0%)':0, '0–25%':0, '25–50%':0, '50–100%':0, '>100%':0 };
   data.forEach(e => {
     const p = e.profitPct;
@@ -7633,20 +7723,87 @@ function renderPortAnalytics() {
     else if (p <= 100) profitBuckets['50–100%']++;
     else              profitBuckets['>100%']++;
   });
+  const profitColors = ['#ef4444', '#64748b', '#60a5fa', '#34d399', '#fbbf24'];
+  const profitLabels = Object.keys(profitBuckets);
   const profitVals = Object.values(profitBuckets);
+
   destroyChart('port-profit-donut');
-  
-  if (profitVals.some(v => v > 0)) {
-    const pChart = makeDonut('port-profit-donut', Object.keys(profitBuckets), profitVals,
-      ['#ef4444', '#64748b', '#60a5fa', '#34d399', '#fbbf24']);
-      
-    // FIX: Override the default Rupee tooltip to show the number of assets instead
-    pChart.options.plugins.tooltip.callbacks.label = ctx => {
-      return `  ${ctx.raw} Asset${ctx.raw !== 1 ? 's' : ''}`;
-    };
-    pChart.update('none');
-    
-    charts['port-profit-donut'] = pChart;
+  const profitDonutEl = document.getElementById('port-profit-donut');
+
+  let profitDonutWrap = document.getElementById('port-profit-donut-wrap');
+  if (profitDonutEl && profitDonutEl.tagName === 'CANVAS') {
+    profitDonutWrap = document.createElement('div');
+    profitDonutWrap.id = 'port-profit-donut-wrap';
+    profitDonutEl.parentNode.replaceChild(profitDonutWrap, profitDonutEl);
+  }
+  if (!profitDonutWrap) profitDonutWrap = document.getElementById('port-profit-donut-wrap');
+
+  const profitTotalAssets = profitVals.reduce((a,b)=>a+b,0);
+
+  if (profitTotalAssets === 0) {
+    profitDonutWrap.innerHTML = '<div class="empty-state" style="padding-top:2rem"><i class="fas fa-chart-pie"></i><p>No portfolio data</p></div>';
+  } else {
+    profitDonutWrap.style.cssText = 'display:flex;align-items:center;gap:18px;height:100%;padding:4px';
+    profitDonutWrap.innerHTML = `
+      <div style="position:relative;width:130px;height:130px;flex-shrink:0">
+        <canvas id="port-profit-donut-ring"></canvas>
+        <div style="position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;pointer-events:none">
+          <div style="font-family:'DM Mono',monospace;font-weight:700;font-size:1rem;color:${chartTextColor()}">${profitTotalAssets}</div>
+          <div style="font-size:0.6rem;color:var(--text-muted);font-weight:600;text-transform:uppercase;letter-spacing:0.5px;margin-top:1px">Assets</div>
+        </div>
+      </div>
+      <div style="flex:1;display:flex;flex-direction:column;gap:9px;min-width:0;max-height:170px;overflow-y:auto;scrollbar-width:none;-ms-overflow-style:none">
+        <style>#port-profit-donut-wrap::-webkit-scrollbar{display:none}</style>
+        ${profitLabels.map((label, i) => {
+          const hex = profitColors[i];
+          const count = profitVals[i];
+          const pct = (count / profitTotalAssets) * 100;
+          return `
+            <div style="display:flex;flex-direction:column;gap:4px">
+              <div style="display:flex;align-items:center;justify-content:space-between;gap:8px">
+                <div style="display:flex;align-items:center;gap:6px;min-width:0">
+                  <span style="width:7px;height:7px;border-radius:50%;background:${hex};box-shadow:0 0 8px ${hex};flex-shrink:0"></span>
+                  <span style="font-size:0.74rem;font-weight:600;color:${chartTextColor()};white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${label}</span>
+                </div>
+                <span style="font-family:'DM Mono',monospace;font-size:0.74rem;font-weight:700;color:${hex};flex-shrink:0">${count} ${count===1?'asset':'assets'}</span>
+              </div>
+              <div style="height:4px;border-radius:99px;background:rgba(255,255,255,0.06);overflow:hidden">
+                <div style="height:100%;width:${pct}%;border-radius:99px;background:${hex};box-shadow:0 0 6px ${hex}80"></div>
+              </div>
+            </div>
+          `;
+        }).join('')}
+      </div>
+    `;
+
+    const profitRingCtx = document.getElementById('port-profit-donut-ring').getContext('2d');
+    charts['port-profit-donut'] = new Chart(profitRingCtx, {
+      type: 'doughnut',
+      data: {
+        labels: profitLabels,
+        datasets: [{
+          data: profitVals,
+          backgroundColor: profitColors,
+          borderColor: 'transparent',
+          borderWidth: 0,
+          spacing: 3,
+          hoverOffset: 6
+        }]
+      },
+      options: {
+        responsive: true, maintainAspectRatio: false, cutout: '72%',
+        animation: { animateRotate: true, duration: 800, easing: 'easeOutQuart' },
+        plugins: {
+          legend: { display: false },
+          tooltip: {
+            backgroundColor: 'rgba(8,11,26,0.97)',
+            titleFont: { family:'DM Sans', size:12, weight:'700' },
+            bodyFont:  { family:'DM Mono', size:11 },
+            callbacks: { label: ctx => `  ${ctx.raw} Asset${ctx.raw !== 1 ? 's' : ''}` }
+          }
+        }
+      }
+    });
   }
 
   // ── NEW: ELITE AI PORTFOLIO INSIGHTS ──────────────────────────────────────
@@ -7832,26 +7989,20 @@ function renderPortAnalytics() {
        </div>`;
   }
 
-  // 8. SYSTEMIC EXPOSURE (Bloomberg-Style Bullet Graph)
+// 8. SYSTEMIC EXPOSURE (Glowing Bullet Graph + Delta Readout)
   destroyChart('port-exposure');
   const expCanvas = document.getElementById('chart-port-exposure');
   if (expCanvas && data.length > 0) {
-    // UPDATED: Added FD and RD to the labels
     const labels = ['Stocks', 'Mutual Funds', 'Gold', 'Silver', 'Crypto', 'Real Estate', 'Fixed Deposit', 'Recurring Deposit'];
-    
-    // 1. Calculate Actual % distribution
+
     const totals = { Stocks: 0, MutualFund: 0, Gold: 0, Silver: 0, Crypto: 0, RealEstate: 0, FixedDeposit: 0, RecurringDeposit: 0 };
     let grandTotal = 0;
-    
     data.forEach(d => {
       grandTotal += d.currentValue;
       const t = normalizeAssetType(d.assetType);
-      if (totals[t] !== undefined) {
-        totals[t] += d.currentValue;
-      }
+      if (totals[t] !== undefined) totals[t] += d.currentValue;
     });
 
-    // Prevent NaN errors if grandTotal is 0
     const actualData = [
       grandTotal ? (totals.Stocks / grandTotal) * 100 : 0,
       grandTotal ? (totals.MutualFund / grandTotal) * 100 : 0,
@@ -7863,201 +8014,241 @@ function renderPortAnalytics() {
       grandTotal ? (totals.RecurringDeposit / grandTotal) * 100 : 0
     ];
 
-    // 2. Dynamically Define Ideal Targets based on User's Age AND Income
     let ageTier = 'thirties';
-    let incomeTier = 'mid'; // Default fallback
+    let incomeTier = 'mid';
     try {
       const currUser = JSON.parse(localStorage.getItem('fos_current_user') || '{}');
       const users = JSON.parse(localStorage.getItem('fos_users') || '[]');
       const userData = users.find(u => u.identifier === currUser.identifier);
-      
       if (userData && userData.onboarding) {
         if (userData.onboarding.age) ageTier = userData.onboarding.age;
         if (userData.onboarding.income) incomeTier = userData.onboarding.income;
       }
     } catch(e) { }
 
-    // Labels Order: ['Stocks', 'Mutual Funds', 'Gold', 'Silver', 'Crypto', 'Real Estate', 'FD', 'RD']
     let baseData;
-    
-    // STEP A: Set Base Allocation by AGE (Risk Horizon)
     switch (ageTier) {
-      case 'twenties':  baseData = [25, 30, 5, 5, 5, 10, 15, 5]; break; // Aggressive (Now with 10% Real Estate)
-      case 'thirties':  baseData = [25, 25, 10, 5, 5, 10, 15, 5]; break; // Growth
-      case 'forties':   baseData = [15, 15, 10, 5, 0, 10, 35, 10]; break; // Balanced
-      case 'fifties':   baseData = [10, 10, 10, 5, 0, 0, 50, 15]; break; // Conservative
+      case 'twenties':  baseData = [25, 30, 5, 5, 5, 10, 15, 5]; break;
+      case 'thirties':  baseData = [25, 25, 10, 5, 5, 10, 15, 5]; break;
+      case 'forties':   baseData = [15, 15, 10, 5, 0, 10, 35, 10]; break;
+      case 'fifties':   baseData = [10, 10, 10, 5, 0, 0, 50, 15]; break;
       default:          baseData = [25, 25, 10, 5, 5, 10, 15, 5]; break;
     }
 
-    // STEP B: Adjust Allocation by INCOME (Liquidity/Risk Capacity)
     let idealData = [...baseData];
-    
     if (incomeTier === 'tiny') {
-        // Under 25k: Shift 10% from Stocks/MF to FD for emergency safety
-        idealData[0] = Math.max(0, idealData[0] - 5);
-        idealData[1] = Math.max(0, idealData[1] - 5);
-        idealData[6] += 10; 
+      idealData[0] = Math.max(0, idealData[0] - 5);
+      idealData[1] = Math.max(0, idealData[1] - 5);
+      idealData[6] += 10;
     } else if (incomeTier === 'small') {
-        // 25k-50k: Shift 5% from Stocks/MF to FD
-        idealData[0] = Math.max(0, idealData[0] - 2.5);
-        idealData[1] = Math.max(0, idealData[1] - 2.5);
-        idealData[6] += 5;
+      idealData[0] = Math.max(0, idealData[0] - 2.5);
+      idealData[1] = Math.max(0, idealData[1] - 2.5);
+      idealData[6] += 5;
     } else if (incomeTier === 'high') {
-        // 1L-2L: Can take more risk. Shift 5% from FD to Stocks/Crypto
-        if (idealData[6] >= 5) {
-            idealData[6] -= 5;
-            idealData[0] += 2.5; // Stocks bump
-            idealData[4] += 2.5; // Crypto bump
-        }
+      if (idealData[6] >= 5) { idealData[6] -= 5; idealData[0] += 2.5; idealData[4] += 2.5; }
     } else if (incomeTier === 'vhigh') {
-        // 2L+: High risk tolerance. Shift 10% from Safe Assets to Real Estate/Stocks
-        if (idealData[6] >= 5) idealData[6] -= 5;
-        if (idealData[7] >= 2.5) idealData[7] -= 2.5;
-        if (idealData[2] >= 2.5) idealData[2] -= 2.5;
-        idealData[5] += 5; // Real Estate bump
-        idealData[0] += 5; // Stocks bump
+      if (idealData[6] >= 5) idealData[6] -= 5;
+      if (idealData[7] >= 2.5) idealData[7] -= 2.5;
+      if (idealData[2] >= 2.5) idealData[2] -= 2.5;
+      idealData[5] += 5;
+      idealData[0] += 5;
     }
-    // 'mid' (50k-1L) stays exactly at the base age target.
 
+    destroyChart('port-exposure');
+    const expEl = document.getElementById('chart-port-exposure');
 
-    // Custom Plugin for the Target Lines (|)
-    // Locate the bulletTargetPlugin definition
-const bulletTargetPlugin = {
-  id: 'bulletTarget',
-  afterDatasetsDraw: (chart) => {
-    const { ctx, chartArea: { left, right }, scales: { x, y } } = chart;
-    const isLight = document.body.classList.contains('light-mode'); // ADD THIS
-    ctx.save();
-    chart.getDatasetMeta(0).data.forEach((bar, index) => {
-      const targetX = x.getPixelForValue(idealData[index]);
-      ctx.beginPath();
-      // UPDATE THIS LINE:
-      ctx.strokeStyle = isLight ? '#0f172a' : '#ffffff'; 
-      ctx.lineWidth = 3;
-      ctx.moveTo(targetX, bar.y - 12);
-      ctx.lineTo(targetX, bar.y + 12);
-      ctx.stroke();
-    });
-    ctx.restore();
-  }
-};
+    let expWrap = document.getElementById('chart-port-exposure-wrap');
+    if (expEl && expEl.tagName === 'CANVAS') {
+      expWrap = document.createElement('div');
+      expWrap.id = 'chart-port-exposure-wrap';
+      expEl.parentNode.replaceChild(expWrap, expEl);
+    }
+    if (!expWrap) expWrap = document.getElementById('chart-port-exposure-wrap');
 
-    charts['port-exposure'] = new Chart(expCanvas.getContext('2d'), {
-      type: 'bar',
-      plugins: [bulletTargetPlugin],
-      data: {
-        labels: labels,
-        datasets: [{
-          label: 'Actual Exposure %',
-          data: actualData,
-          backgroundColor: actualData.map((val, i) => val > idealData[i] ? '#f43f5e' : '#38bdf8'), // Red if over-exposed, Blue if under
-          borderRadius: 4,
-          barThickness: 12,
-        }]
-      },
-      options: {
-        ...cOpts(true),
-        indexAxis: 'y', // Makes it horizontal
-        maintainAspectRatio: false,
-      scales: {
-          x: {
-            grid: { display: false }, // <-- This removes the vertical background lines!
-            border: { display: false }, 
-            ticks: { color: chartTextColor(), font: { size: 10 } },
-            max: Math.max(...actualData, ...idealData) + 10, 
-            title: { display: true, text: 'Allocation %', color: chartTextColor(), font: { size: 9 } }
-          },
-          y: {
-            grid: { display: false },
-            border: { display: false }, 
-            ticks: { color: chartTextColor(), font: { size: 11, weight: '700' } }
-          }
-        },
-        plugins: {
-          legend: { display: false },
-          tooltip: {
-            callbacks: {
-              label: (ctx) => {
-                const target = idealData[ctx.dataIndex];
-                const diff = (ctx.raw - target).toFixed(1);
-                return ` Actual: ${ctx.raw.toFixed(1)}% | Target: ${target}% (${diff > 0 ? '+' : ''}${diff}%)`;
-              }
-            }
-          }
-        }
-      }
-    });
+    const expMax = Math.max(...actualData, ...idealData) * 1.15 || 10;
+    const isLightExp = document.body.classList.contains('light-mode');
+    const trackBg = isLightExp ? 'rgba(0,0,0,0.05)' : 'rgba(255,255,255,0.05)';
+
+    expWrap.style.cssText = 'display:flex;flex-direction:column;gap:13px;padding:8px 4px;height:100%;overflow-y:auto;scrollbar-width:none;-ms-overflow-style:none';
+    expWrap.innerHTML = `<style>#chart-port-exposure-wrap::-webkit-scrollbar{display:none}</style>` +
+      labels.map((label, i) => {
+        const actual = actualData[i];
+        const target = idealData[i];
+        const diff = actual - target;
+        const overExposed = diff > 0.5;
+        const underExposed = diff < -0.5;
+        const hex = overExposed ? '#f43f5e' : underExposed ? '#fbbf24' : '#34d399';
+        const actualPct = Math.max(actual > 0 ? 2 : 0, (actual / expMax) * 100);
+        const targetPct = Math.max(2, (target / expMax) * 100);
+        const diffLabel = diff === 0 ? 'On target' : (diff > 0 ? `+${diff.toFixed(1)}% over` : `${diff.toFixed(1)}% under`);
+        return `
+          <div style="display:flex;flex-direction:column;gap:5px">
+            <div style="display:flex;justify-content:space-between;align-items:baseline">
+              <span style="font-size:0.76rem;font-weight:700;color:${chartTextColor()}">${label}</span>
+              <div style="display:flex;align-items:baseline;gap:7px">
+                <span style="font-family:'DM Mono',monospace;font-size:0.78rem;font-weight:700;color:${hex}">${actual.toFixed(1)}%</span>
+                <span style="font-size:0.6rem;color:${hex};font-weight:600">${diffLabel}</span>
+              </div>
+            </div>
+            <div style="height:12px;border-radius:99px;background:${trackBg};overflow:hidden;position:relative">
+              <div style="height:100%;width:${actualPct}%;border-radius:99px;background:linear-gradient(90deg, ${hex}99, ${hex});box-shadow:0 0 12px ${hex}70,inset 0 1px 0 rgba(255,255,255,0.3);position:relative;transition:width 0.8s cubic-bezier(0.16,1,0.3,1)">
+                <div style="position:absolute;inset:0;background:linear-gradient(180deg, rgba(255,255,255,0.25), transparent 60%);border-radius:99px"></div>
+              </div>
+              <div style="position:absolute;top:-2px;bottom:-2px;left:${targetPct}%;width:2px;background:${isLightExp ? '#0f172a' : '#ffffff'};box-shadow:0 0 6px rgba(255,255,255,0.6);transform:translateX(-1px)" title="Target: ${target.toFixed(1)}%"></div>
+            </div>
+          </div>
+        `;
+      }).join('') +
+      `<div style="display:flex;gap:18px;justify-content:center;margin-top:2px;padding-top:8px;border-top:1px solid ${trackBg};font-size:0.65rem;font-weight:600;color:var(--text-muted)">
+         <div style="display:flex;align-items:center;gap:6px"><span style="width:7px;height:7px;border-radius:50%;background:#34d399"></span>On Target</div>
+         <div style="display:flex;align-items:center;gap:6px"><span style="width:7px;height:7px;border-radius:50%;background:#fbbf24"></span>Under-exposed</div>
+         <div style="display:flex;align-items:center;gap:6px"><span style="width:7px;height:7px;border-radius:50%;background:#f43f5e"></span>Over-exposed</div>
+         <div style="display:flex;align-items:center;gap:6px"><span style="width:2px;height:9px;background:${isLightExp ? '#0f172a' : '#ffffff'}"></span>Ideal Target</div>
+       </div>`;
   }
 
-// 9. CAPITAL LIQUIDITY MATRIX (Radar Chart Version)
+// 9. CAPITAL LIQUIDITY MATRIX - Glass Orbital Radar
   destroyChart('portliquidity');
   const liqCanvas = document.getElementById('chart-port-liquidity');
-  if (liqCanvas && data.length > 0) {
-    let high = 0, med = 0, low = 0;
-    
-    data.forEach(d => {
-      const t = normalizeAssetType(d.assetType);
-      const val = d.currentValue;
-      if (['MutualFund', 'Stocks', 'Crypto'].includes(t)) high += val;
-      else if (['Gold', 'Silver'].includes(t)) med += val;
-      else low += val; 
-    });
 
-    const liqData = [high, med, low];
-    const liqLabels = ['High Liquidity', 'Medium Liquidity', 'Illiquid'];
-    
-    charts['portliquidity'] = new Chart(liqCanvas.getContext('2d'), {
-      type: 'radar',
-      data: {
-        labels: liqLabels,
-        datasets: [{
-          label: 'Capital Distribution',
-          data: liqData,
-          fill: true,
-          backgroundColor: 'rgba(59, 130, 246, 0.2)',
-          borderColor: '#3b82f6',
-          borderWidth: 2,
-          pointBackgroundColor: '#3b82f6',
-          pointBorderColor: '#fff',
-          pointHoverBackgroundColor: '#fff',
-          pointHoverBorderColor: '#3b82f6'
-        }]
+  let liqWrap = document.getElementById('chart-port-liquidity-wrap');
+  if (liqWrap) {
+    const freshCanvas = document.createElement('canvas');
+    freshCanvas.id = 'chart-port-liquidity';
+    liqWrap.parentNode.replaceChild(freshCanvas, liqWrap);
+  }
+  const liqCtx = document.getElementById('chart-port-liquidity').getContext('2d');
+
+  let high = 0, med = 0, low = 0;
+  data.forEach(d => {
+    const t = normalizeAssetType(d.assetType);
+    const val = d.currentValue;
+    if (['MutualFund', 'Stocks', 'Crypto'].includes(t)) high += val;
+    else if (['Gold', 'Silver'].includes(t)) med += val;
+    else low += val;
+  });
+
+  const liqData = [high, med, low];
+  const liqLabels = ['High Liquidity', 'Medium Liquidity', 'Illiquid'];
+  const liqTotal = high + med + low || 1;
+  const isLightLiq = document.body.classList.contains('light-mode');
+
+  const liqGrad = liqCtx.createLinearGradient(0, 0, 0, liqCtx.canvas.height || 280);
+  liqGrad.addColorStop(0, 'rgba(56,189,248,0.45)');
+  liqGrad.addColorStop(0.55, 'rgba(56,189,248,0.18)');
+  liqGrad.addColorStop(1, 'rgba(56,189,248,0.02)');
+
+  // Glow + glass-ring plugin: outer halo, concentric depth rings, glowing stroke
+  const liqGlassPlugin = {
+    id: 'liqGlass',
+    beforeDraw: (chart) => {
+      const { ctx, chartArea } = chart;
+      if (!chartArea) return;
+      const cx = (chartArea.left + chartArea.right) / 2;
+      const cy = (chartArea.top + chartArea.bottom) / 2;
+      const r  = Math.min(chartArea.right - chartArea.left, chartArea.bottom - chartArea.top) / 2;
+      ctx.save();
+      const halo = ctx.createRadialGradient(cx, cy, r * 0.1, cx, cy, r * 1.1);
+      halo.addColorStop(0, isLightLiq ? 'rgba(56,189,248,0.08)' : 'rgba(56,189,248,0.14)');
+      halo.addColorStop(1, 'rgba(56,189,248,0)');
+      ctx.fillStyle = halo;
+      ctx.beginPath();
+      ctx.arc(cx, cy, r * 1.1, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.restore();
+    },
+    beforeDatasetsDraw: (chart) => {
+      chart.ctx.save();
+      if (!isLightLiq) {
+        chart.ctx.shadowColor = 'rgba(56,189,248,0.65)';
+        chart.ctx.shadowBlur = 18;
+        chart.ctx.shadowOffsetY = 4;
+      }
+    },
+    afterDatasetsDraw: (chart) => { chart.ctx.restore(); }
+  };
+
+  // Center readout: dominant liquidity tier + its %
+  const liqCenterPlugin = {
+    id: 'liqCenter',
+    afterDraw: (chart) => {
+      const { ctx, chartArea } = chart;
+      if (!chartArea) return;
+      const cx = (chartArea.left + chartArea.right) / 2;
+      const cy = (chartArea.top + chartArea.bottom) / 2;
+      const maxIdx = liqData.indexOf(Math.max(...liqData));
+      const pct = ((liqData[maxIdx] / liqTotal) * 100).toFixed(0);
+      ctx.save();
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.font = "800 18px 'DM Mono', monospace";
+      ctx.fillStyle = '#38bdf8';
+      ctx.fillText(pct + '%', cx, cy - 6);
+      ctx.font = "600 9px 'DM Sans', sans-serif";
+      ctx.fillStyle = isLightLiq ? '#475569' : '#94a3b8';
+      ctx.fillText(liqLabels[maxIdx].toUpperCase(), cx, cy + 11);
+      ctx.restore();
+    }
+  };
+
+  charts['portliquidity'] = new Chart(liqCtx, {
+    type: 'radar',
+    data: {
+      labels: liqLabels,
+      datasets: [{
+        label: 'Capital Distribution',
+        data: liqData,
+        fill: true,
+        backgroundColor: liqGrad,
+        borderColor: '#38bdf8',
+        borderWidth: 2.5,
+        pointRadius: 6,
+        pointBackgroundColor: isLightLiq ? '#ffffff' : '#0f172a',
+        pointBorderColor: '#38bdf8',
+        pointBorderWidth: 2.5,
+        pointHoverRadius: 9,
+        pointHoverBackgroundColor: '#38bdf8',
+        pointHoverBorderColor: '#fff',
+        pointHoverBorderWidth: 2,
+        tension: 0.15
+      }]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      animation: { duration: 1000, easing: 'easeOutBack' },
+      scales: {
+        r: {
+          grid: { display: true, color: chartGridColor(), circular: true },
+          angleLines: { display: true, color: chartGridColor() },
+          pointLabels: {
+            color: chartTextColor(),
+            font: { family: 'DM Sans', size: 11, weight: '700' },
+            padding: 12
+          },
+          ticks: { display: false },
+          suggestedMin: 0
+        }
       },
-      options: {
-        ...cOpts(true),
-        maintainAspectRatio: false,
-        scales: {
-          r: {
-            display: true,          // Ensures the scale is rendered
-            grid: { 
-              display: true,        // TURNS ON THE GRID LINES
-              color: chartGridColor() // Uses your theme-aware color function
-            },
-            angleLines: { 
-              display: true,        // TURNS ON THE ANGLE LINES
-              color: chartGridColor() 
-            },
-            pointLabels: {
-              color: chartTextColor(),
-              font: { family: 'DM Sans', size: 11, weight: '700' }
-            },
-            ticks: {
-              display: false // Keeps the center clean
-            },
-            suggestedMin: 0
-          }
-        },
-        plugins: {
-          legend: { display: false },
-          tooltip: {
-            callbacks: {
-              label: (ctx) => ` ₹${ctx.raw.toLocaleString('en-IN')}`
+      plugins: {
+        legend: { display: false },
+        tooltip: {
+          backgroundColor: 'rgba(8,11,26,0.97)',
+          titleFont: { family:'DM Sans', size:12, weight:'700' },
+          bodyFont:  { family:'DM Mono', size:11 },
+          borderColor: 'rgba(56,189,248,0.4)',
+          borderWidth: 1,
+          callbacks: {
+            label: ctx => {
+              const pct = ((ctx.raw / liqTotal) * 100).toFixed(1);
+              return `  ₹${Math.round(ctx.raw).toLocaleString('en-IN')}  (${pct}%)`;
             }
           }
         }
       }
-    });
-  }
+    },
+    plugins: [liqGlassPlugin, liqCenterPlugin]
+  });
 }
 
 // ── ANALYTICS (Finance) ────────────────────────────────────────────────────
@@ -8530,78 +8721,86 @@ function renderAnalytics() {
         console.error("Radar Chart failed safely:", e);
       }
 
-      // ── Wealth Ring Ecosystem (Investment Portfolio) ──────────────────────
+      // ── Investment Portfolio - Center-Stat Ring + Progress Legend ──────────
       const invGroupData = groupData('Investment', data);
       const invEmpty = document.getElementById('empty-invest');
       const invCanvas = document.getElementById('chart-invest');
-      
-      if (invCanvas) invCanvas.style.display = 'none';
-      if (invEmpty) invEmpty.style.display = 'none';
+
       destroyChart('invest');
 
+      let invWrap = document.getElementById('chart-invest-wrap');
+      if (invCanvas && invCanvas.tagName === 'CANVAS') {
+        invWrap = document.createElement('div');
+        invWrap.id = 'chart-invest-wrap';
+        invCanvas.parentNode.replaceChild(invWrap, invCanvas);
+      }
+      if (!invWrap) invWrap = document.getElementById('chart-invest-wrap');
+      if (invEmpty) invEmpty.style.display = 'none';
+
       const sortedInv = Object.entries(invGroupData).sort((a,b) => b[1] - a[1]);
-      const totalInvSum = sortedInv.reduce((sum, [, val]) => sum + val, 0);
+      const totalInvSum = sortedInv.reduce((sum, [, val]) => sum + val, 0) || 1;
+      const ringColors = ['#06b6d4', '#8b5cf6', '#f59e0b', '#10b981', '#f472b6', '#3b82f6', '#fb923c', '#a3e635'];
 
       if (sortedInv.length > 0) {
-        if (invCanvas) invCanvas.style.display = '';
-        const invCtx = invCanvas.getContext('2d');
-        
-        // Premium Neon Fintech Palette (Outer ring to Inner ring)
-        const ringColors = [
-          { c: '#06b6d4', glow: 'rgba(6, 182, 212, 0.2)' },  // Cyan 
-          { c: '#8b5cf6', glow: 'rgba(139, 92, 246, 0.2)' }, // Purple
-          { c: '#f59e0b', glow: 'rgba(245, 158, 11, 0.2)' }, // Amber
-          { c: '#10b981', glow: 'rgba(16, 185, 129, 0.2)' }, // Emerald
-          { c: '#f472b6', glow: 'rgba(244, 114, 182, 0.2)' },// Pink
-          { c: '#3b82f6', glow: 'rgba(59, 130, 246, 0.2)' }  // Blue
-        ];
+        invWrap.style.cssText = 'display:flex;align-items:center;gap:18px;height:100%;padding:4px';
+        invWrap.innerHTML = `
+          <div style="position:relative;width:130px;height:130px;flex-shrink:0">
+            <canvas id="chart-invest-ring"></canvas>
+            <div style="position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;pointer-events:none">
+              <div style="font-family:'DM Mono',monospace;font-weight:700;font-size:1rem;color:${chartTextColor()}">${sortedInv.length}</div>
+              <div style="font-size:0.6rem;color:var(--text-muted);font-weight:600;text-transform:uppercase;letter-spacing:0.5px;margin-top:1px">Holdings</div>
+            </div>
+          </div>
+          <div style="flex:1;display:flex;flex-direction:column;gap:9px;min-width:0;max-height:220px;overflow-y:auto;scrollbar-width:none;-ms-overflow-style:none">
+            <style>#chart-invest-wrap::-webkit-scrollbar{display:none}</style>
+            ${sortedInv.map(([label, val], i) => {
+              const hex = ringColors[i % ringColors.length];
+              const pct = (val / totalInvSum) * 100;
+              return `
+                <div style="display:flex;flex-direction:column;gap:4px">
+                  <div style="display:flex;align-items:center;justify-content:space-between;gap:8px">
+                    <div style="display:flex;align-items:center;gap:6px;min-width:0">
+                      <span style="width:7px;height:7px;border-radius:50%;background:${hex};box-shadow:0 0 8px ${hex};flex-shrink:0"></span>
+                      <span style="font-size:0.74rem;font-weight:600;color:${chartTextColor()};white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${label}</span>
+                    </div>
+                    <span style="font-family:'DM Mono',monospace;font-size:0.74rem;font-weight:700;color:${hex};flex-shrink:0">${pct.toFixed(0)}%</span>
+                  </div>
+                  <div style="height:4px;border-radius:99px;background:rgba(255,255,255,0.06);overflow:hidden">
+                    <div style="height:100%;width:${pct}%;border-radius:99px;background:${hex};box-shadow:0 0 6px ${hex}80"></div>
+                  </div>
+                </div>
+              `;
+            }).join('')}
+          </div>
+        `;
 
-        charts['invest'] = new Chart(invCtx, {
+        const invRingCtx = document.getElementById('chart-invest-ring').getContext('2d');
+        charts['invest'] = new Chart(invRingCtx, {
           type: 'doughnut',
           data: {
             labels: sortedInv.map(inv => inv[0]),
             datasets: [{
               data: sortedInv.map(inv => inv[1]),
-              backgroundColor: sortedInv.map((inv, i) => {
-                const colorObj = ringColors[i % ringColors.length];
-                const g = invCtx.createLinearGradient(0, 0, 0, 250);
-                g.addColorStop(0, colorObj.c);
-                g.addColorStop(1, colorObj.glow);
-                return g;
-              }),
+              backgroundColor: sortedInv.map((_, i) => ringColors[i % ringColors.length]),
+              borderColor: 'transparent',
               borderWidth: 0,
-              borderRadius: 6, // Smooth edges on the slices
-              hoverOffset: 8   // Pops out slightly when hovered
+              spacing: 3,
+              hoverOffset: 6
             }]
           },
           options: {
-            responsive: true,
-            maintainAspectRatio: false,
-            cutout: '70%', // Creates a thin, elegant premium ring
-            layout: { padding: { top: 10, bottom: 10 } },
+            responsive: true, maintainAspectRatio: false, cutout: '72%',
+            animation: { animateRotate: true, duration: 800, easing: 'easeOutQuart' },
             plugins: {
-              legend: { 
-                display: true, 
-                position: 'right', // Moves labels to the side for readability
-                labels: { 
-                  color: chartTextColor(), 
-                  usePointStyle: true, 
-                  pointStyle: 'circle',
-                  font: { family: 'DM Sans', size: 11, weight: '600' },
-                  padding: 15
-                } 
-              },
+              legend: { display: false },
               tooltip: {
                 backgroundColor: 'rgba(8,11,26,0.97)',
-                titleFont: { family:'DM Sans', size:13, weight:'700', color: '#ffffff' },
-                bodyFont:  { family:'DM Mono', size:12, color: '#e2e8f0' },
-                borderColor: 'rgba(255,255,255,0.1)',
-                borderWidth: 1,
+                titleFont: { family:'DM Sans', size:12, weight:'700' },
+                bodyFont:  { family:'DM Mono', size:11 },
                 callbacks: {
-                  label: (ctx) => {
-                    const val = ctx.raw;
-                    const pct = ((val / totalInvSum) * 100).toFixed(1);
-                    return `  ₹${val.toLocaleString('en-IN')} (${pct}%)`;
+                  label: ctx => {
+                    const pct = ((ctx.raw / totalInvSum) * 100).toFixed(1);
+                    return `  ₹${Math.round(ctx.raw).toLocaleString('en-IN')} (${pct}%)`;
                   }
                 }
               }
@@ -8609,10 +8808,7 @@ function renderAnalytics() {
           }
         });
       } else {
-        if (invEmpty) {
-          invEmpty.style.display = 'flex';
-          invEmpty.innerHTML = '<i class="fas fa-coins"></i>No investment data';
-        }
+        invWrap.innerHTML = '<div class="empty-state"><i class="fas fa-coins"></i><p>No investment data</p></div>';
       }
 
       // ── Debt Pyramid / Tier System ─────────────────────────────────────────────
@@ -10790,15 +10986,88 @@ destroyChart('credit-bar');
     }).join('');
   }
 
-  // Type mix donut
+  // Loan Type Mix - Center-Stat Ring + Progress Legend
   const typeMap = {};
   data.forEach(c => { typeMap[c.type] = (typeMap[c.type]||0) + c.outstandingBalance; });
   const typeLabels = Object.keys(typeMap);
   const typeVals   = typeLabels.map(k => typeMap[k]);
   const typeColors = ['#f97316','#fbbf24','#60a5fa','#34d399','#a78bfa'];
+
   destroyChart('credit-type-d');
-  if (typeLabels.length) {
-    charts['credit-type-d'] = makeDonut('credit-type-donut', typeLabels, typeVals, typeColors);
+  const creditDonutEl = document.getElementById('credit-type-donut');
+
+  let creditDonutWrap = document.getElementById('credit-type-donut-wrap');
+  if (creditDonutEl && creditDonutEl.tagName === 'CANVAS') {
+    creditDonutWrap = document.createElement('div');
+    creditDonutWrap.id = 'credit-type-donut-wrap';
+    creditDonutEl.parentNode.replaceChild(creditDonutWrap, creditDonutEl);
+  }
+  if (!creditDonutWrap) creditDonutWrap = document.getElementById('credit-type-donut-wrap');
+
+  if (!typeLabels.length) {
+    creditDonutWrap.innerHTML = '<div class="empty-state" style="padding-top:2rem"><i class="fas fa-credit-card"></i><p>No credit data</p></div>';
+  } else {
+    const creditTypeTotal = typeVals.reduce((a,b)=>a+b,0) || 1;
+    creditDonutWrap.style.cssText = 'display:flex;align-items:center;gap:18px;height:100%;padding:4px';
+    creditDonutWrap.innerHTML = `
+      <div style="position:relative;width:130px;height:130px;flex-shrink:0">
+        <canvas id="credit-type-donut-ring"></canvas>
+        <div style="position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;pointer-events:none">
+          <div style="font-family:'DM Mono',monospace;font-weight:700;font-size:1rem;color:${chartTextColor()}">${typeLabels.length}</div>
+          <div style="font-size:0.6rem;color:var(--text-muted);font-weight:600;text-transform:uppercase;letter-spacing:0.5px;margin-top:1px">Types</div>
+        </div>
+      </div>
+      <div style="flex:1;display:flex;flex-direction:column;gap:9px;min-width:0;max-height:170px;overflow-y:auto;scrollbar-width:none;-ms-overflow-style:none">
+        <style>#credit-type-donut-wrap::-webkit-scrollbar{display:none}</style>
+        ${typeLabels.map((label, i) => {
+          const hex = typeColors[i % typeColors.length];
+          const pct = (typeVals[i] / creditTypeTotal) * 100;
+          return `
+            <div style="display:flex;flex-direction:column;gap:4px">
+              <div style="display:flex;align-items:center;justify-content:space-between;gap:8px">
+                <div style="display:flex;align-items:center;gap:6px;min-width:0">
+                  <span style="width:7px;height:7px;border-radius:50%;background:${hex};box-shadow:0 0 8px ${hex};flex-shrink:0"></span>
+                  <span style="font-size:0.74rem;font-weight:600;color:${chartTextColor()};white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${label}</span>
+                </div>
+                <span style="font-family:'DM Mono',monospace;font-size:0.74rem;font-weight:700;color:${hex};flex-shrink:0">${pct.toFixed(0)}%</span>
+              </div>
+              <div style="height:4px;border-radius:99px;background:rgba(255,255,255,0.06);overflow:hidden">
+                <div style="height:100%;width:${pct}%;border-radius:99px;background:${hex};box-shadow:0 0 6px ${hex}80"></div>
+              </div>
+            </div>
+          `;
+        }).join('')}
+      </div>
+    `;
+
+    const creditRingCtx = document.getElementById('credit-type-donut-ring').getContext('2d');
+    charts['credit-type-d'] = new Chart(creditRingCtx, {
+      type: 'doughnut',
+      data: {
+        labels: typeLabels,
+        datasets: [{
+          data: typeVals,
+          backgroundColor: typeLabels.map((_, i) => typeColors[i % typeColors.length]),
+          borderColor: 'transparent',
+          borderWidth: 0,
+          spacing: 3,
+          hoverOffset: 6
+        }]
+      },
+      options: {
+        responsive: true, maintainAspectRatio: false, cutout: '72%',
+        animation: { animateRotate: true, duration: 800, easing: 'easeOutQuart' },
+        plugins: {
+          legend: { display: false },
+          tooltip: {
+            backgroundColor: 'rgba(8,11,26,0.97)',
+            titleFont: { family:'DM Sans', size:12, weight:'700' },
+            bodyFont:  { family:'DM Mono', size:11 },
+            callbacks: { label: ctx => `  ₹${Math.round(ctx.raw).toLocaleString('en-IN')}` }
+          }
+        }
+      }
+    });
   }
 }
 
@@ -11038,11 +11307,11 @@ function renderDashCreditCharts() {
     });
   }
 
- // Credit summary card - Modern Doughnut Upgrade
+ // Credit summary card - Center-Stat Ring + Progress Legend
   const summaryEl = document.getElementById('dash-credit-summary');
   if (summaryEl) {
     const byType = {};
-    
+
     // Group active balances
     creditDb.forEach(c => { 
       if (c.outstandingBalance > 0) {
@@ -11053,34 +11322,86 @@ function renderDashCreditCharts() {
     });
 
     const sortedTypes = Object.entries(byType).sort((a,b) => b[1].bal - a[1].bal);
-    const donutLabels = sortedTypes.map(t => `${t[0]} (${t[1].count})`);
-    const donutValues = sortedTypes.map(t => t[1].bal);
+    const typeColors = ['#f97316', '#fbbf24', '#ef4444', '#60a5fa', '#34d399', '#a78bfa'];
 
-    // Inject canvas safely
-    summaryEl.innerHTML = `
-      <div style="height:150px; position:relative; margin-top:5px;"><canvas id="dash-credit-donut"></canvas></div>
-      <div style="display:flex; justify-content:space-between; align-items:center; padding-top:12px; margin-top:10px; border-top:1px solid rgba(255,255,255,0.06)">
-        <div style="font-weight:700; font-size:0.75rem; color:var(--text-muted); text-transform:uppercase; letter-spacing:1px;">Total EMI / Mo</div>
-        <div style="font-family:'DM Mono',monospace; font-weight:700; color:#fbbf24; font-size:1.15rem; text-shadow:0 0 12px rgba(251,191,36,0.3)">${fmt(totalEmi)}</div>
-      </div>
-    `;
+    if (sortedTypes.length === 0) {
+      summaryEl.innerHTML = `
+        <div class="empty-state" style="padding:1.5rem 0"><i class="fas fa-credit-card"></i><p>No active balances</p></div>
+        <div style="display:flex; justify-content:space-between; align-items:center; padding-top:12px; margin-top:10px; border-top:1px solid rgba(255,255,255,0.06)">
+          <div style="font-weight:700; font-size:0.75rem; color:var(--text-muted); text-transform:uppercase; letter-spacing:1px;">Total EMI / Mo</div>
+          <div style="font-family:'DM Mono',monospace; font-weight:700; color:#fbbf24; font-size:1.15rem; text-shadow:0 0 12px rgba(251,191,36,0.3)">${fmt(totalEmi)}</div>
+        </div>`;
+    } else {
+      const creditTotal = sortedTypes.reduce((a,[,v]) => a + v.bal, 0) || 1;
+      summaryEl.innerHTML = `
+        <div style="display:flex;align-items:center;gap:16px;margin-top:5px">
+          <div style="position:relative;width:104px;height:104px;flex-shrink:0">
+            <canvas id="dash-credit-donut"></canvas>
+            <div style="position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;pointer-events:none">
+              <div style="font-family:'DM Mono',monospace;font-weight:700;font-size:0.92rem;color:${chartTextColor()}">${sortedTypes.length}</div>
+              <div style="font-size:0.55rem;color:var(--text-muted);font-weight:600;text-transform:uppercase;letter-spacing:0.5px">Types</div>
+            </div>
+          </div>
+          <div style="flex:1;display:flex;flex-direction:column;gap:7px;min-width:0">
+            ${sortedTypes.map(([type, s], i) => {
+              const hex = typeColors[i % typeColors.length];
+              const pct = (s.bal / creditTotal) * 100;
+              return `
+                <div style="display:flex;flex-direction:column;gap:3px">
+                  <div style="display:flex;align-items:center;justify-content:space-between;gap:8px">
+                    <div style="display:flex;align-items:center;gap:6px;min-width:0">
+                      <span style="width:6px;height:6px;border-radius:50%;background:${hex};box-shadow:0 0 7px ${hex};flex-shrink:0"></span>
+                      <span style="font-size:0.68rem;font-weight:600;color:${chartTextColor()};white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${type} (${s.count})</span>
+                    </div>
+                    <span style="font-family:'DM Mono',monospace;font-size:0.68rem;font-weight:700;color:${hex};flex-shrink:0">${pct.toFixed(0)}%</span>
+                  </div>
+                  <div style="height:3.5px;border-radius:99px;background:rgba(255,255,255,0.06);overflow:hidden">
+                    <div style="height:100%;width:${pct}%;border-radius:99px;background:${hex};box-shadow:0 0 5px ${hex}80"></div>
+                  </div>
+                </div>
+              `;
+            }).join('')}
+          </div>
+        </div>
+        <div style="display:flex; justify-content:space-between; align-items:center; padding-top:12px; margin-top:10px; border-top:1px solid rgba(255,255,255,0.06)">
+          <div style="font-weight:700; font-size:0.75rem; color:var(--text-muted); text-transform:uppercase; letter-spacing:1px;">Total EMI / Mo</div>
+          <div style="font-family:'DM Mono',monospace; font-weight:700; color:#fbbf24; font-size:1.15rem; text-shadow:0 0 12px rgba(251,191,36,0.3)">${fmt(totalEmi)}</div>
+        </div>
+      `;
 
-    destroyChart('dash-credit-donut');
-    
-    // Safety delay to ensure the canvas exists before Chart.js draws on it
-    setTimeout(() => {
-      const canvas = document.getElementById('dash-credit-donut');
-      if (!canvas) return;
-      
-      if (donutValues.length > 0) {
-        const typeColors = ['#f97316', '#fbbf24', '#ef4444', '#60a5fa', '#34d399', '#a78bfa'];
-        charts['dash-credit-donut'] = makeDonut('dash-credit-donut', donutLabels, donutValues, typeColors.slice(0, donutLabels.length));
-      } else {
-        const ctx = canvas.getContext('2d');
-        ctx.font = '12px DM Sans'; ctx.fillStyle = '#64748b'; ctx.textAlign = 'center';
-        ctx.fillText('No active balances', canvas.width/2, canvas.height/2);
-      }
-    }, 10);
+      destroyChart('dash-credit-donut');
+      setTimeout(() => {
+        const ringCtx = document.getElementById('dash-credit-donut')?.getContext('2d');
+        if (!ringCtx) return;
+        charts['dash-credit-donut'] = new Chart(ringCtx, {
+          type: 'doughnut',
+          data: {
+            labels: sortedTypes.map(([type]) => type),
+            datasets: [{
+              data: sortedTypes.map(([,s]) => s.bal),
+              backgroundColor: sortedTypes.map((_, i) => typeColors[i % typeColors.length]),
+              borderColor: 'transparent',
+              borderWidth: 0,
+              spacing: 3,
+              hoverOffset: 5
+            }]
+          },
+          options: {
+            responsive: true, maintainAspectRatio: false, cutout: '72%',
+            animation: { animateRotate: true, duration: 800, easing: 'easeOutQuart' },
+            plugins: {
+              legend: { display: false },
+              tooltip: {
+                backgroundColor: 'rgba(8,11,26,0.97)',
+                titleFont: { family:'DM Sans', size:12, weight:'700' },
+                bodyFont:  { family:'DM Mono', size:11 },
+                callbacks: { label: ctx => `  ₹${Math.round(ctx.raw).toLocaleString('en-IN')}` }
+              }
+            }
+          }
+        });
+      }, 10);
+    }
   }
 }
 
@@ -13743,24 +14064,24 @@ function triggerBackupExport() {
 // CC UTILIZATION MODULE
 // ══════════════════════════════════════════════════
 const CC_BANKS = [
-  { id:'hdfc',    name:'HDFC',           abbr:'HDFC', color:'#004C8F', text:'#fff', logo:'https://logo.clearbit.com/hdfcbank.com' },
-  { id:'sbi',     name:'SBI',            abbr:'SBI',  color:'#2563eb', text:'#fff', logo:'https://logo.clearbit.com/sbi.co.in' },
-  { id:'icici',   name:'ICICI',          abbr:'ICIC', color:'#F37021', text:'#fff', logo:'https://logo.clearbit.com/icicibank.com' },
-  { id:'axis',    name:'Axis',           abbr:'AXIS', color:'#97144D', text:'#fff', logo:'https://logo.clearbit.com/axisbank.com' },
-  { id:'kotak',   name:'Kotak',          abbr:'KMB',  color:'#ED1C24', text:'#fff', logo:'https://logo.clearbit.com/kotak.com' },
-  { id:'yes',     name:'Yes Bank',       abbr:'YES',  color:'#00A3E0', text:'#fff', logo:'https://logo.clearbit.com/yesbank.in' },
-  { id:'indusind',name:'IndusInd',       abbr:'IIB',  color:'#005DA0', text:'#fff', logo:'https://logo.clearbit.com/indusind.com' },
-  { id:'rbl',     name:'RBL',            abbr:'RBL',  color:'#0047AB', text:'#fff', logo:'https://logo.clearbit.com/rblbank.com' },
-  { id:'sc',      name:'StanChart',      abbr:'SCB',  color:'#008B5E', text:'#fff', logo:'https://logo.clearbit.com/sc.com' },
-  { id:'hsbc',    name:'HSBC',           abbr:'HSBC', color:'#DB0011', text:'#fff', logo:'https://logo.clearbit.com/hsbc.com' },
-  { id:'amex',    name:'Amex',           abbr:'AMEX', color:'#016FD0', text:'#fff', logo:'https://logo.clearbit.com/americanexpress.com' },
-  { id:'citi',    name:'Citi',           abbr:'CITI', color:'#003B8E', text:'#fff', logo:'https://logo.clearbit.com/citi.com' },
-  { id:'bob',     name:'Bank of Baroda', abbr:'BOB',  color:'#F26522', text:'#fff', logo:'https://logo.clearbit.com/bankofbaroda.in' },
-  { id:'pnb',     name:'PNB',            abbr:'PNB',  color:'#8B0000', text:'#fff', logo:'https://logo.clearbit.com/pnbindia.in' },
-  { id:'union',   name:'Union Bank',     abbr:'UBI',  color:'#1B4F8A', text:'#fff', logo:'https://logo.clearbit.com/unionbankofindia.co.in' },
-  { id:'canara',  name:'Canara',         abbr:'CNR',  color:'#005F6A', text:'#fff', logo:'https://logo.clearbit.com/canarabank.com' },
-  { id:'idfc',    name:'IDFC First',     abbr:'IDFC', color:'#F26522', text:'#fff', logo:'https://logo.clearbit.com/idfcfirstbank.com' },
-  { id:'au',      name:'AU Small',       abbr:'AU',   color:'#E31837', text:'#fff', logo:'https://logo.clearbit.com/aubank.in' },
+  { id:'hdfc',    name:'HDFC',           abbr:'HDFC', color:'#004C8F', text:'#fff', logo:'https://www.google.com/s2/favicons?domain=hdfcbank.com&sz=128' },
+  { id:'sbi',     name:'SBI',            abbr:'SBI',  color:'#2563eb', text:'#fff', logo:'https://www.google.com/s2/favicons?domain=sbi.co.in&sz=128' },
+  { id:'icici',   name:'ICICI',          abbr:'ICIC', color:'#F37021', text:'#fff', logo:'https://www.google.com/s2/favicons?domain=icicibank.com&sz=128' },
+  { id:'axis',    name:'Axis',           abbr:'AXIS', color:'#97144D', text:'#fff', logo:'https://www.google.com/s2/favicons?domain=axisbank.com&sz=128' },
+  { id:'kotak',   name:'Kotak',          abbr:'KMB',  color:'#ED1C24', text:'#fff', logo:'https://www.google.com/s2/favicons?domain=kotak.com&sz=128' },
+  { id:'yes',     name:'Yes Bank',       abbr:'YES',  color:'#00A3E0', text:'#fff', logo:'https://www.google.com/s2/favicons?domain=yesbank.in&sz=128' },
+  { id:'indusind',name:'IndusInd',       abbr:'IIB',  color:'#005DA0', text:'#fff', logo:'https://www.google.com/s2/favicons?domain=indusind.com&sz=128' },
+  { id:'rbl',     name:'RBL',            abbr:'RBL',  color:'#0047AB', text:'#fff', logo:'https://www.google.com/s2/favicons?domain=rblbank.com&sz=128' },
+  { id:'sc',      name:'StanChart',      abbr:'SCB',  color:'#008B5E', text:'#fff', logo:'https://www.google.com/s2/favicons?domain=sc.com&sz=128' },
+  { id:'hsbc',    name:'HSBC',           abbr:'HSBC', color:'#DB0011', text:'#fff', logo:'https://www.google.com/s2/favicons?domain=hsbc.com&sz=128' },
+  { id:'amex',    name:'Amex',           abbr:'AMEX', color:'#016FD0', text:'#fff', logo:'https://www.google.com/s2/favicons?domain=americanexpress.com&sz=128' },
+  { id:'citi',    name:'Citi',           abbr:'CITI', color:'#003B8E', text:'#fff', logo:'https://www.google.com/s2/favicons?domain=citi.com&sz=128' },
+  { id:'bob',     name:'Bank of Baroda', abbr:'BOB',  color:'#F26522', text:'#fff', logo:'https://www.google.com/s2/favicons?domain=bankofbaroda.in&sz=128' },
+  { id:'pnb',     name:'PNB',            abbr:'PNB',  color:'#8B0000', text:'#fff', logo:'https://www.google.com/s2/favicons?domain=pnbindia.in&sz=128' },
+  { id:'union',   name:'Union Bank',     abbr:'UBI',  color:'#1B4F8A', text:'#fff', logo:'https://www.google.com/s2/favicons?domain=unionbankofindia.co.in&sz=128' },
+  { id:'canara',  name:'Canara',         abbr:'CNR',  color:'#005F6A', text:'#fff', logo:'https://www.google.com/s2/favicons?domain=canarabank.com&sz=128' },
+  { id:'idfc',    name:'IDFC First',     abbr:'IDFC', color:'#F26522', text:'#fff', logo:'https://www.google.com/s2/favicons?domain=idfcfirstbank.com&sz=128' },
+  { id:'au',      name:'AU Small',       abbr:'AU',   color:'#E31837', text:'#fff', logo:'https://www.google.com/s2/favicons?domain=aubank.in&sz=128' },
 ];
 
 let ccSelectedBank = null;
@@ -13771,10 +14092,10 @@ function initCCView() {
   if (!grid) return;
   grid.innerHTML = CC_BANKS.map(b => `
     <button class="cc-bank-btn ${ccSelectedBank===b.id?'selected':''}" onclick="selectCCBank('${b.id}')">
-      <div class="cc-bank-logo" style="background:${b.color};overflow:hidden;padding:2px;">
+      <div class="cc-bank-logo" style="background:#ffffff;border:1px solid rgba(0,0,0,0.06);overflow:hidden;padding:3px;box-shadow:0 1px 3px rgba(0,0,0,0.18);">
         <img src="${b.logo}" alt="${b.name}"
-          style="width:100%;height:100%;object-fit:contain;border-radius:4px;"
-          onerror="this.style.display='none';this.parentNode.innerHTML='<span style=color:${b.text};font-size:0.62rem;font-weight:800;letter-spacing:-0.5px>${b.name.split(' ')[0].substring(0,4)}</span>'">
+          style="width:100%;height:100%;object-fit:contain;border-radius:3px;"
+          onerror="this.style.display='none';this.parentNode.innerHTML='<span style=color:${b.color};font-size:0.62rem;font-weight:800;letter-spacing:-0.5px>${b.name.split(' ')[0].substring(0,4)}</span>'">
       </div>
       <span>${b.name}</span>
     </button>
@@ -13979,15 +14300,20 @@ function renderCCCards() {
     const status = getCCUtilStatus(pct);
     const maskedNum = c.number.replace(/\d(?=\d{4})/g, '•').replace(/\s+/g,' ').trim();
 
+    const freshBank = CC_BANKS.find(b => b.id === c.bankId);
+    const logoUrl   = freshBank ? freshBank.logo  : c.bankLogo;
+    const bankColor = freshBank ? freshBank.color : (c.bankColor || '#334155');
+    const bankAbbr  = freshBank ? freshBank.abbr  : (c.bankAbbr || c.bankName || 'BANK');
+
     return `
     <div class="cc-card-item">
       <div class="cc-card-top">
-        <div class="cc-card-logo-big" style="background:${c.bankColor||'#334155'};color:${c.bankText||'#fff'};overflow:hidden;padding:3px;">
-  ${c.bankLogo
-    ? `<img src="${c.bankLogo}" alt="${c.bankName||''}"
+        <div class="cc-card-logo-big" style="background:#ffffff;border:1px solid rgba(0,0,0,0.06);overflow:hidden;padding:4px;box-shadow:0 1px 3px rgba(0,0,0,0.18);">
+  ${logoUrl
+    ? `<img src="${logoUrl}" alt="${c.bankName||''}"
          style="width:100%;height:100%;object-fit:contain;border-radius:4px;"
-         onerror="this.style.display='none';this.parentNode.innerHTML='<span style=font-size:0.62rem;font-weight:800;letter-spacing:-0.5px>${c.bankAbbr||c.bankName||'BANK'}</span>'">`
-    : `<span style="font-size:0.62rem;font-weight:800;letter-spacing:-0.5px">${c.bankAbbr||c.bankName||'BANK'}</span>`
+         onerror="this.style.display='none';this.parentNode.innerHTML='<span style=color:${bankColor};font-size:0.62rem;font-weight:800;letter-spacing:-0.5px>${bankAbbr}</span>'">`
+    : `<span style="color:${bankColor};font-size:0.62rem;font-weight:800;letter-spacing:-0.5px">${bankAbbr}</span>`
   }
 </div>
         <div class="cc-card-info">
