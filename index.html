@@ -14075,16 +14075,26 @@ function renderSettingsTags() {
 }
 
 function addNewTagFromSettings() {
-  const val = document.getElementById('set-new-tag-input').value.trim().toLowerCase().replace(/[^a-z0-9-]/g,'');
-  if(!val) return;
-  if(!TAG_SUGGESTIONS_LIST.includes(val)) {
-    TAG_SUGGESTIONS_LIST.push(val);
-    customTagsList.push(val);
-    localStorage.setItem('fos_custom_tags', JSON.stringify(customTagsList));
-    renderSettingsTags();
-    document.getElementById('set-new-tag-input').value = '';
-    if (typeof showSettingsToast === 'function') showSettingsToast('toggle', `Tag #${val} added successfully`);
+  const inputEl = document.getElementById('set-new-tag-input');
+  const val = inputEl.value.trim().toLowerCase().replace(/[^a-z0-9-]/g,'');
+  if(!val) {
+    inputEl.style.outline = '2px solid #ef4444';
+    setTimeout(() => { inputEl.style.outline = ''; }, 1500);
+    return;
   }
+  if(TAG_SUGGESTIONS_LIST.includes(val)) {
+    inputEl.style.outline = '2px solid #f59e0b';
+    setTimeout(() => { inputEl.style.outline = ''; }, 1500);
+    if (typeof showSettingsToast === 'function') showSettingsToast('toggle', `Tag #${val} already exists`);
+    return;
+  }
+  TAG_SUGGESTIONS_LIST.push(val);
+  customTagsList.push(val);
+  localStorage.setItem('fos_custom_tags', JSON.stringify(customTagsList));
+  renderSettingsTags();
+  inputEl.value = '';
+  inputEl.focus();
+  if (typeof showSettingsToast === 'function') showSettingsToast('toggle', `Tag #${val} added successfully`);
 }
 
 function removeTagFromSettings(tag) {
