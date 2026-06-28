@@ -14176,9 +14176,21 @@ function setTagFilter(tag, el) {
 function updateTagFilterBar() {
   const bar = document.getElementById('tag-filter-bar');
   const chipsEl = document.getElementById('tag-filter-chips');
-  const allTags = getAllTags();
-  if (!allTags.length) { if(bar) bar.style.display='none'; return; }
+  const filteredData = getFilteredData();
+  const tagSet = new Set();
+  filteredData.forEach(r => (r.tags||[]).forEach(t => tagSet.add(t)));
+  const allTags = [...tagSet].sort();
+  if (!allTags.length) {
+    if(bar) bar.style.display='none';
+    if(currentTagFilter) { currentTagFilter = null; }
+    return;
+  }
   if(bar) bar.style.display = 'block';
+  if(currentTagFilter && !tagSet.has(currentTagFilter)) {
+    currentTagFilter = null;
+    const allChip = document.getElementById('tag-filter-all');
+    if(allChip) { document.querySelectorAll('.tag-filter-chip').forEach(c=>c.classList.remove('active')); allChip.classList.add('active'); }
+  }
   if(chipsEl) chipsEl.innerHTML = allTags.map(t =>
     `<span class="tag-filter-chip ${currentTagFilter===t?'active':''}" onclick="setTagFilter('${t}',this)">#${t}</span>`
   ).join('');
