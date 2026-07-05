@@ -2483,18 +2483,9 @@ function obBuildSummary() {
 }
 
 function seedBudgetsFromIncome(incomeKey) {
-  const midpoints = { tiny:20000, small:37500, mid:75000, high:150000, vhigh:250000 };
-  const base = midpoints[incomeKey] || 50000;
-  budgets = budgets || {};
-  if (Object.keys(budgets).length === 0) {
-    budgets = {
-      'Food': Math.round(base * 0.15 / 100) * 100,
-      'Transport': Math.round(base * 0.08 / 100) * 100,
-      'Subscriptions': Math.round(base * 0.03 / 100) * 100,
-      'Shopping': Math.round(base * 0.10 / 100) * 100
-    };
-    localStorage.setItem('fos_budgets', JSON.stringify(budgets));
-  }
+  // Intentionally a no-op: budgets should only ever be created by the user,
+  // never auto-populated with default/demo values based on income bracket.
+  return;
 }
 
 function obFinish() {
@@ -5785,57 +5776,11 @@ function isQtyBased(assetType) {
   return t !== 'RealEstate' && t !== 'MutualFund' && t !== 'Bonds' && t !== 'Stocks' && t !== 'Crypto' && t !== 'FixedDeposit' && t !== 'RecurringDeposit';
 }
 
-let db = JSON.parse(localStorage.getItem('fos_db_v3')) || [
-  {id:1,  name:"Salary",       type:"Income",     amount:85000, date:"2026-04-01", sub:"Salary",       recurring:false, notes:""},
-  {id:2,  name:"HDFC Personal",type:"Loan",       amount:12500, date:"2026-04-03", sub:"Personal Loan",recurring:true,  notes:"Monthly EMI"},
-  {id:3,  name:"Nifty 50 SIP", type:"Investment", amount:15000, date:"2026-04-05", sub:"Stocks",       recurring:true,  notes:""},
-  {id:4,  name:"Sovereign Gold",type:"Investment",amount:5000,  date:"2026-04-05", sub:"Gold",         recurring:false, notes:""},
-  {id:5,  name:"Groceries",    type:"Expense",    amount:4300,  date:"2026-04-06", sub:"Food",         recurring:false, notes:""},
-  {id:6,  name:"Car EMI",      type:"Loan",       amount:8400,  date:"2026-04-10", sub:"Auto Loan",    recurring:true,  notes:""},
-  {id:7,  name:"Dining Out",   type:"Expense",    amount:2100,  date:"2026-04-12", sub:"Food",         recurring:false, notes:""},
-  {id:8,  name:"Salary",       type:"Income",     amount:85000, date:"2026-03-01", sub:"Salary",       recurring:false, notes:""},
-  {id:9,  name:"HDFC Personal",type:"Loan",       amount:12500, date:"2026-03-03", sub:"Personal Loan",recurring:true,  notes:""},
-  {id:10, name:"Nifty 50 SIP", type:"Investment", amount:15000, date:"2026-03-05", sub:"Stocks",       recurring:true,  notes:""},
-  {id:11, name:"Groceries",    type:"Expense",    amount:3900,  date:"2026-03-07", sub:"Food",         recurring:false, notes:""},
-  {id:12, name:"Netflix",      type:"Expense",    amount:649,   date:"2026-03-10", sub:"Subscriptions",recurring:true,  notes:""},
-  {id:13, name:"Salary",       type:"Income",     amount:85000, date:"2026-02-01", sub:"Salary",       recurring:false, notes:""},
-  {id:14, name:"Car EMI",      type:"Loan",       amount:8400,  date:"2026-02-10", sub:"Auto Loan",    recurring:true,  notes:""},
-  {id:15, name:"Fuel",         type:"Expense",    amount:3200,  date:"2026-02-15", sub:"Transport",    recurring:false, notes:""},
-  {id:16, name:"Salary",       type:"Income",     amount:85000, date:"2026-01-01", sub:"Salary",       recurring:false, notes:""},
-  {id:17, name:"Groceries",    type:"Expense",    amount:4100,  date:"2026-01-08", sub:"Food",         recurring:false, notes:""},
-];
+let db = JSON.parse(localStorage.getItem('fos_db_v3')) || [];
 
-let portDb = (JSON.parse(localStorage.getItem('fos_port_v3')) || [
-  {id:101, assetType:"Silver",     date:"2025-10-28", quantity:20,  unit:"grams", purchasePrice:110,  currentPrice:275,   notes:""},
-  {id:102, assetType:"Silver",     date:"2025-11-15", quantity:20,  unit:"grams", purchasePrice:110,  currentPrice:275,   notes:""},
-  {id:103, assetType:"Silver",     date:"2025-11-18", quantity:20,  unit:"grams", purchasePrice:100,  currentPrice:275,   notes:""},
-  {id:104, assetType:"Silver",     date:"2025-11-23", quantity:20,  unit:"grams", purchasePrice:110,  currentPrice:275,   notes:""},
-  {id:105, assetType:"Gold",       date:"2025-12-17", quantity:2,   unit:"grams", purchasePrice:7490, currentPrice:14600, notes:""},
-  {id:106, assetType:"Silver",     date:"2025-12-18", quantity:60,  unit:"grams", purchasePrice:103,  currentPrice:275,   notes:""},
-  {id:107, assetType:"Gold",       date:"2025-12-20", quantity:2,   unit:"grams", purchasePrice:7340, currentPrice:14600, notes:""},
-  {id:108, assetType:"Silver",     date:"2025-12-25", quantity:30,  unit:"grams", purchasePrice:101,  currentPrice:275,   notes:""},
-  {id:109, assetType:"Silver",     date:"2026-01-15", quantity:20,  unit:"grams", purchasePrice:102,  currentPrice:275,   notes:""},
-  {id:110, assetType:"Silver",     date:"2026-02-18", quantity:20,  unit:"grams", purchasePrice:108,  currentPrice:275,   notes:""},
-  {id:111, assetType:"Silver",     date:"2026-03-02", quantity:20,  unit:"grams", purchasePrice:105,  currentPrice:275,   notes:""},
-  {id:112, assetType:"Silver",     date:"2025-07-06", quantity:30,  unit:"grams", purchasePrice:120,  currentPrice:275,   notes:""},
-  {id:113, assetType:"Gold",       date:"2025-09-05", quantity:1,   unit:"grams", purchasePrice:9865, currentPrice:14600, notes:""},
-  {id:114, assetType:"Silver",     date:"2025-11-22", quantity:10,  unit:"grams", purchasePrice:161,  currentPrice:275,   notes:""},
-  {id:115, assetType:"Silver",     date:"2025-12-12", quantity:200, unit:"grams", purchasePrice:197,  currentPrice:275,   notes:""},
-]).map(normalizePortRecord);
+let portDb = (JSON.parse(localStorage.getItem('fos_port_v3')) || []).map(normalizePortRecord);
 
-let creditDb = JSON.parse(localStorage.getItem('fos_credit_v1')) || [
-  {id:201, lenderName:"Kotak Mahindra", type:"CC Loan", principalAmount:158062, outstandingBalance:68993,  interestRate:17, monthlyEmi:2634.20, dueDate:"3rd",  tenureMonths:60, balanceTenure:32, startDate:"2023-12-14", endDate:"2027-05-14", status:"Active", remarks:"PL"},
-  {id:202, lenderName:"HDFC",           type:"CC Loan", principalAmount:18442,  outstandingBalance:22239,  interestRate:17, monthlyEmi:1059.00, dueDate:"9th",  tenureMonths:36, balanceTenure:20, startDate:"2024-11-20", endDate:"2027-04-20", status:"Active", remarks:"PL"},
-  {id:203, lenderName:"SBI",            type:"CC EMI",  principalAmount:4945,   outstandingBalance:0,      interestRate:14, monthlyEmi:69.00,   dueDate:"30th", tenureMonths:6,  balanceTenure:0,  startDate:"2025-05-01", endDate:"2025-10-01", status:"Active", remarks:"Expense"},
-  {id:204, lenderName:"YES BANK",       type:"CC EMI",  principalAmount:37504,  outstandingBalance:28811,  interestRate:16, monthlyEmi:1394.00, dueDate:"6th",  tenureMonths:36, balanceTenure:0,  startDate:"2025-05-31", endDate:"2028-04-30", status:"Active", remarks:"Expense"},
-  {id:205, lenderName:"Money View",     type:"Laon",    principalAmount:102480, outstandingBalance:38699,  interestRate:48, monthlyEmi:4270.00, dueDate:"7th",  tenureMonths:24, balanceTenure:10, startDate:"2025-02-07", endDate:"2027-01-07", status:"Active", remarks:"Expense"},
-  {id:206, lenderName:"IDFC Bank",      type:"Laon",    principalAmount:1,      outstandingBalance:104478, interestRate:15, monthlyEmi:4613.00, dueDate:"3rd",  tenureMonths:48, balanceTenure:28, startDate:"2024-08-03", endDate:"2028-07-03", status:"Active", remarks:"Expense"},
-  {id:207, lenderName:"ICICI",          type:"Laon",    principalAmount:500000, outstandingBalance:152914, interestRate:14, monthlyEmi:13732.00,dueDate:"5th",  tenureMonths:60, balanceTenure:13, startDate:"2023-05-05", endDate:"2027-04-05", status:"Active", remarks:"Expense"},
-  {id:208, lenderName:"Incred",         type:"Loan",    principalAmount:244224, outstandingBalance:217088, interestRate:18, monthlyEmi:6784.00, dueDate:"5th",  tenureMonths:36, balanceTenure:33, startDate:"2026-01-05", endDate:"2028-12-05", status:"Active", remarks:"PL"},
-  {id:209, lenderName:"Acharapakkam Real Estate", type:"Assets", principalAmount:171750, outstandingBalance:51750, interestRate:0, monthlyEmi:3000.00,dueDate:"1st",  tenureMonths:60, balanceTenure:0,  startDate:"2022-04-01", endDate:"2027-04-01", status:"Active", remarks:"Investment"},
-  {id:210, lenderName:"Ponneri Real Estate",   type:"Assets",  principalAmount:258750, outstandingBalance:172750, interestRate:0, monthlyEmi:5000.00, dueDate:"1st",  tenureMonths:41, balanceTenure:0,  startDate:"2024-08-01", endDate:"2028-01-01", status:"Active", remarks:"Investment"},
-  {id:211, lenderName:"Poneeri Real Estate 2", type:"Assets",  principalAmount:258750, outstandingBalance:172750, interestRate:0, monthlyEmi:5000.00, dueDate:"1st",  tenureMonths:41, balanceTenure:0,  startDate:"2024-08-01", endDate:"2028-08-01", status:"Active", remarks:"Investment"},
-];
+let creditDb = JSON.parse(localStorage.getItem('fos_credit_v1')) || [];
 
 let insuranceDb = JSON.parse(localStorage.getItem('fos_insurance_v1')) || [];
 
