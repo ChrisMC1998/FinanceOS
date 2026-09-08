@@ -7,6 +7,7 @@
 <meta name="description" content="Personal finance dashboard - track income, expenses, investments, loans and portfolio">
 <link rel="manifest" href="manifest.json">
 <title>FinanceOS</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
 <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
@@ -2333,8 +2334,19 @@ body.light-mode select option {
 </div>
 
 <script>
+// ── Supabase Cloud (Auth + Sync) ─────────────────────────────────────────────
+const SUPABASE_URL = 'https://fvkzhydshoklketmfqzz.supabase.co';
+const SUPABASE_ANON_KEY = 'sb_publishable_Vh1YqfNaC8VTZOmXVsZQ1g_nUwSMHYO';
+const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
+  auth: { persistSession: true, autoRefreshToken: true, detectSessionInUrl: true }
+});
+let cloudSession = null; // current Supabase session, or null if signed out/offline-local-only
+
 // ── Simulated user store (localStorage-backed) ──────────────────────────────
-// In production replace this with a real backend / Firebase Auth / Supabase etc.
+// LEGACY: kept only so untouched Settings-panel code (change name, security Q,
+// etc.) keeps functioning until Stage 2 rewires those to Supabase too.
+// Real authentication now happens via Supabase Auth below — this local store
+// is no longer used to authenticate anyone.
 
 function getUsers() {
   return JSON.parse(localStorage.getItem('fos_users') || '[]');
@@ -2366,35 +2378,72 @@ const SECURITY_QUESTIONS = {
   car: "What was the make of your first car?"
 };
 
-// ── Login ───────────────────────────────────────────────────────────────────
-function handleLogin() {
+// ── Cloud status pill (☁️ Connected / Syncing… / Offline / Sync Error) ───────
+function setCloudStatus(state) {
+  const dot  = document.getElementById('cloud-status-dot');
+  const text = document.getElementById('cloud-status-text');
+  if (!dot || !text) return;
+  const map = {
+    connected:   { color: '#22c55e', label: 'Connected' },
+    syncing:     { color: '#eab308', label: 'Syncing…' },
+    offline:     { color: '#888',    label: 'Offline' },
+    error:       { color: '#ef4444', label: 'Sync Error' },
+    synced:      { color: '#22c55e', label: 'Sync Complete' }
+  };
+  const cfg = map[state] || map.offline;
+  dot.style.background = cfg.color;
+  text.textContent = cfg.label;
+}
+function handleCloudPillClick() {
+  if (!cloudSession) { showLoginPanel(); document.getElementById('login-overlay').classList.remove('hidden'); return; }
+  if (typeof syncNow === 'function') syncNow();
+}
+
+// ── Login (Supabase Auth) ────────────────────────────────────────────────────
+async function handleLogin() {
   const identifier = document.getElementById('auth-identifier').value.trim().toLowerCase();
   const password   = document.getElementById('auth-password').value;
   const errEl      = document.getElementById('login-error');
+  const btn        = document.querySelector('#login-panel .login-btn');
 
   if (!identifier || !password) {
     errEl.textContent = '❌ Please fill in all fields.';
     errEl.style.display = 'block'; return;
   }
 
-  let users = getUsers();
-  // also checks old "email" field for accounts created before this update
-  let user = users.find(u => u.identifier === identifier || u.email === identifier);
+  errEl.style.display = 'none';
+  if (btn) { btn.disabled = true; btn.textContent = 'Signing in…'; }
 
-  if (!user) {
-    errEl.textContent = '❌ No account found for that username/email. Please create one.';
-    errEl.style.display = 'block'; return;
-  }
-  if (user.password !== password) {
-    errEl.textContent = '❌ Incorrect password.';
-    errEl.style.display = 'block'; return;
+  const { data, error } = await sb.auth.signInWithPassword({ email: identifier, password });
+
+  if (btn) { btn.disabled = false; btn.textContent = 'Sign In →'; }
+
+  if (error) {
+    errEl.textContent = '❌ ' + (error.message === 'Invalid login credentials'
+      ? 'Incorrect email or password.' : error.message);
+    errEl.style.display = 'block';
+    return;
   }
 
   // ── Successful login ────────────────────────────────────────────────────
-  errEl.style.display = 'none';
-  localStorage.setItem('fos_current_user', JSON.stringify({ name: user.name, identifier: user.identifier || user.email }));
-  applyLoggedInUser(user.name);
+  await onCloudSignedIn(data.session);
   document.getElementById('login-overlay').classList.add('hidden');
+}
+
+// Mirrors the Supabase user into the legacy localStorage shape so the rest of
+// the app (profile display, settings panel, etc.) keeps working unmodified,
+// and kicks off first-login cloud/local data reconciliation.
+async function onCloudSignedIn(session) {
+  cloudSession = session;
+  const name = session.user.user_metadata?.name || session.user.email.split('@')[0];
+  localStorage.setItem('fos_current_user', JSON.stringify({
+    name, identifier: session.user.email, cloudUserId: session.user.id
+  }));
+  applyLoggedInUser(name);
+  setCloudStatus('connected');
+  if (typeof reconcileCloudAndLocalData === 'function') {
+    await reconcileCloudAndLocalData(session.user.id);
+  }
 }
 
 let obStep = 1;
@@ -2435,11 +2484,8 @@ function obNextFromAccount() {
     errEl.textContent = '❌ Please select a security question and provide an answer.';
     errEl.style.display = 'block'; return;
   }
-  const users = getUsers();
-  if (users.find(u => u.identifier === identifier || u.email === identifier)) {
-    errEl.textContent = '❌ An account with that username/email already exists.';
-    errEl.style.display = 'block'; return;
-  }
+  // Duplicate-account checking now happens server-side by Supabase Auth on
+  // signUp (Stage's obFinish) — it will reject a taken email at that point.
   errEl.style.display = 'none';
   obGoTo(2);
 }
@@ -2488,20 +2534,42 @@ function seedBudgetsFromIncome(incomeKey) {
   return;
 }
 
-function obFinish() {
+async function obFinish() {
   const name       = document.getElementById('signup-name').value.trim();
   const identifier = document.getElementById('signup-identifier').value.trim().toLowerCase();
   const password   = document.getElementById('signup-password').value;
   const secQ       = document.getElementById('signup-secq').value;
   const secA       = document.getElementById('signup-seca').value.trim();
+  const errEl      = document.getElementById('signup-error');
 
-  const user = {
-    name, identifier, password, onboarding: obData,
+  const finishBtn = document.querySelector('#ob-step-6 .login-btn, #ob-step-6 button[onclick="obFinish()"]');
+  if (finishBtn) { finishBtn.disabled = true; finishBtn.textContent = 'Creating account…'; }
+
+  // Local legacy record (kept only for the Settings-panel security-question
+  // UI until that's rewired to Supabase in a later stage — NOT used for auth).
+  const legacyUser = {
+    name, identifier,
     securityQuestion: secQ || null,
     securityAnswerHash: secA ? hashSecurityAnswer(secA) : null
   };
+
+  const { data, error } = await sb.auth.signUp({
+    email: identifier,
+    password,
+    options: { data: { name } }
+  });
+
+  if (finishBtn) { finishBtn.disabled = false; finishBtn.textContent = 'Enter Dashboard →'; }
+
+  if (error) {
+    errEl.textContent = '❌ ' + error.message;
+    errEl.style.display = 'block';
+    obGoTo(1);
+    return;
+  }
+
   const users = getUsers();
-  users.push(user);
+  users.push(legacyUser);
   saveUsers(users);
 
   seedBudgetsFromIncome(obData.income);
@@ -2509,12 +2577,20 @@ function obFinish() {
   if (obData.theme === 'light' && !document.body.classList.contains('light-mode')) {
     toggleTheme();
   }
-
-  localStorage.setItem('fos_current_user', JSON.stringify({ name: user.name, identifier: user.identifier }));
   localStorage.setItem('fos_onboarding_goal', obData.goal || '');
-  applyLoggedInUser(user.name);
-  document.getElementById('login-overlay').classList.add('hidden');
 
+  if (!data.session) {
+    // Email confirmation is required by this Supabase project before a
+    // session is issued — tell the user instead of silently failing.
+    errEl.style.display = 'none';
+    alert('✅ Account created! Please check your email (' + identifier + ') to confirm your address, then sign in.');
+    document.querySelector('.login-box').classList.remove('onboarding-active');
+    showLoginPanel();
+    return;
+  }
+
+  await onCloudSignedIn(data.session);
+  document.getElementById('login-overlay').classList.add('hidden');
   if (activeView === 'dashboard') { renderDashboard(); }
 }
 
@@ -2812,17 +2888,32 @@ function renderSecurityQuestionStatus() {
 }
 document.addEventListener('DOMContentLoaded', renderSecurityQuestionStatus);
 
-// Auto-login if session exists
-function checkSession() {
-  const stored = localStorage.getItem('fos_current_user');
-  if (stored) {
-    try {
-      const u = JSON.parse(stored);
-      applyLoggedInUser(u.name);
-      document.getElementById('login-overlay').classList.add('hidden');
-    } catch(e) { localStorage.removeItem('fos_current_user'); }
+// Auto-login if a Supabase session exists (session restore across reloads/devices).
+async function checkSession() {
+  const { data } = await sb.auth.getSession();
+  if (data.session) {
+    await onCloudSignedIn(data.session);
+    document.getElementById('login-overlay').classList.add('hidden');
+  } else {
+    setCloudStatus('offline');
   }
 }
+
+// Keep cloudSession and the legacy mirror in sync on every Supabase auth event,
+// and catch the recovery-link redirect for the "set new password" flow.
+sb.auth.onAuthStateChange((event, session) => {
+  if (event === 'PASSWORD_RECOVERY') {
+    handlePasswordRecovery();
+    return;
+  }
+  if (event === 'SIGNED_OUT') {
+    cloudSession = null;
+    setCloudStatus('offline');
+    return;
+  }
+  if (session) cloudSession = session;
+});
+
 if (document.readyState === 'loading') {
   document.addEventListener('DOMContentLoaded', checkSession);
 } else {
@@ -2856,54 +2947,42 @@ function showSignupPanel() {
   obGoTo(1);
 }
 
-function sendVerificationCode() {
-  const email  = document.getElementById('forgot-email-input').value.trim().toLowerCase();
-  const errEl  = document.getElementById('forgot-error');
+// Real password reset now goes through Supabase's emailed reset link rather
+// than the local security question (kept only as UI shell; steps 2-4 of this
+// panel are bypassed — Supabase redirects the user back here with a recovery
+// session, handled by handlePasswordRecovery() below).
+async function sendVerificationCode() {
+  const email = document.getElementById('forgot-email-input').value.trim().toLowerCase();
+  const errEl = document.getElementById('forgot-error');
+  const btn   = document.querySelector('#forgot-email-step .login-btn');
 
   if (!email) {
     errEl.textContent = '❌ Please enter a valid email.';
     errEl.style.display = 'block'; return;
   }
-
-  const users = getUsers();
-  const user  = users.find(u => u.identifier === email || u.email === email);
-
-  if (!user) {
-    errEl.textContent = '❌ No account found for that email.';
-    errEl.style.display = 'block'; return;
-  }
-  if (!user.securityQuestion || !user.securityAnswerHash) {
-    errEl.textContent = '❌ This account has no security question set up. Please contact support or use your password directly.';
-    errEl.style.display = 'block'; return;
-  }
-
   errEl.style.display = 'none';
-  _resetEmail = email;
+  if (btn) { btn.disabled = true; btn.textContent = 'Sending…'; }
 
-  document.getElementById('secq-question-label').textContent = SECURITY_QUESTIONS[user.securityQuestion] || 'Your Security Question';
-  document.getElementById('otp-hint').textContent = 'Answer the question below to verify it\'s you';
+  const { error } = await sb.auth.resetPasswordForEmail(email, {
+    redirectTo: window.location.href.split('#')[0].split('?')[0]
+  });
 
-  document.getElementById('forgot-email-step').style.display = 'none';
-  document.getElementById('forgot-otp-step').style.display   = 'block';
-  document.getElementById('secq-answer-input').value = '';
-  document.getElementById('secq-answer-input').focus();
+  if (btn) { btn.disabled = false; btn.textContent = 'Continue'; }
+
+  if (error) {
+    errEl.textContent = '❌ ' + error.message;
+    errEl.style.display = 'block';
+    return;
+  }
+  alert('✅ If an account exists for ' + email + ', a password reset link has been sent. Check your inbox.');
+  showLoginPanel();
 }
 
 function verifyOTPCode() {
-  const entered = document.getElementById('secq-answer-input').value;
-  const errEl   = document.getElementById('otp-error');
-
-  const users = getUsers();
-  const user  = users.find(u => u.identifier === _resetEmail || u.email === _resetEmail);
-
-  if (!user || !checkSecurityAnswer(entered, user.securityAnswerHash)) {
-    errEl.style.display = 'block'; return;
-  }
-  errEl.style.display = 'none';
-  document.getElementById('new-password-step').style.display = 'block';
+  // No longer used — reset now happens via emailed link (see sendVerificationCode).
 }
 
-function saveNewPassword() {
+async function saveNewPassword() {
   const np  = document.getElementById('new-pass-input').value;
   const cp  = document.getElementById('confirm-pass-input').value;
   const err = document.getElementById('newpass-error');
@@ -2911,17 +2990,33 @@ function saveNewPassword() {
   if (!np || np !== cp) { err.style.display = 'block'; return; }
   err.style.display = 'none';
 
-  let users = getUsers();
-  let user  = users.find(u => u.identifier === _resetEmail || u.email === _resetEmail);
-  if (user) {
-    user.password = np;
-    if (!Array.isArray(user.passwordResetLog)) user.passwordResetLog = [];
-    user.passwordResetLog.push({ reason: 'security-question-verified', at: new Date().toISOString() });
-    saveUsers(users);
+  const { error } = await sb.auth.updateUser({ password: np });
+  if (error) {
+    err.textContent = '❌ ' + error.message;
+    err.style.display = 'block';
+    return;
   }
 
   alert('✅ Password updated! Please sign in with your new password.');
   showLoginPanel();
+}
+
+// Supabase redirects here with type=recovery after the user clicks the emailed
+// link; it establishes a temporary session so updateUser({password}) works.
+async function handlePasswordRecovery() {
+  document.getElementById('login-panel').style.display  = 'none';
+  document.getElementById('signup-panel').style.display = 'none';
+  document.getElementById('forgot-panel').style.display = 'block';
+  document.getElementById('forgot-email-step').style.display = 'none';
+  document.getElementById('forgot-otp-step').style.display   = 'block';
+  // Hide the (now unused) security-question widgets, show only the new-password fields.
+  document.getElementById('secq-question-label').style.display = 'none';
+  document.getElementById('secq-answer-input').style.display   = 'none';
+  const verifyBtn = document.querySelector('#forgot-otp-step > button.login-btn');
+  if (verifyBtn) verifyBtn.style.display = 'none';
+  document.getElementById('otp-hint').textContent = 'Set a new password for your account';
+  document.getElementById('new-password-step').style.display = 'block';
+  document.getElementById('login-overlay').classList.remove('hidden');
 }
 
 function toggleLoginPass(inputId, btn) {
@@ -2998,6 +3093,10 @@ function toggleLoginPass(inputId, btn) {
       <span class="nav-label">Finance<span style="color:var(--accent)">OS</span></span>
     </div>
     <div class="welcome-msg">Welcome <span id="sidebar-user-name"></span></div>
+    <div id="cloud-status-pill" onclick="handleCloudPillClick()" style="margin-top:6px;font-size:0.72rem;display:flex;align-items:center;gap:5px;cursor:pointer;opacity:0.85;">
+      <span id="cloud-status-dot" style="width:7px;height:7px;border-radius:50%;background:#888;display:inline-block;"></span>
+      <span id="cloud-status-text">Offline</span>
+    </div>
   </div>
 
   <div class="nav-section-label">Main</div>
@@ -5883,14 +5982,175 @@ function scheduleSave() {
   document.getElementById('autosave-label').textContent = 'Unsaved…';
 }
 
-function handleLogout() {
+async function handleLogout() {
   if (!confirm('Log out of FinanceOS?')) return;
+  await sb.auth.signOut();
+  cloudSession = null;
   localStorage.removeItem('fos_current_user');
+  setCloudStatus('offline');
   document.getElementById('login-overlay').classList.remove('hidden');
   const sidebarEl = document.getElementById('sidebar-user-name');
   const portfolioEl = document.getElementById('portfolio-user-name');
   if (sidebarEl) sidebarEl.textContent = '';
   if (portfolioEl) portfolioEl.textContent = '';
+}
+
+// ── CLOUD SYNC ENGINE (Supabase) ─────────────────────────────────────────────
+// Each array-backed local store below maps to one Supabase table, using a
+// generic {id, user_id, data jsonb, updated_at} shape so record fields never
+// have to be individually mapped — the whole local record is preserved as-is.
+// (id stays the existing Date.now() numeric id — a uuid `row_id` is the real
+// primary key on each table so no existing rendering/onclick code changes.)
+const CLOUD_TABLES = [
+  { key: 'db',          table: 'transactions' },
+  { key: 'portDb',      table: 'investments' },
+  { key: 'creditDb',    table: 'loans_credit' },
+  { key: 'insuranceDb', table: 'insurance' },
+  { key: 'notesDb',     table: 'notes' },
+  { key: 'ccCards',     table: 'credit_cards' }
+];
+
+function getLocalArray(key) {
+  switch (key) {
+    case 'db': return db;
+    case 'portDb': return portDb;
+    case 'creditDb': return creditDb;
+    case 'insuranceDb': return insuranceDb;
+    case 'notesDb': return notesDb;
+    case 'ccCards': return ccCards;
+  }
+}
+function setLocalArray(key, value) {
+  const arr = Array.isArray(value) ? value : [];
+  switch (key) {
+    case 'db': db = arr; localStorage.setItem('fos_db_v3', JSON.stringify(db)); break;
+    case 'portDb': portDb = arr.map(normalizePortRecord); localStorage.setItem('fos_port_v3', JSON.stringify(portDb)); break;
+    case 'creditDb': creditDb = arr; localStorage.setItem('fos_credit_v1', JSON.stringify(creditDb)); break;
+    case 'insuranceDb': insuranceDb = arr; localStorage.setItem('fos_insurance_v1', JSON.stringify(insuranceDb)); break;
+    case 'notesDb': notesDb = arr; localStorage.setItem('fos_notes_v1', JSON.stringify(notesDb)); break;
+    case 'ccCards': ccCards = arr; localStorage.setItem('financeOS_ccCards', JSON.stringify(ccCards)); break;
+  }
+}
+
+async function pushTableToCloud(key, table, uid) {
+  const localArr = getLocalArray(key) || [];
+  const localIds = localArr.map(r => r.id);
+
+  const { data: existing, error: selErr } = await sb.from(table).select('id').eq('user_id', uid);
+  if (selErr) throw selErr;
+  const cloudIds = (existing || []).map(r => r.id);
+
+  if (localArr.length) {
+    const rows = localArr.map(r => ({ id: r.id, user_id: uid, data: r, updated_at: new Date().toISOString() }));
+    const { error } = await sb.from(table).upsert(rows, { onConflict: 'user_id,id' });
+    if (error) throw error;
+  }
+  const toDelete = cloudIds.filter(id => !localIds.includes(id));
+  if (toDelete.length) {
+    const { error } = await sb.from(table).delete().eq('user_id', uid).in('id', toDelete);
+    if (error) throw error;
+  }
+}
+
+async function pullTableFromCloud(key, table, uid) {
+  const { data, error } = await sb.from(table).select('data').eq('user_id', uid);
+  if (error) throw error;
+  setLocalArray(key, (data || []).map(r => r.data));
+}
+
+async function pushBudgetsToCloud(uid) {
+  const { error } = await sb.from('budgets').upsert(
+    { user_id: uid, data: budgets, updated_at: new Date().toISOString() },
+    { onConflict: 'user_id' }
+  );
+  if (error) throw error;
+}
+async function pullBudgetsFromCloud(uid) {
+  const { data, error } = await sb.from('budgets').select('data').eq('user_id', uid).maybeSingle();
+  if (error) throw error;
+  if (data) { budgets = data.data || {}; localStorage.setItem('fos_budgets', JSON.stringify(budgets)); }
+}
+
+async function pushAllToCloud() {
+  if (!cloudSession) return;
+  const uid = cloudSession.user.id;
+  setCloudStatus('syncing');
+  for (const { key, table } of CLOUD_TABLES) await pushTableToCloud(key, table, uid);
+  await pushBudgetsToCloud(uid);
+}
+
+async function pullAllFromCloud() {
+  if (!cloudSession) return;
+  const uid = cloudSession.user.id;
+  setCloudStatus('syncing');
+  for (const { key, table } of CLOUD_TABLES) await pullTableFromCloud(key, table, uid);
+  await pullBudgetsFromCloud(uid);
+}
+
+// Manual "Sync Now" / auto-sync entry point — always pushes local → cloud.
+async function syncNow() {
+  if (!cloudSession) return;
+  try {
+    await pushAllToCloud();
+    setCloudStatus('synced');
+    setTimeout(() => setCloudStatus('connected'), 2000);
+  } catch (err) {
+    console.error('Cloud sync error:', err);
+    setCloudStatus('error');
+  }
+}
+
+// Explicit "Backup to Cloud" action for the UI (identical to syncNow, kept as
+// a distinct name so a Settings/backup-panel button can call it directly).
+async function backupToCloudNow() { return syncNow(); }
+
+function ensureRecordIds() {
+  CLOUD_TABLES.forEach(({ key }) => {
+    const arr = getLocalArray(key);
+    if (!Array.isArray(arr)) return;
+    arr.forEach(r => { if (r && r.id == null) r.id = Date.now() + Math.floor(Math.random() * 1000); });
+  });
+}
+
+// ── First-login reconciliation: local data vs. cloud data ───────────────────
+function localDataIsEmpty() {
+  return CLOUD_TABLES.every(({ key }) => (getLocalArray(key) || []).length === 0)
+    && (!budgets || Object.keys(budgets).length === 0);
+}
+async function cloudHasAnyData(uid) {
+  for (const { table } of CLOUD_TABLES) {
+    const { count, error } = await sb.from(table).select('id', { count: 'exact', head: true }).eq('user_id', uid);
+    if (!error && count > 0) return true;
+  }
+  const { data } = await sb.from('budgets').select('user_id').eq('user_id', uid).maybeSingle();
+  return !!data;
+}
+
+async function reconcileCloudAndLocalData(uid) {
+  ensureRecordIds();
+  const hasLocal = !localDataIsEmpty();
+  const hasCloud = await cloudHasAnyData(uid);
+
+  if (hasLocal && !hasCloud) {
+    if (confirm('Existing local FinanceOS data was found. Upload it to your cloud account now?\n\nOK = Upload Local Data\nCancel = Start Fresh (cloud stays empty)')) {
+      await syncNow();
+    }
+  } else if (!hasLocal && hasCloud) {
+    await pullAllFromCloud();
+    setCloudStatus('connected');
+    if (typeof renderDashboard === 'function' && activeView === 'dashboard') renderDashboard();
+  } else if (hasLocal && hasCloud) {
+    const choice = prompt('Both local and cloud data exist for this account.\nType one of: "cloud" to use cloud data, "local" to upload local data (overwrites cloud), or "cancel" to leave things as-is.', 'cancel');
+    if (choice === 'cloud') {
+      await pullAllFromCloud();
+      setCloudStatus('connected');
+      if (typeof renderDashboard === 'function' && activeView === 'dashboard') renderDashboard();
+    } else if (choice === 'local') {
+      await syncNow();
+    }
+  } else {
+    setCloudStatus('connected');
+  }
 }
 
 async function doAutoSave() {
@@ -5907,6 +6167,11 @@ async function doAutoSave() {
   localStorage.setItem('fos_notifications', JSON.stringify(notifications));
   localStorage.setItem('fos_game_stats', JSON.stringify(gameStats));
   
+  // 2b. Cloud sync (Supabase) — fire-and-forget, never blocks local save
+  if (cloudSession) {
+    syncNow().catch(err => console.error('Cloud sync failed:', err));
+  }
+
   // 2. If drive is connected, write to local file
   if (localFileHandle) {
     try {
@@ -7475,7 +7740,7 @@ function clearTxnSelection() {
 }
 
 function deleteSelectedTxns() {
-  const ids = Array.from(document.querySelectorAll('.row-chk:checked')).map(c => Number(c.dataset.id));
+  const ids = Array.from(document.querySelectorAll('.row-chk:checked')).map(c => c.dataset.id);
   if (!ids.length) return;
   
   // Grab all the items before deleting them
@@ -14247,7 +14512,7 @@ function readRestoreFile(file) {
   reader.readAsText(file);
 }
 
-function confirmRestore() {
+async function confirmRestore() {
   if (!pendingRestoreData) return;
   if (!confirm('⚠️ This will replace ALL your current data with the backup. Are you sure?')) return;
 
@@ -14352,7 +14617,23 @@ function confirmRestore() {
   pendingRestoreData = null;
 
   document.getElementById('backup-modal').style.display = 'none';
-  alert('✅ Backup restored successfully! All data including CC cards, notifications and layout have been restored.');
+
+  // Push the just-restored JSON straight to Supabase, so the cloud copy
+  // matches what you just restored locally (this is what makes "restore a
+  // backup" also mean "restore to the cloud").
+  if (cloudSession) {
+    ensureRecordIds();
+    try {
+      await syncNow();
+      alert('✅ Backup restored successfully and synced to your cloud account!');
+    } catch (err) {
+      console.error('Post-restore cloud sync failed:', err);
+      alert('✅ Backup restored locally, but cloud sync failed — it will retry automatically. (' + err.message + ')');
+    }
+  } else {
+    alert('✅ Backup restored successfully! All data including CC cards, notifications and layout have been restored.\n\n(Not synced to cloud — you are not signed in.)');
+  }
+
   window.location.reload();
 }
 
