@@ -1705,9 +1705,27 @@ body.light-mode .backup-stat { background:rgba(0,0,0,0.03); }
   .nw-row { flex-wrap:wrap; gap:0.7rem; }
   .nw-card { flex:1; min-width:140px; }
   .glass-panel { padding:0.9rem 1rem; }
-  table { min-width:580px; }
-  .glass-panel > div > table,
-  .port-table-wrap { overflow-x:auto; display:block; }
+  /* Every table (Transactions, Loans, Investments, Credit Tracker, Scenario,
+     etc.) becomes independently horizontally-scrollable on its own — this
+     doesn't depend on guessing each table's specific wrapper div, so it
+     covers all of them the same way, including ones nested inside a
+     container that clips overflow. Deliberately NOT forcing display:block
+     here — that trick can misalign header vs. body columns; modern mobile
+     browsers scroll a table element directly just fine. */
+  table {
+    display:block !important;
+    max-width:100% !important;
+    overflow-x:auto !important;
+    overflow-y:visible !important;
+    -webkit-overflow-scrolling:touch;
+  }
+  table > thead, table > tbody { display:table; width:100%; }
+  /* Belt-and-suspenders: neutralize any ancestor wrapper that clips instead
+     of scrolls (e.g. Credit Tracker's table sits in a div with overflow:
+     hidden set inline) — this doesn't affect the table's own scroll above,
+     it just stops an ancestor from cutting it off before it gets there. */
+  div:has(> table) { overflow-x:visible !important; }
+  .port-table-wrap { overflow-x:auto; }
   .modal-box { width:calc(100vw - 24px) !important; margin:12px; padding:1.2rem; }
   .export-modal-box, .backup-modal-box { width:calc(100vw - 24px) !important; margin:12px; padding:1.2rem; }
   .modal-row { flex-direction:column; gap:0; }
