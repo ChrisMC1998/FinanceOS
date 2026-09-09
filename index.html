@@ -1640,7 +1640,20 @@ body.light-mode .backup-stat { background:rgba(0,0,0,0.03); }
   [data-drag-id="view-dashboard-section-9"],  /* Cash Flow + Spending Mix */
   [data-drag-id="view-dashboard-section-10"], /* Portfolio charts */
   [data-drag-id="view-dashboard-section-12"]  /* Credit charts */
-  { display:none !important; }
+  {
+    /* NOT display:none — the dashboard's chart code waits for these elements
+       to report a real width before it will render ANY of the KPI numbers,
+       and display:none makes that wait never end. visibility:hidden keeps
+       their layout box "real" (so that check passes immediately) while still
+       taking them out of view and collapsing the space they'd occupy. */
+    visibility:hidden !important;
+    height:0 !important;
+    min-height:0 !important;
+    overflow:hidden !important;
+    margin:0 !important;
+    padding:0 !important;
+    pointer-events:none !important;
+  }
   body.mobile-full-view [data-drag-id="view-dashboard-section-2"],
   body.mobile-full-view [data-drag-id="view-dashboard-section-3"],
   body.mobile-full-view [data-drag-id="view-dashboard-section-5"],
@@ -1649,7 +1662,15 @@ body.light-mode .backup-stat { background:rgba(0,0,0,0.03); }
   body.mobile-full-view [data-drag-id="view-dashboard-section-9"],
   body.mobile-full-view [data-drag-id="view-dashboard-section-10"],
   body.mobile-full-view [data-drag-id="view-dashboard-section-12"]
-  { display:block !important; }
+  {
+    visibility:visible !important;
+    height:auto !important;
+    min-height:unset !important;
+    overflow:visible !important;
+    margin:revert !important;
+    padding:revert !important;
+    pointer-events:auto !important;
+  }
 
   .mobile-fab {
     display:flex; align-items:center; justify-content:center;
@@ -1754,6 +1775,41 @@ body.light-mode .backup-stat { background:rgba(0,0,0,0.03); }
     font-size:0.8rem !important;
   }
   .drawer-item { min-height:44px; display:flex; align-items:center; font-size:0.92rem; }
+
+  /* ── Settings modal: it's a fixed 880px, sidebar+content layout designed
+     for desktop — on a phone the 220px sidebar alone eats most of the
+     screen, leaving almost nothing for the actual settings. Stack it
+     instead: tabs become a horizontal scroll strip across the top, content
+     gets the full width below. */
+  .settings-modal-box {
+    width:calc(100vw - 16px) !important;
+    max-width:calc(100vw - 16px) !important;
+    height:88vh !important;
+    height:88dvh !important;
+    flex-direction:column !important;
+  }
+  .set-sidebar {
+    width:100% !important;
+    flex-direction:row !important;
+    overflow-x:auto !important;
+    -webkit-overflow-scrolling:touch;
+    border-right:none !important;
+    border-bottom:1px solid var(--glass-border);
+    padding:0.7rem 0.6rem !important;
+    gap:6px !important;
+    flex-shrink:0;
+  }
+  .set-sidebar-title, .set-search { display:none !important; }
+  .set-nav-item {
+    flex-shrink:0;
+    white-space:nowrap;
+    font-size:0.72rem !important;
+    padding:7px 10px !important;
+  }
+  .set-content {
+    padding:1rem 1rem !important;
+    width:100%;
+  }
 }
 
 
@@ -13891,6 +13947,15 @@ function toggleMobileFullDashboard() {
   localStorage.setItem('fos_mobile_full_view', on ? '1' : '0');
   const label = document.getElementById('mob-full-dash-label');
   if (label) label.textContent = on ? 'Show Simple Dashboard' : 'Show Full Dashboard';
+  // Charts hidden via visibility/height:0 can end up drawn at zero-size;
+  // force a resize + re-render once they're visible again so they redraw
+  // at their real dimensions instead of staying blank/squished.
+  if (on) {
+    setTimeout(() => {
+      window.dispatchEvent(new Event('resize'));
+      if (typeof renderDashboard === 'function' && activeView === 'dashboard') renderDashboard();
+    }, 60);
+  }
 }
 (function initMobileFullViewPref() {
   if (localStorage.getItem('fos_mobile_full_view') === '1') {
