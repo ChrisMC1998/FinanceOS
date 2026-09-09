@@ -2435,6 +2435,17 @@ async function handleLogin() {
 // and kicks off first-login cloud/local data reconciliation.
 async function onCloudSignedIn(session) {
   cloudSession = session;
+
+  // Ownership guard: if this browser's leftover local data belongs to a
+  // DIFFERENT Supabase user than the one now signed in, wipe it before doing
+  // anything else. This is what stops one person's data from ever being
+  // shown to, or synced under, a different account on a shared device.
+  const lastUid = localStorage.getItem('fos_last_cloud_uid');
+  if (lastUid && lastUid !== session.user.id) {
+    wipeLocalFinancialData();
+  }
+  localStorage.setItem('fos_last_cloud_uid', session.user.id);
+
   const name = session.user.user_metadata?.name || session.user.email.split('@')[0];
   localStorage.setItem('fos_current_user', JSON.stringify({
     name, identifier: session.user.email, cloudUserId: session.user.id
@@ -5982,17 +5993,30 @@ function scheduleSave() {
   document.getElementById('autosave-label').textContent = 'Unsaved…';
 }
 
+// Wipes every local financial data key + in-memory array. Used whenever we
+// detect the browser's leftover local data doesn't belong to the person who
+// is now authenticated, and on logout — so one person's data can never be
+// mistaken for another's on a shared device/browser.
+function wipeLocalFinancialData() {
+  db = []; portDb = []; creditDb = []; insuranceDb = []; notesDb = [];
+  budgets = {}; ccCards = []; notifications = []; gameStats = {};
+  ['fos_db_v3','fos_port_v3','fos_credit_v1','fos_insurance_v1','fos_notes_v1',
+   'fos_budgets','financeOS_ccCards','fos_notifications','fos_game_stats',
+   'fos_dashboard_layout_v4','fos_onboarding_goal','fos_last_active_view',
+   'fos_last_nw_milestone','fos_last_portfolio_update'
+  ].forEach(k => localStorage.removeItem(k));
+}
+
 async function handleLogout() {
   if (!confirm('Log out of FinanceOS?')) return;
   await sb.auth.signOut();
   cloudSession = null;
   localStorage.removeItem('fos_current_user');
-  setCloudStatus('offline');
-  document.getElementById('login-overlay').classList.remove('hidden');
-  const sidebarEl = document.getElementById('sidebar-user-name');
-  const portfolioEl = document.getElementById('portfolio-user-name');
-  if (sidebarEl) sidebarEl.textContent = '';
-  if (portfolioEl) portfolioEl.textContent = '';
+  localStorage.removeItem('fos_last_cloud_uid');
+  wipeLocalFinancialData();
+  // Full reload guarantees a completely clean slate — no leftover in-memory
+  // state can survive into whoever logs in next on this device.
+  window.location.reload();
 }
 
 // ── CLOUD SYNC ENGINE (Supabase) ─────────────────────────────────────────────
