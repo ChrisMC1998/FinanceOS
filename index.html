@@ -1705,26 +1705,22 @@ body.light-mode .backup-stat { background:rgba(0,0,0,0.03); }
   .nw-row { flex-wrap:wrap; gap:0.7rem; }
   .nw-card { flex:1; min-width:140px; }
   .glass-panel { padding:0.9rem 1rem; }
-  /* Every table (Transactions, Loans, Investments, Credit Tracker, Scenario,
-     etc.) becomes independently horizontally-scrollable on its own — this
-     doesn't depend on guessing each table's specific wrapper div, so it
-     covers all of them the same way, including ones nested inside a
-     container that clips overflow. Deliberately NOT forcing display:block
-     here — that trick can misalign header vs. body columns; modern mobile
-     browsers scroll a table element directly just fine. */
-  table {
-    display:block !important;
-    max-width:100% !important;
+  /* The real, working fix: make each table's DIRECT CONTAINER scroll (a
+     plain div handles overflow-x reliably in every browser — tables
+     themselves are unreliable for this because they resist being
+     width-constrained and just keep growing to fit their content instead of
+     clipping/scrolling within a frame). Scoped with :has() so it only
+     affects containers that actually wrap a table, not every card on the
+     page. Table itself is left completely alone — no column-alignment risk. */
+  .glass-panel:has(> table), div:has(> table) {
     overflow-x:auto !important;
     overflow-y:visible !important;
     -webkit-overflow-scrolling:touch;
+    max-width:100%;
   }
-  table > thead, table > tbody { display:table; width:100%; }
-  /* Belt-and-suspenders: neutralize any ancestor wrapper that clips instead
-     of scrolls (e.g. Credit Tracker's table sits in a div with overflow:
-     hidden set inline) — this doesn't affect the table's own scroll above,
-     it just stops an ancestor from cutting it off before it gets there. */
-  div:has(> table) { overflow-x:visible !important; }
+  table {
+    min-width:640px; /* forces genuine overflow so there's something to scroll to */
+  }
   .port-table-wrap { overflow-x:auto; }
   .modal-box { width:calc(100vw - 24px) !important; margin:12px; padding:1.2rem; }
   .export-modal-box, .backup-modal-box { width:calc(100vw - 24px) !important; margin:12px; padding:1.2rem; }
@@ -6303,31 +6299,23 @@ async function cloudHasAnyData(uid) {
   return !!data;
 }
 
+// Cloud is the single source of truth, always — no prompts, no "which do you
+// want" dialogs. On every sign-in: if the cloud already has data, that's what
+// loads, full stop (any local/offline cache gets overwritten to match it).
+// The only time local data gets uploaded is the very first time an account
+// has never synced anything yet (a brand-new account) — that happens once,
+// silently, so a fresh signup isn't just wiped to empty.
 async function reconcileCloudAndLocalData(uid) {
   ensureRecordIds();
-  const hasLocal = !localDataIsEmpty();
   const hasCloud = await cloudHasAnyData(uid);
 
-  if (hasLocal && !hasCloud) {
-    if (confirm('Existing local FinanceOS data was found. Upload it to your cloud account now?\n\nOK = Upload Local Data\nCancel = Start Fresh (cloud stays empty)')) {
-      await syncNow();
-    }
-  } else if (!hasLocal && hasCloud) {
+  if (hasCloud) {
     await pullAllFromCloud();
-    setCloudStatus('connected');
-    if (typeof renderDashboard === 'function' && activeView === 'dashboard') renderDashboard();
-  } else if (hasLocal && hasCloud) {
-    const choice = prompt('Both local and cloud data exist for this account.\nType one of: "cloud" to use cloud data, "local" to upload local data (overwrites cloud), or "cancel" to leave things as-is.', 'cancel');
-    if (choice === 'cloud') {
-      await pullAllFromCloud();
-      setCloudStatus('connected');
-      if (typeof renderDashboard === 'function' && activeView === 'dashboard') renderDashboard();
-    } else if (choice === 'local') {
-      await syncNow();
-    }
   } else {
-    setCloudStatus('connected');
+    await syncNow();
   }
+  setCloudStatus('connected');
+  if (typeof renderDashboard === 'function' && activeView === 'dashboard') renderDashboard();
 }
 
 async function doAutoSave() {
