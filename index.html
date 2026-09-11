@@ -2700,6 +2700,10 @@ function setCloudStatus(state) {
   const cfg = map[state] || map.offline;
   if (dot && text) { dot.style.background = cfg.color; text.textContent = cfg.label; }
   if (mobDot && mobText) { mobDot.style.background = cfg.color; mobText.textContent = cfg.label; }
+  if (state === 'synced' || state === 'connected') {
+    localStorage.setItem('fos_last_cloud_sync', new Date().toISOString());
+  }
+  if (typeof renderPrivacyAboutTab === 'function') renderPrivacyAboutTab();
 }
 function handleCloudPillClick() {
   if (!cloudSession) { showLoginPanel(); document.getElementById('login-overlay').classList.remove('hidden'); return; }
@@ -3720,8 +3724,85 @@ async function renderDeviceLockSettings() {
     pcBtn.style.background = enabled ? 'linear-gradient(135deg,#ef4444,#b91c1c)' : 'linear-gradient(135deg,#0075ff,#0052b3)';
     pcBtn.style.border = 'none';
   }
+  if (typeof renderPrivacyAboutTab === 'function') renderPrivacyAboutTab();
 }
 document.addEventListener('DOMContentLoaded', renderDeviceLockSettings);
+
+// Fills in the "Privacy & Updates" tab's live status badges — cloud
+// connection, device lock state, sync status, provider, and last-sync time —
+// so this page always reflects what's actually true instead of stale copy.
+function renderPrivacyAboutTab() {
+  const cloudBadge = document.getElementById('about-cloud-badge');
+  if (cloudBadge) {
+    if (cloudSession) {
+      cloudBadge.textContent = 'Connected';
+      cloudBadge.className = 'badge bg-inc';
+    } else {
+      cloudBadge.textContent = 'Offline (local only)';
+      cloudBadge.className = 'badge';
+      cloudBadge.style.background = 'rgba(255,255,255,0.05)';
+      cloudBadge.style.color = 'var(--text-mid)';
+      cloudBadge.style.border = '1px solid var(--glass-border)';
+    }
+  }
+
+  const lockBadge = document.getElementById('about-devicelock-badge');
+  if (lockBadge) {
+    const bioOn = localStorage.getItem('fos_biometric_enabled') === 'true' && localStorage.getItem('fos_biometric_cred_id');
+    const pcOn  = localStorage.getItem('fos_pc_lock_enabled') === 'true' && localStorage.getItem('fos_pc_lock_hash');
+    if (bioOn || pcOn) {
+      const parts = [];
+      if (bioOn) parts.push('Face ID / Passkey');
+      if (pcOn)  parts.push('PC Lock');
+      lockBadge.textContent = parts.join(' + ') + ' On';
+      lockBadge.className = 'badge bg-inc';
+      lockBadge.style.background = ''; lockBadge.style.color = ''; lockBadge.style.border = '';
+      lockBadge.classList.add('bg-inc');
+    } else {
+      lockBadge.textContent = 'Off';
+      lockBadge.className = 'badge';
+      lockBadge.style.background = 'rgba(255,255,255,0.05)';
+      lockBadge.style.color = 'var(--text-mid)';
+      lockBadge.style.border = '1px solid var(--glass-border)';
+    }
+  }
+
+  const syncBadge = document.getElementById('about-sync-badge');
+  if (syncBadge) {
+    if (cloudSession) {
+      syncBadge.textContent = 'Active';
+      syncBadge.className = 'badge bg-inc';
+    } else {
+      syncBadge.textContent = 'Paused (signed out)';
+      syncBadge.className = 'badge';
+      syncBadge.style.background = 'rgba(255,255,255,0.05)';
+      syncBadge.style.color = 'var(--text-mid)';
+      syncBadge.style.border = '1px solid var(--glass-border)';
+    }
+  }
+
+  const providerEl = document.getElementById('about-provider-value');
+  if (providerEl) providerEl.textContent = cloudSession ? 'Supabase Auth (signed in)' : 'Supabase Auth (signed out)';
+
+  const lastSyncEl = document.getElementById('about-lastsync-value');
+  if (lastSyncEl) {
+    const iso = localStorage.getItem('fos_last_cloud_sync');
+    if (!iso) {
+      lastSyncEl.textContent = 'Not yet synced';
+    } else {
+      const then = new Date(iso);
+      const diffMs = Date.now() - then.getTime();
+      const mins = Math.round(diffMs / 60000);
+      let label;
+      if (mins < 1) label = 'Just now';
+      else if (mins < 60) label = mins + ' min ago';
+      else if (mins < 1440) label = Math.round(mins / 60) + ' hr ago';
+      else label = then.toLocaleDateString() + ' ' + then.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+      lastSyncEl.textContent = label;
+    }
+  }
+}
+document.addEventListener('DOMContentLoaded', renderPrivacyAboutTab);
 
 // ── App Lock gate: shown right after a successful sign-in, before the
 // dashboard becomes visible. Resolves once the person clears whichever lock
@@ -6414,30 +6495,78 @@ function passAppLockGate() {
       </div>
 
       <div id="set-tab-about" class="set-tab-pane">
-        
+
         <div class="set-card">
           <div style="display:flex; gap:10px; align-items:center; margin-bottom: 0.5rem;">
             <div style="width:32px; height:32px; border-radius:50%; background:rgba(52,211,153,0.15); color:var(--c-inc); display:flex; align-items:center; justify-content:center"><i class="fas fa-lock"></i></div>
             <div class="set-label-block">
-              <div class="set-lbl readable-white">Local-First Architecture</div>
-              <div class="set-desc" style="margin-top:0">Ultimate privacy with zero cloud dependencies</div>
+              <div class="set-lbl readable-white">Data Storage & Privacy</div>
+              <div class="set-desc" style="margin-top:0">Where your data actually lives, and who can see it</div>
             </div>
           </div>
-          
+
           <div class="set-row">
             <div class="set-label-block">
-              <div class="set-lbl readable-white" style="font-size:0.8rem">Data Storage</div>
-              <div class="set-desc">All financial data is saved strictly to your browser's Local Storage.</div>
+              <div class="set-lbl readable-white" style="font-size:0.8rem">Local Storage</div>
+              <div class="set-desc">A full copy of your data is kept in this browser's Local Storage, so the app loads instantly and keeps working offline.</div>
             </div>
-            <div class="badge bg-inc">100% Private</div>
+            <div class="badge bg-inc">Always on</div>
           </div>
-          
+
           <div class="set-row">
             <div class="set-label-block">
-              <div class="set-lbl readable-white" style="font-size:0.8rem">Cloud Telemetry</div>
-              <div class="set-desc">No data is ever leaked, transmitted, or analyzed externally.</div>
+              <div class="set-lbl readable-white" style="font-size:0.8rem">Cloud Storage (Supabase)</div>
+              <div class="set-desc">While signed in, that same data is synced to your private account in the cloud — this is what lets your phone and PC show the same numbers.</div>
             </div>
-            <div class="badge" style="background:rgba(239,68,68,0.15); color:#ef4444;">Disabled</div>
+            <div class="badge bg-loan" id="about-cloud-badge">Checking…</div>
+          </div>
+
+          <div class="set-row">
+            <div class="set-label-block">
+              <div class="set-lbl readable-white" style="font-size:0.8rem">Third-Party Analytics & Ads</div>
+              <div class="set-desc">No data is sold, shared, or sent to any third-party analytics, tracking, or advertising service — it only ever moves between you and your own account.</div>
+            </div>
+            <div class="badge" style="background:rgba(239,68,68,0.15); color:#ef4444;">None</div>
+          </div>
+
+          <div class="set-row" style="border-top:1px solid var(--glass-border); padding-top:0.7rem; margin-top:0.2rem;">
+            <div class="set-label-block" style="max-width:100%;">
+              <div class="set-desc" style="font-size:0.68rem; line-height:1.5;"><i class="fas fa-circle-info" style="margin-right:4px;color:var(--text-muted)"></i>Earlier versions of this page described FinanceOS as "local-first" with "zero cloud dependencies." That stopped being accurate once account sign-in and cross-device sync were added — the rows above reflect how it actually works today: local-first for speed, cloud-backed for continuity.</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="set-card">
+          <div style="display:flex; gap:10px; align-items:center; margin-bottom: 0.5rem;">
+            <div style="width:32px; height:32px; border-radius:50%; background:rgba(0,117,255,0.15); color:var(--accent); display:flex; align-items:center; justify-content:center"><i class="fas fa-shield-halved"></i></div>
+            <div class="set-label-block">
+              <div class="set-lbl readable-white">Cloud Account Security</div>
+              <div class="set-desc" style="margin-top:0">How your synced data and your sign-in are protected</div>
+            </div>
+          </div>
+
+          <div class="set-row">
+            <div class="set-label-block">
+              <div class="set-lbl readable-white" style="font-size:0.8rem">Encryption In Transit</div>
+              <div class="set-desc">Everything sent to and from the cloud travels over HTTPS/TLS.</div>
+            </div>
+            <div class="badge bg-inc">Encrypted</div>
+          </div>
+
+          <div class="set-row">
+            <div class="set-label-block">
+              <div class="set-lbl readable-white" style="font-size:0.8rem">Row-Level Access Control</div>
+              <div class="set-desc">Your records are scoped to your account at the database level — no other FinanceOS user can query, see, or export your data.</div>
+            </div>
+            <div class="badge" style="background:rgba(167,139,250,0.15); color:#a78bfa;">Account-scoped</div>
+          </div>
+
+          <div class="set-row">
+            <div class="set-label-block">
+              <div class="set-lbl readable-white" style="font-size:0.8rem">Device Lock (this device)</div>
+              <div class="set-desc">Face ID / Fingerprint / Passkey and PC Lock — manage these under Account & Profile.</div>
+            </div>
+            <div class="badge" id="about-devicelock-badge" style="background:rgba(255,255,255,0.05); color:var(--text-mid); border:1px solid var(--glass-border)">Off</div>
           </div>
         </div>
 
@@ -6448,6 +6577,14 @@ function passAppLockGate() {
               <div class="set-lbl readable-white">Data Resilience & Sync</div>
               <div class="set-desc" style="margin-top:0">Backup protocols and continuous saving</div>
             </div>
+          </div>
+
+          <div class="set-row">
+            <div class="set-label-block">
+              <div class="set-lbl readable-white" style="font-size:0.8rem">Cloud Sync (Supabase)</div>
+              <div class="set-desc">Transactions, investments, loans, credit cards, insurance, notes, and budgets sync automatically whenever you're signed in and online.</div>
+            </div>
+            <div class="badge" id="about-sync-badge" style="background:rgba(255,255,255,0.05); color:var(--text-mid); border:1px solid var(--glass-border)">—</div>
           </div>
 
           <div class="set-row">
@@ -6482,9 +6619,25 @@ function passAppLockGate() {
               <div class="set-desc">Local client version.</div>
             </div>
             <div style="display:flex; align-items:center; gap:10px;">
-              <div class="set-desc" style="font-family:'DM Mono',monospace; font-weight:700;">v6.1.0</div>
+              <div class="set-desc" style="font-family:'DM Mono',monospace; font-weight:700;">v7.1.2</div>
               <div class="badge bg-inc">Up to date</div>
             </div>
+          </div>
+
+          <div class="set-row">
+            <div class="set-label-block">
+              <div class="set-lbl readable-white" style="font-size:0.8rem">Sign-In Provider</div>
+              <div class="set-desc">Authentication and cloud sync are handled by Supabase Auth.</div>
+            </div>
+            <div class="set-desc" id="about-provider-value" style="font-family:'DM Mono',monospace;">—</div>
+          </div>
+
+          <div class="set-row">
+            <div class="set-label-block">
+              <div class="set-lbl readable-white" style="font-size:0.8rem">Last Cloud Sync</div>
+              <div class="set-desc">The last time this device successfully pushed to your cloud account.</div>
+            </div>
+            <div class="set-desc" id="about-lastsync-value" style="font-family:'DM Mono',monospace;">—</div>
           </div>
         </div>
 
@@ -14099,12 +14252,14 @@ function switchSettingsTab(tabId, el) {
 'general': { title: 'General', desc: 'Appearance, window, date & time' },
 'notifications': { title: 'Notifications', desc: 'Alerts, reminders, sounds' },
 'shortcuts': { title: 'Shortcuts', desc: 'Global hotkeys and automation' },
-'about': { title: 'Privacy & Updates', desc: 'Local-first architecture and version info' },
+'about': { title: 'Privacy & Updates', desc: 'Data storage, cloud security, and version info' },
 'tags': { title: 'Transaction Tags', desc: 'Manage custom tags for tracking' }
 };
   
   document.getElementById('set-tab-title').textContent = titles[tabId].title;
   document.getElementById('set-tab-desc').textContent = titles[tabId].desc;
+
+  if (tabId === 'about' && typeof renderPrivacyAboutTab === 'function') renderPrivacyAboutTab();
 }
 
 
