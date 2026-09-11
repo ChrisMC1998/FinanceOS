@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <meta name="theme-color" content="#07091a">
 <meta name="description" content="Personal finance dashboard - track income, expenses, investments, loans and portfolio">
 <link rel="manifest" href="data:application/manifest+json,%7B%22name%22%3A%20%22FinanceOS%22%2C%20%22short_name%22%3A%20%22FinanceOS%22%2C%20%22start_url%22%3A%20%22.%22%2C%20%22scope%22%3A%20%22.%22%2C%20%22display%22%3A%20%22standalone%22%2C%20%22background_color%22%3A%20%22%2307091a%22%2C%20%22theme_color%22%3A%20%22%2307091a%22%2C%20%22icons%22%3A%20%5B%7B%22src%22%3A%20%22data%3Aimage/svg%2Bxml%2C%253Csvg%2520xmlns%253D%2522http%253A//www.w3.org/2000/svg%2522%2520viewBox%253D%25220%25200%2520192%2520192%2522%253E%253Crect%2520width%253D%2522192%2522%2520height%253D%2522192%2522%2520rx%253D%252236%2522%2520fill%253D%2522%252307091a%2522/%253E%253Cg%2520fill%253D%2522%25230075ff%2522%253E%253Cpath%2520d%253D%2522M96%252028l56%252032v64l-56%252032-56-32V60z%2522%2520opacity%253D%25220.25%2522/%253E%253Cpath%2520d%253D%2522M96%252044l40%252023v46l-40%252023-40-23V67z%2522/%253E%253C/g%253E%253C/svg%253E%22%2C%20%22sizes%22%3A%20%22192x192%22%2C%20%22type%22%3A%20%22image/svg%2Bxml%22%2C%20%22purpose%22%3A%20%22any%22%7D%2C%20%7B%22src%22%3A%20%22data%3Aimage/svg%2Bxml%2C%253Csvg%2520xmlns%253D%2522http%253A//www.w3.org/2000/svg%2522%2520viewBox%253D%25220%25200%2520192%2520192%2522%253E%253Crect%2520width%253D%2522192%2522%2520height%253D%2522192%2522%2520rx%253D%252236%2522%2520fill%253D%2522%252307091a%2522/%253E%253Cg%2520fill%253D%2522%25230075ff%2522%253E%253Cpath%2520d%253D%2522M96%252028l56%252032v64l-56%252032-56-32V60z%2522%2520opacity%253D%25220.25%2522/%253E%253Cpath%2520d%253D%2522M96%252044l40%252023v46l-40%252023-40-23V67z%2522/%253E%253C/g%253E%253C/svg%253E%22%2C%20%22sizes%22%3A%20%22512x512%22%2C%20%22type%22%3A%20%22image/svg%2Bxml%22%2C%20%22purpose%22%3A%20%22any%22%7D%5D%7D">
@@ -64,6 +64,7 @@
 
 * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'DM Sans', sans-serif; -webkit-font-smoothing: antialiased; text-rendering: optimizeLegibility; }
 body { background: radial-gradient(circle at 15% 0%, rgba(0,117,255,0.08), transparent 40%), radial-gradient(circle at 85% 100%, rgba(167,139,250,0.06), transparent 40%), linear-gradient(135deg, #0a0a0c 0%, #000000 100%); color: var(--text-main); height: 100vh; height: 100dvh; display: flex; overflow: hidden; }
+html { background: #000000; }
 /* ── SIDEBAR BASE ── */
 .sidebar {
   width: var(--sidebar-w); 
@@ -1065,7 +1066,7 @@ body.light-mode .readable-white {
 .export-date-row { display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-top:10px; }
 
 /* ── MOBILE HAMBURGER ── */
-.mobile-header { display:none; position:fixed; top:0; left:0; right:0; z-index:300; background:rgba(7,9,26,0.97); backdrop-filter:blur(16px); border-bottom:1px solid var(--glass-border); padding:0.75rem 1rem; align-items:center; justify-content:space-between; gap:10px; }
+.mobile-header { display:none; position:fixed; top:0; left:0; right:0; z-index:300; background:rgba(7,9,26,0.97); backdrop-filter:blur(16px); border-bottom:1px solid var(--glass-border); padding:calc(0.75rem + env(safe-area-inset-top)) 1rem 0.75rem; align-items:center; justify-content:space-between; gap:10px; }
 .mobile-title { font-size:1rem; font-weight:700; display:flex; align-items:center; gap:8px; }
 .mobile-title span { color:var(--accent); }
 .mobile-nav-row { display:flex; align-items:center; gap:6px; }
@@ -1674,7 +1675,7 @@ body.light-mode .backup-stat { background:rgba(0,0,0,0.03); }
 
   .mobile-fab {
     display:flex; align-items:center; justify-content:center;
-    position:fixed; right:18px; bottom:22px; z-index:280;
+    position:fixed; right:18px; bottom:calc(22px + env(safe-area-inset-bottom)); z-index:280;
     width:56px; height:56px; border-radius:50%; border:none;
     background:linear-gradient(135deg,#0075ff,#0052cc);
     color:#fff; font-size:1.3rem; cursor:pointer;
@@ -1685,7 +1686,7 @@ body.light-mode .backup-stat { background:rgba(0,0,0,0.03); }
   .sidebar, .port-sidebar { display:none; }
   .mobile-header { display:flex; }
   body { flex-direction:column; overflow:hidden; height:100vh; height:100dvh; }
-  .main { flex:1; min-height:0; overflow:hidden; padding-top:58px; }
+  .main { flex:1; min-height:0; overflow:hidden; padding-top:calc(58px + env(safe-area-inset-top)); }
   .topbar { padding:0.7rem 1rem; flex-wrap:wrap; gap:0.5rem; }
   .page-title { font-size:1rem; }
   .topbar-right { gap:5px; width:100%; justify-content:flex-start; }
@@ -2295,6 +2296,10 @@ body.light-mode select option {
       <div class="login-error" id="login-error">❌ Please fill in all fields.</div>
       <button class="login-btn" onclick="handleLogin()">Sign In →</button>
 
+      <button type="button" id="passkey-login-btn" class="login-btn" style="display:none;margin-top:0.6rem;background:linear-gradient(135deg,#1c1c1f,#0d0d0f);border:1px solid rgba(255,255,255,0.12);color:#fff;" onclick="handlePasskeyLogin()">
+        <i class="fas fa-fingerprint" style="margin-right:7px"></i>Sign in with Face ID / Fingerprint
+      </button>
+
       <div class="login-forgot" style="text-align:center;margin-top:0.9rem" onclick="showSignupPanel()">
         Don't have an account? <span style="color:#0075ff;font-weight:700">Create one</span>
       </div>
@@ -2552,7 +2557,7 @@ body.light-mode select option {
 const SUPABASE_URL = 'https://fvkzhydshoklketmfqzz.supabase.co';
 const SUPABASE_ANON_KEY = 'sb_publishable_Vh1YqfNaC8VTZOmXVsZQ1g_nUwSMHYO';
 const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
-  auth: { persistSession: true, autoRefreshToken: true, detectSessionInUrl: true }
+  auth: { persistSession: true, autoRefreshToken: true, detectSessionInUrl: true, experimental: { passkey: true } }
 });
 let cloudSession = null; // current Supabase session, or null if signed out/offline-local-only
 
@@ -2615,6 +2620,54 @@ function handleCloudPillClick() {
 }
 
 // ── Login (Supabase Auth) ────────────────────────────────────────────────────
+// ── Passkey / Biometric Auth (Face ID, Touch ID, Windows Hello, Android
+// fingerprint) — uses Supabase Auth's Passkey beta (WebAuthn under the hood).
+// This requires "Authentication → Passkeys" to be turned on in the Supabase
+// dashboard for this project, with the Relying Party ID set to this site's
+// bare domain — without that dashboard step, these calls will just fail.
+async function checkPasskeySupport() {
+  const btn = document.getElementById('passkey-login-btn');
+  if (!btn) return;
+  if (window.PublicKeyCredential && await PublicKeyCredential.isUserVerifyingPlatformAuthenticatorAvailable?.()) {
+    btn.style.display = 'block';
+  }
+}
+document.addEventListener('DOMContentLoaded', checkPasskeySupport);
+
+async function handlePasskeyLogin() {
+  const errEl = document.getElementById('login-error');
+  const btn = document.getElementById('passkey-login-btn');
+  errEl.style.display = 'none';
+  if (btn) { btn.disabled = true; btn.textContent = 'Waiting for Face ID / Fingerprint…'; }
+  try {
+    const { data, error } = await sb.auth.signInWithPasskey();
+    if (error) throw error;
+    if (data?.session) {
+      await onCloudSignedIn(data.session);
+      document.getElementById('login-overlay').classList.add('hidden');
+    }
+  } catch (err) {
+    console.error('Passkey sign-in failed:', err);
+    errEl.textContent = '❌ ' + (err.message || 'Passkey sign-in failed or was cancelled.');
+    errEl.style.display = 'block';
+  } finally {
+    if (btn) { btn.disabled = false; btn.innerHTML = '<i class="fas fa-fingerprint" style="margin-right:7px"></i>Sign in with Face ID / Fingerprint'; }
+  }
+}
+
+// Called from Settings — lets an already-signed-in user register this
+// device's Face ID / Touch ID / fingerprint for future logins.
+async function handleRegisterPasskey() {
+  if (!cloudSession) { alert('Please sign in first.'); return; }
+  try {
+    await sb.auth.registerPasskey();
+    alert('✅ This device is now enrolled — you can sign in with Face ID / Touch ID / Fingerprint next time.');
+  } catch (err) {
+    console.error('Passkey registration failed:', err);
+    alert('❌ Could not enable Face ID / Fingerprint: ' + (err.message || 'Passkeys may not be turned on for this app yet.'));
+  }
+}
+
 async function handleLogin() {
   const identifier = document.getElementById('auth-identifier').value.trim().toLowerCase();
   const password   = document.getElementById('auth-password').value;
@@ -5313,6 +5366,15 @@ function toggleLoginPass(inputId, btn) {
                 <div style="display:inline-block; padding: 2px 6px; background: rgba(52,211,153,0.15); color: #34d399; font-size: 0.55rem; font-weight: 700; border-radius: 4px; margin-top: 4px;">● LOCAL WORKSPACE</div>
               </div>
               <button class="btn-secondary" onclick="closeSettingsModal(); handleLogout();" style="padding: 4px 10px; font-size: 0.7rem; color: #ef4444; border-color: rgba(239,68,68,0.3); cursor:pointer;">Sign out</button>
+            </div>
+
+            <div style="display:flex; gap:12px; align-items:center; margin-bottom: 0.6rem; padding: 10px 12px; background: rgba(0,117,255,0.05); border-radius: 10px; border: 1px solid rgba(0,117,255,0.15);">
+              <i class="fas fa-fingerprint" style="font-size:1.3rem;color:#0075ff;flex-shrink:0"></i>
+              <div style="flex:1">
+                <div class="readable-white" style="font-weight:700; font-size:0.85rem;">Face ID / Fingerprint Login</div>
+                <div class="set-desc" style="margin-top:0;">Enable biometric sign-in for this device</div>
+              </div>
+              <button class="btn-secondary" onclick="handleRegisterPasskey()" style="padding: 4px 10px; font-size: 0.7rem; color:#0075ff; border-color: rgba(0,117,255,0.3); cursor:pointer; white-space:nowrap;">Enable</button>
             </div>
 
             <div style="margin-bottom: 0.3rem;">
