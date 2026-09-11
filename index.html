@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
 <meta name="theme-color" content="#07091a">
 <meta name="description" content="Personal finance dashboard - track income, expenses, investments, loans and portfolio">
 <link rel="manifest" href="data:application/manifest+json,%7B%22name%22%3A%20%22FinanceOS%22%2C%20%22short_name%22%3A%20%22FinanceOS%22%2C%20%22start_url%22%3A%20%22.%22%2C%20%22scope%22%3A%20%22.%22%2C%20%22display%22%3A%20%22standalone%22%2C%20%22background_color%22%3A%20%22%2307091a%22%2C%20%22theme_color%22%3A%20%22%2307091a%22%2C%20%22icons%22%3A%20%5B%7B%22src%22%3A%20%22data%3Aimage/svg%2Bxml%2C%253Csvg%2520xmlns%253D%2522http%253A//www.w3.org/2000/svg%2522%2520viewBox%253D%25220%25200%2520192%2520192%2522%253E%253Crect%2520width%253D%2522192%2522%2520height%253D%2522192%2522%2520rx%253D%252236%2522%2520fill%253D%2522%252307091a%2522/%253E%253Cg%2520fill%253D%2522%25230075ff%2522%253E%253Cpath%2520d%253D%2522M96%252028l56%252032v64l-56%252032-56-32V60z%2522%2520opacity%253D%25220.25%2522/%253E%253Cpath%2520d%253D%2522M96%252044l40%252023v46l-40%252023-40-23V67z%2522/%253E%253C/g%253E%253C/svg%253E%22%2C%20%22sizes%22%3A%20%22192x192%22%2C%20%22type%22%3A%20%22image/svg%2Bxml%22%2C%20%22purpose%22%3A%20%22any%22%7D%2C%20%7B%22src%22%3A%20%22data%3Aimage/svg%2Bxml%2C%253Csvg%2520xmlns%253D%2522http%253A//www.w3.org/2000/svg%2522%2520viewBox%253D%25220%25200%2520192%2520192%2522%253E%253Crect%2520width%253D%2522192%2522%2520height%253D%2522192%2522%2520rx%253D%252236%2522%2520fill%253D%2522%252307091a%2522/%253E%253Cg%2520fill%253D%2522%25230075ff%2522%253E%253Cpath%2520d%253D%2522M96%252028l56%252032v64l-56%252032-56-32V60z%2522%2520opacity%253D%25220.25%2522/%253E%253Cpath%2520d%253D%2522M96%252044l40%252023v46l-40%252023-40-23V67z%2522/%253E%253C/g%253E%253C/svg%253E%22%2C%20%22sizes%22%3A%20%22512x512%22%2C%20%22type%22%3A%20%22image/svg%2Bxml%22%2C%20%22purpose%22%3A%20%22any%22%7D%5D%7D">
@@ -64,11 +64,6 @@
 
 * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'DM Sans', sans-serif; -webkit-font-smoothing: antialiased; text-rendering: optimizeLegibility; }
 body { background: radial-gradient(circle at 15% 0%, rgba(0,117,255,0.08), transparent 40%), radial-gradient(circle at 85% 100%, rgba(167,139,250,0.06), transparent 40%), linear-gradient(135deg, #0a0a0c 0%, #000000 100%); color: var(--text-main); height: 100vh; height: 100dvh; display: flex; overflow: hidden; }
-/* Prevent the mobile viewport "black box" gap caused by 100vh vs real dynamic viewport height */
-@media (max-width:900px) {
-  html, body { height: 100dvh; overflow: hidden; }
-}
-html { background: #000000; }
 /* ── SIDEBAR BASE ── */
 .sidebar {
   width: var(--sidebar-w); 
@@ -196,7 +191,7 @@ html { background: #000000; }
 #backup-banner {
   position: fixed;
   top: 0; left: 0; right: 0;
-  z-index: 150; /* was 9990 — that outranked .mobile-header (300) is gone, but on desktop keep it below modals/splash */
+  z-index: 9990;
   background: rgba(245, 158, 11, 0.10);
   border-bottom: 1px solid rgba(245, 158, 11, 0.30);
   backdrop-filter: blur(8px);
@@ -1070,7 +1065,7 @@ body.light-mode .readable-white {
 .export-date-row { display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-top:10px; }
 
 /* ── MOBILE HAMBURGER ── */
-.mobile-header { display:none; position:fixed; top:0; left:0; right:0; z-index:300; background:rgba(7,9,26,0.97); backdrop-filter:blur(16px); border-bottom:1px solid var(--glass-border); padding:calc(0.75rem + env(safe-area-inset-top)) 1rem 0.75rem; align-items:center; justify-content:space-between; gap:10px; }
+.mobile-header { display:none; position:fixed; top:0; left:0; right:0; z-index:300; background:rgba(7,9,26,0.97); backdrop-filter:blur(16px); border-bottom:1px solid var(--glass-border); padding:0.75rem 1rem; align-items:center; justify-content:space-between; gap:10px; }
 .mobile-title { font-size:1rem; font-weight:700; display:flex; align-items:center; gap:8px; }
 .mobile-title span { color:var(--accent); }
 .mobile-nav-row { display:flex; align-items:center; gap:6px; }
@@ -1679,7 +1674,7 @@ body.light-mode .backup-stat { background:rgba(0,0,0,0.03); }
 
   .mobile-fab {
     display:flex; align-items:center; justify-content:center;
-    position:fixed; right:18px; bottom:calc(22px + env(safe-area-inset-bottom)); z-index:280;
+    position:fixed; right:18px; bottom:22px; z-index:280;
     width:56px; height:56px; border-radius:50%; border:none;
     background:linear-gradient(135deg,#0075ff,#0052cc);
     color:#fff; font-size:1.3rem; cursor:pointer;
@@ -1690,23 +1685,7 @@ body.light-mode .backup-stat { background:rgba(0,0,0,0.03); }
   .sidebar, .port-sidebar { display:none; }
   .mobile-header { display:flex; }
   body { flex-direction:column; overflow:hidden; height:100vh; height:100dvh; }
-  .main {
-    flex:1; min-height:0; overflow:hidden;
-    padding-top:calc(58px + env(safe-area-inset-top));
-    padding-bottom: env(safe-area-inset-bottom);
-    box-sizing: border-box;
-  }
-  .scroll-area {
-    -webkit-overflow-scrolling: touch;
-    padding-bottom: calc(1rem + env(safe-area-inset-bottom));
-  }
-  /* Push the auto-backup banner below the mobile header instead of covering
-     the status bar / Wi-Fi & battery icons, and keep it below the header's
-     stacking order so its buttons stay reachable. */
-  #backup-banner {
-    top: calc(58px + env(safe-area-inset-top)) !important;
-    z-index: 200 !important;
-  }
+  .main { flex:1; min-height:0; overflow:hidden; padding-top:58px; }
   .topbar { padding:0.7rem 1rem; flex-wrap:wrap; gap:0.5rem; }
   .page-title { font-size:1rem; }
   .topbar-right { gap:5px; width:100%; justify-content:flex-start; }
@@ -1838,27 +1817,20 @@ body.light-mode .backup-stat { background:rgba(0,0,0,0.03); }
     height:88dvh !important;
     flex-direction:column !important;
   }
-  .settings-modal-box { overflow: visible !important; } /* the base rule sets overflow:hidden, which combined with column layout was clipping the tab strip's scroll edge on some devices */
   .set-sidebar {
     width:100% !important;
     flex-direction:row !important;
-    flex-wrap: nowrap !important;
     overflow-x:auto !important;
-    overflow-y: hidden !important;
     -webkit-overflow-scrolling:touch;
-    scrollbar-width: thin !important; /* show a visible scrollbar here so it's obvious there are more tabs to swipe to */
     border-right:none !important;
     border-bottom:1px solid var(--glass-border);
     padding:0.7rem 0.6rem !important;
     gap:6px !important;
     flex-shrink:0;
-    background: linear-gradient(90deg, transparent 92%, rgba(0,117,255,0.15) 100%); /* subtle edge hint that the strip scrolls */
   }
   .set-sidebar-title, .set-search { display:none !important; }
   .set-nav-item {
     flex-shrink:0;
-    flex-grow: 0;
-    min-width: max-content;
     white-space:nowrap;
     font-size:0.72rem !important;
     padding:7px 10px !important;
@@ -1866,8 +1838,6 @@ body.light-mode .backup-stat { background:rgba(0,0,0,0.03); }
   .set-content {
     padding:1rem 1rem !important;
     width:100%;
-    overflow-y: auto !important;
-    -webkit-overflow-scrolling: touch;
   }
 }
 
@@ -2301,42 +2271,6 @@ body.light-mode select option {
   <div class="splash-bar-track"><div class="splash-bar-fill"></div></div>
 </div>
 
-<!-- ── APP LOCK OVERLAY — covers everything until Face ID / Fingerprint succeeds ── -->
-<style>
-#applock-overlay {
-  position: fixed; inset: 0; z-index: 999998;
-  background: linear-gradient(160deg, #0a0a0d 0%, #000000 100%);
-  display: flex; flex-direction: column; align-items: center; justify-content: center;
-  font-family: 'DM Sans', sans-serif;
-  transition: opacity 0.35s ease, visibility 0.35s ease;
-}
-#applock-overlay.hidden { opacity: 0; visibility: hidden; pointer-events: none; }
-.applock-icon-ring {
-  width: 96px; height: 96px; border-radius: 28px;
-  display: flex; align-items: center; justify-content: center;
-  background: linear-gradient(135deg, rgba(0,117,255,0.18), rgba(0,117,255,0.02));
-  border: 1px solid rgba(0,117,255,0.35);
-  margin-bottom: 1.4rem;
-}
-.applock-icon-ring i { font-size: 2.6rem; color: #0075ff; }
-.applock-title { font-size: 1.2rem; font-weight: 700; color: #f5f5f7; margin-bottom: 0.3rem; }
-.applock-sub { font-size: 0.8rem; color: rgba(255,255,255,0.45); margin-bottom: 1.6rem; text-align:center; padding: 0 2rem; }
-.applock-retry-btn {
-  padding: 11px 26px; border: none; border-radius: 12px;
-  background: linear-gradient(135deg, #0075ff, #0056cc);
-  color: white; font-size: 0.88rem; font-weight: 700;
-  font-family: 'DM Sans', sans-serif; cursor: pointer;
-  box-shadow: 0 4px 20px rgba(0,117,255,0.3); transition: 0.18s;
-}
-.applock-retry-btn:hover { opacity: 0.9; transform: translateY(-1px); }
-</style>
-<div id="applock-overlay" class="hidden">
-  <div class="applock-icon-ring"><i class="fas fa-fingerprint"></i></div>
-  <div class="applock-title">FinanceOS is Locked</div>
-  <div class="applock-sub" id="applock-status">Use Face ID / Fingerprint to continue</div>
-  <button class="applock-retry-btn" onclick="retryAppLock()"><i class="fas fa-lock-open" style="margin-right:7px"></i>Unlock</button>
-</div>
-
 <div id="login-overlay">
   <div class="login-box">
 
@@ -2360,10 +2294,6 @@ body.light-mode select option {
 
       <div class="login-error" id="login-error">❌ Please fill in all fields.</div>
       <button class="login-btn" onclick="handleLogin()">Sign In →</button>
-
-      <button type="button" id="passkey-login-btn" class="login-btn" style="display:none;margin-top:0.6rem;background:linear-gradient(135deg,#1c1c1f,#0d0d0f);border:1px solid rgba(255,255,255,0.12);color:#fff;" onclick="handlePasskeyLogin()">
-        <i class="fas fa-fingerprint" style="margin-right:7px"></i>Sign in with Face ID / Fingerprint
-      </button>
 
       <div class="login-forgot" style="text-align:center;margin-top:0.9rem" onclick="showSignupPanel()">
         Don't have an account? <span style="color:#0075ff;font-weight:700">Create one</span>
@@ -2622,7 +2552,7 @@ body.light-mode select option {
 const SUPABASE_URL = 'https://fvkzhydshoklketmfqzz.supabase.co';
 const SUPABASE_ANON_KEY = 'sb_publishable_Vh1YqfNaC8VTZOmXVsZQ1g_nUwSMHYO';
 const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
-  auth: { persistSession: true, autoRefreshToken: true, detectSessionInUrl: true, experimental: { passkey: true } }
+  auth: { persistSession: true, autoRefreshToken: true, detectSessionInUrl: true }
 });
 let cloudSession = null; // current Supabase session, or null if signed out/offline-local-only
 
@@ -2685,185 +2615,6 @@ function handleCloudPillClick() {
 }
 
 // ── Login (Supabase Auth) ────────────────────────────────────────────────────
-// ── Passkey / Biometric Auth (Face ID, Touch ID, Windows Hello, Android
-// fingerprint) — uses Supabase Auth's Passkey beta (WebAuthn under the hood).
-// This requires "Authentication → Passkeys" to be turned on in the Supabase
-// dashboard for this project, with the Relying Party ID set to this site's
-// bare domain — without that dashboard step, these calls will just fail.
-async function checkPasskeySupport() {
-  const btn = document.getElementById('passkey-login-btn');
-  if (!btn) return;
-  if (window.PublicKeyCredential && await PublicKeyCredential.isUserVerifyingPlatformAuthenticatorAvailable?.()) {
-    btn.style.display = 'block';
-  }
-}
-document.addEventListener('DOMContentLoaded', checkPasskeySupport);
-
-async function handlePasskeyLogin() {
-  const errEl = document.getElementById('login-error');
-  const btn = document.getElementById('passkey-login-btn');
-  errEl.style.display = 'none';
-  if (btn) { btn.disabled = true; btn.textContent = 'Waiting for Face ID / Fingerprint…'; }
-  try {
-    const { data, error } = await sb.auth.signInWithPasskey();
-    if (error) throw error;
-    if (data?.session) {
-      await onCloudSignedIn(data.session);
-      document.getElementById('login-overlay').classList.add('hidden');
-    }
-  } catch (err) {
-    console.error('Passkey sign-in failed:', err);
-    errEl.textContent = '❌ ' + (err.message || 'Passkey sign-in failed or was cancelled.');
-    errEl.style.display = 'block';
-  } finally {
-    if (btn) { btn.disabled = false; btn.innerHTML = '<i class="fas fa-fingerprint" style="margin-right:7px"></i>Sign in with Face ID / Fingerprint'; }
-  }
-}
-
-// ── APP LOCK (device-local Face ID / Fingerprint gate) ─────────────────────
-// This is separate from the Supabase "sign in with passkey" flow above —
-// that one replaces your password at LOGIN. This one is a local re-lock,
-// like a banking app: once enabled, the dashboard is hidden behind a
-// Face ID / Fingerprint prompt every time the app is opened, using a
-// WebAuthn credential stored only on this device (no server round-trip).
-const APP_LOCK_KEY = 'fos_applock_credential_id';
-const APP_LOCK_FLAG = 'fos_passkey_enabled';
-
-function isAppLockEnabled() {
-  return localStorage.getItem(APP_LOCK_FLAG) === 'true' && !!localStorage.getItem(APP_LOCK_KEY);
-}
-
-function b64urlToBuf(s) {
-  s = s.replace(/-/g, '+').replace(/_/g, '/');
-  while (s.length % 4) s += '=';
-  const bin = atob(s);
-  const buf = new Uint8Array(bin.length);
-  for (let i = 0; i < bin.length; i++) buf[i] = bin.charCodeAt(i);
-  return buf;
-}
-function bufToB64url(buf) {
-  let bin = '';
-  new Uint8Array(buf).forEach(b => bin += String.fromCharCode(b));
-  return btoa(bin).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
-}
-
-// Refreshes the Settings button's label + color to match the real stored state.
-function refreshPasskeyToggleUI() {
-  const btn = document.getElementById('passkey-toggle-btn');
-  if (!btn) return;
-  const enabled = isAppLockEnabled();
-  if (enabled) {
-    btn.textContent = 'Disable';
-    btn.style.color = '#ef4444';
-    btn.style.borderColor = 'rgba(239,68,68,0.4)';
-    btn.style.background = 'rgba(239,68,68,0.08)';
-  } else {
-    btn.textContent = 'Enable';
-    btn.style.color = '#0075ff';
-    btn.style.borderColor = 'rgba(0,117,255,0.3)';
-    btn.style.background = 'transparent';
-  }
-}
-document.addEventListener('DOMContentLoaded', refreshPasskeyToggleUI);
-
-async function handlePasskeyToggle() {
-  const btn = document.getElementById('passkey-toggle-btn');
-  const enabled = isAppLockEnabled();
-
-  if (enabled) {
-    // ── Disable: just forget the local credential, no confirmation prompt needed ──
-    localStorage.removeItem(APP_LOCK_KEY);
-    localStorage.setItem(APP_LOCK_FLAG, 'false');
-    refreshPasskeyToggleUI();
-    if (typeof showSettingsToast === 'function') showSettingsToast('App Lock disabled');
-    return;
-  }
-
-  // ── Enable: register a real platform biometric credential on this device ──
-  if (!window.PublicKeyCredential) {
-    alert('❌ This browser/device does not support Face ID, Touch ID, or Fingerprint unlock.');
-    return;
-  }
-  const available = await PublicKeyCredential.isUserVerifyingPlatformAuthenticatorAvailable?.();
-  if (!available) {
-    alert('❌ No Face ID / Fingerprint / Windows Hello sensor was found on this device.');
-    return;
-  }
-
-  if (btn) { btn.disabled = true; btn.textContent = 'Follow the prompt…'; }
-  try {
-    const challenge = crypto.getRandomValues(new Uint8Array(32));
-    const userId = crypto.getRandomValues(new Uint8Array(16));
-    const cred = await navigator.credentials.create({
-      publicKey: {
-        challenge,
-        rp: { name: 'FinanceOS' },
-        user: { id: userId, name: 'financeos-app-lock', displayName: 'FinanceOS App Lock' },
-        pubKeyCredParams: [{ type: 'public-key', alg: -7 }, { type: 'public-key', alg: -257 }],
-        authenticatorSelection: { authenticatorAttachment: 'platform', userVerification: 'required' },
-        timeout: 60000
-      }
-    });
-    if (!cred) throw new Error('No credential returned.');
-    localStorage.setItem(APP_LOCK_KEY, bufToB64url(cred.rawId));
-    localStorage.setItem(APP_LOCK_FLAG, 'true');
-    refreshPasskeyToggleUI();
-    if (typeof showSettingsToast === 'function') showSettingsToast('App Lock enabled — Face ID / Fingerprint required on open');
-    else alert('✅ App Lock enabled. You will be asked for Face ID / Fingerprint the next time you open FinanceOS.');
-  } catch (err) {
-    console.error('App Lock enrollment failed:', err);
-    alert('❌ Could not enable App Lock: ' + (err.message || 'the prompt was cancelled.'));
-  } finally {
-    if (btn) { btn.disabled = false; refreshPasskeyToggleUI(); }
-  }
-}
-
-// Shown on load, before the dashboard is revealed, if App Lock is enabled.
-async function runAppLockGate() {
-  if (!isAppLockEnabled()) return true;
-  const overlay = document.getElementById('applock-overlay');
-  const statusEl = document.getElementById('applock-status');
-  if (overlay) overlay.classList.remove('hidden');
-
-  const credId = localStorage.getItem(APP_LOCK_KEY);
-  try {
-    const challenge = crypto.getRandomValues(new Uint8Array(32));
-    const assertion = await navigator.credentials.get({
-      publicKey: {
-        challenge,
-        allowCredentials: [{ id: b64urlToBuf(credId), type: 'public-key' }],
-        userVerification: 'required',
-        timeout: 60000
-      }
-    });
-    if (assertion) {
-      if (overlay) overlay.classList.add('hidden');
-      return true;
-    }
-  } catch (err) {
-    console.error('App Lock verification failed:', err);
-    if (statusEl) statusEl.textContent = 'Face ID / Fingerprint failed or was cancelled.';
-  }
-  return false;
-}
-
-function retryAppLock() {
-  runAppLockGate();
-}
-
-// Called from Settings — lets an already-signed-in user register this
-// device's Face ID / Touch ID / fingerprint for future logins.
-async function handleRegisterPasskey() {
-  if (!cloudSession) { alert('Please sign in first.'); return; }
-  try {
-    await sb.auth.registerPasskey();
-    alert('✅ This device is now enrolled — you can sign in with Face ID / Touch ID / Fingerprint next time.');
-  } catch (err) {
-    console.error('Passkey registration failed:', err);
-    alert('❌ Could not enable Face ID / Fingerprint: ' + (err.message || 'Passkeys may not be turned on for this app yet.'));
-  }
-}
-
 async function handleLogin() {
   const identifier = document.getElementById('auth-identifier').value.trim().toLowerCase();
   const password   = document.getElementById('auth-password').value;
@@ -3381,13 +3132,6 @@ async function checkSession() {
   if (splash) {
     splash.classList.add('fade-out');
     setTimeout(() => { splash.style.display = 'none'; }, 600);
-  }
-
-  // If App Lock is enabled on this device, the dashboard stays covered by
-  // the biometric gate until Face ID / Fingerprint succeeds — same idea as
-  // a banking app's re-entry lock.
-  if (typeof isAppLockEnabled === 'function' && isAppLockEnabled()) {
-    await runAppLockGate();
   }
 }
 
@@ -5569,15 +5313,6 @@ function toggleLoginPass(inputId, btn) {
                 <div style="display:inline-block; padding: 2px 6px; background: rgba(52,211,153,0.15); color: #34d399; font-size: 0.55rem; font-weight: 700; border-radius: 4px; margin-top: 4px;">● LOCAL WORKSPACE</div>
               </div>
               <button class="btn-secondary" onclick="closeSettingsModal(); handleLogout();" style="padding: 4px 10px; font-size: 0.7rem; color: #ef4444; border-color: rgba(239,68,68,0.3); cursor:pointer;">Sign out</button>
-            </div>
-
-            <div style="display:flex; gap:12px; align-items:center; margin-bottom: 0.6rem; padding: 10px 12px; background: rgba(0,117,255,0.05); border-radius: 10px; border: 1px solid rgba(0,117,255,0.15);">
-              <i class="fas fa-fingerprint" style="font-size:1.3rem;color:#0075ff;flex-shrink:0"></i>
-              <div style="flex:1">
-                <div class="readable-white" style="font-weight:700; font-size:0.85rem;">App Lock (Face ID / Fingerprint)</div>
-                <div class="set-desc" style="margin-top:0;">Require Face ID / Fingerprint to open FinanceOS on this device</div>
-              </div>
-              <button class="btn-secondary" id="passkey-toggle-btn" onclick="handlePasskeyToggle()" style="padding: 4px 10px; font-size: 0.7rem; color:#0075ff; border-color: rgba(0,117,255,0.3); cursor:pointer; white-space:nowrap;">Enable</button>
             </div>
 
             <div style="margin-bottom: 0.3rem;">
