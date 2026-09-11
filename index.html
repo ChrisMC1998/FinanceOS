@@ -2298,6 +2298,59 @@ body.light-mode select option {
 }
 </style>
 
+<style>
+/* ── APP LOCK OVERLAY — Face ID/Fingerprint/Passkey on mobile, PC Lock on desktop ── */
+#app-lock-overlay {
+  position: fixed; inset: 0; z-index: 100000;
+  background: linear-gradient(135deg, #121214 0%, #000000 100%);
+  display: flex; align-items: center; justify-content: center;
+  font-family: 'DM Sans', sans-serif;
+}
+#app-lock-overlay.hidden { display: none; }
+.applock-box {
+  width: 380px; padding: 2.5rem 2.2rem; text-align: center;
+  background: linear-gradient(111.84deg, rgba(24,24,27,0.96) 0%, rgba(9,9,11,0.92) 100%);
+  border: 1px solid rgba(255,255,255,0.07);
+  border-radius: 20px;
+  box-shadow: 0 24px 80px rgba(0,0,0,0.6);
+}
+.applock-icon {
+  width: 64px; height: 64px; border-radius: 50%; margin: 0 auto 1rem;
+  background: rgba(0,117,255,0.12); color: #0075ff;
+  display: flex; align-items: center; justify-content: center; font-size: 1.6rem;
+}
+.applock-title { font-size: 1.15rem; font-weight: 700; color: #fff; margin-bottom: 0.3rem; }
+.applock-sub { font-size: 0.8rem; color: #64748b; margin-bottom: 1.6rem; }
+.applock-error { color: #ef4444; font-size: 0.75rem; margin-top: 0.7rem; display: none; }
+</style>
+
+<div id="app-lock-overlay" class="hidden">
+  <div class="applock-box">
+    <div class="applock-icon" id="applock-icon"><i class="fas fa-fingerprint"></i></div>
+    <div class="applock-title" id="applock-title">FinanceOS is locked</div>
+    <div class="applock-sub" id="applock-sub">Verify it's you to continue</div>
+
+    <!-- Device biometric lock (mobile: Face ID / Fingerprint / Passkey / device password) -->
+    <div id="applock-bio-panel" style="display:none;">
+      <button type="button" class="login-btn" onclick="attemptDeviceLockUnlock()">
+        <i class="fas fa-fingerprint" style="margin-right:7px"></i>Unlock with Face ID / Fingerprint
+      </button>
+    </div>
+
+    <!-- PC Lock (desktop passkey/password) -->
+    <div id="applock-pc-panel" style="display:none;">
+      <label class="login-label" style="text-align:left">PC Lock Passkey</label>
+      <div class="login-pass-wrap">
+        <input class="login-input" id="applock-pc-input" type="password" placeholder="Enter your PC Lock passkey" autocomplete="off" onkeydown="if(event.key==='Enter') attemptPcLockUnlock()">
+        <button type="button" class="login-pass-toggle" onclick="toggleLoginPass('applock-pc-input',this)" tabindex="-1"><i class="fas fa-eye"></i></button>
+      </div>
+      <button type="button" class="login-btn" style="margin-top:0.8rem" onclick="attemptPcLockUnlock()">Unlock Dashboard</button>
+    </div>
+
+    <div class="applock-error" id="applock-error"></div>
+  </div>
+</div>
+
 <div id="app-splash">
   <div class="splash-logo-ring"><i class="fas fa-cube"></i></div>
   <div class="splash-title">Finance<span>OS</span></div>
@@ -2681,6 +2734,7 @@ async function handleLogin() {
   // ── Successful login ────────────────────────────────────────────────────
   localStorage.setItem('fos_last_login_method', 'password');
   await onCloudSignedIn(data.session);
+  if (typeof passAppLockGate === 'function') await passAppLockGate();
   document.getElementById('login-overlay').classList.add('hidden');
 }
 
@@ -2716,6 +2770,7 @@ async function handlePasskeyLogin(silent) {
       // biometric prompt instead of making the person tap the button again.
       localStorage.setItem('fos_last_login_method', 'passkey');
       await onCloudSignedIn(data.session);
+      if (typeof passAppLockGate === 'function') await passAppLockGate();
       document.getElementById('login-overlay').classList.add('hidden');
       return true;
     }
@@ -3222,6 +3277,7 @@ async function checkSession() {
 
   if (data.session) {
     await onCloudSignedIn(data.session);
+    if (typeof passAppLockGate === 'function') await passAppLockGate();
     document.getElementById('login-overlay').classList.add('hidden');
   } else {
     setCloudStatus('offline');
@@ -3368,6 +3424,288 @@ function toggleLoginPass(inputId, btn) {
   inp.type = isHidden ? 'text' : 'password';
   const icon = btn.querySelector('i');
   if (icon) icon.className = isHidden ? 'fas fa-eye-slash' : 'fas fa-eye';
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// ── DEVICE LOCK ── Face ID / Fingerprint / Passkey / device password (mobile,
+// and any WebAuthn-capable machine) + PC Lock (a separate desktop passkey).
+// Fully local: nothing here is sent to Supabase — it's a device-side gate
+// that sits in front of the dashboard once the person is already signed in.
+// ═══════════════════════════════════════════════════════════════════════════
+
+// Small dedicated toast for this feature so it can flip colour: green/blue
+// on enable, red on disable — as requested.
+function showDeviceLockToast(msg, kind) {
+  let el = document.getElementById('devicelock-toast');
+  if (!el) {
+    el = document.createElement('div');
+    el.id = 'devicelock-toast';
+    el.style.cssText = 'position:fixed; bottom:20px; right:20px; padding:12px 16px; display:flex; align-items:center; gap:10px; background:linear-gradient(111.84deg, rgba(24,24,27,0.98) 0%, rgba(9,9,11,0.95) 100%); border-radius:12px; transform:translateX(150%); transition:transform 0.3s cubic-bezier(0.4,0,0.2,1); z-index:100001; box-shadow:0 10px 25px rgba(0,0,0,0.35); max-width:320px;';
+    el.innerHTML = '<i id="devicelock-toast-icon" class="fas fa-check-circle" style="font-size:1rem;flex-shrink:0;"></i><div id="devicelock-toast-msg" style="font-size:0.8rem; font-weight:600; color:#fff;"></div>';
+    document.body.appendChild(el);
+  }
+  const colors = { success: '#34d399', danger: '#ef4444', error: '#ef4444' };
+  const icons  = { success: 'fa-check-circle', danger: 'fa-ban', error: 'fa-triangle-exclamation' };
+  const color = colors[kind] || '#a78bfa';
+  el.style.borderLeft = '4px solid ' + color;
+  const iconEl = document.getElementById('devicelock-toast-icon');
+  const msgEl  = document.getElementById('devicelock-toast-msg');
+  iconEl.className = 'fas ' + (icons[kind] || 'fa-circle-info');
+  iconEl.style.color = color;
+  msgEl.textContent = msg;
+  msgEl.style.color = (kind === 'danger' || kind === 'error') ? '#fca5a5' : '#fff';
+  requestAnimationFrame(() => { el.style.transform = 'translateX(0)'; });
+  clearTimeout(window._devicelockToastTimeout);
+  window._devicelockToastTimeout = setTimeout(() => { el.style.transform = 'translateX(150%)'; }, 3500);
+}
+
+// ── base64url <-> ArrayBuffer helpers for WebAuthn credential IDs ──
+function dlBufToB64u(buf) {
+  const bytes = new Uint8Array(buf);
+  let str = '';
+  for (let i = 0; i < bytes.length; i++) str += String.fromCharCode(bytes[i]);
+  return btoa(str).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+}
+function dlB64uToBuf(b64u) {
+  const b64 = b64u.replace(/-/g, '+').replace(/_/g, '/') + '==='.slice((b64u.length + 3) % 4);
+  const str = atob(b64);
+  const bytes = new Uint8Array(str.length);
+  for (let i = 0; i < str.length; i++) bytes[i] = str.charCodeAt(i);
+  return bytes.buffer;
+}
+async function sha256Hex(str) {
+  const buf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(str));
+  return Array.from(new Uint8Array(buf)).map(b => b.toString(16).padStart(2, '0')).join('');
+}
+function isMobileViewport() {
+  return window.matchMedia('(max-width:900px)').matches;
+}
+async function isPlatformAuthAvailable() {
+  try {
+    return !!(window.PublicKeyCredential && await PublicKeyCredential.isUserVerifyingPlatformAuthenticatorAvailable?.());
+  } catch { return false; }
+}
+
+// ── Face ID / Fingerprint / Passkey / device password (WebAuthn platform authenticator) ──
+async function enableDeviceLock() {
+  const supported = await isPlatformAuthAvailable();
+  if (!supported) {
+    showDeviceLockToast("This device doesn't have Face ID, fingerprint, or a passkey set up.", 'error');
+    return;
+  }
+  const currUser = JSON.parse(localStorage.getItem('fos_current_user') || '{}');
+  try {
+    const cred = await navigator.credentials.create({
+      publicKey: {
+        challenge: crypto.getRandomValues(new Uint8Array(32)),
+        rp: { name: 'FinanceOS' },
+        user: {
+          id: crypto.getRandomValues(new Uint8Array(16)),
+          name: currUser.identifier || 'financeos-user',
+          displayName: currUser.name || 'FinanceOS User'
+        },
+        pubKeyCredParams: [{ alg: -7, type: 'public-key' }, { alg: -257, type: 'public-key' }],
+        authenticatorSelection: { authenticatorAttachment: 'platform', userVerification: 'required', residentKey: 'preferred' },
+        timeout: 60000
+      }
+    });
+    if (!cred) throw new Error('Setup was cancelled.');
+    localStorage.setItem('fos_biometric_cred_id', dlBufToB64u(cred.rawId));
+    localStorage.setItem('fos_biometric_enabled', 'true');
+    renderDeviceLockSettings();
+    showDeviceLockToast('Face ID / Passkey has been enabled', 'success');
+  } catch (err) {
+    console.error('Enable device lock failed:', err);
+    showDeviceLockToast('Could not enable Face ID / Passkey: ' + (err.message || 'cancelled'), 'error');
+  }
+}
+
+function disableDeviceLock() {
+  if (!confirm('Turn off Face ID / Fingerprint / Passkey lock for this device?')) return;
+  localStorage.removeItem('fos_biometric_cred_id');
+  localStorage.setItem('fos_biometric_enabled', 'false');
+  renderDeviceLockSettings();
+  showDeviceLockToast('Face ID / Passkey has been disabled', 'danger');
+}
+
+function toggleDeviceLock() {
+  const enabled = localStorage.getItem('fos_biometric_enabled') === 'true';
+  if (enabled) disableDeviceLock(); else enableDeviceLock();
+}
+
+async function verifyDeviceLock() {
+  const credId = localStorage.getItem('fos_biometric_cred_id');
+  if (!credId) return true;
+  try {
+    const assertion = await navigator.credentials.get({
+      publicKey: {
+        challenge: crypto.getRandomValues(new Uint8Array(32)),
+        allowCredentials: [{ id: dlB64uToBuf(credId), type: 'public-key' }],
+        userVerification: 'required',
+        timeout: 60000
+      }
+    });
+    return !!assertion;
+  } catch (err) {
+    console.error('Device lock verification failed:', err);
+    return false;
+  }
+}
+
+// ── PC Lock: a separate passkey/password for desktop use, stored only as a salted hash ──
+async function setPcLock() {
+  const pass1 = prompt('Create a PC Lock passkey (at least 4 characters):');
+  if (pass1 === null) return;
+  if (!pass1.trim() || pass1.trim().length < 4) {
+    showDeviceLockToast('PC Lock passkey must be at least 4 characters.', 'error');
+    return;
+  }
+  const pass2 = prompt('Confirm your PC Lock passkey:');
+  if (pass2 === null) return;
+  if (pass1 !== pass2) {
+    showDeviceLockToast('Passkeys did not match. Try again.', 'error');
+    return;
+  }
+  const salt = dlBufToB64u(crypto.getRandomValues(new Uint8Array(16)));
+  const hash = await sha256Hex(salt + ':' + pass1);
+  localStorage.setItem('fos_pc_lock_salt', salt);
+  localStorage.setItem('fos_pc_lock_hash', hash);
+  localStorage.setItem('fos_pc_lock_enabled', 'true');
+  renderDeviceLockSettings();
+  showDeviceLockToast('PC Lock has been enabled', 'success');
+}
+
+async function disablePcLock() {
+  const current = prompt('Enter your current PC Lock passkey to disable it:');
+  if (current === null) return;
+  const salt = localStorage.getItem('fos_pc_lock_salt') || '';
+  const storedHash = localStorage.getItem('fos_pc_lock_hash') || '';
+  const hash = await sha256Hex(salt + ':' + current);
+  if (hash !== storedHash) {
+    showDeviceLockToast('Incorrect passkey. PC Lock was not disabled.', 'error');
+    return;
+  }
+  localStorage.removeItem('fos_pc_lock_hash');
+  localStorage.removeItem('fos_pc_lock_salt');
+  localStorage.setItem('fos_pc_lock_enabled', 'false');
+  renderDeviceLockSettings();
+  showDeviceLockToast('PC Lock has been disabled', 'danger');
+}
+
+function togglePcLock() {
+  const enabled = localStorage.getItem('fos_pc_lock_enabled') === 'true';
+  if (enabled) disablePcLock(); else setPcLock();
+}
+
+async function verifyPcLock(passkey) {
+  const salt = localStorage.getItem('fos_pc_lock_salt') || '';
+  const storedHash = localStorage.getItem('fos_pc_lock_hash') || '';
+  const hash = await sha256Hex(salt + ':' + passkey);
+  return hash === storedHash;
+}
+
+// Reflects current enabled/disabled state onto the two Settings buttons.
+async function renderDeviceLockSettings() {
+  const bioBtn = document.getElementById('devicelock-toggle-btn');
+  const note   = document.getElementById('devicelock-support-note');
+  if (bioBtn) {
+    const enabled = localStorage.getItem('fos_biometric_enabled') === 'true';
+    bioBtn.textContent = enabled ? 'Disable' : 'Enable';
+    bioBtn.style.background = enabled ? 'linear-gradient(135deg,#ef4444,#b91c1c)' : 'linear-gradient(135deg,#0075ff,#0052b3)';
+    bioBtn.style.border = 'none';
+    const supported = await isPlatformAuthAvailable();
+    if (note) note.style.display = (supported || enabled) ? 'none' : 'block';
+    bioBtn.disabled = (!supported && !enabled);
+    bioBtn.style.opacity = bioBtn.disabled ? '0.5' : '1';
+    bioBtn.style.cursor = bioBtn.disabled ? 'not-allowed' : 'pointer';
+  }
+  const pcBtn = document.getElementById('pclock-toggle-btn');
+  if (pcBtn) {
+    const enabled = localStorage.getItem('fos_pc_lock_enabled') === 'true';
+    pcBtn.textContent = enabled ? 'Disable' : 'Set PC Lock';
+    pcBtn.style.background = enabled ? 'linear-gradient(135deg,#ef4444,#b91c1c)' : 'linear-gradient(135deg,#0075ff,#0052b3)';
+    pcBtn.style.border = 'none';
+  }
+}
+document.addEventListener('DOMContentLoaded', renderDeviceLockSettings);
+
+// ── App Lock gate: shown right after a successful sign-in, before the
+// dashboard becomes visible. Resolves once the person clears whichever lock
+// applies to this device (mobile biometric vs. desktop PC Lock). ──
+let _appLockResolve = null;
+
+function attemptDeviceLockUnlock() {
+  const errEl = document.getElementById('applock-error');
+  if (errEl) errEl.style.display = 'none';
+  verifyDeviceLock().then(ok => {
+    if (ok) {
+      document.getElementById('app-lock-overlay').classList.add('hidden');
+      if (_appLockResolve) { _appLockResolve(true); _appLockResolve = null; }
+    } else if (errEl) {
+      errEl.textContent = '❌ Verification failed or was cancelled. Try again.';
+      errEl.style.display = 'block';
+    }
+  });
+}
+
+async function attemptPcLockUnlock() {
+  const input = document.getElementById('applock-pc-input');
+  const errEl = document.getElementById('applock-error');
+  const val = input ? input.value : '';
+  if (errEl) errEl.style.display = 'none';
+  if (!val) return;
+  const ok = await verifyPcLock(val);
+  if (ok) {
+    document.getElementById('app-lock-overlay').classList.add('hidden');
+    if (_appLockResolve) { _appLockResolve(true); _appLockResolve = null; }
+  } else if (errEl) {
+    errEl.textContent = '❌ Incorrect PC Lock passkey.';
+    errEl.style.display = 'block';
+    if (input) { input.value = ''; input.focus(); }
+  }
+}
+
+// Called after every successful sign-in. Returns a Promise that resolves
+// once the applicable device lock (if any) has been cleared; resolves
+// immediately (true) when no lock is set up for this device.
+function passAppLockGate() {
+  return new Promise(resolve => {
+    const mobile = isMobileViewport();
+    const bioOn  = mobile && localStorage.getItem('fos_biometric_enabled') === 'true' && localStorage.getItem('fos_biometric_cred_id');
+    const pcOn   = !mobile && localStorage.getItem('fos_pc_lock_enabled') === 'true' && localStorage.getItem('fos_pc_lock_hash');
+
+    if (!bioOn && !pcOn) { resolve(true); return; }
+
+    _appLockResolve = resolve;
+    const overlay  = document.getElementById('app-lock-overlay');
+    const bioPanel = document.getElementById('applock-bio-panel');
+    const pcPanel  = document.getElementById('applock-pc-panel');
+    const title    = document.getElementById('applock-title');
+    const sub      = document.getElementById('applock-sub');
+    const icon     = document.getElementById('applock-icon');
+    const errEl    = document.getElementById('applock-error');
+    if (errEl) errEl.style.display = 'none';
+
+    if (bioOn) {
+      bioPanel.style.display = 'block';
+      pcPanel.style.display  = 'none';
+      title.textContent = 'FinanceOS is locked';
+      sub.textContent   = 'Use Face ID, fingerprint, or your device passkey to continue';
+      icon.innerHTML = '<i class="fas fa-fingerprint"></i>';
+      overlay.classList.remove('hidden');
+      // Try immediately so the person isn't forced to tap a button first.
+      attemptDeviceLockUnlock();
+    } else {
+      pcPanel.style.display  = 'block';
+      bioPanel.style.display = 'none';
+      title.textContent = 'PC Lock';
+      sub.textContent   = 'Enter your PC Lock passkey to view your dashboard';
+      icon.innerHTML = '<i class="fas fa-desktop"></i>';
+      overlay.classList.remove('hidden');
+      const inp = document.getElementById('applock-pc-input');
+      if (inp) { inp.value = ''; setTimeout(() => inp.focus(), 150); }
+    }
+  });
 }
 
 </script>
@@ -5570,6 +5908,35 @@ function toggleLoginPass(inputId, btn) {
 
             <div style="display:flex; justify-content:flex-end;">
               <button class="btn-add" onclick="saveSecurityQuestion(this)" style="border-radius: 8px; padding: 6px 14px;"><i class="fas fa-check"></i> Save Security Question</button>
+            </div>
+          </div>
+
+          <div class="set-card" style="padding: 1rem;">
+            <div style="display:flex; gap:10px; align-items:center; margin-bottom: 0.8rem;">
+              <div style="width:28px; height:28px; border-radius:50%; background:rgba(52,211,153,0.15); color:#34d399; display:flex; align-items:center; justify-content:center"><i class="fas fa-fingerprint"></i></div>
+              <div class="set-label-block">
+                <div class="set-lbl readable-white">Device Lock</div>
+                <div class="set-desc" style="margin-top:0">Require your device's own security to open FinanceOS</div>
+              </div>
+            </div>
+
+            <!-- Mobile / any WebAuthn device: Face ID, Fingerprint, Passkey or device password -->
+            <div style="display:flex; justify-content:space-between; align-items:center; gap:12px; padding:10px 12px; background:rgba(255,255,255,0.02); border-radius:10px; border:1px solid var(--glass-border); margin-bottom:0.7rem;">
+              <div style="flex:1;">
+                <div class="readable-white" style="font-weight:600; font-size:0.8rem;"><i class="fas fa-fingerprint" style="margin-right:6px;color:#34d399"></i>Face ID / Fingerprint / Passkey / Password</div>
+                <div class="set-desc" style="margin-top:2px;">Use this device's Face ID, fingerprint, passkey, or screen-lock password to unlock the app.</div>
+                <div id="devicelock-support-note" style="font-size:0.65rem; color:#fbbf24; margin-top:4px; display:none;"><i class="fas fa-triangle-exclamation"></i> Not available or not set up on this device.</div>
+              </div>
+              <button id="devicelock-toggle-btn" onclick="toggleDeviceLock()" style="padding:7px 16px; font-size:0.72rem; font-weight:700; border-radius:8px; white-space:nowrap; cursor:pointer; color:#fff;">Enable</button>
+            </div>
+
+            <!-- Desktop / PC: separate passkey required to view the dashboard -->
+            <div style="display:flex; justify-content:space-between; align-items:center; gap:12px; padding:10px 12px; background:rgba(255,255,255,0.02); border-radius:10px; border:1px solid var(--glass-border);">
+              <div style="flex:1;">
+                <div class="readable-white" style="font-weight:600; font-size:0.8rem;"><i class="fas fa-desktop" style="margin-right:6px;color:#60a5fa"></i>PC Lock</div>
+                <div class="set-desc" style="margin-top:2px;">Set a separate passkey required to view your dashboard when using FinanceOS on a computer.</div>
+              </div>
+              <button id="pclock-toggle-btn" onclick="togglePcLock()" style="padding:7px 16px; font-size:0.72rem; font-weight:700; border-radius:8px; white-space:nowrap; cursor:pointer; color:#fff;">Set PC Lock</button>
             </div>
           </div>
         </div>
@@ -13556,6 +13923,7 @@ function setNumberSystem(system, el) {
 function openSettingsModal() {
   document.getElementById('settings-modal').style.display = 'flex';
   if (typeof renderSecurityQuestionStatus === 'function') renderSecurityQuestionStatus();
+  if (typeof renderDeviceLockSettings === 'function') renderDeviceLockSettings();
 }
 
 function closeSettingsModal() {
