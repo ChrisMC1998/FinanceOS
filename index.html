@@ -2247,7 +2247,7 @@ body.light-mode select option {
   background: radial-gradient(circle at 50% 30%, rgba(0,117,255,0.10), transparent 55%), linear-gradient(160deg, #0a0a0d 0%, #000000 100%);
   display: flex; flex-direction: column; align-items: center; justify-content: center;
   font-family: 'DM Sans', sans-serif;
-  transition: opacity 0.55s ease, visibility 0.55s ease;
+  transition: opacity 0.3s ease, visibility 0.3s ease;
 }
 #app-splash.fade-out { opacity: 0; visibility: hidden; pointer-events: none; }
 .splash-logo-ring {
@@ -2301,7 +2301,7 @@ body.light-mode select option {
 <style>
 /* ── APP LOCK OVERLAY — Face ID/Fingerprint/Passkey on mobile, PC Lock on desktop ── */
 #app-lock-overlay {
-  position: fixed; inset: 0; z-index: 100000;
+  position: fixed; inset: 0; z-index: 1000000;
   background: linear-gradient(135deg, #121214 0%, #000000 100%);
   display: flex; align-items: center; justify-content: center;
   font-family: 'DM Sans', sans-serif;
@@ -2348,6 +2348,7 @@ body.light-mode select option {
     </div>
 
     <div class="applock-error" id="applock-error"></div>
+    <div style="margin-top:1.1rem; font-size:0.72rem; color:#64748b; cursor:pointer; text-decoration:underline;" onclick="appLockSignOutInstead()">Can't unlock? Sign out instead</div>
   </div>
 </div>
 
@@ -2819,6 +2820,7 @@ async function onCloudSignedIn(session) {
   localStorage.setItem('fos_current_user', JSON.stringify({
     name, identifier: session.user.email, cloudUserId: session.user.id
   }));
+  if (typeof applyCloudDeviceLockFlags === 'function') applyCloudDeviceLockFlags(session.user.user_metadata);
   applyLoggedInUser(name);
   setCloudStatus('connected');
   if (typeof reconcileCloudAndLocalData === 'function') {
@@ -3270,23 +3272,33 @@ document.addEventListener('DOMContentLoaded', renderSecurityQuestionStatus);
 
 // Auto-login if a Supabase session exists (session restore across reloads/devices).
 async function checkSession() {
-  const minSplashTime = new Promise(res => setTimeout(res, 1100));
+  // Keep this brief — it's just enough time to avoid a login-page flash for
+  // returning users, not a real "sync" wait. Long artificial delays here are
+  // what made the app feel slow to open.
+  const minSplashTime = new Promise(res => setTimeout(res, 350));
   const sessionCheck = sb.auth.getSession();
 
   const [{ data }] = await Promise.all([sessionCheck, minSplashTime]);
 
   if (data.session) {
     await onCloudSignedIn(data.session);
-    if (typeof passAppLockGate === 'function') await passAppLockGate();
-    document.getElementById('login-overlay').classList.add('hidden');
   } else {
     setCloudStatus('offline');
   }
 
+  // Splash must come off BEFORE we wait on the app-lock gate below — the
+  // splash sits at a higher z-index than the lock screen, so leaving it up
+  // while awaiting the gate hid the Face ID / PC Lock prompt entirely and
+  // made the app look permanently stuck on "Syncing your data…".
   const splash = document.getElementById('app-splash');
   if (splash) {
     splash.classList.add('fade-out');
-    setTimeout(() => { splash.style.display = 'none'; }, 600);
+    setTimeout(() => { splash.style.display = 'none'; }, 300);
+  }
+
+  if (data.session) {
+    if (typeof passAppLockGate === 'function') await passAppLockGate();
+    document.getElementById('login-overlay').classList.add('hidden');
   }
 
   // No existing session, but the person's last successful sign-in was via
@@ -3513,6 +3525,7 @@ async function enableDeviceLock() {
     localStorage.setItem('fos_biometric_cred_id', dlBufToB64u(cred.rawId));
     localStorage.setItem('fos_biometric_enabled', 'true');
     renderDeviceLockSettings();
+    pushDeviceLockFlagsToCloud();
     showDeviceLockToast('Face ID / Passkey has been enabled', 'success');
   } catch (err) {
     console.error('Enable device lock failed:', err);
@@ -3525,6 +3538,7 @@ function disableDeviceLock() {
   localStorage.removeItem('fos_biometric_cred_id');
   localStorage.setItem('fos_biometric_enabled', 'false');
   renderDeviceLockSettings();
+  pushDeviceLockFlagsToCloud();
   showDeviceLockToast('Face ID / Passkey has been disabled', 'danger');
 }
 
@@ -3572,10 +3586,26 @@ async function setPcLock() {
   localStorage.setItem('fos_pc_lock_hash', hash);
   localStorage.setItem('fos_pc_lock_enabled', 'true');
   renderDeviceLockSettings();
+  pushDeviceLockFlagsToCloud();
   showDeviceLockToast('PC Lock has been enabled', 'success');
 }
 
+// On the PC itself, re-entering the current passkey guards against someone
+// else grabbing an already-unlocked machine. From another device (e.g.
+// mobile, where you'd go specifically because you forgot the PC passkey and
+// are locked out), the account sign-in already proves it's you, so this
+// just confirms and flips the shared cloud flag off — no passkey needed.
 async function disablePcLock() {
+  if (isMobileViewport()) {
+    if (!confirm("Turn off PC Lock? This disables the passkey requirement on your computer — useful if you're locked out there.")) return;
+    localStorage.removeItem('fos_pc_lock_hash');
+    localStorage.removeItem('fos_pc_lock_salt');
+    localStorage.setItem('fos_pc_lock_enabled', 'false');
+    renderDeviceLockSettings();
+    pushDeviceLockFlagsToCloud();
+    showDeviceLockToast('PC Lock has been disabled', 'danger');
+    return;
+  }
   const current = prompt('Enter your current PC Lock passkey to disable it:');
   if (current === null) return;
   const salt = localStorage.getItem('fos_pc_lock_salt') || '';
@@ -3589,6 +3619,7 @@ async function disablePcLock() {
   localStorage.removeItem('fos_pc_lock_salt');
   localStorage.setItem('fos_pc_lock_enabled', 'false');
   renderDeviceLockSettings();
+  pushDeviceLockFlagsToCloud();
   showDeviceLockToast('PC Lock has been disabled', 'danger');
 }
 
@@ -3602,6 +3633,69 @@ async function verifyPcLock(passkey) {
   const storedHash = localStorage.getItem('fos_pc_lock_hash') || '';
   const hash = await sha256Hex(salt + ':' + passkey);
   return hash === storedHash;
+}
+
+// ── Cross-device control ──────────────────────────────────────────────────
+// The lock ENABLED flags (not the WebAuthn credential itself, which is
+// physically tied to one device) live in Supabase user_metadata so they act
+// as a single shared switch: if you're locked out of your PC, you can flip
+// "PC Lock" off from your phone's Settings, and vice versa for Face ID.
+async function pushDeviceLockFlagsToCloud() {
+  try {
+    await sb.auth.updateUser({
+      data: {
+        fos_biometric_enabled: localStorage.getItem('fos_biometric_enabled') === 'true',
+        fos_pc_lock_enabled:   localStorage.getItem('fos_pc_lock_enabled') === 'true',
+        fos_pc_lock_hash:      localStorage.getItem('fos_pc_lock_hash') || null,
+        fos_pc_lock_salt:      localStorage.getItem('fos_pc_lock_salt') || null,
+      }
+    });
+  } catch (err) {
+    console.error('Could not sync device lock settings to the cloud:', err);
+  }
+}
+
+// Mirrors cloud metadata onto this device's localStorage. Note: turning
+// biometric OFF in the cloud also clears any local credential id, since a
+// credential registered elsewhere is meaningless without matching hardware —
+// but turning it ON in the cloud does NOT create a local credential (that
+// can only happen by tapping Enable on a device that actually has Face ID /
+// fingerprint / a passkey set up).
+function applyCloudDeviceLockFlags(metadata) {
+  if (!metadata) return;
+  if (typeof metadata.fos_biometric_enabled !== 'undefined') {
+    if (!metadata.fos_biometric_enabled) {
+      localStorage.setItem('fos_biometric_enabled', 'false');
+      localStorage.removeItem('fos_biometric_cred_id');
+    } else if (localStorage.getItem('fos_biometric_cred_id')) {
+      // Only trust "enabled" locally if this device actually has a credential.
+      localStorage.setItem('fos_biometric_enabled', 'true');
+    }
+  }
+  if (typeof metadata.fos_pc_lock_enabled !== 'undefined') {
+    if (metadata.fos_pc_lock_enabled && metadata.fos_pc_lock_hash) {
+      localStorage.setItem('fos_pc_lock_enabled', 'true');
+      localStorage.setItem('fos_pc_lock_hash', metadata.fos_pc_lock_hash);
+      if (metadata.fos_pc_lock_salt) localStorage.setItem('fos_pc_lock_salt', metadata.fos_pc_lock_salt);
+    } else {
+      localStorage.setItem('fos_pc_lock_enabled', 'false');
+      localStorage.removeItem('fos_pc_lock_hash');
+      localStorage.removeItem('fos_pc_lock_salt');
+    }
+  }
+}
+
+// Forces a fresh fetch of the user (not just the cached session) so a
+// disable done on another device is picked up here without needing a
+// completely fresh sign-in.
+async function refreshDeviceLockFlagsFromCloud() {
+  try {
+    const { data, error } = await sb.auth.getUser();
+    if (error || !data?.user) return;
+    applyCloudDeviceLockFlags(data.user.user_metadata);
+  } catch (err) {
+    console.error('Could not refresh device lock settings from the cloud:', err);
+  }
 }
 
 // Reflects current enabled/disabled state onto the two Settings buttons.
@@ -3632,6 +3726,15 @@ document.addEventListener('DOMContentLoaded', renderDeviceLockSettings);
 // ── App Lock gate: shown right after a successful sign-in, before the
 // dashboard becomes visible. Resolves once the person clears whichever lock
 // applies to this device (mobile biometric vs. desktop PC Lock). ──
+// Escape hatch on the lock screen itself — a forgotten PC Lock passkey or an
+// unavailable/failing biometric sensor should never be able to strand
+// someone outside their own dashboard permanently.
+async function appLockSignOutInstead() {
+  if (!confirm('Sign out of FinanceOS on this device?')) return;
+  try { await sb.auth.signOut(); } catch (err) { console.error(err); }
+  window.location.reload();
+}
+
 let _appLockResolve = null;
 
 function attemptDeviceLockUnlock() {
@@ -3669,7 +3772,8 @@ async function attemptPcLockUnlock() {
 // once the applicable device lock (if any) has been cleared; resolves
 // immediately (true) when no lock is set up for this device.
 function passAppLockGate() {
-  return new Promise(resolve => {
+  return new Promise(async resolve => {
+    if (typeof refreshDeviceLockFlagsFromCloud === 'function') await refreshDeviceLockFlagsFromCloud();
     const mobile = isMobileViewport();
     const bioOn  = mobile && localStorage.getItem('fos_biometric_enabled') === 'true' && localStorage.getItem('fos_biometric_cred_id');
     const pcOn   = !mobile && localStorage.getItem('fos_pc_lock_enabled') === 'true' && localStorage.getItem('fos_pc_lock_hash');
@@ -13923,6 +14027,9 @@ function setNumberSystem(system, el) {
 function openSettingsModal() {
   document.getElementById('settings-modal').style.display = 'flex';
   if (typeof renderSecurityQuestionStatus === 'function') renderSecurityQuestionStatus();
+  if (typeof refreshDeviceLockFlagsFromCloud === 'function') {
+    refreshDeviceLockFlagsFromCloud().then(() => { if (typeof renderDeviceLockSettings === 'function') renderDeviceLockSettings(); });
+  }
   if (typeof renderDeviceLockSettings === 'function') renderDeviceLockSettings();
 }
 
