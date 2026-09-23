@@ -4155,6 +4155,12 @@ function passAppLockGate() {
   </div>
 
   <div class="port-filter-box">
+    <div class="port-filter-label">Holding Status</div>
+    <div class="port-mode-toggle">
+      <button class="port-mode-btn port-status-btn active" id="port-status-active" onclick="setPortStatusFilter('active',this)">Active</button>
+      <button class="port-mode-btn port-status-btn" id="port-status-sold" onclick="setPortStatusFilter('sold',this)">Sold</button>
+      <button class="port-mode-btn port-status-btn" id="port-status-all" onclick="setPortStatusFilter('all',this)">All</button>
+    </div>
     <div class="port-filter-label">Filter</div>
     <div class="port-mode-toggle">
       <button class="port-mode-btn active" id="port-mode-only" onclick="setPortMode('only',this)">Only</button>
@@ -5038,6 +5044,17 @@ function passAppLockGate() {
        <div id="port-top3" style="padding-top:10px; min-height:190px;"></div>
       </div>
       </div>
+
+      <div class="charts-row">
+        <div class="glass-panel" style="margin-bottom:0">
+          <div class="panel-title">Active vs Sold Holdings</div>
+          <div style="height:220px"><canvas id="port-status-donut"></canvas></div>
+        </div>
+        <div class="glass-panel" style="margin-bottom:0">
+          <div class="panel-title">Unrealized vs Realized Gain/Loss</div>
+          <div style="height:220px"><canvas id="port-status-gain-bar"></canvas></div>
+        </div>
+      </div>
     </div>
 
     <!-- PORTFOLIO: TABLE -->
@@ -5063,6 +5080,7 @@ function passAppLockGate() {
                 <th onclick="sortPortTable('roi')" style="text-align:right">ROI % <span class="sort-arrow">↕</span></th>
                 <th onclick="sortPortTable('profitPct')" style="text-align:right">Profit % <span class="sort-arrow">↕</span></th>
                 <th onclick="sortPortTable('gainLoss')" style="text-align:right">Gain/Loss <span class="sort-arrow">↕</span></th>
+                <th style="text-align:center">Status</th>
                 <th></th>
               </tr>
             </thead>
@@ -5120,6 +5138,17 @@ function passAppLockGate() {
         <div class="glass-panel" style="margin-bottom:0">
           <div class="panel-title">Profit% Distribution</div>
           <div style="height:220px"><canvas id="port-profit-donut"></canvas></div>
+        </div>
+      </div>
+
+      <div class="analytics-grid" style="margin-bottom:1.3rem">
+        <div class="glass-panel" style="margin-bottom:0">
+          <div class="panel-title">Sold Holdings — Realized Value</div>
+          <div style="height:220px"><canvas id="port-sold-value-bar"></canvas></div>
+        </div>
+        <div class="glass-panel" style="margin-bottom:0">
+          <div class="panel-title">Active vs Sold — Invested Capital</div>
+          <div style="height:220px"><canvas id="port-status-invested-donut"></canvas></div>
         </div>
       </div>
 
@@ -5549,6 +5578,31 @@ function passAppLockGate() {
       <div class="input-group">
         <label>Current Price / unit (₹)</label>
         <input type="number" id="p-currPrice" class="input-field port-focus" placeholder="0.00" oninput="calcPortPreview()">
+      </div>
+    </div>
+
+    <div class="modal-row">
+      <div class="input-group">
+        <label>Status</label>
+        <select id="p-status" class="input-field port-focus" onchange="togglePortSellFields();calcPortPreview()">
+          <option value="active">Active (Holding)</option>
+          <option value="sold">Sold</option>
+        </select>
+      </div>
+      <div class="input-group" id="p-status-spacer" style="opacity:0;pointer-events:none">
+        <label>&nbsp;</label>
+        <input type="text" class="input-field" disabled>
+      </div>
+    </div>
+
+    <div class="modal-row" id="p-sell-fields" style="display:none">
+      <div class="input-group">
+        <label>Sell Date</label>
+        <input type="date" id="p-sellDate" class="input-field port-focus">
+      </div>
+      <div class="input-group">
+        <label>Sell Price / unit (₹)</label>
+        <input type="number" id="p-sellPrice" class="input-field port-focus" placeholder="0.00" oninput="calcPortPreview()">
       </div>
     </div>
 
@@ -6876,6 +6930,7 @@ let currentListFilter = 'all';
 let filterMode = 'only';
 let portFilterMode = 'only';
 let portAssetFilter = 'all';
+let portStatusFilter = 'active';
 let sortCol = 'date', sortAsc = false;
 let txnSearchQuery = '';
 let portSortCol = 'date', portSortAsc = false;
@@ -6921,7 +6976,13 @@ function assetTypeKey(type) {
 }
 
 function normalizePortRecord(record) {
-  return { ...record, assetType: normalizeAssetType(record.assetType) };
+  return {
+    ...record,
+    assetType: normalizeAssetType(record.assetType),
+    status: record.status === 'sold' ? 'sold' : 'active',
+    sellDate: record.sellDate || '',
+    sellPrice: record.sellPrice !== undefined && record.sellPrice !== null ? record.sellPrice : ''
+  };
 }
 
 // ── AUTO-SAVE (localStorage only) ──────────────────────────────────────────
@@ -7237,7 +7298,8 @@ setInterval(() => { if (!document.hidden) doAutoSave(); }, 8000);
 function portCalc(e) {
   const qty = Number(e.quantity) || 0;
   const buyP = Number(e.purchasePrice) || 0;
-  const curP = Number(e.currentPrice) || 0;
+  const isSold = e.status === 'sold';
+  const curP = isSold ? (Number(e.sellPrice) || Number(e.currentPrice) || 0) : (Number(e.currentPrice) || 0);
 
   let totalInv, currVal;
   if (isQtyBased(e.assetType)) {
@@ -7259,6 +7321,9 @@ function getPortFiltered() {
   let data = [...portDb];
   if (portAssetFilter !== 'all') {
     data = data.filter(e => normalizeAssetType(e.assetType) === portAssetFilter);
+  }
+  if (portStatusFilter !== 'all') {
+    data = data.filter(e => (e.status === 'sold' ? 'sold' : 'active') === portStatusFilter);
   }
   if (portFilterMode === 'all') return data;
 
@@ -7300,6 +7365,43 @@ function buildPortDropdowns() {
   years.forEach(y => {
     portYearSel.innerHTML += `<option value="${y}"${curY===y?' selected':''}>${y}</option>`;
   });
+}
+
+// Same as getPortFiltered but ignores the status filter — used by Active-vs-Sold charts
+function getPortFilteredAllStatus() {
+  let data = [...portDb];
+  if (portAssetFilter !== 'all') {
+    data = data.filter(e => normalizeAssetType(e.assetType) === portAssetFilter);
+  }
+  if (portFilterMode === 'all') return data;
+
+  const fM = document.getElementById('port-month').value;
+  const fY = document.getElementById('port-year').value;
+  if (fM === 'all' && fY === 'all') return data;
+
+  return data.filter(item => {
+    const iY = item.date.slice(0,4), iM = item.date.slice(5,7);
+    if (portFilterMode === 'only') {
+      if (fY !== 'all' && iY !== fY) return false;
+      if (fM !== 'all' && iM !== fM) return false;
+      return true;
+    } else {
+      const cutY = fY !== 'all' ? fY : new Date().getFullYear().toString();
+      const cutM = fM !== 'all' ? fM : '12';
+      const itemYM = item.date.slice(0, 7);
+      const cutYM = `${cutY}-${cutM}`;
+      return itemYM <= cutYM;
+    }
+  });
+}
+
+function setPortStatusFilter(status, btn) {
+  portStatusFilter = status;
+  if (btn) {
+    document.querySelectorAll('.port-status-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+  }
+  applyPortFilters();
 }
 
 function setPortMode(mode, btn) {
@@ -8789,7 +8891,7 @@ function renderPortTable() {
   tbody.innerHTML = '';
 
   if (!data.length) {
-    tbody.innerHTML = `<tr><td colspan="13"><div class="empty-state"><i class="fas fa-gem"></i><p>No portfolio entries for the selected filter</p></div></td></tr>`;
+    tbody.innerHTML = `<tr><td colspan="14"><div class="empty-state"><i class="fas fa-gem"></i><p>No portfolio entries for the selected filter</p></div></td></tr>`;
     document.getElementById('port-summary-panel').style.display = 'none';
     return;
   }
@@ -8826,7 +8928,14 @@ function renderPortTable() {
       <td style="text-align:right"><span class="roi-chip ${roiClass}">${e.roi.toFixed(0)}%</span></td>
       <td style="text-align:right;font-family:'DM Mono',monospace;color:var(--c-inc)">${e.profitPct.toFixed(1)}%</td>
       <td style="text-align:right;font-family:'DM Mono',monospace;color:${gainColor};font-weight:600">${fmt(e.gainLoss)}</td>
-      <td style="text-align:right"><i class="fas fa-edit edit-icon" onclick="editPortEntry(${e.id})" title="Edit"></i><i class="fas fa-trash" style="cursor:pointer;color:#ef444460;font-size:0.72rem" onclick="deletePortItem(${e.id})"></i></td>
+      <td style="text-align:center">${e.status === 'sold'
+          ? `<span class="roi-chip bad" title="Sold ${e.sellDate ? fmtDate(e.sellDate) : ''}">Sold</span>`
+          : `<span class="roi-chip good">Active</span>`}</td>
+      <td style="text-align:right;white-space:nowrap">
+        ${e.status === 'sold'
+          ? `<i class="fas fa-rotate-left" style="cursor:pointer;color:#34d39990;font-size:0.72rem;margin-right:8px" onclick="markPortActive(${e.id})" title="Mark Active"></i>`
+          : `<i class="fas fa-tag" style="cursor:pointer;color:#f472b690;font-size:0.72rem;margin-right:8px" onclick="markPortSold(${e.id})" title="Mark Sold"></i>`}
+        <i class="fas fa-edit edit-icon" onclick="editPortEntry(${e.id})" title="Edit"></i><i class="fas fa-trash" style="cursor:pointer;color:#ef444460;font-size:0.72rem" onclick="deletePortItem(${e.id})"></i></td>
     </tr>`;
   });
   tbody.innerHTML = portHtmlRows;
@@ -9340,6 +9449,114 @@ function renderPortOverview() {
   } else {
     portTop3El.innerHTML = '<div class="empty-state" style="padding:1rem"><i class="fas fa-gem"></i><p>No data</p></div>';
   }
+
+  renderPortStatusCharts();
+}
+
+// ── PORTFOLIO ACTIVE vs SOLD CHARTS (Summary + Analytics) ──────────────────
+function renderPortStatusCharts() {
+  const all = getPortFilteredAllStatus();
+  const activeItems = all.filter(e => e.status !== 'sold');
+  const soldItems   = all.filter(e => e.status === 'sold');
+  const activeCalcs = activeItems.map(e => portCalc(e));
+  const soldCalcs   = soldItems.map(e => portCalc(e));
+
+  const activeVal = activeCalcs.reduce((a,c) => a + c.currentValue, 0);
+  const soldVal   = soldCalcs.reduce((a,c) => a + c.currentValue, 0);
+  const activeInv = activeCalcs.reduce((a,c) => a + c.totalInvestment, 0);
+  const soldInv   = soldCalcs.reduce((a,c) => a + c.totalInvestment, 0);
+  const activeGain = activeCalcs.reduce((a,c) => a + c.gainLoss, 0);
+  const soldGain    = soldCalcs.reduce((a,c) => a + c.gainLoss, 0);
+
+  // 1. Summary — Active vs Sold count/value donut
+  const donutEl = document.getElementById('port-status-donut');
+  if (donutEl) {
+    destroyChart('port-status-donut');
+    if (!activeItems.length && !soldItems.length) {
+      donutEl.parentElement.innerHTML = '<div class="empty-state" style="padding-top:2rem"><i class="fas fa-gem"></i><p>No portfolio data</p></div>';
+    } else {
+      charts['port-status-donut'] = new Chart(donutEl, {
+        type: 'doughnut',
+        data: {
+          labels: [`Active (${activeItems.length})`, `Sold (${soldItems.length})`],
+          datasets: [{ data: [activeVal, soldVal], backgroundColor: ['#34d399', '#94a3b8'], borderColor: donutBorderColor(), borderWidth: 2 }]
+        },
+        options: {
+          responsive: true, maintainAspectRatio: false, cutout: '65%',
+          plugins: { legend: { position: 'bottom', labels: { color: chartTextColor(), font: { size: 11 } } },
+            tooltip: { callbacks: { label: (ctx) => `${ctx.label}: ${fmt(ctx.parsed)}` } } }
+        }
+      });
+    }
+  }
+
+  // 2. Summary — Unrealized (active) vs Realized (sold) gain/loss bar
+  const gainBarEl = document.getElementById('port-status-gain-bar');
+  if (gainBarEl) {
+    destroyChart('port-status-gain-bar');
+    charts['port-status-gain-bar'] = new Chart(gainBarEl, {
+      type: 'bar',
+      data: {
+        labels: ['Unrealized (Active)', 'Realized (Sold)'],
+        datasets: [{ data: [activeGain, soldGain], backgroundColor: [activeGain >= 0 ? '#34d399' : '#ef4444', soldGain >= 0 ? '#38bdf8' : '#f472b6'], borderRadius: 6 }]
+      },
+      options: {
+        responsive: true, maintainAspectRatio: false,
+        plugins: { legend: { display: false }, tooltip: { callbacks: { label: (ctx) => fmt(ctx.parsed.y ?? ctx.parsed) } } },
+        scales: { x: { ticks: { color: chartTextColor() }, grid: { display: false } }, y: { ticks: { color: chartTextColor(), callback: v => fmt(v) }, grid: { color: chartGridColor() } } }
+      }
+    });
+  }
+
+  // 3. Analytics — Sold holdings realized value by asset type
+  const soldBarEl = document.getElementById('port-sold-value-bar');
+  if (soldBarEl) {
+    destroyChart('port-sold-value-bar');
+    if (!soldItems.length) {
+      soldBarEl.parentElement.innerHTML = '<div class="empty-state" style="padding-top:2rem"><i class="fas fa-tag"></i><p>No sold assets yet</p></div>';
+    } else {
+      const byType = {};
+      soldItems.forEach(e => {
+        const key = normalizeAssetType(e.assetType);
+        byType[key] = (byType[key] || 0) + portCalc(e).currentValue;
+      });
+      const keys = Object.keys(byType);
+      charts['port-sold-value-bar'] = new Chart(soldBarEl, {
+        type: 'bar',
+        data: {
+          labels: keys.map(k => assetTypeLabel(k)),
+          datasets: [{ label: 'Realized Value', data: keys.map(k => byType[k]), backgroundColor: keys.map(k => assetColor(k)), borderRadius: 6 }]
+        },
+        options: {
+          responsive: true, maintainAspectRatio: false,
+          plugins: { legend: { display: false }, tooltip: { callbacks: { label: (ctx) => fmt(ctx.parsed.y ?? ctx.parsed) } } },
+          scales: { x: { ticks: { color: chartTextColor() }, grid: { display: false } }, y: { ticks: { color: chartTextColor(), callback: v => fmt(v) }, grid: { color: chartGridColor() } } }
+        }
+      });
+    }
+  }
+
+  // 4. Analytics — Active vs Sold invested capital donut
+  const investDonutEl = document.getElementById('port-status-invested-donut');
+  if (investDonutEl) {
+    destroyChart('port-status-invested-donut');
+    if (!activeItems.length && !soldItems.length) {
+      investDonutEl.parentElement.innerHTML = '<div class="empty-state" style="padding-top:2rem"><i class="fas fa-gem"></i><p>No portfolio data</p></div>';
+    } else {
+      charts['port-status-invested-donut'] = new Chart(investDonutEl, {
+        type: 'doughnut',
+        data: {
+          labels: ['Active Capital', 'Sold Capital (Realized)'],
+          datasets: [{ data: [activeInv, soldInv], backgroundColor: ['#a78bfa', '#f472b6'], borderColor: donutBorderColor(), borderWidth: 2 }]
+        },
+        options: {
+          responsive: true, maintainAspectRatio: false, cutout: '65%',
+          plugins: { legend: { position: 'bottom', labels: { color: chartTextColor(), font: { size: 11 } } },
+            tooltip: { callbacks: { label: (ctx) => `${ctx.label}: ${fmt(ctx.parsed)}` } } }
+        }
+      });
+    }
+  }
 }
 
 // ── PORTFOLIO ANALYTICS CHARTS ─────────────────────────────────────────────
@@ -9348,6 +9565,7 @@ function renderPortAnalytics() {
   const rawData = getPortFiltered();
   if (!rawData.length) {
     ['port-timeline','port-roi-scatter','port-waterfall','port-compare-bar','port-profit-donut'].forEach(id => destroyChart(id));
+    renderPortStatusCharts();
     return;
   }
 
@@ -10213,6 +10431,8 @@ function renderPortAnalytics() {
     },
     plugins: [liqGlassPlugin, liqCenterPlugin]
   });
+
+  renderPortStatusCharts();
 }
 
 // ── ANALYTICS (Finance) ────────────────────────────────────────────────────
@@ -12691,11 +12911,25 @@ function updatePortUnit() {
   document.getElementById('p-unit-hint').textContent = '('+unit+')';
   calcPortPreview();
 }
+function togglePortSellFields() {
+  const isSold = document.getElementById('p-status').value === 'sold';
+  document.getElementById('p-sell-fields').style.display = isSold ? 'flex' : 'none';
+  if (isSold && !document.getElementById('p-sellDate').value) {
+    document.getElementById('p-sellDate').value = new Date().toISOString().split('T')[0];
+  }
+  if (isSold && !document.getElementById('p-sellPrice').value) {
+    document.getElementById('p-sellPrice').value = document.getElementById('p-currPrice').value;
+  }
+}
+
 function calcPortPreview() {
   const assetType = document.getElementById('p-assetType').value.trim();
   const qty  = parseFloat(document.getElementById('p-qty').value) || 0;
   const buy  = parseFloat(document.getElementById('p-buyPrice').value) || 0;
-  const cur  = parseFloat(document.getElementById('p-currPrice').value) || 0;
+  const isSold = document.getElementById('p-status') && document.getElementById('p-status').value === 'sold';
+  const cur  = isSold
+    ? (parseFloat(document.getElementById('p-sellPrice').value) || parseFloat(document.getElementById('p-currPrice').value) || 0)
+    : (parseFloat(document.getElementById('p-currPrice').value) || 0);
 
   let totalInv, currVal;
   if (isQtyBased(assetType)) {
@@ -12726,7 +12960,9 @@ function openPortModal() {
   document.getElementById('p-unit-hint').textContent = '(grams)';
   document.getElementById('port-save-btn').textContent = 'Save Asset';
   document.getElementById('port-delete-btn').style.display = 'none';
-  ['p-assetType','p-subType','p-qty','p-unit','p-buyPrice','p-currPrice','p-notes'].forEach(id => document.getElementById(id).value = '');
+  ['p-assetType','p-subType','p-qty','p-unit','p-buyPrice','p-currPrice','p-notes','p-sellDate','p-sellPrice'].forEach(id => document.getElementById(id).value = '');
+  document.getElementById('p-status').value = 'active';
+  togglePortSellFields();
   calcPortPreview();
   document.getElementById('port-modal').style.display = 'flex';
 }
@@ -12745,9 +12981,13 @@ function editPortEntry(id) {
   document.getElementById('p-buyPrice').value = entry.purchasePrice;
   document.getElementById('p-currPrice').value = entry.currentPrice;
   document.getElementById('p-notes').value = entry.notes || '';
+  document.getElementById('p-status').value = entry.status === 'sold' ? 'sold' : 'active';
+  document.getElementById('p-sellDate').value = entry.sellDate || '';
+  document.getElementById('p-sellPrice').value = entry.sellPrice || '';
   document.getElementById('port-save-btn').textContent = 'Update Asset';
   document.getElementById('port-delete-btn').style.display = 'block';
   updatePortUnit();
+  togglePortSellFields();
   calcPortPreview();
   document.getElementById('port-modal').style.display = 'flex';
 }
@@ -12768,21 +13008,56 @@ function savePortEntry() {
   const purchasePrice = parseFloat(document.getElementById('p-buyPrice').value);
   const currentPrice  = parseFloat(document.getElementById('p-currPrice').value);
   const notes        = document.getElementById('p-notes').value.trim();
+  const status       = document.getElementById('p-status').value === 'sold' ? 'sold' : 'active';
+  const sellDate     = status === 'sold' ? document.getElementById('p-sellDate').value : '';
+  const sellPriceRaw = document.getElementById('p-sellPrice').value;
+  const sellPrice    = status === 'sold' && sellPriceRaw !== '' ? parseFloat(sellPriceRaw) : '';
   if (!assetType || !date || !quantity || !purchasePrice || !currentPrice) {
     alert('Please fill all required fields'); return;
+  }
+  if (status === 'sold' && !sellDate) {
+    alert('Please set a sell date for a sold asset'); return;
   }
 
   if (editingPortId) {
     const idx = portDb.findIndex(x => x.id === editingPortId);
-    if (idx >= 0) portDb[idx] = { ...portDb[idx], assetType, subType, date, quantity, unit, purchasePrice, currentPrice, notes };
+    if (idx >= 0) portDb[idx] = { ...portDb[idx], assetType, subType, date, quantity, unit, purchasePrice, currentPrice, notes, status, sellDate, sellPrice };
   } else {
-    portDb.push({ id:Date.now(), assetType, subType, date, quantity, unit, purchasePrice, currentPrice, notes });
+    portDb.push({ id:Date.now(), assetType, subType, date, quantity, unit, purchasePrice, currentPrice, notes, status, sellDate, sellPrice });
   }
 
   scheduleSave();
   buildPortDropdowns();
   closePortModal();
 
+  if      (activeView === 'port-overview')  renderPortOverview();
+  else if (activeView === 'port-table')     renderPortTable();
+  else if (activeView === 'port-analytics') renderPortAnalytics();
+  else if (activeView === 'dashboard')      renderDashboard();
+}
+
+// Quick action: mark a holding as Sold without opening the full modal.
+// Prefills sell price with the last known current price and sell date with today.
+function markPortSold(id) {
+  const idx = portDb.findIndex(x => x.id === id);
+  if (idx < 0) return;
+  const entry = portDb[idx];
+  const sellPrice = prompt(`Sell price / unit for ${assetTypeLabel(entry.assetType)} (${entry.subType || ''})?`, entry.currentPrice);
+  if (sellPrice === null) return;
+  portDb[idx] = { ...entry, status: 'sold', sellDate: new Date().toISOString().split('T')[0], sellPrice: parseFloat(sellPrice) || entry.currentPrice };
+  scheduleSave();
+  if      (activeView === 'port-overview')  renderPortOverview();
+  else if (activeView === 'port-table')     renderPortTable();
+  else if (activeView === 'port-analytics') renderPortAnalytics();
+  else if (activeView === 'dashboard')      renderDashboard();
+}
+
+// Quick action: revert a Sold holding back to Active.
+function markPortActive(id) {
+  const idx = portDb.findIndex(x => x.id === id);
+  if (idx < 0) return;
+  portDb[idx] = { ...portDb[idx], status: 'active' };
+  scheduleSave();
   if      (activeView === 'port-overview')  renderPortOverview();
   else if (activeView === 'port-table')     renderPortTable();
   else if (activeView === 'port-analytics') renderPortAnalytics();
