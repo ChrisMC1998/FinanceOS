@@ -8833,14 +8833,14 @@ function clearTxnSelection() {
 }
 
 function deleteSelectedTxns() {
-  const ids = Array.from(document.querySelectorAll('.row-chk:checked')).map(c => c.dataset.id);
+  const ids = Array.from(document.querySelectorAll('.row-chk:checked')).map(c => String(c.dataset.id));
   if (!ids.length) return;
   
-  // Grab all the items before deleting them
-  const deletedItems = db.filter(x => ids.includes(x.id));
+  // Grab all the items before deleting them (String() so numeric ids match the string dataset ids)
+  const deletedItems = db.filter(x => ids.includes(String(x.id)));
   
   // Keep everything that ISN'T in the deleted ids array
-  db = db.filter(x => !ids.includes(x.id));
+  db = db.filter(x => !ids.includes(String(x.id)));
   
   scheduleSave();
   clearTxnSelection(); // This handles hiding the red bar
