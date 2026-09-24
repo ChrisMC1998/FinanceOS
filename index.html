@@ -7845,9 +7845,7 @@ function renderDashboardImmediate() {
         labels: typeLabels,
         datasets: [{
           data: typeKeys.map(k => byType[k]),
-          backgroundColor: typeKeys.map(k => assetColor(k)),
-          borderColor: 'transparent',
-          borderWidth: 0,
+          ...donutSliceStyle(ringCtx.canvas, typeKeys.map(k => assetColor(k))),
           spacing: 3,
           hoverOffset: 6
         }]
@@ -9505,7 +9503,7 @@ function renderPortStatusCharts() {
         type: 'doughnut',
         data: {
           labels: [`Active (${activeItems.length})`, `Sold (${soldItems.length})`],
-          datasets: [{ data: [activeVal, soldVal], backgroundColor: ['#34d399', '#94a3b8'], borderColor: donutBorderColor(), borderWidth: 2 }]
+          datasets: [{ data: [activeVal, soldVal], ...donutSliceStyle(donutEl, ['#34d399', '#94a3b8']) }]
         },
         options: {
           responsive: true, maintainAspectRatio: false, cutout: '65%',
@@ -9595,7 +9593,7 @@ function renderPortStatusCharts() {
         type: 'doughnut',
         data: {
           labels: ['Active Capital', 'Sold Capital (Realized)'],
-          datasets: [{ data: [activeInv, soldInv], backgroundColor: ['#a78bfa', '#f472b6'], borderColor: donutBorderColor(), borderWidth: 2 }]
+          datasets: [{ data: [activeInv, soldInv], ...donutSliceStyle(investDonutEl, ['#a78bfa', '#f472b6']) }]
         },
         options: {
           responsive: true, maintainAspectRatio: false, cutout: '65%',
@@ -10073,9 +10071,7 @@ function renderPortAnalytics() {
         labels: profitLabels,
         datasets: [{
           data: profitVals,
-          backgroundColor: profitColors,
-          borderColor: 'transparent',
-          borderWidth: 0,
+          ...donutSliceStyle(profitRingCtx.canvas, profitColors),
           spacing: 3,
           hoverOffset: 6
         }]
@@ -11073,9 +11069,7 @@ function renderAnalytics() {
             labels: sortedInv.map(inv => inv[0]),
             datasets: [{
               data: sortedInv.map(inv => inv[1]),
-              backgroundColor: sortedInv.map((_, i) => ringColors[i % ringColors.length]),
-              borderColor: 'transparent',
-              borderWidth: 0,
+              ...donutSliceStyle(invRingCtx.canvas, sortedInv.map((_, i) => ringColors[i % ringColors.length])),
               spacing: 3,
               hoverOffset: 6
             }]
@@ -12602,6 +12596,28 @@ function chartTextColor() { return document.body.classList.contains('light-mode'
 function chartGridColor() { return document.body.classList.contains('light-mode') ? 'rgba(0,0,0,0.06)' : 'rgba(255,255,255,0.04)'; }
 function donutBorderColor() { return document.body.classList.contains('light-mode') ? 'rgba(255,255,255,0.9)' : 'rgba(7,9,26,0.9)'; }
 
+// ── Shared donut/ring slice styling — gradient fill + dark border ──────────
+// Gives every doughnut chart in the dashboard (Finance OS + Portfolio + Credit)
+// the same 3D-ish gradient-per-slice look with a crisp dark separator border,
+// so they all match the app theme instead of flat solid slices.
+function donutSliceStyle(canvas, colors) {
+  const ctx = canvas.getContext ? canvas.getContext('2d') : canvas;
+  const w = (canvas.offsetWidth || canvas.clientWidth || 200);
+  const isLight = document.body.classList.contains('light-mode');
+  const backgroundColor = colors.map(hex => {
+    const g = ctx.createLinearGradient(-w/2, -w/2, w/2, w/2);
+    g.addColorStop(0,   hex + 'ff');
+    g.addColorStop(0.45, hex + (isLight ? 'ff' : 'dd'));
+    g.addColorStop(1,   hex + (isLight ? 'e0' : '90'));
+    return g;
+  });
+  return {
+    backgroundColor,
+    borderColor: donutBorderColor(),
+    borderWidth: 2
+  };
+}
+
 // ── Liquid-pill bar fill-in animation ───────────────────────────────────────
 // The custom HTML/CSS "liquid bar" widgets (Cash Flow, Spending Mix, Top 3
 // Holdings, Credit Outstanding, Portfolio legend bars, etc.) render their
@@ -12727,7 +12743,8 @@ function makeDonut(id, labels, data, colors) {
       datasets: [{
         data,
         backgroundColor: gradColors,
-        borderWidth: 0,           // Remove the solid stroke
+        borderColor: donutBorderColor(),  // Dark separator border to match dashboard theme
+        borderWidth: 2,
         borderRadius: 30,         // Makes the segment edges perfectly round and soft
         hoverOffset: 8,
         spacing: 12               
@@ -13420,9 +13437,7 @@ destroyChart('credit-bar');
         labels: typeLabels,
         datasets: [{
           data: typeVals,
-          backgroundColor: typeLabels.map((_, i) => typeColors[i % typeColors.length]),
-          borderColor: 'transparent',
-          borderWidth: 0,
+          ...donutSliceStyle(creditRingCtx.canvas, typeLabels.map((_, i) => typeColors[i % typeColors.length])),
           spacing: 3,
           hoverOffset: 6
         }]
@@ -14221,9 +14236,7 @@ function renderDashCreditCharts() {
             labels: sortedTypes.map(([type]) => type),
             datasets: [{
               data: sortedTypes.map(([,s]) => s.bal),
-              backgroundColor: sortedTypes.map((_, i) => typeColors[i % typeColors.length]),
-              borderColor: 'transparent',
-              borderWidth: 0,
+              ...donutSliceStyle(ringCtx.canvas, sortedTypes.map((_, i) => typeColors[i % typeColors.length])),
               spacing: 3,
               hoverOffset: 5
             }]
