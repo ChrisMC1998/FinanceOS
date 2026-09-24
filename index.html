@@ -9516,20 +9516,41 @@ function renderPortStatusCharts() {
     }
   }
 
-  // 2. Summary — Unrealized (active) vs Realized (sold) gain/loss bar
+  // 2. Summary — Unrealized (active) vs Realized (sold) gain/loss — gradient line
   const gainBarEl = document.getElementById('port-status-gain-bar');
   if (gainBarEl) {
     destroyChart('port-status-gain-bar');
     setChartEmpty(gainBarEl, false, '');
-    charts['port-status-gain-bar'] = new Chart(gainBarEl, {
-      type: 'bar',
+    const gbCtx = gainBarEl.getContext('2d');
+    const gGain = gbCtx.createLinearGradient(0, 0, 0, 220);
+    gGain.addColorStop(0, 'rgba(52, 211, 153, 0.45)');
+    gGain.addColorStop(1, 'rgba(52, 211, 153, 0.0)');
+    const gLoss = gbCtx.createLinearGradient(0, 0, 0, 220);
+    gLoss.addColorStop(0, 'rgba(167, 139, 250, 0.45)');
+    gLoss.addColorStop(1, 'rgba(167, 139, 250, 0.0)');
+    charts['port-status-gain-bar'] = new Chart(gbCtx, {
+      type: 'line',
       data: {
         labels: ['Unrealized (Active)', 'Realized (Sold)'],
-        datasets: [{ data: [activeGain, soldGain], backgroundColor: [activeGain >= 0 ? '#34d399' : '#ef4444', soldGain >= 0 ? '#38bdf8' : '#f472b6'], borderRadius: 6 }]
+        datasets: [{
+          label: 'Gain / Loss',
+          data: [activeGain, soldGain],
+          borderColor: '#34d399',
+          backgroundColor: gGain,
+          segment: { backgroundColor: ctx => ctx.p0DataIndex === 0 ? gGain : gLoss },
+          borderWidth: 3,
+          tension: 0.4,
+          fill: true,
+          pointRadius: 6,
+          pointBackgroundColor: ctx => (ctx.raw ?? 0) >= 0 ? '#34d399' : '#ef4444',
+          pointBorderColor: '#fff',
+          pointBorderWidth: 2,
+          pointHoverRadius: 8
+        }]
       },
       options: {
         responsive: true, maintainAspectRatio: false,
-        plugins: { legend: { display: false }, tooltip: { callbacks: { label: (ctx) => fmt(ctx.parsed.y ?? ctx.parsed) } } },
+        plugins: { legend: { display: false }, tooltip: { callbacks: { label: (ctx) => fmt(ctx.parsed.y) } } },
         scales: { x: { ticks: { color: chartTextColor() }, grid: { display: false } }, y: { ticks: { color: chartTextColor(), callback: v => fmt(v) }, grid: { color: chartGridColor() } } }
       }
     });
@@ -9613,22 +9634,32 @@ function renderPortStatusCharts() {
         const [y, mo] = m.split('-');
         return MONTHS[parseInt(mo,10)-1] + " '" + y.slice(2);
       });
-      charts['port-buysell-rhythm'] = new Chart(rhythmEl, {
+
+      // Theme-matching gradients — brand violet for buys, rose for sells (same palette as the rest of the dashboard)
+      const rhCtx = rhythmEl.getContext('2d');
+      const gBuy = rhCtx.createLinearGradient(0, 0, 0, 220);
+      gBuy.addColorStop(0, 'rgba(167, 139, 250, 0.85)');
+      gBuy.addColorStop(1, 'rgba(167, 139, 250, 0.25)');
+      const gSell = rhCtx.createLinearGradient(0, 0, 0, 220);
+      gSell.addColorStop(0, 'rgba(244, 114, 182, 0.85)');
+      gSell.addColorStop(1, 'rgba(244, 114, 182, 0.25)');
+
+      charts['port-buysell-rhythm'] = new Chart(rhCtx, {
         type: 'bar',
         data: {
           labels: monthLabels,
           datasets: [
-            { label: 'Bought', data: months.map(m => buyByMonth[m] || 0), backgroundColor: '#34d399', borderRadius: 4 },
-            { label: 'Sold',   data: months.map(m => sellByMonth[m] || 0), backgroundColor: '#f472b6', borderRadius: 4 }
+            { label: 'Bought', data: months.map(m => buyByMonth[m] || 0), backgroundColor: gBuy, borderColor: '#a78bfa', borderWidth: 2, borderRadius: 6, borderSkipped: false },
+            { label: 'Sold',   data: months.map(m => sellByMonth[m] || 0), backgroundColor: gSell, borderColor: '#f472b6', borderWidth: 2, borderRadius: 6, borderSkipped: false }
           ]
         },
         options: {
           responsive: true, maintainAspectRatio: false,
-          plugins: { legend: { position: 'bottom', labels: { color: chartTextColor(), font: { size: 11 } } },
+          plugins: { legend: { position: 'bottom', labels: { color: chartTextColor(), usePointStyle: true, font: { size: 11 } } },
             tooltip: { callbacks: { label: (ctx) => `${ctx.dataset.label}: ${fmt(ctx.parsed.y)}` } } },
           scales: {
-            x: { ticks: { color: chartTextColor() }, grid: { display: false } },
-            y: { ticks: { color: chartTextColor(), callback: v => fmt(v) }, grid: { color: chartGridColor() } }
+            x: { ticks: { color: chartTextColor(), font: { size: 10 } }, grid: { display: false }, border: { display: false } },
+            y: { ticks: { color: chartTextColor(), callback: v => fmt(v) }, grid: { display: false }, border: { display: false } }
           }
         }
       });
