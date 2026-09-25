@@ -787,6 +787,29 @@ body.light-mode .inventory-pill span:last-child { color: #475569 !important; }
 .budget-row { display:grid; grid-template-columns: 120px minmax(0, 1fr); align-items:center; gap:10px; }
 .budget-row label { font-size:0.78rem; color:var(--text-mid); min-width:0; }
 .budget-row .budget-input { margin-top:0; padding:9px 12px; font-size:0.84rem; border-radius:10px; }
+
+/* ── Interactive slider-based budget rows ───────────────────────────── */
+.budget-search-box { display:flex; align-items:center; gap:8px; background:rgba(255,255,255,0.04); border:1px solid rgba(255,255,255,0.08); border-radius:10px; padding:8px 12px; margin-bottom:10px; font-size:0.8rem; color:var(--text-muted); }
+.budget-search-box input { flex:1; background:transparent; border:none; outline:none; color:var(--text-main); font-size:0.82rem; }
+.budget-row-v2 { display:flex; flex-direction:column; gap:8px; padding:10px 12px 12px; border-radius:12px; background:rgba(255,255,255,0.02); border:1px solid rgba(255,255,255,0.05); }
+body.light-mode .budget-row-v2 { background:#f8fafc; border-color:#e2e8f0; }
+.budget-row-head { display:flex; align-items:center; justify-content:space-between; gap:10px; }
+.budget-row-head label { font-size:0.8rem; color:var(--text-mid); font-weight:600; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.budget-row-val-wrap { display:flex; align-items:center; gap:4px; flex-shrink:0; }
+.budget-row-currency { font-size:0.78rem; color:var(--text-muted); }
+.budget-row-num { width:88px; background:rgba(255,255,255,0.05); border:1px solid var(--glass-border); color:var(--text-main); padding:5px 7px; border-radius:8px; font-size:0.8rem; text-align:right; font-family:'DM Mono',monospace; outline:none; }
+.budget-row-num:focus { border-color:var(--accent); }
+.budget-row-clear { width:26px; height:26px; border-radius:7px; border:1px solid rgba(255,255,255,0.08); background:rgba(255,255,255,0.03); color:var(--text-muted); cursor:pointer; display:flex; align-items:center; justify-content:center; font-size:0.68rem; flex-shrink:0; transition:0.15s; }
+.budget-row-clear:hover { color:#ef4444; border-color:rgba(239,68,68,0.3); }
+.budget-row-slider { -webkit-appearance:none; appearance:none; width:100%; height:6px; border-radius:99px; background:linear-gradient(to right, var(--accent) var(--fill,0%), rgba(255,255,255,0.1) var(--fill,0%)); outline:none; cursor:pointer; }
+body.light-mode .budget-row-slider { background:linear-gradient(to right, var(--accent) var(--fill,0%), #e2e8f0 var(--fill,0%)); }
+.budget-row-slider::-webkit-slider-thumb { -webkit-appearance:none; appearance:none; width:16px; height:16px; border-radius:50%; background:#fff; border:3px solid var(--accent); box-shadow:0 0 8px rgba(0,117,255,0.5); cursor:pointer; margin-top:-5px; }
+.budget-row-slider::-moz-range-thumb { width:16px; height:16px; border-radius:50%; background:#fff; border:3px solid var(--accent); box-shadow:0 0 8px rgba(0,117,255,0.5); cursor:pointer; }
+.budget-row-slider::-moz-range-track { height:6px; border-radius:99px; background:transparent; }
+.budget-row-meta { display:flex; justify-content:space-between; font-size:0.66rem; color:var(--text-muted); }
+.budget-row-meta span:nth-child(2) { font-weight:600; color:var(--text-mid); }
+.budget-row-v2.has-limit { border-color:rgba(0,117,255,0.25); }
+
 .input-group { margin-bottom:12px; }
 .input-group label { font-size:0.7rem; color:var(--text-muted); font-weight:600; text-transform:uppercase; letter-spacing:0.8px; }
 .input-field { width:100%; background:rgba(255,255,255,0.05); border:1px solid var(--glass-border); color:var(--text-main); padding:9px 12px; border-radius:9px; margin-top:5px; font-size:0.84rem; font-family:'DM Sans',sans-serif; transition:border-color 0.16s; outline:none; }
@@ -5751,7 +5774,11 @@ function passAppLockGate() {
 <div class="modal-overlay" id="budget-modal">
   <div class="modal-box budget-modal">
     <div class="modal-title">Budget Limits</div>
-    <div class="modal-subtitle">Set monthly limits. Alert at 80%.</div>
+    <div class="modal-subtitle">Set monthly limits. Alert at 80%. Drag the slider or type an exact amount.</div>
+    <div class="budget-search-box">
+      <i class="fas fa-search"></i>
+      <input type="text" id="budget-search-input" placeholder="Search category…" oninput="finaiFilterBudgetRows(this.value)">
+    </div>
     <div class="budget-modal-list" id="budget-modal-list"></div>
     <div style="display:flex;gap:8px;margin-top:1rem">
       <button onclick="saveBudgets()" class="btn-add" style="flex:1;justify-content:center">Save</button>
@@ -13944,12 +13971,110 @@ function sanitizeId(str) { return str.replace(/[^a-zA-Z0-9]/g, '_'); }
 
 function openBudgetModal() {
   const allSubs = [...new Set(db.map(d => d.sub).filter(Boolean))].sort((a,b) => a.localeCompare(b));
-  document.getElementById('budget-modal-list').innerHTML = allSubs.map(sub => `
-    <div class="budget-row">
-      <label>${sub}</label>
-      <input type="number" class="input-field budget-input" id="bgt-${sanitizeId(sub)}" value="${budgets[sub]||''}" placeholder="No limit">
-    </div>`).join('');
+
+  // Build real per-category monthly spend history so each slider's range
+  // reflects that category's actual scale (a ₹500 subscription and a
+  // ₹40,000 rent shouldn't share the same slider ceiling).
+  const monthlyBySub = {};
+  db.filter(r => r.type === 'Expense').forEach(r => {
+    const key = r.sub || 'General';
+    const mk = (r.date || '').slice(0, 7);
+    if (!monthlyBySub[key]) monthlyBySub[key] = {};
+    monthlyBySub[key][mk] = (monthlyBySub[key][mk] || 0) + Number(r.amount || 0);
+  });
+  const niceCeil = n => {
+    if (n <= 1000) return 1000;
+    const mag = Math.pow(10, Math.floor(Math.log10(n)));
+    const step = mag / 2;
+    return Math.ceil(n / step) * step;
+  };
+
+  document.getElementById('budget-modal-list').innerHTML = allSubs.map(sub => {
+    const id = sanitizeId(sub);
+    const existing = Number(budgets[sub] || 0);
+    const monthVals = Object.values(monthlyBySub[sub] || {});
+    const maxSpend = monthVals.length ? Math.max(...monthVals) : 0;
+    const ceilVal = niceCeil(Math.max(existing * 1.5, maxSpend * 2, 1000));
+    const step = ceilVal <= 2000 ? 50 : ceilVal <= 10000 ? 100 : ceilVal <= 50000 ? 500 : 1000;
+    const metaText = existing > 0 ? `Alert at ${fmt(Math.round(existing * 0.8))}` : 'No limit set';
+    return `
+    <div class="budget-row-v2 ${existing > 0 ? 'has-limit' : ''}" data-name="${sub.toLowerCase()}">
+      <div class="budget-row-head">
+        <label title="${sub}">${sub}</label>
+        <div class="budget-row-val-wrap">
+          <span class="budget-row-currency">${userCurrency}</span>
+          <input type="number" class="budget-row-num" id="bgtnum-${id}" value="${existing || ''}" placeholder="0" min="0" step="${step}" oninput="finaiSyncBudgetNum('${id}')">
+          <button type="button" class="budget-row-clear" onclick="finaiClearBudgetRow('${id}')" title="Clear / No limit"><i class="fas fa-ban"></i></button>
+        </div>
+      </div>
+      <input type="range" class="budget-row-slider" id="bgt-${id}" min="0" max="${ceilVal}" step="${step}" value="${existing}" oninput="finaiSyncBudgetSlider('${id}')">
+      <div class="budget-row-meta">
+        <span>${userCurrency}0</span>
+        <span id="bgtmeta-${id}">${metaText}</span>
+        <span>${fmt(ceilVal)}</span>
+      </div>
+    </div>`;
+  }).join('');
+
+  document.getElementById('budget-search-input').value = '';
+  document.querySelectorAll('.budget-row-slider').forEach(finaiFillBudgetSlider);
   document.getElementById('budget-modal').style.display = 'flex';
+}
+
+function finaiFillBudgetSlider(slider) {
+  const min = Number(slider.min) || 0;
+  const max = Number(slider.max) || 100;
+  const val = Number(slider.value) || 0;
+  const pct = max > min ? Math.min(100, Math.max(0, ((val - min) / (max - min)) * 100)) : 0;
+  slider.style.setProperty('--fill', pct + '%');
+}
+
+function finaiSyncBudgetSlider(id) {
+  const slider = document.getElementById('bgt-' + id);
+  const num = document.getElementById('bgtnum-' + id);
+  const meta = document.getElementById('bgtmeta-' + id);
+  const row = slider ? slider.closest('.budget-row-v2') : null;
+  if (!slider) return;
+  const val = Number(slider.value) || 0;
+  if (num) num.value = val || '';
+  if (meta) meta.textContent = val > 0 ? `Alert at ${fmt(Math.round(val * 0.8))}` : 'No limit set';
+  if (row) row.classList.toggle('has-limit', val > 0);
+  finaiFillBudgetSlider(slider);
+}
+
+function finaiSyncBudgetNum(id) {
+  const slider = document.getElementById('bgt-' + id);
+  const num = document.getElementById('bgtnum-' + id);
+  const meta = document.getElementById('bgtmeta-' + id);
+  const row = num ? num.closest('.budget-row-v2') : null;
+  if (!slider || !num) return;
+  let val = Number(num.value) || 0;
+  if (val < 0) val = 0;
+  // If the typed amount exceeds the slider's current ceiling, grow the
+  // ceiling so the thumb (and future drags) can still reach it.
+  if (val > Number(slider.max)) slider.max = val;
+  slider.value = val;
+  if (meta) meta.textContent = val > 0 ? `Alert at ${fmt(Math.round(val * 0.8))}` : 'No limit set';
+  if (row) row.classList.toggle('has-limit', val > 0);
+  finaiFillBudgetSlider(slider);
+}
+
+function finaiClearBudgetRow(id) {
+  const slider = document.getElementById('bgt-' + id);
+  const num = document.getElementById('bgtnum-' + id);
+  const meta = document.getElementById('bgtmeta-' + id);
+  const row = slider ? slider.closest('.budget-row-v2') : null;
+  if (slider) { slider.value = 0; finaiFillBudgetSlider(slider); }
+  if (num) num.value = '';
+  if (meta) meta.textContent = 'No limit set';
+  if (row) row.classList.remove('has-limit');
+}
+
+function finaiFilterBudgetRows(q) {
+  const ql = (q || '').trim().toLowerCase();
+  document.querySelectorAll('.budget-row-v2').forEach(row => {
+    row.style.display = !ql || row.dataset.name.includes(ql) ? '' : 'none';
+  });
 }
 
 function saveBudgets() {
