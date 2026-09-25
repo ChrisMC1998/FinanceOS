@@ -7822,8 +7822,12 @@ function finaiBuildAnalysis() {
     const dueMatch = String(c.dueDate || '').match(/\d+/);
     if (!dueMatch) return null;
     const dueDay = parseInt(dueMatch[0], 10);
-    let daysUntil = dueDay - today.getDate();
-    if (daysUntil < 0) daysUntil += 30;
+    const todayDay = today.getDate();
+    let daysUntil = dueDay - todayDay;
+    if (daysUntil < 0) {
+      const daysInMonth = new Date(today.getFullYear(), today.getMonth() + 1, 0).getDate();
+      daysUntil = daysInMonth - todayDay + dueDay;
+    }
     return { lender: c.lenderName, emi: Number(c.monthlyEmi || 0), daysUntil };
   }).filter(Boolean).filter(e => e.daysUntil <= 5).sort((a, b) => a.daysUntil - b.daysUntil);
 
@@ -7882,8 +7886,8 @@ function finaiBuildAnalysis() {
 
   // ── Insurance coverage gap check (real, live from insuranceDb) ────────
   const activePolicies = (insuranceDb || []).filter(p => p.status !== 'Expired' && p.status !== 'Lapsed');
-  const hasHealthCover = activePolicies.some(p => /health|medical/i.test(p.category || p.insType || ''));
-  const hasLifeCover = activePolicies.some(p => /life|term/i.test(p.category || p.insType || ''));
+  const hasHealthCover = activePolicies.some(p => /health|medical|critical illness/i.test(((p.insType || '') + ' ' + (p.category || '') + ' ' + (p.notes || ''))));
+  const hasLifeCover = activePolicies.some(p => /life|term/i.test(((p.insType || '') + ' ' + (p.category || '') + ' ' + (p.notes || ''))));
   const totalSumInsured = activePolicies.reduce((s, p) => s + Number(p.sumInsured || 0), 0);
   const totalPremiumAnnual = activePolicies.reduce((s, p) => {
     const prem = Number(p.premium || 0);
@@ -8164,6 +8168,11 @@ function finaiBuildInsights(a) {
         `You have ${fmt(a.totalOutstandingDebt)} in outstanding debt but no active life/term insurance logged.`,
         'A term policy sized to your debt protects your family from inheriting these liabilities.');
     }
+  }
+  if (a.hasPolicies) {
+    push('fa-shield-halved', '#38bdf8', 'info', 'Insurance portfolio summary',
+      `You have active cover of ${fmt(Math.round(a.totalSumInsured))} in total sum insured, costing ${fmt(Math.round(a.totalPremiumAnnual))} per year in premiums (${a.hasHealthCover ? 'health ✓' : 'health ✗'}, ${a.hasLifeCover ? 'life ✓' : 'life ✗'}).`,
+      a.totalIncome > 0 && a.totalSumInsured < a.thisMonthIncome * 60 ? 'Your total cover looks low relative to income — health cover is typically sized well beyond a year of income, and term life at 10-15x annual income.' : 'Review this once a year to make sure cover keeps pace with income and liabilities.');
   }
   a.expiringPolicies.forEach(p => {
     push('fa-hourglass-half', '#f59e0b', 'warn', `Policy expiring soon: ${p.provider || p.insType || 'Policy'}`,
