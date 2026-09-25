@@ -320,6 +320,49 @@ body.light-mode .notes-format-toolbar { background:#f8fafc; border-color:#e2e8f0
 body.light-mode .notes-save-row { border-color:#e2e8f0; }
 .notes-save-status { font-size:0.74rem; color:var(--text-muted); }
 
+/* ── FIN AI AGENT ────────────────────────────────────────────────────── */
+.finai-wrap { display:flex; flex-direction:column; gap:1.2rem; }
+.finai-top-row { display:flex; gap:1.2rem; flex-wrap:wrap; }
+.finai-score-card { flex:0 0 300px; display:flex; align-items:center; gap:1rem; background:rgba(255,255,255,0.02); border:1px solid rgba(255,255,255,0.06); border-radius:16px; padding:1.2rem; }
+body.light-mode .finai-score-card { background:#fff; border-color:#e2e8f0; }
+.finai-score-ring-wrap { position:relative; width:100px; height:100px; flex-shrink:0; }
+.finai-score-ring { width:100px; height:100px; transform:rotate(-90deg); }
+.finai-ring-track { fill:none; stroke:rgba(255,255,255,0.08); stroke-width:10; }
+body.light-mode .finai-ring-track { stroke:#e2e8f0; }
+.finai-ring-progress { fill:none; stroke:#38bdf8; stroke-width:10; stroke-linecap:round; stroke-dasharray:326.7; stroke-dashoffset:326.7; transition:stroke-dashoffset 0.8s ease, stroke 0.8s ease; }
+.finai-score-num { position:absolute; inset:0; display:flex; align-items:center; justify-content:center; font-size:1.7rem; font-weight:800; color:var(--text-main); }
+.finai-score-label { font-size:0.9rem; font-weight:700; color:var(--text-main); margin-bottom:4px; }
+.finai-score-sub { font-size:0.78rem; color:var(--text-muted); margin-bottom:8px; line-height:1.4; }
+.finai-score-tags { display:flex; flex-wrap:wrap; gap:6px; }
+.finai-tag { font-size:0.68rem; font-weight:700; padding:3px 8px; border-radius:20px; background:rgba(56,189,248,0.12); color:#38bdf8; border:1px solid rgba(56,189,248,0.25); }
+.finai-tag.warn { background:rgba(251,191,36,0.12); color:#fbbf24; border-color:rgba(251,191,36,0.25); }
+.finai-tag.bad { background:rgba(239,68,68,0.12); color:#ef4444; border-color:rgba(239,68,68,0.25); }
+.finai-tag.good { background:rgba(52,211,153,0.12); color:#34d399; border-color:rgba(52,211,153,0.25); }
+.finai-stats-mini { flex:1; min-width:320px; display:grid; grid-template-columns:1fr 1fr 1fr; gap:10px; }
+@media (max-width: 640px) { .finai-stats-mini { grid-template-columns:1fr 1fr; } }
+.finai-mini-stat { background:rgba(255,255,255,0.02); border:1px solid rgba(255,255,255,0.06); border-radius:12px; padding:0.8rem; display:flex; flex-direction:column; gap:4px; justify-content:center; }
+body.light-mode .finai-mini-stat { background:#fff; border-color:#e2e8f0; }
+.finai-mini-label { font-size:0.68rem; text-transform:uppercase; letter-spacing:0.04em; color:var(--text-muted); }
+.finai-mini-val { font-size:1.05rem; font-weight:800; color:var(--text-main); font-family:'DM Mono',monospace; }
+.finai-section-head { display:flex; align-items:center; justify-content:space-between; font-size:0.95rem; font-weight:700; color:var(--text-main); }
+.finai-section-head i { color:#38bdf8; margin-right:6px; }
+.finai-insights-grid { display:grid; grid-template-columns:repeat(auto-fill, minmax(300px, 1fr)); gap:12px; }
+.finai-card { background:rgba(255,255,255,0.02); border:1px solid rgba(255,255,255,0.06); border-left:3px solid #38bdf8; border-radius:14px; padding:1rem 1.1rem; display:flex; flex-direction:column; gap:6px; }
+body.light-mode .finai-card { background:#fff; border-color:#e2e8f0; border-left-color:#38bdf8; }
+.finai-card.severity-good { border-left-color:#34d399; }
+.finai-card.severity-warn { border-left-color:#fbbf24; }
+.finai-card.severity-bad { border-left-color:#ef4444; }
+.finai-card-head { display:flex; align-items:center; gap:8px; font-weight:700; font-size:0.88rem; color:var(--text-main); }
+.finai-card-head i { font-size:0.9rem; }
+.finai-card-body { font-size:0.8rem; color:var(--text-muted); line-height:1.55; }
+.finai-card-action { font-size:0.74rem; color:#38bdf8; font-weight:700; margin-top:2px; }
+.finai-empty { text-align:center; color:var(--text-muted); font-size:0.88rem; padding:2.5rem 1rem; }
+.finai-ask-row { display:flex; gap:10px; margin-top:6px; }
+.finai-ask-input { flex:1; background:rgba(255,255,255,0.03); border:1px solid rgba(255,255,255,0.08); border-radius:10px; padding:10px 14px; color:var(--text-main); font-size:0.85rem; outline:none; }
+body.light-mode .finai-ask-input { background:#f8fafc; border-color:#e2e8f0; }
+.finai-ask-input:focus { border-color:rgba(56,189,248,0.4); }
+.finai-ask-answer { background:rgba(56,189,248,0.06); border:1px solid rgba(56,189,248,0.2); border-radius:12px; padding:0.9rem 1.1rem; font-size:0.85rem; color:var(--text-main); line-height:1.6; }
+
 .cc-view-wrap { display:flex; gap:1.4rem; height:100%; }
 .cc-setup-panel {
   width:300px; flex-shrink:0; display:flex; flex-direction:column; gap:1rem;
@@ -4055,6 +4098,10 @@ function passAppLockGate() {
     <div class="nav-icon"><i class="fas fa-sticky-note" style="color:#fbbf24"></i></div>
     <span class="nav-label">Notes</span>
   </div>
+  <div class="nav-item" id="fin-nav-finai" onclick="switchView('finai',this,'finance')">
+    <div class="nav-icon"><i class="fas fa-robot" style="color:#38bdf8"></i></div>
+    <span class="nav-label">Fin AI</span>
+  </div>
 
   <div class="sidebar-footer" style="margin-top:auto">
     <!-- Expanded footer -->
@@ -5453,6 +5500,74 @@ function passAppLockGate() {
             </div>
           </div>
         </div>
+
+      </div>
+    </div>
+
+    <div id="view-finai" class="view-section">
+      <div class="finai-wrap">
+
+        <div class="finai-top-row">
+          <div class="finai-score-card">
+            <div class="finai-score-ring-wrap">
+              <svg viewBox="0 0 120 120" class="finai-score-ring">
+                <circle cx="60" cy="60" r="52" class="finai-ring-track"></circle>
+                <circle cx="60" cy="60" r="52" class="finai-ring-progress" id="finai-ring-progress"></circle>
+              </svg>
+              <div class="finai-score-num" id="finai-score-num">--</div>
+            </div>
+            <div class="finai-score-meta">
+              <div class="finai-score-label">Financial Health Score</div>
+              <div class="finai-score-sub" id="finai-score-sub">Analyzing your data…</div>
+              <div class="finai-score-tags" id="finai-score-tags"></div>
+            </div>
+          </div>
+
+          <div class="finai-stats-mini">
+            <div class="finai-mini-stat">
+              <span class="finai-mini-label">Savings Rate</span>
+              <span class="finai-mini-val" id="finai-mini-savings">--</span>
+            </div>
+            <div class="finai-mini-stat">
+              <span class="finai-mini-label">Top Spend Category</span>
+              <span class="finai-mini-val" id="finai-mini-topcat">--</span>
+            </div>
+            <div class="finai-mini-stat">
+              <span class="finai-mini-label">Debt-to-Income</span>
+              <span class="finai-mini-val" id="finai-mini-dti">--</span>
+            </div>
+            <div class="finai-mini-stat">
+              <span class="finai-mini-label">Portfolio P/L</span>
+              <span class="finai-mini-val" id="finai-mini-port">--</span>
+            </div>
+            <div class="finai-mini-stat">
+              <span class="finai-mini-label">Credit Card Usage</span>
+              <span class="finai-mini-val" id="finai-mini-ccutil">--</span>
+            </div>
+            <div class="finai-mini-stat">
+              <span class="finai-mini-label">Insurance Cover</span>
+              <span class="finai-mini-val" id="finai-mini-insurance">--</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="finai-section-head">
+          <div><i class="fas fa-wand-magic-sparkles"></i> AI Suggestions</div>
+          <button class="notes-icon-btn" onclick="renderFinAI()" title="Re-analyze"><i class="fas fa-rotate-right"></i></button>
+        </div>
+
+        <div class="finai-insights-grid" id="finai-insights-grid"></div>
+
+        <div class="finai-empty" id="finai-empty" style="display:none">
+          <i class="fas fa-robot" style="font-size:2.2rem;opacity:0.2;display:block;margin-bottom:10px"></i>
+          Not enough data yet. Add a few transactions and I'll start giving you real suggestions.
+        </div>
+
+        <div class="finai-ask-row">
+          <input type="text" id="finai-ask-input" class="finai-ask-input" placeholder="Ask about your finances… e.g. 'how much did I spend on food this month?'" onkeydown="if(event.key==='Enter')finaiAsk()">
+          <button class="btn-add" style="background:rgba(56,189,248,0.85)" onclick="finaiAsk()"><i class="fas fa-paper-plane"></i> Ask</button>
+        </div>
+        <div class="finai-ask-answer" id="finai-ask-answer" style="display:none"></div>
 
       </div>
     </div>
@@ -7551,6 +7666,7 @@ function switchView(viewName, btn, group) {
           'ccutil':         '<span>Credit Card</span> <b>Utilization</b>',
     'insurance':      '<span>My Zone</span> <b>Insurance</b>',
     'notes':          '<span>My Zone</span> <b>Notes</b>',
+    'finai':          '<span>My Zone</span> <b>Fin AI</b>',
   };
 
   document.getElementById('page-header').innerHTML = headerMap[viewName] || '';
@@ -7572,6 +7688,7 @@ function switchView(viewName, btn, group) {
     'calculator':     'view-calculator',
     'insurance':      'view-insurance',
     'notes':          'view-notes',
+    'finai':          'view-finai',
   };
 
   const domId = viewIdMap[viewName];
@@ -7595,6 +7712,496 @@ function switchView(viewName, btn, group) {
   else if (viewName === 'calculator') { setTimeout(initCalculator, 100); }
   else if (viewName === 'insurance') { renderInsurance(); }
   else if (viewName === 'notes') { renderNotesList(); }
+  else if (viewName === 'finai') { renderFinAI(); }
+}
+
+// ── FIN AI AGENT (real, local, rule-based analysis engine — no external API) ─
+// Everything below reads straight from the live db / creditDb / portDb / budgets
+// arrays already maintained by the app, so every suggestion reflects actual data.
+
+function finaiMonthKey(d) { return (d || '').slice(0, 7); }
+
+function finaiBuildAnalysis() {
+  const today = new Date();
+  const thisMonth = today.toISOString().slice(0, 7);
+  const prevMonthDate = new Date(today.getFullYear(), today.getMonth() - 1, 1);
+  const prevMonth = prevMonthDate.toISOString().slice(0, 7);
+
+  const allTxns = db || [];
+  const incomeAll = allTxns.filter(r => r.type === 'Income');
+  const expenseAll = allTxns.filter(r => r.type === 'Expense');
+  const loanAll = allTxns.filter(r => r.type === 'Loan');
+  const investAll = allTxns.filter(r => r.type === 'Investment');
+
+  const sum = arr => arr.reduce((a, b) => a + Number(b.amount || 0), 0);
+
+  const totalIncome = sum(incomeAll);
+  const totalExpense = sum(expenseAll);
+  const totalLoanOut = sum(loanAll);
+  const totalInvestOut = sum(investAll);
+
+  const thisMonthIncome = sum(incomeAll.filter(r => finaiMonthKey(r.date) === thisMonth));
+  const thisMonthExpense = sum(expenseAll.filter(r => finaiMonthKey(r.date) === thisMonth));
+  const prevMonthIncome = sum(incomeAll.filter(r => finaiMonthKey(r.date) === prevMonth));
+  const prevMonthExpense = sum(expenseAll.filter(r => finaiMonthKey(r.date) === prevMonth));
+
+  const overallSavingsRate = totalIncome > 0 ? ((totalIncome - totalExpense - totalLoanOut - totalInvestOut) / totalIncome) * 100 : null;
+  const monthSavingsRate = thisMonthIncome > 0 ? ((thisMonthIncome - thisMonthExpense) / thisMonthIncome) * 100 : null;
+
+  // Category breakdown (this month vs historical average, using `sub` as category)
+  const catThisMonth = {};
+  const catHistorical = {};
+  expenseAll.forEach(r => {
+    const cat = r.sub || 'General';
+    const mk = finaiMonthKey(r.date);
+    if (mk === thisMonth) {
+      catThisMonth[cat] = (catThisMonth[cat] || 0) + Number(r.amount || 0);
+    } else {
+      if (!catHistorical[cat]) catHistorical[cat] = { total: 0, months: new Set() };
+      catHistorical[cat].total += Number(r.amount || 0);
+      catHistorical[cat].months.add(mk);
+    }
+  });
+  const topCatEntry = Object.entries(catThisMonth).sort((a, b) => b[1] - a[1])[0];
+
+  const spikes = Object.entries(catThisMonth).map(([cat, spent]) => {
+    const hist = catHistorical[cat];
+    if (!hist || hist.months.size < 2) return null;
+    const avg = hist.total / hist.months.size;
+    if (avg <= 0) return null;
+    const pct = ((spent - avg) / avg) * 100;
+    return { cat, spent, avg, pct };
+  }).filter(Boolean).filter(s => s.pct >= 40).sort((a, b) => b.pct - a.pct);
+
+  // Budgets vs actual (this month)
+  const budgetOverruns = Object.keys(budgets || {}).map(cat => {
+    const limit = Number(budgets[cat]);
+    if (!limit) return null;
+    const spent = catThisMonth[cat] || 0;
+    if (spent <= limit) return null;
+    return { cat, limit, spent, overBy: spent - limit, pct: ((spent - limit) / limit) * 100 };
+  }).filter(Boolean).sort((a, b) => b.overBy - a.overBy);
+
+  // Credit / debt analysis
+  const activeCredit = (creditDb || []).filter(c => c.status === 'Active');
+  const totalOutstandingDebt = activeCredit.reduce((s, c) => s + Number(c.outstandingBalance || 0), 0);
+  const highInterestDebt = activeCredit.filter(c => Number(c.interestRate) >= 24).sort((a, b) => Number(b.interestRate) - Number(a.interestRate));
+  const totalMonthlyEmi = activeCredit.reduce((s, c) => s + Number(c.monthlyEmi || 0), 0);
+  const debtToIncome = thisMonthIncome > 0 ? (totalMonthlyEmi / thisMonthIncome) * 100 : (totalMonthlyEmi > 0 ? 999 : 0);
+
+  // EMIs due in the next 5 days
+  const upcomingEmis = activeCredit.map(c => {
+    const dueMatch = String(c.dueDate || '').match(/\d+/);
+    if (!dueMatch) return null;
+    const dueDay = parseInt(dueMatch[0], 10);
+    let daysUntil = dueDay - today.getDate();
+    if (daysUntil < 0) daysUntil += 30;
+    return { lender: c.lenderName, emi: Number(c.monthlyEmi || 0), daysUntil };
+  }).filter(Boolean).filter(e => e.daysUntil <= 5).sort((a, b) => a.daysUntil - b.daysUntil);
+
+  // Portfolio analysis
+  const activePort = (portDb || []).filter(p => p.status !== 'sold');
+  let portInvested = 0, portCurrent = 0;
+  activePort.forEach(p => {
+    const qty = Number(p.quantity || 0);
+    portInvested += qty * Number(p.purchasePrice || 0);
+    portCurrent += qty * Number(p.currentPrice || p.purchasePrice || 0);
+  });
+  const portPL = portCurrent - portInvested;
+  const portPLPct = portInvested > 0 ? (portPL / portInvested) * 100 : null;
+
+  // Net worth trend (income - expense, cumulative by month) this vs prev month
+  const nwThis = thisMonthIncome - thisMonthExpense;
+  const nwPrev = prevMonthIncome - prevMonthExpense;
+
+  // Emergency fund proxy: liquid-ish net position vs avg monthly expense
+  const monthsWithExpense = new Set(expenseAll.map(r => finaiMonthKey(r.date)));
+  const avgMonthlyExpense = monthsWithExpense.size ? sum(expenseAll) / monthsWithExpense.size : 0;
+
+  // ── Credit Card Utilization (real, live from ccCards) ─────────────────
+  const ccAnalysis = (ccCards || []).map(card => {
+    const limit = Number(card.limit || 0);
+    const used = Number(card.used || 0);
+    if (!limit) return null;
+    return { nickname: card.nickname, bankName: card.bankName, limit, used, pct: (used / limit) * 100 };
+  }).filter(Boolean);
+  const totalCCLimit = ccAnalysis.reduce((s, c) => s + c.limit, 0);
+  const totalCCUsed = ccAnalysis.reduce((s, c) => s + c.used, 0);
+  const overallCCUtilPct = totalCCLimit > 0 ? (totalCCUsed / totalCCLimit) * 100 : null;
+  const highUtilCards = ccAnalysis.filter(c => c.pct >= 50).sort((a, b) => b.pct - a.pct);
+
+  // ── Insurance coverage gap check (real, live from insuranceDb) ────────
+  const activePolicies = (insuranceDb || []).filter(p => p.status !== 'Expired' && p.status !== 'Lapsed');
+  const hasHealthCover = activePolicies.some(p => /health|medical/i.test(p.category || p.insType || ''));
+  const hasLifeCover = activePolicies.some(p => /life|term/i.test(p.category || p.insType || ''));
+  const totalSumInsured = activePolicies.reduce((s, p) => s + Number(p.sumInsured || 0), 0);
+  const totalPremiumAnnual = activePolicies.reduce((s, p) => {
+    const prem = Number(p.premium || 0);
+    const mult = p.frequency === 'Monthly' ? 12 : p.frequency === 'Quarterly' ? 4 : p.frequency === 'Half-Yearly' ? 2 : 1;
+    return s + prem * mult;
+  }, 0);
+  const expiringPolicies = activePolicies.filter(p => {
+    if (!p.endDate) return false;
+    const days = (new Date(p.endDate) - today) / 86400000;
+    return days >= 0 && days <= 30;
+  });
+
+  // ── Recurring / subscription detection (real, from db expense history) ─
+  const recurGroups = {};
+  expenseAll.forEach(r => {
+    const key = (r.name || 'Unnamed') + '|' + Math.round(Number(r.amount || 0));
+    if (!recurGroups[key]) recurGroups[key] = { name: r.name || 'Unnamed', amount: Number(r.amount || 0), months: new Set() };
+    recurGroups[key].months.add(finaiMonthKey(r.date));
+  });
+  const recurringCharges = Object.values(recurGroups).filter(g => g.months.size >= 3)
+    .sort((a, b) => b.amount - a.amount);
+  const recurringMonthlyTotal = recurringCharges.reduce((s, g) => s + g.amount, 0);
+
+  // ── Portfolio concentration / diversification risk ─────────────────────
+  const portByType = {};
+  activePort.forEach(p => {
+    const qty = Number(p.quantity || 0);
+    const val = qty * Number(p.currentPrice || p.purchasePrice || 0);
+    portByType[p.assetType] = (portByType[p.assetType] || 0) + val;
+  });
+  const portTypeEntries = Object.entries(portByType).sort((a, b) => b[1] - a[1]);
+  const topConcentration = portTypeEntries.length && portCurrent > 0
+    ? { type: portTypeEntries[0][0], pct: (portTypeEntries[0][1] / portCurrent) * 100 }
+    : null;
+
+  // ── Stated financial goal from onboarding (real, user-set) ─────────────
+  const userGoal = localStorage.getItem('fos_onboarding_goal') || '';
+
+  // ── Score history trend (real, stored locally across visits) ───────────
+  let scoreHistory = [];
+  try { scoreHistory = JSON.parse(localStorage.getItem('fos_finai_score_history') || '[]'); } catch (e) { scoreHistory = []; }
+  const lastScore = scoreHistory.length ? scoreHistory[scoreHistory.length - 1].score : null;
+
+  return {
+    thisMonth, prevMonth, totalIncome, totalExpense, totalLoanOut, totalInvestOut,
+    thisMonthIncome, thisMonthExpense, prevMonthIncome, prevMonthExpense,
+    overallSavingsRate, monthSavingsRate, topCatEntry, spikes, budgetOverruns,
+    totalOutstandingDebt, highInterestDebt, totalMonthlyEmi, debtToIncome, upcomingEmis,
+    portInvested, portCurrent, portPL, portPLPct, nwThis, nwPrev, avgMonthlyExpense,
+    ccAnalysis, totalCCLimit, totalCCUsed, overallCCUtilPct, highUtilCards,
+    hasHealthCover, hasLifeCover, totalSumInsured, totalPremiumAnnual, expiringPolicies, hasPolicies: activePolicies.length > 0,
+    recurringCharges, recurringMonthlyTotal, topConcentration, userGoal, lastScore,
+    hasData: allTxns.length > 0
+  };
+}
+
+function finaiComputeScore(a) {
+  let score = 50;
+  const tags = [];
+
+  if (a.monthSavingsRate !== null) {
+    if (a.monthSavingsRate >= 30) { score += 20; tags.push(['Great Saver', 'good']); }
+    else if (a.monthSavingsRate >= 20) { score += 12; tags.push(['Healthy Savings', 'good']); }
+    else if (a.monthSavingsRate >= 0) { score += 2; tags.push(['Low Savings', 'warn']); }
+    else { score -= 20; tags.push(['Overspending', 'bad']); }
+  }
+
+  if (a.debtToIncome > 0) {
+    if (a.debtToIncome >= 50) { score -= 20; tags.push(['High EMI Load', 'bad']); }
+    else if (a.debtToIncome >= 30) { score -= 8; tags.push(['Moderate EMI Load', 'warn']); }
+    else { score += 6; tags.push(['EMI Under Control', 'good']); }
+  }
+
+  if (a.highInterestDebt.length) { score -= 10; tags.push(['High-Interest Debt', 'bad']); }
+  if (a.budgetOverruns.length) { score -= Math.min(15, a.budgetOverruns.length * 5); tags.push(['Over Budget', 'warn']); }
+  if (a.spikes.length) { score -= Math.min(10, a.spikes.length * 4); tags.push(['Spending Spike', 'warn']); }
+
+  if (a.portPLPct !== null) {
+    if (a.portPLPct >= 5) tags.push(['Portfolio Up', 'good']);
+    else if (a.portPLPct <= -5) { score -= 5; tags.push(['Portfolio Down', 'warn']); }
+  }
+
+  if (a.nwPrev !== 0 && a.nwThis < a.nwPrev) { score -= 5; }
+  else if (a.nwThis > a.nwPrev) { score += 5; }
+
+  if (a.overallCCUtilPct !== null) {
+    if (a.overallCCUtilPct >= 75) { score -= 15; tags.push(['Critical CC Usage', 'bad']); }
+    else if (a.overallCCUtilPct >= 30) { score -= 5; tags.push(['High CC Usage', 'warn']); }
+    else { score += 4; tags.push(['CC Usage Healthy', 'good']); }
+  }
+
+  if (!a.hasHealthCover) { score -= 6; tags.push(['No Health Cover', 'bad']); }
+  if (!a.hasLifeCover) { score -= 4; tags.push(['No Life Cover', 'warn']); }
+
+  if (a.recurringCharges.length >= 4) { score -= 4; tags.push(['Many Subscriptions', 'warn']); }
+
+  if (a.topConcentration && a.topConcentration.pct >= 70) { score -= 6; tags.push(['Concentrated Portfolio', 'warn']); }
+
+  score = Math.max(5, Math.min(100, Math.round(score)));
+
+  // Persist score history so future visits can show a real trend
+  try {
+    let hist = JSON.parse(localStorage.getItem('fos_finai_score_history') || '[]');
+    const today = new Date().toISOString().slice(0, 10);
+    if (!hist.length || hist[hist.length - 1].date !== today) {
+      hist.push({ date: today, score });
+      if (hist.length > 60) hist = hist.slice(-60);
+      localStorage.setItem('fos_finai_score_history', JSON.stringify(hist));
+    } else {
+      hist[hist.length - 1].score = score;
+      localStorage.setItem('fos_finai_score_history', JSON.stringify(hist));
+    }
+  } catch (e) {}
+
+  return { score, tags: tags.slice(0, 6) };
+}
+
+function finaiBuildInsights(a) {
+  const insights = [];
+  const push = (icon, color, severity, title, body, action) => insights.push({ icon, color, severity, title, body, action });
+
+  if (a.monthSavingsRate !== null) {
+    if (a.monthSavingsRate < 0) {
+      push('fa-triangle-exclamation', '#ef4444', 'bad', 'You are spending more than you earn',
+        `This month you've spent ${fmt(a.thisMonthExpense)} against income of ${fmt(a.thisMonthIncome)}. That's a deficit of ${fmt(Math.abs(a.thisMonthIncome - a.thisMonthExpense))}.`,
+        'Cut discretionary spend immediately or add an income source.');
+    } else if (a.monthSavingsRate < 20) {
+      push('fa-piggy-bank', '#fbbf24', 'warn', `Savings rate is only ${a.monthSavingsRate.toFixed(0)}%`,
+        `You're saving ${fmt(a.thisMonthIncome - a.thisMonthExpense)} out of ${fmt(a.thisMonthIncome)} earned this month. The recommended minimum is 20%.`,
+        'Try the 50/30/20 rule: 50% needs, 30% wants, 20% savings.');
+    } else {
+      push('fa-seedling', '#34d399', 'good', `Strong savings rate of ${a.monthSavingsRate.toFixed(0)}%`,
+        `You saved ${fmt(a.thisMonthIncome - a.thisMonthExpense)} this month out of ${fmt(a.thisMonthIncome)} income. Keep this up.`,
+        'Consider auto-investing the surplus so it doesn\'t sit idle.');
+    }
+  }
+
+  if (a.topCatEntry) {
+    const [cat, amt] = a.topCatEntry;
+    push('fa-chart-pie', '#38bdf8', 'info', `Biggest expense this month: ${cat}`,
+      `You've spent ${fmt(amt)} on "${cat}" so far this month — your single largest category.`,
+      'Review these transactions for anything recurring or avoidable.');
+  }
+
+  a.spikes.slice(0, 2).forEach(s => {
+    push('fa-bolt', '#f59e0b', 'warn', `Unusual spike in "${s.cat}"`,
+      `${fmt(s.spent)} spent this month vs your historical average of ${fmt(Math.round(s.avg))} — that's ${s.pct.toFixed(0)}% higher.`,
+      'Worth a quick review to see if this was a one-off or a new habit.');
+  });
+
+  a.budgetOverruns.slice(0, 3).forEach(b => {
+    push('fa-sliders-h', '#ef4444', 'bad', `Over budget on "${b.cat}"`,
+      `You've spent ${fmt(b.spent)} against a budget of ${fmt(b.limit)} — over by ${fmt(b.overBy)} (${b.pct.toFixed(0)}%).`,
+      'Adjust the budget or dial back spending in this category for the rest of the month.');
+  });
+
+  if (a.highInterestDebt.length) {
+    const worst = a.highInterestDebt[0];
+    push('fa-fire', '#ef4444', 'bad', `High-interest debt: ${worst.lenderName}`,
+      `${worst.lenderName} is charging ${worst.interestRate}% interest on an outstanding balance of ${fmt(worst.outstandingBalance)}. This is costing you more than almost any investment could earn you.`,
+      'Use the debt avalanche method — pay this off first while making minimum payments elsewhere.');
+  }
+
+  if (a.debtToIncome >= 40) {
+    push('fa-scale-unbalanced', '#ef4444', 'bad', 'EMI load is high relative to income',
+      `Your monthly EMIs total ${fmt(a.totalMonthlyEmi)}, which is ${a.debtToIncome.toFixed(0)}% of this month's income. Lenders generally flag anything above 40% as risky.`,
+      'Avoid taking on new debt until this ratio comes down.');
+  }
+
+  a.upcomingEmis.forEach(e => {
+    push('fa-calendar-day', '#f59e0b', 'warn', `EMI due soon: ${e.lender}`,
+      `${fmt(e.emi)} is due in ${e.daysUntil === 0 ? 'today' : e.daysUntil + ' day(s)'}. Make sure funds are available.`,
+      'Set aside this amount now to avoid a late payment hit.');
+  });
+
+  if (a.portInvested > 0) {
+    if (a.portPLPct !== null && a.portPLPct <= -10) {
+      push('fa-arrow-trend-down', '#ef4444', 'bad', 'Portfolio is down significantly',
+        `Your active investments are down ${Math.abs(a.portPLPct).toFixed(1)}% (${fmt(Math.abs(a.portPL))} loss) against ${fmt(a.portInvested)} invested.`,
+        'Avoid panic-selling; review whether your thesis for these holdings still holds.');
+    } else if (a.portPLPct !== null && a.portPLPct >= 10) {
+      push('fa-arrow-trend-up', '#34d399', 'good', 'Portfolio is performing well',
+        `Your active investments are up ${a.portPLPct.toFixed(1)}% (${fmt(a.portPL)} gain) against ${fmt(a.portInvested)} invested.`,
+        'Consider rebalancing if any single holding has grown to dominate your portfolio.');
+    }
+  }
+
+  if (a.nwPrev !== 0 && a.nwThis < a.nwPrev) {
+    push('fa-chart-area', '#f59e0b', 'warn', 'Net monthly position declined',
+      `Your income-minus-expense position this month (${fmt(a.nwThis)}) is lower than last month's (${fmt(a.nwPrev)}).`,
+      'Check if this was a planned large expense or a spending creep.');
+  }
+
+  if (a.avgMonthlyExpense > 0) {
+    push('fa-umbrella', '#38bdf8', 'info', 'Emergency fund check',
+      `Your average monthly expense is ${fmt(Math.round(a.avgMonthlyExpense))}. A safe emergency fund is 6× this amount, i.e. roughly ${fmt(Math.round(a.avgMonthlyExpense * 6))}.`,
+      'If your liquid savings are below this, prioritize building it before aggressive investing.');
+  }
+
+  a.highUtilCards.slice(0, 3).forEach(c => {
+    const sev = c.pct >= 75 ? 'bad' : 'warn';
+    const color = c.pct >= 75 ? '#ef4444' : '#f59e0b';
+    push('fa-credit-card', color, sev, `Credit card utilization high: ${c.nickname || c.bankName}`,
+      `${c.nickname || c.bankName} is at ${c.pct.toFixed(0)}% utilization (${fmt(c.used)} of ${fmt(c.limit)} limit).`,
+      c.pct >= 75 ? 'Pay this down immediately — utilization above 75% significantly hurts your credit score.' : 'Try to keep utilization under 30% for a healthier credit score.');
+  });
+
+  if (a.hasPolicies || a.totalIncome > 0) {
+    if (!a.hasHealthCover) {
+      push('fa-briefcase-medical', '#ef4444', 'bad', 'No active health insurance found',
+        `You have no active health/medical policy logged in your Insurance tab.`,
+        'A medical emergency without cover can wipe out years of savings — consider a health policy as a priority.');
+    }
+    if (!a.hasLifeCover && a.totalMonthlyEmi > 0) {
+      push('fa-shield-heart', '#f59e0b', 'warn', 'No life/term cover found despite active debt',
+        `You have ${fmt(a.totalOutstandingDebt)} in outstanding debt but no active life/term insurance logged.`,
+        'A term policy sized to your debt protects your family from inheriting these liabilities.');
+    }
+  }
+  a.expiringPolicies.forEach(p => {
+    push('fa-hourglass-half', '#f59e0b', 'warn', `Policy expiring soon: ${p.provider || p.insType || 'Policy'}`,
+      `This policy's coverage ends on ${p.endDate}. Renew it to avoid a coverage gap.`,
+      'Set a reminder to renew before the end date.');
+  });
+
+  if (a.recurringCharges.length) {
+    const top = a.recurringCharges.slice(0, 3).map(g => `${g.name} (${fmt(g.amount)})`).join(', ');
+    push('fa-rotate', '#38bdf8', a.recurringCharges.length >= 4 ? 'warn' : 'info', `${a.recurringCharges.length} recurring charge(s) detected`,
+      `Found repeating charges of the same amount across 3+ months: ${top}${a.recurringCharges.length > 3 ? ', and more' : ''}. Together they total roughly ${fmt(Math.round(a.recurringMonthlyTotal))} per occurrence.`,
+      'Review these for subscriptions you no longer use.');
+  }
+
+  if (a.topConcentration && a.topConcentration.pct >= 70) {
+    push('fa-layer-group', '#f59e0b', 'warn', `Portfolio concentrated in ${a.topConcentration.type}`,
+      `${a.topConcentration.pct.toFixed(0)}% of your active portfolio value is in ${a.topConcentration.type}.`,
+      'Diversifying across asset types reduces risk if this one segment underperforms.');
+  }
+
+  if (a.userGoal) {
+    const goalLabels = { track: 'Tracking Spending', wealth: 'Building Wealth', debt: 'Paying Off Debt', portfolio: 'Managing Investments', all: 'The Full Picture' };
+    const label = goalLabels[a.userGoal] || a.userGoal;
+    if (a.userGoal === 'debt' && a.highInterestDebt.length === 0 && a.totalOutstandingDebt === 0) {
+      push('fa-flag-checkered', '#34d399', 'good', `Goal check: ${label}`,
+        `You set "${label}" as your goal, and you currently have no outstanding tracked debt.`,
+        'Consider redirecting former EMI capacity into investments.');
+    } else if (a.userGoal === 'debt' && a.totalOutstandingDebt > 0) {
+      push('fa-flag', '#38bdf8', 'info', `Goal check: ${label}`,
+        `Toward your goal of "${label}": you still have ${fmt(a.totalOutstandingDebt)} outstanding across active loans/cards.`,
+        'Prioritize the highest interest-rate debt first for the fastest progress.');
+    } else if (a.userGoal === 'wealth') {
+      push('fa-flag', '#38bdf8', 'info', `Goal check: ${label}`,
+        `Toward "${label}": your current savings rate is ${a.monthSavingsRate !== null ? a.monthSavingsRate.toFixed(0) + '%' : 'not yet measurable'} and your portfolio is worth ${fmt(Math.round(a.portCurrent))}.`,
+        'Wealth building compounds fastest with consistent monthly investing — consider automating it.');
+    }
+  }
+
+  if (!insights.length) {
+    push('fa-circle-info', '#38bdf8', 'info', 'All looks steady',
+      'No red flags found in your current data — income, spending and debt all look balanced.',
+      'Keep logging transactions regularly so future suggestions stay accurate.');
+  }
+
+  return insights;
+}
+
+function renderFinAI() {
+  const a = finaiBuildAnalysis();
+  const grid = document.getElementById('finai-insights-grid');
+  const empty = document.getElementById('finai-empty');
+  if (!grid) return;
+
+  if (!a.hasData) {
+    grid.innerHTML = '';
+    if (empty) empty.style.display = 'block';
+    document.getElementById('finai-score-num').textContent = '--';
+    document.getElementById('finai-score-sub').textContent = 'Add transactions to get started.';
+    document.getElementById('finai-mini-savings').textContent = '--';
+    document.getElementById('finai-mini-topcat').textContent = '--';
+    document.getElementById('finai-mini-dti').textContent = '--';
+    document.getElementById('finai-mini-port').textContent = '--';
+    document.getElementById('finai-mini-ccutil').textContent = '--';
+    document.getElementById('finai-mini-insurance').textContent = '--';
+    return;
+  }
+  if (empty) empty.style.display = 'none';
+
+  const { score, tags } = finaiComputeScore(a);
+  const ring = document.getElementById('finai-ring-progress');
+  const circumference = 2 * Math.PI * 52;
+  const offset = circumference - (score / 100) * circumference;
+  if (ring) {
+    ring.style.strokeDasharray = String(circumference);
+    ring.style.strokeDashoffset = String(offset);
+    ring.style.stroke = score >= 70 ? '#34d399' : score >= 45 ? '#fbbf24' : '#ef4444';
+  }
+  document.getElementById('finai-score-num').textContent = score;
+  let subText = score >= 70 ? 'Your finances are in solid shape.' :
+    score >= 45 ? 'A few things need attention.' :
+    'Your finances need urgent attention.';
+  if (a.lastScore !== null && a.lastScore !== score) {
+    const diff = score - a.lastScore;
+    subText += ` (${diff > 0 ? '+' : ''}${diff} vs last check)`;
+  }
+  document.getElementById('finai-score-sub').textContent = subText;
+  document.getElementById('finai-score-tags').innerHTML = tags.map(([label, cls]) =>
+    `<span class="finai-tag ${cls}">${label}</span>`).join('');
+
+  document.getElementById('finai-mini-savings').textContent = a.monthSavingsRate !== null ? a.monthSavingsRate.toFixed(0) + '%' : '--';
+  document.getElementById('finai-mini-topcat').textContent = a.topCatEntry ? a.topCatEntry[0] : '--';
+  document.getElementById('finai-mini-dti').textContent = a.debtToIncome ? a.debtToIncome.toFixed(0) + '%' : '0%';
+  document.getElementById('finai-mini-port').textContent = a.portInvested > 0 ? (a.portPL >= 0 ? '+' : '') + fmt(Math.round(a.portPL)) : '--';
+  document.getElementById('finai-mini-ccutil').textContent = a.overallCCUtilPct !== null ? a.overallCCUtilPct.toFixed(0) + '%' : '--';
+  document.getElementById('finai-mini-insurance').textContent = a.hasHealthCover && a.hasLifeCover ? 'Health + Life' : a.hasHealthCover ? 'Health only' : a.hasLifeCover ? 'Life only' : 'None';
+
+  const insights = finaiBuildInsights(a);
+  grid.innerHTML = insights.map(ins => `
+    <div class="finai-card severity-${ins.severity}">
+      <div class="finai-card-head"><i class="fas ${ins.icon}" style="color:${ins.color}"></i> ${ins.title}</div>
+      <div class="finai-card-body">${ins.body}</div>
+      <div class="finai-card-action"><i class="fas fa-lightbulb"></i> ${ins.action}</div>
+    </div>
+  `).join('');
+}
+
+// Simple natural-language query box over the same real data (keyword-matched, no external calls)
+function finaiAsk() {
+  const input = document.getElementById('finai-ask-input');
+  const answerBox = document.getElementById('finai-ask-answer');
+  if (!input || !answerBox) return;
+  const q = input.value.trim();
+  if (!q) return;
+  const ql = q.toLowerCase();
+  const a = finaiBuildAnalysis();
+  let answer = '';
+
+  const catMatch = Object.keys(Object.assign({},
+    ...db.map(r => ({ [(r.sub || '').toLowerCase()]: true }))
+  )).find(cat => cat && ql.includes(cat));
+
+  if (catMatch) {
+    const spentThisMonth = db.filter(r => r.type === 'Expense' && (r.sub || '').toLowerCase() === catMatch && finaiMonthKey(r.date) === a.thisMonth)
+      .reduce((s, r) => s + Number(r.amount || 0), 0);
+    const spentAllTime = db.filter(r => r.type === 'Expense' && (r.sub || '').toLowerCase() === catMatch)
+      .reduce((s, r) => s + Number(r.amount || 0), 0);
+    answer = `You've spent ${fmt(spentThisMonth)} on "${catMatch}" this month, and ${fmt(spentAllTime)} on it in total across all recorded transactions.`;
+  } else if (ql.includes('save') || ql.includes('saving')) {
+    answer = a.monthSavingsRate !== null
+      ? `This month you're saving ${a.monthSavingsRate.toFixed(0)}% of your income (${fmt(a.thisMonthIncome - a.thisMonthExpense)} out of ${fmt(a.thisMonthIncome)}).`
+      : `No income has been logged this month yet, so I can't compute a savings rate.`;
+  } else if (ql.includes('debt') || ql.includes('loan') || ql.includes('emi')) {
+    answer = `You have ${fmt(a.totalOutstandingDebt)} in outstanding debt across active loans/cards, with monthly EMIs totalling ${fmt(a.totalMonthlyEmi)} (${a.debtToIncome.toFixed(0)}% of this month's income).`;
+  } else if (ql.includes('invest') || ql.includes('portfolio')) {
+    answer = a.portInvested > 0
+      ? `Your active portfolio is worth ${fmt(Math.round(a.portCurrent))} against ${fmt(Math.round(a.portInvested))} invested — a ${a.portPL >= 0 ? 'gain' : 'loss'} of ${fmt(Math.abs(Math.round(a.portPL)))} (${a.portPLPct !== null ? a.portPLPct.toFixed(1) : '0'}%).`
+      : `No active investment holdings found.`;
+  } else if (ql.includes('income') || ql.includes('earn')) {
+    answer = `You've earned ${fmt(a.thisMonthIncome)} this month and ${fmt(a.totalIncome)} in total across all recorded income.`;
+  } else if (ql.includes('spend') || ql.includes('expense')) {
+    answer = a.topCatEntry
+      ? `You've spent ${fmt(a.thisMonthExpense)} this month in total. Your biggest category is "${a.topCatEntry[0]}" at ${fmt(a.topCatEntry[1])}.`
+      : `No expenses logged yet this month.`;
+  } else {
+    answer = `I can currently answer questions about your income, spending (by category), savings rate, debt/EMI load, and investment portfolio — try asking about one of those, e.g. "how much have I saved this month?"`;
+  }
+
+  answerBox.style.display = 'block';
+  answerBox.innerHTML = `<i class="fas fa-robot" style="color:#38bdf8;margin-right:6px"></i>${answer}`;
+  input.value = '';
 }
 
 // ── DASHBOARD ──────────────────────────────────────────────────────────────
