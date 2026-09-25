@@ -13989,13 +13989,35 @@ function openBudgetModal() {
     return Math.ceil(n / step) * step;
   };
 
+  // Standardized slider scale — every category uses the SAME 0→max range and
+  // the same step, so the sliders are visually comparable and consistent
+  // (instead of each row having its own random ceiling). The standard max is
+  // derived from the overall data (highest existing limit / highest monthly
+  // spend across all categories), so it's still big enough to be useful, but
+  // any single category that genuinely needs more (a big existing budget or
+  // a category that regularly spends more than the standard max) still gets
+  // its own taller ceiling rather than being clipped.
+  const allExisting = allSubs.map(sub => Number(budgets[sub] || 0));
+  const allMaxSpends = allSubs.map(sub => {
+    const monthVals = Object.values(monthlyBySub[sub] || {});
+    return monthVals.length ? Math.max(...monthVals) : 0;
+  });
+  const globalCeil = niceCeil(Math.max(
+    ...allExisting.map(v => v * 1.5),
+    ...allMaxSpends.map(v => v * 2),
+    5000
+  ));
+  const globalStep = globalCeil <= 2000 ? 50 : globalCeil <= 10000 ? 100 : globalCeil <= 50000 ? 500 : 1000;
+
   document.getElementById('budget-modal-list').innerHTML = allSubs.map(sub => {
     const id = sanitizeId(sub);
     const existing = Number(budgets[sub] || 0);
     const monthVals = Object.values(monthlyBySub[sub] || {});
     const maxSpend = monthVals.length ? Math.max(...monthVals) : 0;
-    const ceilVal = niceCeil(Math.max(existing * 1.5, maxSpend * 2, 1000));
-    const step = ceilVal <= 2000 ? 50 : ceilVal <= 10000 ? 100 : ceilVal <= 50000 ? 500 : 1000;
+    // Use the standard ceiling for every row; only stretch it for a category
+    // whose own limit/spend actually exceeds the standard scale.
+    const ceilVal = Math.max(globalCeil, niceCeil(Math.max(existing * 1.2, maxSpend * 1.5, 1)));
+    const step = ceilVal === globalCeil ? globalStep : (ceilVal <= 2000 ? 50 : ceilVal <= 10000 ? 100 : ceilVal <= 50000 ? 500 : 1000);
     const metaText = existing > 0 ? `Alert at ${fmt(Math.round(existing * 0.8))}` : 'No limit set';
     return `
     <div class="budget-row-v2 ${existing > 0 ? 'has-limit' : ''}" data-name="${sub.toLowerCase()}">
