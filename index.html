@@ -7721,6 +7721,34 @@ function switchView(viewName, btn, group) {
 
 function finaiMonthKey(d) { return (d || '').slice(0, 7); }
 
+// ── Essential vs Discretionary classifier ──────────────────────────────
+// Real rule-based classification using category (sub) + transaction name,
+// so the agent can tell "needs" apart from "wants" instead of treating
+// every rupee the same way.
+const FINAI_ESSENTIAL_KEYWORDS = [
+  'rent','emi','mortgage','grocery','groceries','medical','health','hospital','doctor',
+  'medicine','pharmacy','insurance','premium','electricity','water bill','water',
+  'gas bill','cooking gas','fuel','petrol','diesel','school','tuition','fees','education',
+  'loan','wifi','internet','broadband','phone bill','mobile bill','maintenance','society',
+  'utility','utilities','childcare','daycare','commute','transport','bus pass','metro',
+  'essential','domestic help','maid','cook','repair'
+];
+const FINAI_DISCRETIONARY_KEYWORDS = [
+  'dining','restaurant','eating out','entertainment','movie','cinema','netflix','spotify',
+  'prime video','hotstar','subscription','ott','shopping','clothes','clothing','fashion',
+  'travel','vacation','holiday','trip','games','gaming','alcohol','bar','pub','party',
+  'luxury','gadget','electronics','hobby','coffee','cafe','takeout','food delivery',
+  'zomato','swiggy','uber eats','amazon','online shopping','gift','jewellery','jewelry',
+  'salon','spa','beauty','makeup','smoking','tobacco','lottery','bet','betting','gambling'
+];
+function finaiClassifyExpense(txn) {
+  const text = ((txn.sub || '') + ' ' + (txn.name || '')).toLowerCase();
+  if (FINAI_ESSENTIAL_KEYWORDS.some(k => text.includes(k))) return 'essential';
+  if (FINAI_DISCRETIONARY_KEYWORDS.some(k => text.includes(k))) return 'discretionary';
+  return 'uncertain';
+}
+
+
 function finaiBuildAnalysis() {
   const today = new Date();
   const thisMonth = today.toISOString().slice(0, 7);
@@ -7814,7 +7842,29 @@ function finaiBuildAnalysis() {
   const nwThis = thisMonthIncome - thisMonthExpense;
   const nwPrev = prevMonthIncome - prevMonthExpense;
 
-  // Emergency fund proxy: liquid-ish net position vs avg monthly expense
+  // ── Essential vs discretionary spend split (real classification, this month) ─
+  const thisMonthExpenseTxns = expenseAll.filter(r => finaiMonthKey(r.date) === thisMonth);
+  let essentialThisMonth = 0, discretionaryThisMonth = 0, uncertainThisMonth = 0;
+  const discretionaryByCat = {};
+  thisMonthExpenseTxns.forEach(r => {
+    const cls = finaiClassifyExpense(r);
+    const amt = Number(r.amount || 0);
+    if (cls === 'essential') essentialThisMonth += amt;
+    else if (cls === 'discretionary') { discretionaryThisMonth += amt; discretionaryByCat[r.sub || 'General'] = (discretionaryByCat[r.sub || 'General'] || 0) + amt; }
+    else uncertainThisMonth += amt;
+  });
+  const discretionaryPctOfIncome = thisMonthIncome > 0 ? (discretionaryThisMonth / thisMonthIncome) * 100 : null;
+  const discretionaryPctOfSpend = thisMonthExpense > 0 ? (discretionaryThisMonth / thisMonthExpense) * 100 : null;
+  const topDiscretionaryCat = Object.entries(discretionaryByCat).sort((a, b) => b[1] - a[1])[0];
+
+  // ── Decision-quality signals (real, derived from actual behaviour) ─────
+  const thisMonthInvestOut = sum(investAll.filter(r => finaiMonthKey(r.date) === thisMonth));
+  const investingWhileHighInterestDebt = thisMonthInvestOut > 0 && highInterestDebt.length > 0;
+  const bigDiscretionaryWhileNegative = discretionaryThisMonth > 0 && (thisMonthIncome - thisMonthExpense) < 0;
+  const goodDisciplineStreak = discretionaryPctOfIncome !== null && discretionaryPctOfIncome <= 20 && monthSavingsRate !== null && monthSavingsRate >= 20;
+  const prioritizingDebtPayoff = highInterestDebt.length > 0 && thisMonthInvestOut === 0 && totalMonthlyEmi > 0;
+
+// Emergency fund proxy: liquid-ish net position vs avg monthly expense
   const monthsWithExpense = new Set(expenseAll.map(r => finaiMonthKey(r.date)));
   const avgMonthlyExpense = monthsWithExpense.size ? sum(expenseAll) / monthsWithExpense.size : 0;
 
@@ -7886,6 +7936,9 @@ function finaiBuildAnalysis() {
     ccAnalysis, totalCCLimit, totalCCUsed, overallCCUtilPct, highUtilCards,
     hasHealthCover, hasLifeCover, totalSumInsured, totalPremiumAnnual, expiringPolicies, hasPolicies: activePolicies.length > 0,
     recurringCharges, recurringMonthlyTotal, topConcentration, userGoal, lastScore,
+    essentialThisMonth, discretionaryThisMonth, uncertainThisMonth, discretionaryPctOfIncome,
+    discretionaryPctOfSpend, topDiscretionaryCat, thisMonthInvestOut,
+    investingWhileHighInterestDebt, bigDiscretionaryWhileNegative, goodDisciplineStreak, prioritizingDebtPayoff,
     hasData: allTxns.length > 0
   };
 }
@@ -7932,6 +7985,17 @@ function finaiComputeScore(a) {
 
   if (a.topConcentration && a.topConcentration.pct >= 70) { score -= 6; tags.push(['Concentrated Portfolio', 'warn']); }
 
+  // ── Decision-quality scoring (essential vs discretionary, good/bad calls) ─
+  if (a.discretionaryPctOfIncome !== null) {
+    if (a.discretionaryPctOfIncome > 50) { score -= 14; tags.push(['Discretionary Overspend', 'bad']); }
+    else if (a.discretionaryPctOfIncome > 30) { score -= 6; tags.push(['High Discretionary Spend', 'warn']); }
+    else if (a.discretionaryPctOfIncome <= 15) { score += 4; tags.push(['Disciplined Spender', 'good']); }
+  }
+  if (a.investingWhileHighInterestDebt) { score -= 10; tags.push(['Investing Before Debt Cleared', 'bad']); }
+  if (a.bigDiscretionaryWhileNegative) { score -= 8; tags.push(['Wants Funded By Deficit', 'bad']); }
+  if (a.prioritizingDebtPayoff) { score += 6; tags.push(['Good Call: Debt First', 'good']); }
+  if (a.goodDisciplineStreak) { score += 6; tags.push(['Strong Financial Discipline', 'good']); }
+
   score = Math.max(5, Math.min(100, Math.round(score)));
 
   // Persist score history so future visits can show a real trend
@@ -7948,12 +8012,60 @@ function finaiComputeScore(a) {
     }
   } catch (e) {}
 
-  return { score, tags: tags.slice(0, 6) };
+  return { score, tags: tags.slice(0, 8) };
 }
 
 function finaiBuildInsights(a) {
   const insights = [];
-  const push = (icon, color, severity, title, body, action) => insights.push({ icon, color, severity, title, body, action });
+  const push = (icon, color, severity, title, body, action, impact) =>
+    insights.push({ icon, color, severity, title, body, action, impact: impact || 0 });
+
+  // ── Essential vs discretionary breakdown (always shown when spend exists) ──
+  if (a.essentialThisMonth + a.discretionaryThisMonth > 0) {
+    push('fa-scale-balanced', '#38bdf8', 'info', 'Needs vs wants this month',
+      `Of ${fmt(a.thisMonthExpense)} spent this month: ${fmt(Math.round(a.essentialThisMonth))} went to essentials (rent, groceries, EMIs, bills, medical) and ${fmt(Math.round(a.discretionaryThisMonth))} went to discretionary wants (dining, shopping, entertainment, subscriptions)${a.uncertainThisMonth > 0 ? `, with ${fmt(Math.round(a.uncertainThisMonth))} uncategorized` : ''}.`,
+      'Essentials should generally stay under 50% of income and wants under 30% — check where you stand.',
+      a.thisMonthExpense);
+  }
+
+  if (a.discretionaryPctOfIncome !== null && a.discretionaryPctOfIncome > 50) {
+    push('fa-thumbs-down', '#ef4444', 'bad', 'Bad call: wants are eating your income',
+      `Discretionary spending (${a.topDiscretionaryCat ? a.topDiscretionaryCat[0] : 'wants'}) is ${a.discretionaryPctOfIncome.toFixed(0)}% of this month's income — more than half your earnings went to things you wanted, not needed.`,
+      'Pause non-essential spending for the rest of the month and redirect it to savings or debt.',
+      a.discretionaryThisMonth);
+  } else if (a.discretionaryPctOfIncome !== null && a.discretionaryPctOfIncome > 30) {
+    push('fa-circle-exclamation', '#fbbf24', 'warn', 'Discretionary spending is above the healthy range',
+      `Wants-based spending is ${a.discretionaryPctOfIncome.toFixed(0)}% of income this month${a.topDiscretionaryCat ? `, led by "${a.topDiscretionaryCat[0]}" at ${fmt(Math.round(a.topDiscretionaryCat[1]))}` : ''}.`,
+      'The 50/30/20 guideline caps wants at 30% of income — trim this category first.',
+      a.discretionaryThisMonth);
+  } else if (a.discretionaryPctOfIncome !== null && a.discretionaryPctOfIncome <= 15 && a.thisMonthIncome > 0) {
+    push('fa-thumbs-up', '#34d399', 'good', 'Good call: wants are well controlled',
+      `Only ${a.discretionaryPctOfIncome.toFixed(0)}% of this month's income went to discretionary spending — most of your money is going toward essentials and savings, which is a sound pattern.`,
+      'Keep this up — this is exactly the discipline that builds wealth over time.',
+      a.thisMonthIncome - a.discretionaryThisMonth);
+  }
+
+  if (a.investingWhileHighInterestDebt) {
+    const worst = a.highInterestDebt[0];
+    push('fa-thumbs-down', '#ef4444', 'bad', `Bad call: investing while carrying ${worst.interestRate}% debt`,
+      `You put ${fmt(Math.round(a.thisMonthInvestOut))} into investments this month while ${worst.lenderName} is charging ${worst.interestRate}% interest on ${fmt(worst.outstandingBalance)} outstanding. Very few investments reliably beat that rate.`,
+      'Redirect this month\'s investment amount toward the high-interest debt instead — it\'s a guaranteed "return" equal to the interest rate.',
+      Number(worst.outstandingBalance) * Number(worst.interestRate) / 100);
+  }
+
+  if (a.bigDiscretionaryWhileNegative) {
+    push('fa-thumbs-down', '#ef4444', 'bad', 'Bad call: funding wants with a deficit',
+      `You're running a deficit this month (spent ${fmt(a.thisMonthExpense)} vs earned ${fmt(a.thisMonthIncome)}), yet ${fmt(Math.round(a.discretionaryThisMonth))} still went to discretionary spending.`,
+      'When income can\'t cover expenses, discretionary spend should pause completely, not continue alongside the shortfall.',
+      a.discretionaryThisMonth);
+  }
+
+  if (a.prioritizingDebtPayoff) {
+    push('fa-thumbs-up', '#34d399', 'good', 'Good call: clearing high-interest debt first',
+      `You're not investing this month while a high-interest debt is still outstanding — putting EMI capacity toward that debt first is the mathematically correct priority.`,
+      'Once the high-interest debt is closed, redirect that freed-up EMI straight into investing.',
+      a.totalMonthlyEmi);
+  }
 
   if (a.monthSavingsRate !== null) {
     if (a.monthSavingsRate < 0) {
@@ -8096,6 +8208,12 @@ function finaiBuildInsights(a) {
       'Keep logging transactions regularly so future suggestions stay accurate.');
   }
 
+  // Rank by real-world impact so the most urgent/consequential call surfaces first:
+  // bad decisions/risks > warnings > positive reinforcement > general info, and
+  // within each tier, bigger rupee/percentage impact first.
+  const severityWeight = { bad: 3, warn: 2, good: 1, info: 0 };
+  insights.sort((x, y) => (severityWeight[y.severity] - severityWeight[x.severity]) || (y.impact - x.impact));
+
   return insights;
 }
 
@@ -8173,7 +8291,9 @@ function finaiAsk() {
     ...db.map(r => ({ [(r.sub || '').toLowerCase()]: true }))
   )).find(cat => cat && ql.includes(cat));
 
-  if (catMatch) {
+  if (ql.includes('necessary') || ql.includes('essential') || ql.includes('discretionary') || ql.includes('unnecessary') || ql.includes('needs vs wants') || ql.includes('good decision') || ql.includes('bad decision')) {
+    answer = `This month: ${fmt(Math.round(a.essentialThisMonth))} went to essentials (rent, EMIs, groceries, bills, medical) and ${fmt(Math.round(a.discretionaryThisMonth))} went to discretionary wants${a.topDiscretionaryCat ? ` — mostly "${a.topDiscretionaryCat[0]}" at ${fmt(Math.round(a.topDiscretionaryCat[1]))}` : ''}. ${a.discretionaryPctOfIncome !== null ? `That's ${a.discretionaryPctOfIncome.toFixed(0)}% of your income on wants.` : ''} ${a.investingWhileHighInterestDebt ? 'Also worth noting: you invested this month while still carrying high-interest debt — paying that off first would be the stronger move.' : ''}`;
+  } else if (catMatch) {
     const spentThisMonth = db.filter(r => r.type === 'Expense' && (r.sub || '').toLowerCase() === catMatch && finaiMonthKey(r.date) === a.thisMonth)
       .reduce((s, r) => s + Number(r.amount || 0), 0);
     const spentAllTime = db.filter(r => r.type === 'Expense' && (r.sub || '').toLowerCase() === catMatch)
