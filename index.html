@@ -382,6 +382,11 @@ body.light-mode .finai-card { background:#fff; border-color:#e2e8f0; border-left
 .finai-card-action { font-size:0.74rem; color:#38bdf8; font-weight:700; margin-top:2px; }
 .finai-empty { text-align:center; color:var(--text-muted); font-size:0.88rem; padding:2.5rem 1rem; }
 .finai-ask-row { display:flex; gap:10px; margin-top:6px; }
+.finai-chip-row { display:flex; flex-wrap:wrap; gap:6px; margin-top:2px; }
+.finai-chip { background:rgba(56,189,248,0.08); border:1px solid rgba(56,189,248,0.25); color:#38bdf8; font-size:0.72rem; font-weight:600; padding:5px 11px; border-radius:20px; cursor:pointer; transition:0.15s; white-space:nowrap; }
+.finai-chip:hover { background:rgba(56,189,248,0.18); }
+body.light-mode .finai-chip { background:#e0f2fe; border-color:#bae6fd; color:#0369a1; }
+body.light-mode .finai-chip:hover { background:#bae6fd; }
 .finai-ask-input { flex:1; background:rgba(255,255,255,0.03); border:1px solid rgba(255,255,255,0.08); border-radius:10px; padding:10px 14px; color:var(--text-main); font-size:0.85rem; outline:none; }
 body.light-mode .finai-ask-input { background:#f8fafc; border-color:#e2e8f0; }
 .finai-ask-input:focus { border-color:rgba(56,189,248,0.4); }
@@ -4098,6 +4103,12 @@ function passAppLockGate() {
     </div>
   </div>
   <div class="liteai-insights" id="liteai-insights"></div>
+  <div class="finai-chip-row">
+    <button class="finai-chip" onclick="liteaiAskChip('This month\'s spend')">This month's spend</button>
+    <button class="finai-chip" onclick="liteaiAskChip('Am I overspending?')">Overspending?</button>
+    <button class="finai-chip" onclick="liteaiAskChip('Where can I cut back?')">Cut back?</button>
+    <button class="finai-chip" onclick="liteaiAskChip('Debt status')">Debt status</button>
+  </div>
   <div class="finai-ask-row" style="margin-top:4px;">
     <input type="text" id="liteai-ask-input" class="finai-ask-input" placeholder="Ask e.g. 'hw much did i spend on food'" onkeydown="if(event.key==='Enter')liteaiAsk()">
     <button class="btn-add" style="background:rgba(56,189,248,0.85)" onclick="liteaiAsk()"><i class="fas fa-paper-plane"></i></button>
@@ -5662,6 +5673,13 @@ function passAppLockGate() {
           Not enough data yet. Add a few transactions and I'll start giving you real suggestions.
         </div>
 
+        <div class="finai-chip-row">
+          <button class="finai-chip" onclick="finaiAskChip('This month\'s spend')">This month's spend</button>
+          <button class="finai-chip" onclick="finaiAskChip('Am I overspending?')">Am I overspending?</button>
+          <button class="finai-chip" onclick="finaiAskChip('Where can I cut back?')">Where can I cut back?</button>
+          <button class="finai-chip" onclick="finaiAskChip('Which debt should I pay first?')">Debt priority</button>
+          <button class="finai-chip" onclick="finaiAskChip('Compare this month vs last month')">vs last month</button>
+        </div>
         <div class="finai-ask-row">
           <input type="text" id="finai-ask-input" class="finai-ask-input" placeholder="Ask about your finances… e.g. 'how much did I spend on food this month?'" onkeydown="if(event.key==='Enter')finaiAsk()">
           <button class="btn-add" style="background:rgba(56,189,248,0.85)" onclick="finaiAsk()"><i class="fas fa-paper-plane"></i> Ask</button>
@@ -8577,7 +8595,9 @@ function finaiAnswerQuestion(q) {
     const spentThisMonth = finaiCategorySpendForMonth(catMatch, a.thisMonth);
     const spentAllTime = db.filter(r => r.type === 'Expense' && (r.sub || '').toLowerCase() === catMatch)
       .reduce((s, r) => s + Number(r.amount || 0), 0);
-    return `You've spent ${fmt(spentThisMonth)} on "${catMatch}" this month, and ${fmt(spentAllTime)} on it in total across all recorded transactions.`;
+    const spike = a.spikes.find(s => (s.cat || '').toLowerCase() === catMatch);
+    const spikeNote = spike ? ` That's ${spike.pct.toFixed(0)}% higher than your usual average of ${fmt(Math.round(spike.avg))} for this category — worth a look.` : '';
+    return `You've spent ${fmt(spentThisMonth)} on "${catMatch}" this month, and ${fmt(spentAllTime)} on it in total across all recorded transactions.${spikeNote}`;
   }
   if (finaiMatchesAny(tokens, ['save', 'saving', 'savings'])) {
     finaiChatState = { lastMetric: 'save', lastCategory: null };
@@ -8601,9 +8621,19 @@ function finaiAnswerQuestion(q) {
   }
   if (finaiMatchesAny(tokens, ['spend', 'spent', 'spending', 'expense', 'expenses', 'cost'])) {
     finaiChatState = { lastMetric: 'spend', lastCategory: null };
-    return a.topCatEntry
-      ? `You've spent ${fmt(a.thisMonthExpense)} this month in total. Your biggest category is "${a.topCatEntry[0]}" at ${fmt(a.topCatEntry[1])}.`
-      : `No expenses logged yet this month.`;
+    if (!a.topCatEntry) return `No expenses logged yet this month.`;
+    let msg = `You've spent ${fmt(a.thisMonthExpense)} this month in total. Your biggest category is "${a.topCatEntry[0]}" at ${fmt(a.topCatEntry[1])}.`;
+    if (a.avgMonthlyExpense > 0) {
+      const diffPct = ((a.thisMonthExpense - a.avgMonthlyExpense) / a.avgMonthlyExpense) * 100;
+      if (Math.abs(diffPct) >= 10) {
+        msg += ` That's ${diffPct >= 0 ? 'up' : 'down'} ${Math.abs(diffPct).toFixed(0)}% versus your usual monthly average of ${fmt(Math.round(a.avgMonthlyExpense))}.`;
+      }
+    }
+    if (a.spikes.length) {
+      const top = a.spikes[0];
+      msg += ` "${top.cat}" is the standout spike — ${fmt(Math.round(top.spent))} this month vs an average of ${fmt(Math.round(top.avg))} (+${top.pct.toFixed(0)}%).`;
+    }
+    return msg;
   }
   return `I can currently answer questions about your income, spending (by category), savings rate, debt/EMI priority, affordability, where to cut back, and your investment portfolio — try asking something like "can I afford 5k this week?" or "where can I cut back?"`;
 }
@@ -8618,6 +8648,12 @@ function finaiAsk() {
   answerBox.style.display = 'block';
   answerBox.innerHTML = `<i class="fas fa-robot" style="color:#38bdf8;margin-right:6px"></i>${answer}`;
   input.value = '';
+}
+// Quick-chip suggestions — fill the question and ask immediately.
+function finaiAskChip(text) {
+  const input = document.getElementById('finai-ask-input');
+  if (input) input.value = text;
+  finaiAsk();
 }
 
 // ── MOBILE LITE AI ───────────────────────────────────────────────────────
@@ -8672,6 +8708,12 @@ function liteaiAsk() {
   answerBox.style.display = 'block';
   answerBox.innerHTML = `<i class="fas fa-robot" style="color:#38bdf8;margin-right:6px"></i>${answer}`;
   input.value = '';
+}
+// Quick-chip suggestions on the mobile sheet — fill the question and ask immediately.
+function liteaiAskChip(text) {
+  const input = document.getElementById('liteai-ask-input');
+  if (input) input.value = text;
+  liteaiAsk();
 }
 
 // ── DASHBOARD ──────────────────────────────────────────────────────────────
