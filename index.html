@@ -391,6 +391,19 @@ body.light-mode .finai-chip:hover { background:#bae6fd; }
 body.light-mode .finai-ask-input { background:#f8fafc; border-color:#e2e8f0; }
 .finai-ask-input:focus { border-color:rgba(56,189,248,0.4); }
 .finai-ask-answer { background:rgba(56,189,248,0.06); border:1px solid rgba(56,189,248,0.2); border-radius:12px; padding:0.9rem 1.1rem; font-size:0.85rem; color:var(--text-main); line-height:1.6; }
+.finai-ask-answer { max-height:280px; overflow-y:auto; display:flex; flex-direction:column; gap:12px; }
+.finai-qa-pair { display:flex; flex-direction:column; gap:6px; }
+.finai-qa-q { font-size:0.78rem; font-weight:700; color:var(--text-muted); display:flex; gap:7px; align-items:flex-start; }
+.finai-qa-q i { margin-top:2px; opacity:0.7; }
+.finai-qa-a { font-size:0.85rem; color:var(--text-main); line-height:1.6; display:flex; gap:7px; align-items:flex-start; }
+.finai-qa-a i { margin-top:2px; flex-shrink:0; }
+.finai-qa-pair:not(:last-child) { padding-bottom:10px; border-bottom:1px dashed rgba(255,255,255,0.08); }
+body.light-mode .finai-qa-pair:not(:last-child) { border-color:#e2e8f0; }
+.liteai-insight-item.severity-bad { border-color:rgba(239,68,68,0.35); background:rgba(239,68,68,0.06); }
+.liteai-insight-item.severity-bad i { color:#ef4444; }
+.liteai-insight-item.severity-warn { border-color:rgba(251,191,36,0.35); background:rgba(251,191,36,0.06); }
+.liteai-insight-item.severity-warn i { color:#fbbf24; }
+.liteai-insight-item.severity-good i { color:#34d399; }
 
 .cc-view-wrap { display:flex; gap:1.4rem; height:100%; }
 .cc-setup-panel {
@@ -8352,6 +8365,7 @@ function renderFinAI() {
   const grid = document.getElementById('finai-insights-grid');
   const empty = document.getElementById('finai-empty');
   if (!grid) return;
+  finaiRenderHistory('finai-ask-answer');
 
   if (!a.hasData) {
     grid.innerHTML = '';
@@ -8645,8 +8659,8 @@ function finaiAsk() {
   const q = input.value.trim();
   if (!q) return;
   const answer = finaiAnswerQuestion(q);
-  answerBox.style.display = 'block';
-  answerBox.innerHTML = `<i class="fas fa-robot" style="color:#38bdf8;margin-right:6px"></i>${answer}`;
+  finaiPushHistory(q, answer);
+  finaiRenderHistory('finai-ask-answer');
   input.value = '';
 }
 // Quick-chip suggestions — fill the question and ask immediately.
@@ -8657,6 +8671,37 @@ function finaiAskChip(text) {
 }
 
 // ── MOBILE LITE AI ───────────────────────────────────────────────────────
+// ── Shared conversation scrollback (last 5 Q&A) across desktop + mobile Ask AI ──
+let finaiChatHistory = [];
+function finaiEscapeHtml(s) {
+  return String(s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+}
+function finaiPushHistory(q, ans) {
+  finaiChatHistory.push({ q, a: ans });
+  if (finaiChatHistory.length > 5) finaiChatHistory.shift();
+}
+function finaiRenderHistory(containerId) {
+  const box = document.getElementById(containerId);
+  if (!box) return;
+  if (!finaiChatHistory.length) { box.style.display = 'none'; box.innerHTML = ''; return; }
+  box.style.display = 'block';
+  box.innerHTML = finaiChatHistory.map(h => `
+    <div class="finai-qa-pair">
+      <div class="finai-qa-q"><i class="fas fa-user"></i> ${finaiEscapeHtml(h.q)}</div>
+      <div class="finai-qa-a"><i class="fas fa-robot" style="color:#38bdf8"></i> ${h.a}</div>
+    </div>`).join('');
+  box.scrollTop = box.scrollHeight;
+}
+// Which insights to lead with when the person opens Lite AI — urgency first
+// (a due EMI or budget overrun beats a generic "healthy savings" note), then
+// impact within the same urgency tier.
+function finaiPrioritizeInsights(insights) {
+  const sevRank = { bad: 3, warn: 2, info: 1, good: 0 };
+  return insights.slice().sort((x, y) =>
+    (sevRank[y.severity] || 0) - (sevRank[x.severity] || 0) || (y.impact || 0) - (x.impact || 0)
+  );
+}
+
 function openMobileLiteAI() {
   const overlay = document.getElementById('mobile-liteai-overlay');
   const sheet = document.getElementById('mobile-liteai-sheet');
@@ -8666,6 +8711,7 @@ function openMobileLiteAI() {
   document.body.classList.add('liteai-open');
   const fab = document.querySelector('.mobile-fab');
   if (fab) fab.style.setProperty('display', 'none', 'important');
+  finaiRenderHistory('liteai-ask-answer');
   try {
     const a = finaiBuildAnalysis();
     const scoreData = finaiComputeScore(a);
@@ -8677,9 +8723,9 @@ function openMobileLiteAI() {
       : 'Add some transactions to get insights';
     const insightsWrap = document.getElementById('liteai-insights');
     if (insightsWrap) {
-      const top = finaiBuildInsights(a).sort((x, y) => (y.impact || 0) - (x.impact || 0)).slice(0, 3);
+      const top = finaiPrioritizeInsights(finaiBuildInsights(a)).slice(0, 3);
       insightsWrap.innerHTML = top.length
-        ? top.map(ins => `<div class="liteai-insight-item"><i class="fas ${ins.icon || 'fa-circle-info'}"></i><span>${ins.title}${ins.body ? ' — ' + ins.body : ''}</span></div>`).join('')
+        ? top.map(ins => `<div class="liteai-insight-item severity-${ins.severity || 'info'}"><i class="fas ${ins.icon || 'fa-circle-info'}"></i><span>${ins.title}${ins.body ? ' — ' + ins.body : ''}</span></div>`).join('')
         : `<div class="liteai-insight-item"><i class="fas fa-circle-info"></i><span>No insights yet — add some transactions first.</span></div>`;
     }
   } catch (e) {
@@ -8695,8 +8741,6 @@ function closeMobileLiteAI() {
   document.body.classList.remove('liteai-open');
   const fab = document.querySelector('.mobile-fab');
   if (fab) fab.style.removeProperty('display');
-  const answerBox = document.getElementById('liteai-ask-answer');
-  if (answerBox) answerBox.style.display = 'none';
 }
 function liteaiAsk() {
   const input = document.getElementById('liteai-ask-input');
@@ -8705,8 +8749,8 @@ function liteaiAsk() {
   const q = input.value.trim();
   if (!q) return;
   const answer = finaiAnswerQuestion(q);
-  answerBox.style.display = 'block';
-  answerBox.innerHTML = `<i class="fas fa-robot" style="color:#38bdf8;margin-right:6px"></i>${answer}`;
+  finaiPushHistory(q, answer);
+  finaiRenderHistory('liteai-ask-answer');
   input.value = '';
 }
 // Quick-chip suggestions on the mobile sheet — fill the question and ask immediately.
