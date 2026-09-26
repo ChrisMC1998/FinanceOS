@@ -1813,6 +1813,7 @@ body.light-mode .backup-stat { background:rgba(0,0,0,0.03); }
   }
   .mobile-fab:active { transform:scale(0.94); }
   body:has(.mobile-drawer.open) .mobile-fab { display:none; }
+  body:has(.mobile-liteai-sheet.open) .mobile-fab { display:none; }
   .sidebar, .port-sidebar { display:none; }
   .mobile-header { display:flex; }
   body { flex-direction:column; overflow:hidden; height:100vh; height:100dvh; }
@@ -8495,6 +8496,8 @@ function openMobileLiteAI() {
   if (!overlay || !sheet) return;
   overlay.classList.add('open');
   sheet.classList.add('open');
+  const fab = document.querySelector('.mobile-fab');
+  if (fab) fab.style.display = 'none';
   try {
     const a = finaiBuildAnalysis();
     const scoreData = finaiComputeScore(a);
@@ -8521,6 +8524,8 @@ function closeMobileLiteAI() {
   const sheet = document.getElementById('mobile-liteai-sheet');
   if (overlay) overlay.classList.remove('open');
   if (sheet) sheet.classList.remove('open');
+  const fab = document.querySelector('.mobile-fab');
+  if (fab) fab.style.display = '';
   const answerBox = document.getElementById('liteai-ask-answer');
   if (answerBox) answerBox.style.display = 'none';
 }
