@@ -529,7 +529,7 @@ body.light-mode .finai-qa-pair:not(:last-child) { border-color:#e2e8f0; }
 .cc-stack-hint { font-size:0.63rem; color:var(--text-muted); opacity:0.8; }
 .cc-stack-scroll {
   overflow-y:auto; overflow-x:visible;
-  overscroll-behavior:contain; padding:6px 6px 4px;
+  overscroll-behavior:contain; padding:6px 6px 28px;
   scrollbar-width:thin; scrollbar-color:rgba(255,255,255,0.18) transparent;
 }
 .cc-stack-scroll::-webkit-scrollbar { width:6px; }
@@ -18927,7 +18927,12 @@ function setActiveCCCard(id) {
 // Positions every card in the deck based on its distance from the active card,
 // and sizes the stack's container to fit them all (absolute-positioned cards
 // don't otherwise contribute to layout height, so this has to be explicit).
-const CC_CARD_H = 206, CC_PEEK = 34, CC_PEEK_MIN = 14;
+// CC_PEEK is the fixed, comfortable spacing between stacked cards — it never
+// shrinks to "fit", so every card stays clearly separated and clickable.
+// Instead, the *scroll box* is capped to the room left in the viewport, and
+// scrolls internally (real, native, momentum-friendly scroll) whenever the
+// deck is taller than that — same pattern as a phone card wallet.
+const CC_CARD_H = 206, CC_PEEK = 46;
 function layoutCCStack() {
   const order = [ccActiveId, ...ccCards.map(c => c.id).filter(id => id !== ccActiveId)];
   order.forEach((id, i) => {
@@ -18943,30 +18948,22 @@ function layoutCCStack() {
   const outer  = document.getElementById('cc-stack-outer');
   const scroll = document.getElementById('cc-stack-scroll');
 
-  // Shrink the peek offset (never below CC_PEEK_MIN) so the whole deck
-  // always fits between the stack's top and the bottom of the viewport —
-  // no internal scrollbar needed for a normal card count. If it still
-  // can't fit even at the minimum peek, cc-stack-scroll's own overflow-y
-  // kicks in as a fallback.
-  let peek = CC_PEEK;
-  if (scroll && order.length > 1) {
-    const top = scroll.getBoundingClientRect().top;
-    const available = window.innerHeight - top - 18; // small bottom breathing room
-    const neededAtDefault = CC_CARD_H + (order.length - 1) * CC_PEEK;
-    if (neededAtDefault > available) {
-      peek = Math.max(CC_PEEK_MIN, Math.floor((available - CC_CARD_H) / (order.length - 1)));
-    }
-  }
   if (outer) {
-    outer.style.setProperty('--peek', peek + 'px');
-    outer.style.height = (CC_CARD_H + (order.length - 1) * peek) + 'px';
+    outer.style.setProperty('--peek', CC_PEEK + 'px');
+    outer.style.height = (CC_CARD_H + (order.length - 1) * CC_PEEK) + 'px';
+  }
+  if (scroll) {
+    // Fill all the way down to the bottom of the viewport so the deck uses
+    // the full available screen height before it needs to scroll at all.
+    const top = scroll.getBoundingClientRect().top;
+    scroll.style.maxHeight = Math.max(230, Math.floor(window.innerHeight - top - 18)) + 'px';
   }
 
   const countEl = document.getElementById('cc-stack-count');
   if (countEl) countEl.textContent = `${ccCards.length} card${ccCards.length > 1 ? 's' : ''}`;
 
   const hint = document.getElementById('cc-stack-hint');
-  if (hint) hint.textContent = ccCards.length > 1 ? 'Tap a card to bring it forward' : '';
+  if (hint) hint.textContent = ccCards.length > 1 ? 'Tap a card • scroll for more' : '';
 }
 window.addEventListener('resize', () => { if (ccCards.length) layoutCCStack(); });
 
