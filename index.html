@@ -528,18 +528,18 @@ body.light-mode .finai-qa-pair:not(:last-child) { border-color:#e2e8f0; }
 .cc-stack-count { font-size:0.68rem; font-weight:700; color:var(--text-main); background:rgba(255,255,255,0.07); padding:3px 10px; border-radius:20px; letter-spacing:0.3px; }
 .cc-stack-hint { font-size:0.63rem; color:var(--text-muted); opacity:0.8; }
 .cc-stack-scroll {
-  max-height:calc(100vh - 300px); min-height:230px; overflow-y:auto; overflow-x:visible;
-  overscroll-behavior:contain; padding:6px 6px 28px;
+  overflow-y:auto; overflow-x:visible;
+  overscroll-behavior:contain; padding:6px 6px 4px;
   scrollbar-width:thin; scrollbar-color:rgba(255,255,255,0.18) transparent;
 }
 .cc-stack-scroll::-webkit-scrollbar { width:6px; }
 .cc-stack-scroll::-webkit-scrollbar-thumb { background:rgba(255,255,255,0.16); border-radius:10px; }
 .cc-stack-scroll::-webkit-scrollbar-track { background:transparent; }
-.cc-stack-outer { position:relative; } /* explicit height set via JS to match stacked card count */
+.cc-stack-outer { position:relative; --peek:34px; } /* explicit height + peek set via JS to fit the viewport with no scroll */
 .cc-stack-card {
   position:absolute; top:0; left:0; right:0; width:100%; max-width:100%; height:206px; margin:0 auto;
   border-radius:20px; cursor:pointer; transform-origin:top center;
-  transform: translateY(calc(var(--idx,0) * 34px)) scale(calc(1 - var(--idx,0) * 0.045));
+  transform: translateY(calc(var(--idx,0) * var(--peek,34px))) scale(calc(1 - var(--idx,0) * 0.045));
   z-index: calc(40 - var(--idx,0));
   opacity: calc(1 - var(--idx,0) * 0.17);
   filter: brightness(calc(1 - var(--idx,0) * 0.1));
@@ -549,15 +549,15 @@ body.light-mode .finai-qa-pair:not(:last-child) { border-color:#e2e8f0; }
 }
 .cc-stack-card[data-front="true"] { cursor:default; box-shadow:0 14px 34px rgba(0,0,0,0.45), 0 0 0 1px rgba(255,255,255,0.06); }
 .cc-stack-card[data-front="true"]:hover {
-  transform: translateY(calc(var(--idx,0) * 34px - 6px)) scale(calc(1 - var(--idx,0) * 0.045 + 0.01));
+  transform: translateY(calc(var(--idx,0) * var(--peek,34px) - 6px)) scale(calc(1 - var(--idx,0) * 0.045 + 0.01));
 }
 .cc-stack-card:not([data-front="true"]):hover {
   filter: brightness(1.1);
-  transform: translateY(calc(var(--idx,0) * 34px - 6px)) scale(calc(1 - var(--idx,0) * 0.045));
+  transform: translateY(calc(var(--idx,0) * var(--peek,34px) - 6px)) scale(calc(1 - var(--idx,0) * 0.045));
 }
 .cc-stack-card.entering { animation: ccCardDeal .6s cubic-bezier(.22,1,.36,1) backwards; }
 @keyframes ccCardDeal {
-  from { opacity:0; transform: translateY(calc(var(--idx,0) * 34px + 60px)) scale(0.82) rotate(-3deg); }
+  from { opacity:0; transform: translateY(calc(var(--idx,0) * var(--peek,34px) + 60px)) scale(0.82) rotate(-3deg); }
 }
 .cc-stack-card.risk-high .cc-card-face { animation: ccRiskPulse 2.4s ease-in-out infinite; }
 @keyframes ccRiskPulse {
@@ -616,11 +616,35 @@ body.light-mode .finai-qa-pair:not(:last-child) { border-color:#e2e8f0; }
   flex:1; min-width:300px; position:sticky; top:6px;
   background:rgba(255,255,255,0.03); border:1px solid var(--glass-border);
   border-radius:16px; padding:1.2rem 1.4rem;
+  display:flex; flex-direction:column;
 }
 .cc-active-detail.refresh { animation:ccDetailFade .35s ease; }
 @keyframes ccDetailFade { from { opacity:0.3; transform:translateY(5px); } }
 .cc-detail-empty { display:flex; flex-direction:column; align-items:center; justify-content:center; min-height:260px; color:var(--text-muted); gap:10px; text-align:center; }
 .cc-detail-empty i { font-size:1.8rem; opacity:0.3; }
+
+/* Insights block — fills the empty space below the stat chips with
+   utilization-aware, professional (CRED-style) guidance. */
+.cc-insights { margin-top:1.3rem; padding-top:1.1rem; border-top:1px solid rgba(255,255,255,0.07); flex:1; }
+.cc-insights-head { display:flex; align-items:center; gap:7px; margin-bottom:0.85rem; }
+.cc-insights-head i { font-size:0.72rem; color:#f97316; }
+.cc-insights-head span { font-size:0.7rem; font-weight:700; text-transform:uppercase; letter-spacing:0.6px; color:var(--text-muted); }
+.cc-insight-row {
+  display:flex; align-items:flex-start; gap:11px; padding:11px 12px; border-radius:12px;
+  background:rgba(255,255,255,0.025); border:1px solid rgba(255,255,255,0.06);
+  margin-bottom:8px; transition:0.16s;
+}
+.cc-insight-row:last-child { margin-bottom:0; }
+.cc-insight-row:hover { background:rgba(255,255,255,0.045); border-color:rgba(255,255,255,0.12); }
+.cc-insight-icon {
+  width:30px; height:30px; border-radius:9px; flex-shrink:0;
+  display:flex; align-items:center; justify-content:center; font-size:0.78rem;
+  margin-top:1px;
+}
+.cc-insight-body { flex:1; min-width:0; }
+.cc-insight-title { font-size:0.76rem; font-weight:700; color:var(--text-main); margin-bottom:2px; }
+.cc-insight-text { font-size:0.72rem; line-height:1.5; color:var(--text-muted); }
+.cc-insight-text b { color:var(--text-mid); font-weight:600; }
 
 /* Card Network Buttons */
 .cc-network-btn {
@@ -18903,7 +18927,7 @@ function setActiveCCCard(id) {
 // Positions every card in the deck based on its distance from the active card,
 // and sizes the stack's container to fit them all (absolute-positioned cards
 // don't otherwise contribute to layout height, so this has to be explicit).
-const CC_CARD_H = 206, CC_PEEK = 34;
+const CC_CARD_H = 206, CC_PEEK = 34, CC_PEEK_MIN = 14;
 function layoutCCStack() {
   const order = [ccActiveId, ...ccCards.map(c => c.id).filter(id => id !== ccActiveId)];
   order.forEach((id, i) => {
@@ -18916,14 +18940,94 @@ function layoutCCStack() {
     el.classList.toggle('risk-high', pct >= 90);
   });
 
-  const outer = document.getElementById('cc-stack-outer');
-  if (outer) outer.style.height = (CC_CARD_H + (order.length - 1) * CC_PEEK) + 'px';
+  const outer  = document.getElementById('cc-stack-outer');
+  const scroll = document.getElementById('cc-stack-scroll');
+
+  // Shrink the peek offset (never below CC_PEEK_MIN) so the whole deck
+  // always fits between the stack's top and the bottom of the viewport —
+  // no internal scrollbar needed for a normal card count. If it still
+  // can't fit even at the minimum peek, cc-stack-scroll's own overflow-y
+  // kicks in as a fallback.
+  let peek = CC_PEEK;
+  if (scroll && order.length > 1) {
+    const top = scroll.getBoundingClientRect().top;
+    const available = window.innerHeight - top - 18; // small bottom breathing room
+    const neededAtDefault = CC_CARD_H + (order.length - 1) * CC_PEEK;
+    if (neededAtDefault > available) {
+      peek = Math.max(CC_PEEK_MIN, Math.floor((available - CC_CARD_H) / (order.length - 1)));
+    }
+  }
+  if (outer) {
+    outer.style.setProperty('--peek', peek + 'px');
+    outer.style.height = (CC_CARD_H + (order.length - 1) * peek) + 'px';
+  }
 
   const countEl = document.getElementById('cc-stack-count');
   if (countEl) countEl.textContent = `${ccCards.length} card${ccCards.length > 1 ? 's' : ''}`;
 
   const hint = document.getElementById('cc-stack-hint');
   if (hint) hint.textContent = ccCards.length > 1 ? 'Tap a card to bring it forward' : '';
+}
+window.addEventListener('resize', () => { if (ccCards.length) layoutCCStack(); });
+
+// Builds the "Insights" block under the stat chips — utilization-aware,
+// actionable guidance in the same spirit as CRED's card detail screen.
+function ccInsightsHTML(c, pct, avail) {
+  const rows = [];
+  const to30 = Math.max(0, Math.round(c.used - c.limit * 0.30));
+  const to10 = Math.max(0, Math.round(c.used - c.limit * 0.10));
+
+  if (pct >= 90) {
+    rows.push({
+      icon: 'fa-triangle-exclamation', bg: 'rgba(239,68,68,0.14)', fg: '#ef4444',
+      title: 'Utilization critical',
+      text: `You're at <b>${pct.toFixed(0)}%</b> of your limit — this can hurt your credit score. Pay down <b>₹${to30.toLocaleString('en-IN')}</b> to get back under 30%.`
+    });
+  } else if (pct >= 50) {
+    rows.push({
+      icon: 'fa-chart-line', bg: 'rgba(245,158,11,0.14)', fg: '#f59e0b',
+      title: 'Running high',
+      text: `Utilization is at <b>${pct.toFixed(0)}%</b>. Clearing <b>₹${to30.toLocaleString('en-IN')}</b> before your statement date would bring it under the recommended 30%.`
+    });
+  } else if (pct >= 30) {
+    rows.push({
+      icon: 'fa-scale-balanced', bg: 'rgba(96,165,250,0.14)', fg: '#60a5fa',
+      title: 'Slightly above ideal',
+      text: `You're at <b>${pct.toFixed(0)}%</b>. Paying off <b>₹${to30.toLocaleString('en-IN')}</b> brings this card under the 30% mark lenders like to see.`
+    });
+  } else {
+    rows.push({
+      icon: 'fa-shield-halved', bg: 'rgba(52,211,153,0.14)', fg: '#34d399',
+      title: 'Healthy utilization',
+      text: `At <b>${pct.toFixed(0)}%</b> this card is in great shape. Staying under 30% (ideally under 10%) keeps your credit score in the best band.`
+    });
+  }
+
+  rows.push({
+    icon: 'fa-wallet', bg: 'rgba(167,139,250,0.14)', fg: '#a78bfa',
+    title: 'Spending headroom',
+    text: `You can spend <b>₹${avail.toLocaleString('en-IN')}</b> more before hitting your full limit, or <b>₹${Math.max(0, Math.round(c.limit*0.3 - c.used)).toLocaleString('en-IN')}</b> more while staying under 30%.`
+  });
+
+  rows.push({
+    icon: 'fa-circle-check', bg: 'rgba(255,255,255,0.08)', fg: '#e2e8f0',
+    title: 'Good habit',
+    text: `Paying the full statement balance before the due date avoids interest entirely and is the single biggest factor in your credit score.`
+  });
+
+  return `
+    <div class="cc-insights">
+      <div class="cc-insights-head"><i class="fas fa-lightbulb"></i><span>Insights & Suggestions</span></div>
+      ${rows.map(r => `
+        <div class="cc-insight-row">
+          <div class="cc-insight-icon" style="background:${r.bg};color:${r.fg}"><i class="fas ${r.icon}"></i></div>
+          <div class="cc-insight-body">
+            <div class="cc-insight-title">${r.title}</div>
+            <div class="cc-insight-text">${r.text}</div>
+          </div>
+        </div>
+      `).join('')}
+    </div>`;
 }
 
 // Renders the full utilization breakdown for whichever card is currently at the front.
@@ -18986,6 +19090,7 @@ function renderCCActiveDetail() {
         <div class="cs-val" style="color:#34d399">₹${avail.toLocaleString('en-IN')}</div>
       </div>
     </div>
+    ${ccInsightsHTML(c, pct, avail)}
   `;
 
   // Restart the fade-in so switching cards feels responsive, not static.
