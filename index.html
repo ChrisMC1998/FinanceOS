@@ -320,6 +320,30 @@ body.light-mode .notes-format-toolbar { background:#f8fafc; border-color:#e2e8f0
 body.light-mode .notes-save-row { border-color:#e2e8f0; }
 .notes-save-status { font-size:0.74rem; color:var(--text-muted); }
 
+/* ── MOBILE LITE AI (minimal Ask-AI sheet for phones) ──────────────────── */
+.mobile-liteai-sheet {
+  display:none; position:fixed; left:0; right:0; bottom:0; z-index:270;
+  background:#0b0e1e; border-top:1px solid var(--glass-border);
+  border-radius:20px 20px 0 0; padding:1.1rem 1.1rem calc(1.1rem + env(safe-area-inset-bottom));
+  max-height:80vh; overflow-y:auto; box-sizing:border-box;
+  flex-direction:column; gap:12px;
+  box-shadow:0 -10px 40px rgba(0,0,0,0.45);
+  transform:translateY(100%); transition:transform 0.26s ease;
+}
+.mobile-liteai-sheet.open { display:flex; transform:translateY(0); }
+body.light-mode .mobile-liteai-sheet { background:#ffffff; border-color:var(--glass-border); }
+.liteai-sheet-head { display:flex; align-items:center; justify-content:space-between; }
+.liteai-sheet-head button { background:transparent; border:1px solid var(--glass-border); color:var(--text-mid); border-radius:8px; padding:4px 10px; cursor:pointer; }
+.liteai-mini-score { display:flex; align-items:center; gap:12px; background:rgba(255,255,255,0.03); border:1px solid var(--glass-border); border-radius:14px; padding:0.8rem 1rem; }
+body.light-mode .liteai-mini-score { background:#f8fafc; }
+.liteai-mini-score-num { font-size:1.6rem; font-weight:800; color:#38bdf8; min-width:52px; text-align:center; }
+.liteai-mini-score-label { font-size:0.82rem; font-weight:700; color:var(--text-main); }
+.liteai-mini-score-sub { font-size:0.72rem; color:var(--text-muted); margin-top:2px; }
+.liteai-insights { display:flex; flex-direction:column; gap:8px; }
+.liteai-insight-item { display:flex; gap:8px; align-items:flex-start; font-size:0.8rem; color:var(--text-main); background:rgba(255,255,255,0.02); border:1px solid var(--glass-border); border-radius:10px; padding:8px 10px; }
+body.light-mode .liteai-insight-item { background:#f8fafc; }
+.liteai-insight-item i { margin-top:2px; color:#38bdf8; }
+
 /* ── FIN AI AGENT ────────────────────────────────────────────────────── */
 .finai-wrap { display:flex; flex-direction:column; gap:1.2rem; }
 .finai-top-row { display:flex; gap:1.2rem; flex-wrap:wrap; }
@@ -1329,6 +1353,33 @@ body.light-mode [style*="color:rgb(255, 255, 255)"] {
 body.light-mode .nav-item, body.light-mode .port-nav-item { color: #475569; }
 body.light-mode .nav-item:hover, body.light-mode .port-nav-item:hover { background: #f1f5f9; color: #0f172a; box-shadow: none; transform: translateX(3px); }
 body.light-mode .nav-item.active, body.light-mode .port-nav-item.active { background: #e2e8f0; color: #0f172a; box-shadow: none; font-weight: 600; border: none; }
+
+/* Mobile chrome (header / hamburger drawer / FAB) never had light-mode
+   rules, so it stayed hardcoded dark while --text-mid/--text-main flipped
+   to dark text underneath it — that's what showed up as black/mismatched
+   patches on the mobile Light Theme. */
+body.light-mode .mobile-header {
+  background: rgba(255,255,255,0.97) !important;
+  border-bottom: 1px solid var(--glass-border) !important;
+}
+body.light-mode .mobile-title { color: #0f172a; }
+body.light-mode .hamburger {
+  background: #ffffff; border-color: var(--glass-border); color: #1e293b;
+}
+body.light-mode .hamburger:hover { background:#f1f5f9; color:#0f172a; }
+body.light-mode .mobile-drawer {
+  background: #ffffff !important;
+  border-right: 1px solid var(--glass-border) !important;
+  box-shadow: 4px 0 24px rgba(15,23,42,0.08);
+}
+body.light-mode .drawer-item { color:#475569; }
+body.light-mode .drawer-item:hover { background:#f1f5f9; color:#0f172a; }
+body.light-mode .drawer-item.active { background:#e2e8f0; color:#0f172a; }
+body.light-mode .drawer-item.port-active { background:#ede9fe; color:#5b21b6; }
+body.light-mode .drawer-close button {
+  background:#ffffff; border-color: var(--glass-border); color:#1e293b;
+}
+body.light-mode .mobile-menu-overlay { background: rgba(15,23,42,0.4); }
 
 body.light-mode .filter-select, body.light-mode .port-filter-select { 
   background-color: #ffffff; 
@@ -3985,6 +4036,7 @@ function passAppLockGate() {
   <div class="drawer-item active" id="mob-dashboard" onclick="mobNav('dashboard','finance')"><i class="fas fa-chart-pie" style="color:var(--accent);width:16px;text-align:center"></i> Dashboard</div>
   <div class="drawer-item" onclick="openModal();closeMobileDrawer()" style="color:var(--c-inc)"><i class="fas fa-plus-circle" style="width:16px;text-align:center"></i> Add Entry</div>
   <div class="drawer-item" id="mob-transactions" onclick="mobNav('transactions','finance')"><i class="fas fa-list" style="width:16px;text-align:center"></i> Transactions</div>
+  <div class="drawer-item" id="mob-ai" onclick="openMobileLiteAI();closeMobileDrawer()"><i class="fas fa-robot" style="color:#38bdf8;width:16px;text-align:center"></i> Ask AI</div>
 
   <div class="drawer-section-label">Finance</div>
   <div class="drawer-item" id="mob-loans" onclick="mobNav('loans','finance')"><i class="fas fa-landmark" style="width:16px;text-align:center"></i> Loans & EMI</div>
@@ -4029,6 +4081,28 @@ function passAppLockGate() {
     <button class="export-btn" style="width:100%;justify-content:center;min-height:44px;color:#ef4444;border-color:rgba(239,68,68,0.25)" onclick="closeMobileDrawer();handleLogout()"><i class="fas fa-sign-out-alt"></i> Log Out</button>
   </div>
 </div>
+<!-- MOBILE LITE AI (minimal AI summary + Ask AI, for phones where the full Fin AI view is hidden) -->
+<div class="mobile-menu-overlay" id="mobile-liteai-overlay" onclick="closeMobileLiteAI()"></div>
+<div class="mobile-liteai-sheet" id="mobile-liteai-sheet">
+  <div class="liteai-sheet-head">
+    <div style="display:flex;align-items:center;gap:8px;font-weight:700;"><i class="fas fa-robot" style="color:#38bdf8"></i> Ask AI</div>
+    <button onclick="closeMobileLiteAI()" aria-label="Close">✕</button>
+  </div>
+  <div class="liteai-mini-score">
+    <div class="liteai-mini-score-num" id="liteai-score-num">--</div>
+    <div>
+      <div class="liteai-mini-score-label">Financial Health</div>
+      <div class="liteai-mini-score-sub" id="liteai-score-sub">Analyzing your data…</div>
+    </div>
+  </div>
+  <div class="liteai-insights" id="liteai-insights"></div>
+  <div class="finai-ask-row" style="margin-top:4px;">
+    <input type="text" id="liteai-ask-input" class="finai-ask-input" placeholder="Ask e.g. 'hw much did i spend on food'" onkeydown="if(event.key==='Enter')liteaiAsk()">
+    <button class="btn-add" style="background:rgba(56,189,248,0.85)" onclick="liteaiAsk()"><i class="fas fa-paper-plane"></i></button>
+  </div>
+  <div class="finai-ask-answer" id="liteai-ask-answer" style="display:none"></div>
+</div>
+
 <div class="sidebar" id="finance-sidebar">
   <div class="sidebar-toggle" onclick="toggleFinanceSidebar()" title="Toggle sidebar">
     <i class="fas fa-chevron-left" id="finance-toggle-icon"></i>
@@ -8313,48 +8387,150 @@ function renderFinAI() {
 }
 
 // Simple natural-language query box over the same real data (keyword-matched, no external calls)
+// ── Lightweight fuzzy matching so Ask AI understands typos / short,
+// informal, text-message style questions ("hw mch did i spnd on fud")
+// without needing any external NLP/API call. ──────────────────────────────
+function finaiLevenshtein(a, b) {
+  if (a === b) return 0;
+  const al = a.length, bl = b.length;
+  if (!al) return bl;
+  if (!bl) return al;
+  let prev = Array.from({ length: bl + 1 }, (_, i) => i);
+  for (let i = 1; i <= al; i++) {
+    const cur = [i];
+    for (let j = 1; j <= bl; j++) {
+      const cost = a[i - 1] === b[j - 1] ? 0 : 1;
+      cur[j] = Math.min(prev[j] + 1, cur[j - 1] + 1, prev[j - 1] + cost);
+    }
+    prev = cur;
+  }
+  return prev[bl];
+}
+function finaiFuzzyToken(token, keyword) {
+  if (!token || !keyword) return false;
+  if (token === keyword) return true;
+  if (token.length < 2) return false;
+  if (keyword.length >= 4 && token.length >= 3 && (keyword.includes(token) || token.includes(keyword))) return true;
+  const maxDist = keyword.length <= 4 ? 1 : keyword.length <= 7 ? 2 : 3;
+  return finaiLevenshtein(token, keyword) <= maxDist;
+}
+function finaiTokenize(q) {
+  return (q || '').toLowerCase().replace(/[^a-z0-9\s]/g, ' ').split(/\s+/).filter(Boolean);
+}
+function finaiMatchesAny(tokens, keywords) {
+  return keywords.some(kw => tokens.some(t => finaiFuzzyToken(t, kw)));
+}
+function finaiFuzzyCategoryMatch(tokens) {
+  const cats = Object.keys(Object.assign({}, ...db.map(r => ({ [(r.sub || '').toLowerCase()]: true }))));
+  let best = null, bestDist = Infinity;
+  cats.forEach(cat => {
+    if (!cat) return;
+    tokens.forEach(t => {
+      if (cat.includes(t) || t.includes(cat)) { if (bestDist > 0) { best = cat; bestDist = 0; } return; }
+      const d = finaiLevenshtein(t, cat);
+      const thresh = cat.length <= 5 ? 1 : 2;
+      if (d <= thresh && d < bestDist) { best = cat; bestDist = d; }
+    });
+  });
+  return best;
+}
+
+// Core answer builder, shared by the full desktop Fin AI "Ask" box and the
+// mobile Lite AI sheet.
+function finaiAnswerQuestion(q) {
+  const tokens = finaiTokenize(q);
+  const a = finaiBuildAnalysis();
+  const catMatch = finaiFuzzyCategoryMatch(tokens);
+
+  if (finaiMatchesAny(tokens, ['necessary', 'essential', 'discretionary', 'unnecessary', 'wants', 'needs', 'decision'])) {
+    return `This month: ${fmt(Math.round(a.essentialThisMonth))} went to essentials (rent, EMIs, groceries, bills, medical) and ${fmt(Math.round(a.discretionaryThisMonth))} went to discretionary wants${a.topDiscretionaryCat ? ` — mostly "${a.topDiscretionaryCat[0]}" at ${fmt(Math.round(a.topDiscretionaryCat[1]))}` : ''}. ${a.discretionaryPctOfIncome !== null ? `That's ${a.discretionaryPctOfIncome.toFixed(0)}% of your income on wants.` : ''} ${a.investingWhileHighInterestDebt ? 'Also worth noting: you invested this month while still carrying high-interest debt — paying that off first would be the stronger move.' : ''}`;
+  }
+  if (catMatch) {
+    const spentThisMonth = db.filter(r => r.type === 'Expense' && (r.sub || '').toLowerCase() === catMatch && finaiMonthKey(r.date) === a.thisMonth)
+      .reduce((s, r) => s + Number(r.amount || 0), 0);
+    const spentAllTime = db.filter(r => r.type === 'Expense' && (r.sub || '').toLowerCase() === catMatch)
+      .reduce((s, r) => s + Number(r.amount || 0), 0);
+    return `You've spent ${fmt(spentThisMonth)} on "${catMatch}" this month, and ${fmt(spentAllTime)} on it in total across all recorded transactions.`;
+  }
+  if (finaiMatchesAny(tokens, ['save', 'saving', 'savings'])) {
+    return a.monthSavingsRate !== null
+      ? `This month you're saving ${a.monthSavingsRate.toFixed(0)}% of your income (${fmt(a.thisMonthIncome - a.thisMonthExpense)} out of ${fmt(a.thisMonthIncome)}).`
+      : `No income has been logged this month yet, so I can't compute a savings rate.`;
+  }
+  if (finaiMatchesAny(tokens, ['debt', 'loan', 'loans', 'emi', 'emis'])) {
+    return `You have ${fmt(a.totalOutstandingDebt)} in outstanding debt across active loans/cards, with monthly EMIs totalling ${fmt(a.totalMonthlyEmi)} (${a.debtToIncome.toFixed(0)}% of this month's income).`;
+  }
+  if (finaiMatchesAny(tokens, ['invest', 'investing', 'investment', 'portfolio', 'stocks', 'holdings'])) {
+    return a.portInvested > 0
+      ? `Your active portfolio is worth ${fmt(Math.round(a.portCurrent))} against ${fmt(Math.round(a.portInvested))} invested — a ${a.portPL >= 0 ? 'gain' : 'loss'} of ${fmt(Math.abs(Math.round(a.portPL)))} (${a.portPLPct !== null ? a.portPLPct.toFixed(1) : '0'}%).`
+      : `No active investment holdings found.`;
+  }
+  if (finaiMatchesAny(tokens, ['income', 'earn', 'earning', 'salary'])) {
+    return `You've earned ${fmt(a.thisMonthIncome)} this month and ${fmt(a.totalIncome)} in total across all recorded income.`;
+  }
+  if (finaiMatchesAny(tokens, ['spend', 'spent', 'spending', 'expense', 'expenses', 'cost'])) {
+    return a.topCatEntry
+      ? `You've spent ${fmt(a.thisMonthExpense)} this month in total. Your biggest category is "${a.topCatEntry[0]}" at ${fmt(a.topCatEntry[1])}.`
+      : `No expenses logged yet this month.`;
+  }
+  return `I can currently answer questions about your income, spending (by category), savings rate, debt/EMI load, and investment portfolio — try asking about one of those, e.g. "how much have I saved this month?"`;
+}
+
 function finaiAsk() {
   const input = document.getElementById('finai-ask-input');
   const answerBox = document.getElementById('finai-ask-answer');
   if (!input || !answerBox) return;
   const q = input.value.trim();
   if (!q) return;
-  const ql = q.toLowerCase();
-  const a = finaiBuildAnalysis();
-  let answer = '';
+  const answer = finaiAnswerQuestion(q);
+  answerBox.style.display = 'block';
+  answerBox.innerHTML = `<i class="fas fa-robot" style="color:#38bdf8;margin-right:6px"></i>${answer}`;
+  input.value = '';
+}
 
-  const catMatch = Object.keys(Object.assign({},
-    ...db.map(r => ({ [(r.sub || '').toLowerCase()]: true }))
-  )).find(cat => cat && ql.includes(cat));
-
-  if (ql.includes('necessary') || ql.includes('essential') || ql.includes('discretionary') || ql.includes('unnecessary') || ql.includes('needs vs wants') || ql.includes('good decision') || ql.includes('bad decision')) {
-    answer = `This month: ${fmt(Math.round(a.essentialThisMonth))} went to essentials (rent, EMIs, groceries, bills, medical) and ${fmt(Math.round(a.discretionaryThisMonth))} went to discretionary wants${a.topDiscretionaryCat ? ` — mostly "${a.topDiscretionaryCat[0]}" at ${fmt(Math.round(a.topDiscretionaryCat[1]))}` : ''}. ${a.discretionaryPctOfIncome !== null ? `That's ${a.discretionaryPctOfIncome.toFixed(0)}% of your income on wants.` : ''} ${a.investingWhileHighInterestDebt ? 'Also worth noting: you invested this month while still carrying high-interest debt — paying that off first would be the stronger move.' : ''}`;
-  } else if (catMatch) {
-    const spentThisMonth = db.filter(r => r.type === 'Expense' && (r.sub || '').toLowerCase() === catMatch && finaiMonthKey(r.date) === a.thisMonth)
-      .reduce((s, r) => s + Number(r.amount || 0), 0);
-    const spentAllTime = db.filter(r => r.type === 'Expense' && (r.sub || '').toLowerCase() === catMatch)
-      .reduce((s, r) => s + Number(r.amount || 0), 0);
-    answer = `You've spent ${fmt(spentThisMonth)} on "${catMatch}" this month, and ${fmt(spentAllTime)} on it in total across all recorded transactions.`;
-  } else if (ql.includes('save') || ql.includes('saving')) {
-    answer = a.monthSavingsRate !== null
-      ? `This month you're saving ${a.monthSavingsRate.toFixed(0)}% of your income (${fmt(a.thisMonthIncome - a.thisMonthExpense)} out of ${fmt(a.thisMonthIncome)}).`
-      : `No income has been logged this month yet, so I can't compute a savings rate.`;
-  } else if (ql.includes('debt') || ql.includes('loan') || ql.includes('emi')) {
-    answer = `You have ${fmt(a.totalOutstandingDebt)} in outstanding debt across active loans/cards, with monthly EMIs totalling ${fmt(a.totalMonthlyEmi)} (${a.debtToIncome.toFixed(0)}% of this month's income).`;
-  } else if (ql.includes('invest') || ql.includes('portfolio')) {
-    answer = a.portInvested > 0
-      ? `Your active portfolio is worth ${fmt(Math.round(a.portCurrent))} against ${fmt(Math.round(a.portInvested))} invested — a ${a.portPL >= 0 ? 'gain' : 'loss'} of ${fmt(Math.abs(Math.round(a.portPL)))} (${a.portPLPct !== null ? a.portPLPct.toFixed(1) : '0'}%).`
-      : `No active investment holdings found.`;
-  } else if (ql.includes('income') || ql.includes('earn')) {
-    answer = `You've earned ${fmt(a.thisMonthIncome)} this month and ${fmt(a.totalIncome)} in total across all recorded income.`;
-  } else if (ql.includes('spend') || ql.includes('expense')) {
-    answer = a.topCatEntry
-      ? `You've spent ${fmt(a.thisMonthExpense)} this month in total. Your biggest category is "${a.topCatEntry[0]}" at ${fmt(a.topCatEntry[1])}.`
-      : `No expenses logged yet this month.`;
-  } else {
-    answer = `I can currently answer questions about your income, spending (by category), savings rate, debt/EMI load, and investment portfolio — try asking about one of those, e.g. "how much have I saved this month?"`;
+// ── MOBILE LITE AI ───────────────────────────────────────────────────────
+function openMobileLiteAI() {
+  const overlay = document.getElementById('mobile-liteai-overlay');
+  const sheet = document.getElementById('mobile-liteai-sheet');
+  if (!overlay || !sheet) return;
+  overlay.classList.add('open');
+  sheet.classList.add('open');
+  try {
+    const a = finaiBuildAnalysis();
+    const scoreData = finaiComputeScore(a);
+    const scoreNum = document.getElementById('liteai-score-num');
+    const scoreSub = document.getElementById('liteai-score-sub');
+    if (scoreNum) scoreNum.textContent = a.hasData ? scoreData.score : '--';
+    if (scoreSub) scoreSub.textContent = a.hasData
+      ? (scoreData.tags[0] ? scoreData.tags[0][0] : 'Looking steady')
+      : 'Add some transactions to get insights';
+    const insightsWrap = document.getElementById('liteai-insights');
+    if (insightsWrap) {
+      const top = finaiBuildInsights(a).sort((x, y) => (y.impact || 0) - (x.impact || 0)).slice(0, 3);
+      insightsWrap.innerHTML = top.length
+        ? top.map(ins => `<div class="liteai-insight-item"><i class="fas ${ins.icon || 'fa-circle-info'}"></i><span>${ins.title}${ins.body ? ' — ' + ins.body : ''}</span></div>`).join('')
+        : `<div class="liteai-insight-item"><i class="fas fa-circle-info"></i><span>No insights yet — add some transactions first.</span></div>`;
+    }
+  } catch (e) {
+    const insightsWrap = document.getElementById('liteai-insights');
+    if (insightsWrap) insightsWrap.innerHTML = `<div class="liteai-insight-item"><i class="fas fa-circle-info"></i><span>Add some transactions to get insights.</span></div>`;
   }
-
+}
+function closeMobileLiteAI() {
+  const overlay = document.getElementById('mobile-liteai-overlay');
+  const sheet = document.getElementById('mobile-liteai-sheet');
+  if (overlay) overlay.classList.remove('open');
+  if (sheet) sheet.classList.remove('open');
+  const answerBox = document.getElementById('liteai-ask-answer');
+  if (answerBox) answerBox.style.display = 'none';
+}
+function liteaiAsk() {
+  const input = document.getElementById('liteai-ask-input');
+  const answerBox = document.getElementById('liteai-ask-answer');
+  if (!input || !answerBox) return;
+  const q = input.value.trim();
+  if (!q) return;
+  const answer = finaiAnswerQuestion(q);
   answerBox.style.display = 'block';
   answerBox.innerHTML = `<i class="fas fa-robot" style="color:#38bdf8;margin-right:6px"></i>${answer}`;
   input.value = '';
