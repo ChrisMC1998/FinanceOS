@@ -8437,45 +8437,175 @@ function finaiFuzzyCategoryMatch(tokens) {
   return best;
 }
 
+// Remembers what the last question was "about" (metric + category) for the
+// current session, so a short follow-up like "and last month?" or "what
+// about before that" can be answered without repeating the whole question.
+let finaiChatState = { lastMetric: null, lastCategory: null };
+
+function finaiParseAmount(q) {
+  const m = q.match(/(?:rs\.?|inr|₹)?\s*(\d+(?:[,.]\d+)?)\s*(k|l|lakh|lac|lakhs)?/i);
+  if (!m) return null;
+  let n = parseFloat(m[1].replace(/,/g, ''));
+  if (isNaN(n)) return null;
+  const unit = (m[2] || '').toLowerCase();
+  if (unit === 'k') n *= 1000;
+  else if (unit.indexOf('l') === 0) n *= 100000;
+  return n;
+}
+function finaiCategorySpendForMonth(cat, monthKey) {
+  return db.filter(r => r.type === 'Expense' && (r.sub || '').toLowerCase() === cat && finaiMonthKey(r.date) === monthKey)
+    .reduce((s, r) => s + Number(r.amount || 0), 0);
+}
+function finaiIsFollowUp(tokens) {
+  return tokens.length > 0 && tokens.length <= 5 &&
+    finaiMatchesAny(tokens, ['last', 'previous', 'past', 'before', 'earlier', 'and']) &&
+    (finaiMatchesAny(tokens, ['month', 'time']) || tokens.length <= 3);
+}
+// Re-answers whatever was last asked about, for a different month — powers
+// follow-ups like "and last month?" without the person repeating themselves.
+function finaiAnswerForMetric(metric, category, period, a) {
+  const monthKey = period === 'prev' ? a.prevMonth : a.thisMonth;
+  const label = period === 'prev' ? 'last month' : 'this month';
+  if (metric === 'category' && category) {
+    return `You spent ${fmt(finaiCategorySpendForMonth(category, monthKey))} on "${category}" ${label}.`;
+  }
+  if (metric === 'spend') {
+    return `You spent ${fmt(period === 'prev' ? a.prevMonthExpense : a.thisMonthExpense)} in total ${label}.`;
+  }
+  if (metric === 'income') {
+    return `You earned ${fmt(period === 'prev' ? a.prevMonthIncome : a.thisMonthIncome)} ${label}.`;
+  }
+  if (metric === 'save') {
+    const inc = period === 'prev' ? a.prevMonthIncome : a.thisMonthIncome;
+    const exp = period === 'prev' ? a.prevMonthExpense : a.thisMonthExpense;
+    return inc > 0
+      ? `You saved ${(((inc - exp) / inc) * 100).toFixed(0)}% of your income ${label} (${fmt(inc - exp)} out of ${fmt(inc)}).`
+      : `No income was logged ${label}, so I can't compute a savings rate.`;
+  }
+  return null;
+}
+
 // Core answer builder, shared by the full desktop Fin AI "Ask" box and the
-// mobile Lite AI sheet.
+// mobile Lite AI sheet. Remembers context across turns via finaiChatState.
 function finaiAnswerQuestion(q) {
   const tokens = finaiTokenize(q);
   const a = finaiBuildAnalysis();
+
+  // ── Follow-up on the previous question ("and last month?", "before that") ──
+  if (finaiIsFollowUp(tokens) && finaiChatState.lastMetric) {
+    const period = finaiMatchesAny(tokens, ['this', 'now', 'current']) ? 'this' : 'prev';
+    const ans = finaiAnswerForMetric(finaiChatState.lastMetric, finaiChatState.lastCategory, period, a);
+    if (ans) return ans;
+  }
+
+  // ── Month-over-month comparison ("compare to last month", "more than last month") ──
+  if (finaiMatchesAny(tokens, ['compare', 'comparison', 'versus', 'vs']) ||
+      ((finaiMatchesAny(tokens, ['more', 'less', 'higher', 'lower']) || finaiMatchesAny(tokens, ['last', 'previous'])) && finaiMatchesAny(tokens, ['month']))) {
+    if (finaiMatchesAny(tokens, ['spend', 'spent', 'spending', 'expense', 'expenses'])) {
+      finaiChatState = { lastMetric: 'spend', lastCategory: null };
+      const diff = a.thisMonthExpense - a.prevMonthExpense;
+      return `This month you've spent ${fmt(a.thisMonthExpense)} vs ${fmt(a.prevMonthExpense)} last month — ${diff >= 0 ? 'up' : 'down'} ${fmt(Math.abs(Math.round(diff)))}${a.prevMonthExpense > 0 ? ` (${Math.abs((diff / a.prevMonthExpense) * 100).toFixed(0)}%)` : ''}.`;
+    }
+    if (finaiMatchesAny(tokens, ['income', 'earn', 'earning', 'salary'])) {
+      finaiChatState = { lastMetric: 'income', lastCategory: null };
+      const diff = a.thisMonthIncome - a.prevMonthIncome;
+      return `You've earned ${fmt(a.thisMonthIncome)} this month vs ${fmt(a.prevMonthIncome)} last month — ${diff >= 0 ? 'up' : 'down'} ${fmt(Math.abs(Math.round(diff)))}.`;
+    }
+    if (finaiMatchesAny(tokens, ['save', 'saving', 'savings'])) {
+      finaiChatState = { lastMetric: 'save', lastCategory: null };
+      const rateThis = a.monthSavingsRate, ratePrev = a.prevMonthIncome > 0 ? ((a.prevMonthIncome - a.prevMonthExpense) / a.prevMonthIncome) * 100 : null;
+      if (rateThis === null || ratePrev === null) return `I don't have income logged for both months, so I can't compare savings rates yet.`;
+      return `You're saving ${rateThis.toFixed(0)}% of income this month vs ${ratePrev.toFixed(0)}% last month.`;
+    }
+  }
+
+  // ── Affordability check ("can I afford a 15k trip?") ──
+  if (finaiMatchesAny(tokens, ['afford', 'affordable'])) {
+    finaiChatState = { lastMetric: 'afford', lastCategory: null };
+    const amount = finaiParseAmount(q);
+    const leftover = a.thisMonthIncome - a.thisMonthExpense;
+    if (amount === null) {
+      return `You've got ${fmt(Math.round(leftover))} left over this month after expenses. Give me an amount too — e.g. "can I afford 15k" — and I'll check it against that.`;
+    }
+    const risky = a.investingWhileHighInterestDebt || a.highInterestDebt.length > 0;
+    if (leftover <= 0) {
+      return `Not right now — you're already over budget this month by ${fmt(Math.abs(Math.round(leftover)))}, before adding ${fmt(amount)} more.`;
+    }
+    if (amount <= leftover * 0.7) {
+      return `Yes — you have ${fmt(Math.round(leftover))} left this month, so ${fmt(amount)} fits comfortably.${risky ? " Just know you're still carrying high-interest debt, so clearing that first would stretch your money further." : ''}`;
+    }
+    if (amount <= leftover) {
+      return `It's tight but doable — you have ${fmt(Math.round(leftover))} left this month and this would use most of it.${risky ? ' With high-interest debt still outstanding, I\'d lean towards holding off.' : ''}`;
+    }
+    return `Not comfortably this month — you have ${fmt(Math.round(leftover))} left after expenses, which is ${fmt(Math.round(amount - leftover))} short of ${fmt(amount)}.`;
+  }
+
+  // ── "Where can I cut back / save money" advice (distinct from savings-rate lookup) ──
+  if (finaiMatchesAny(tokens, ['cut', 'cutback', 'trim', 'reduce']) ||
+      (finaiMatchesAny(tokens, ['where']) && finaiMatchesAny(tokens, ['save', 'saving', 'money']))) {
+    finaiChatState = { lastMetric: 'advice', lastCategory: null };
+    let msg = '';
+    if (a.topDiscretionaryCat) {
+      msg += `Your biggest discretionary category this month is "${a.topDiscretionaryCat[0]}" at ${fmt(Math.round(a.topDiscretionaryCat[1]))} — that's the easiest place to trim.`;
+    }
+    if (a.recurringCharges.length) {
+      const top = a.recurringCharges[0];
+      msg += `${msg ? ' ' : ''}You've also got ${a.recurringCharges.length} recurring charge${a.recurringCharges.length > 1 ? 's' : ''} — the biggest is "${top.name}" at ${fmt(Math.round(top.amount))}/month, worth checking if you still need it.`;
+    }
+    return msg || `Nothing stands out yet — your discretionary spending looks reasonable this month. Keep logging transactions and I'll spot patterns as they build up.`;
+  }
+
+  // ── "Which debt should I pay off first" ──
+  if (finaiMatchesAny(tokens, ['debt', 'loan', 'loans', 'emi', 'emis', 'card', 'cards']) &&
+      finaiMatchesAny(tokens, ['first', 'priority', 'order', 'which'])) {
+    finaiChatState = { lastMetric: 'debtpriority', lastCategory: null };
+    if (!a.highInterestDebt.length) {
+      return `None of your active loans/cards are in the high-interest zone (24%+) right now — no urgent payoff order needed, just keep up with the EMIs.`;
+    }
+    const worst = a.highInterestDebt[0];
+    return `Pay off "${worst.lenderName}" first — it's charging ${worst.interestRate}% on ${fmt(worst.outstandingBalance)} outstanding, the highest rate you're carrying. Clearing the costliest interest first (debt avalanche) saves you the most overall.`;
+  }
+
   const catMatch = finaiFuzzyCategoryMatch(tokens);
 
   if (finaiMatchesAny(tokens, ['necessary', 'essential', 'discretionary', 'unnecessary', 'wants', 'needs', 'decision'])) {
+    finaiChatState = { lastMetric: null, lastCategory: null };
     return `This month: ${fmt(Math.round(a.essentialThisMonth))} went to essentials (rent, EMIs, groceries, bills, medical) and ${fmt(Math.round(a.discretionaryThisMonth))} went to discretionary wants${a.topDiscretionaryCat ? ` — mostly "${a.topDiscretionaryCat[0]}" at ${fmt(Math.round(a.topDiscretionaryCat[1]))}` : ''}. ${a.discretionaryPctOfIncome !== null ? `That's ${a.discretionaryPctOfIncome.toFixed(0)}% of your income on wants.` : ''} ${a.investingWhileHighInterestDebt ? 'Also worth noting: you invested this month while still carrying high-interest debt — paying that off first would be the stronger move.' : ''}`;
   }
   if (catMatch) {
-    const spentThisMonth = db.filter(r => r.type === 'Expense' && (r.sub || '').toLowerCase() === catMatch && finaiMonthKey(r.date) === a.thisMonth)
-      .reduce((s, r) => s + Number(r.amount || 0), 0);
+    finaiChatState = { lastMetric: 'category', lastCategory: catMatch };
+    const spentThisMonth = finaiCategorySpendForMonth(catMatch, a.thisMonth);
     const spentAllTime = db.filter(r => r.type === 'Expense' && (r.sub || '').toLowerCase() === catMatch)
       .reduce((s, r) => s + Number(r.amount || 0), 0);
     return `You've spent ${fmt(spentThisMonth)} on "${catMatch}" this month, and ${fmt(spentAllTime)} on it in total across all recorded transactions.`;
   }
   if (finaiMatchesAny(tokens, ['save', 'saving', 'savings'])) {
+    finaiChatState = { lastMetric: 'save', lastCategory: null };
     return a.monthSavingsRate !== null
       ? `This month you're saving ${a.monthSavingsRate.toFixed(0)}% of your income (${fmt(a.thisMonthIncome - a.thisMonthExpense)} out of ${fmt(a.thisMonthIncome)}).`
       : `No income has been logged this month yet, so I can't compute a savings rate.`;
   }
   if (finaiMatchesAny(tokens, ['debt', 'loan', 'loans', 'emi', 'emis'])) {
+    finaiChatState = { lastMetric: 'debt', lastCategory: null };
     return `You have ${fmt(a.totalOutstandingDebt)} in outstanding debt across active loans/cards, with monthly EMIs totalling ${fmt(a.totalMonthlyEmi)} (${a.debtToIncome.toFixed(0)}% of this month's income).`;
   }
   if (finaiMatchesAny(tokens, ['invest', 'investing', 'investment', 'portfolio', 'stocks', 'holdings'])) {
+    finaiChatState = { lastMetric: 'invest', lastCategory: null };
     return a.portInvested > 0
       ? `Your active portfolio is worth ${fmt(Math.round(a.portCurrent))} against ${fmt(Math.round(a.portInvested))} invested — a ${a.portPL >= 0 ? 'gain' : 'loss'} of ${fmt(Math.abs(Math.round(a.portPL)))} (${a.portPLPct !== null ? a.portPLPct.toFixed(1) : '0'}%).`
       : `No active investment holdings found.`;
   }
   if (finaiMatchesAny(tokens, ['income', 'earn', 'earning', 'salary'])) {
+    finaiChatState = { lastMetric: 'income', lastCategory: null };
     return `You've earned ${fmt(a.thisMonthIncome)} this month and ${fmt(a.totalIncome)} in total across all recorded income.`;
   }
   if (finaiMatchesAny(tokens, ['spend', 'spent', 'spending', 'expense', 'expenses', 'cost'])) {
+    finaiChatState = { lastMetric: 'spend', lastCategory: null };
     return a.topCatEntry
       ? `You've spent ${fmt(a.thisMonthExpense)} this month in total. Your biggest category is "${a.topCatEntry[0]}" at ${fmt(a.topCatEntry[1])}.`
       : `No expenses logged yet this month.`;
   }
-  return `I can currently answer questions about your income, spending (by category), savings rate, debt/EMI load, and investment portfolio — try asking about one of those, e.g. "how much have I saved this month?"`;
+  return `I can currently answer questions about your income, spending (by category), savings rate, debt/EMI priority, affordability, where to cut back, and your investment portfolio — try asking something like "can I afford 5k this week?" or "where can I cut back?"`;
 }
 
 function finaiAsk() {
