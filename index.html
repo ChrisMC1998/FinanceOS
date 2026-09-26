@@ -409,7 +409,7 @@ body.light-mode .finai-qa-pair:not(:last-child) { border-color:#e2e8f0; }
 .cc-setup-panel {
   width:300px; flex-shrink:0; display:flex; flex-direction:column; gap:1rem;
 }
-.cc-cards-panel { flex:1; display:flex; flex-direction:column; gap:1rem; overflow-y:auto; }
+.cc-cards-panel { flex:1; display:flex; flex-direction:row; gap:1rem; overflow:visible; min-width:0; }
 .cc-panel-box {
   background:rgba(255,255,255,0.03); border:1px solid var(--glass-border);
   border-radius:14px; padding:1.1rem 1.2rem;
@@ -518,11 +518,28 @@ body.light-mode .finai-qa-pair:not(:last-child) { border-color:#e2e8f0; }
 .cc-empty-state p { font-size:0.8rem; max-width:200px; line-height:1.5; }
 
 /* ══════════════════ CC STACK — interactive card deck ══════════════════ */
-.cc-stack-outer { position:relative; padding-top:4px; margin-bottom:0.6rem; }
+/* Layout: fixed-width stack on the left, detail panel on the right that
+   updates with whichever card is active. The stack scrolls internally
+   (its own contained box) when there are more cards than fit — it never
+   pushes the page or the rest of the dashboard around. */
+.cc-cards-panel { display:flex; gap:1.6rem; align-items:flex-start; }
+.cc-stack-col { width:380px; flex-shrink:0; }
+.cc-stack-col-head { display:flex; align-items:center; justify-content:space-between; margin-bottom:10px; padding:0 2px; }
+.cc-stack-count { font-size:0.68rem; font-weight:700; color:var(--text-main); background:rgba(255,255,255,0.07); padding:3px 10px; border-radius:20px; letter-spacing:0.3px; }
+.cc-stack-hint { font-size:0.63rem; color:var(--text-muted); opacity:0.8; }
+.cc-stack-scroll {
+  max-height:calc(100vh - 300px); min-height:230px; overflow-y:auto; overflow-x:visible;
+  overscroll-behavior:contain; padding:6px 6px 28px;
+  scrollbar-width:thin; scrollbar-color:rgba(255,255,255,0.18) transparent;
+}
+.cc-stack-scroll::-webkit-scrollbar { width:6px; }
+.cc-stack-scroll::-webkit-scrollbar-thumb { background:rgba(255,255,255,0.16); border-radius:10px; }
+.cc-stack-scroll::-webkit-scrollbar-track { background:transparent; }
+.cc-stack-outer { position:relative; } /* explicit height set via JS to match stacked card count */
 .cc-stack-card {
-  position:relative; width:100%; max-width:420px; height:206px; margin:0 auto;
+  position:absolute; top:0; left:0; right:0; width:100%; max-width:100%; height:206px; margin:0 auto;
   border-radius:20px; cursor:pointer; transform-origin:top center;
-  transform: translateY(calc(var(--idx,0) * 32px)) scale(calc(1 - var(--idx,0) * 0.045));
+  transform: translateY(calc(var(--idx,0) * 34px)) scale(calc(1 - var(--idx,0) * 0.045));
   z-index: calc(40 - var(--idx,0));
   opacity: calc(1 - var(--idx,0) * 0.17);
   filter: brightness(calc(1 - var(--idx,0) * 0.1));
@@ -530,17 +547,17 @@ body.light-mode .finai-qa-pair:not(:last-child) { border-color:#e2e8f0; }
   transition: transform .55s cubic-bezier(.22,1,.36,1), opacity .45s ease,
               box-shadow .35s ease, filter .35s ease;
 }
-.cc-stack-card[data-front="true"] { cursor:default; }
+.cc-stack-card[data-front="true"] { cursor:default; box-shadow:0 14px 34px rgba(0,0,0,0.45), 0 0 0 1px rgba(255,255,255,0.06); }
 .cc-stack-card[data-front="true"]:hover {
-  transform: translateY(calc(var(--idx,0) * 32px - 6px)) scale(calc(1 - var(--idx,0) * 0.045 + 0.01));
+  transform: translateY(calc(var(--idx,0) * 34px - 6px)) scale(calc(1 - var(--idx,0) * 0.045 + 0.01));
 }
 .cc-stack-card:not([data-front="true"]):hover {
-  filter: brightness(1.08);
-  transform: translateY(calc(var(--idx,0) * 32px - 5px)) scale(calc(1 - var(--idx,0) * 0.045));
+  filter: brightness(1.1);
+  transform: translateY(calc(var(--idx,0) * 34px - 6px)) scale(calc(1 - var(--idx,0) * 0.045));
 }
 .cc-stack-card.entering { animation: ccCardDeal .6s cubic-bezier(.22,1,.36,1) backwards; }
 @keyframes ccCardDeal {
-  from { opacity:0; transform: translateY(calc(var(--idx,0) * 32px + 60px)) scale(0.82) rotate(-3deg); }
+  from { opacity:0; transform: translateY(calc(var(--idx,0) * 34px + 60px)) scale(0.82) rotate(-3deg); }
 }
 .cc-stack-card.risk-high .cc-card-face { animation: ccRiskPulse 2.4s ease-in-out infinite; }
 @keyframes ccRiskPulse {
@@ -570,15 +587,22 @@ body.light-mode .finai-qa-pair:not(:last-child) { border-color:#e2e8f0; }
 }
 .cc-face-chip::before, .cc-face-chip::after { content:''; position:absolute; left:6px; right:6px; height:1px; background:rgba(0,0,0,0.28); }
 .cc-face-chip::before { top:10px; } .cc-face-chip::after { top:18px; }
+/* Logo badge: the bank-colour abbreviation is the baseline and is ALWAYS
+   visible; a real logo image loads on top and only hides the fallback once
+   it has actually finished loading, so a blocked/missing favicon never
+   leaves a blank patch on the card. */
 .cc-face-logo {
-  width:36px; height:36px; border-radius:10px; background:#fff; display:flex;
-  align-items:center; justify-content:center; padding:5px; box-shadow:0 2px 7px rgba(0,0,0,0.3);
+  width:38px; height:38px; border-radius:10px; position:relative; overflow:hidden;
+  display:flex; align-items:center; justify-content:center;
+  background:#fff; box-shadow:0 2px 7px rgba(0,0,0,0.35), inset 0 0 0 1px rgba(0,0,0,0.06);
 }
-.cc-face-logo img { width:100%; height:100%; object-fit:contain; border-radius:5px; }
+.cc-face-logo-fallback { font-size:0.62rem; font-weight:800; letter-spacing:-0.3px; }
+.cc-face-logo img { position:absolute; inset:0; width:100%; height:100%; object-fit:contain; padding:5px; box-sizing:border-box; opacity:0; transition:opacity .2s ease; }
+.cc-face-logo img.loaded { opacity:1; }
 .cc-face-number { font-family:'DM Mono',monospace; font-size:1.08rem; letter-spacing:2.6px; color:#fff; text-shadow:0 1px 4px rgba(0,0,0,0.35); position:relative; z-index:1; }
 .cc-face-bottom { display:flex; align-items:flex-end; justify-content:space-between; gap:12px; position:relative; z-index:1; }
 .cc-face-name-lbl { font-size:0.58rem; text-transform:uppercase; letter-spacing:1.3px; color:rgba(255,255,255,0.68); margin-bottom:3px; }
-.cc-face-name { font-size:0.9rem; font-weight:700; color:#fff; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width:190px; }
+.cc-face-name { font-size:0.9rem; font-weight:700; color:#fff; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width:170px; }
 .cc-face-exp { font-size:0.63rem; color:rgba(255,255,255,0.62); margin-top:3px; }
 .cc-face-ring-wrap { position:relative; width:54px; height:54px; flex-shrink:0; }
 .cc-face-ring-wrap svg { width:100%; height:100%; transform:rotate(-90deg); }
@@ -586,14 +610,17 @@ body.light-mode .finai-qa-pair:not(:last-child) { border-color:#e2e8f0; }
 .cc-face-ring-fill { fill:none; stroke-width:5; stroke-linecap:round; transition:stroke-dashoffset .9s cubic-bezier(.22,1,.36,1); }
 .cc-face-ring-pct { position:absolute; inset:0; display:flex; align-items:center; justify-content:center; font-size:0.68rem; font-weight:800; color:#fff; font-family:'DM Mono',monospace; text-shadow:0 1px 3px rgba(0,0,0,0.4); }
 .cc-face-network { position:absolute; bottom:18px; right:22px; z-index:1; }
-.cc-stack-hint { text-align:center; font-size:0.66rem; color:var(--text-muted); margin:10px 0 4px; opacity:0.7; }
 
+/* Right-hand detail panel — always visible beside the stack, updates on click */
 .cc-active-detail {
+  flex:1; min-width:300px; position:sticky; top:6px;
   background:rgba(255,255,255,0.03); border:1px solid var(--glass-border);
-  border-radius:16px; padding:1.1rem 1.3rem;
+  border-radius:16px; padding:1.2rem 1.4rem;
 }
 .cc-active-detail.refresh { animation:ccDetailFade .35s ease; }
 @keyframes ccDetailFade { from { opacity:0.3; transform:translateY(5px); } }
+.cc-detail-empty { display:flex; flex-direction:column; align-items:center; justify-content:center; min-height:260px; color:var(--text-muted); gap:10px; text-align:center; }
+.cc-detail-empty i { font-size:1.8rem; opacity:0.3; }
 
 /* Card Network Buttons */
 .cc-network-btn {
@@ -18746,15 +18773,24 @@ function ccCardFaceHTML(c) {
   const freshBank = CC_BANKS.find(b => b.id === c.bankId);
   const logoUrl   = freshBank ? freshBank.logo  : c.bankLogo;
   const bankColor = freshBank ? freshBank.color : (c.bankColor || '#334155');
+  const bankAbbr  = freshBank ? freshBank.abbr  : (c.bankAbbr || (c.bankName||'BANK').substring(0,4).toUpperCase());
 
   const r = 22, circ = ccCircumference(r);
   const offset = circ - (pct / 100) * circ;
+
+  // The coloured abbreviation is always rendered underneath — if the logo image
+  // fails (or is blocked) it simply never covers it, so the badge never goes blank.
+  const logoHTML = `
+    <div class="cc-face-logo">
+      <span class="cc-face-logo-fallback" style="color:${bankColor}">${bankAbbr}</span>
+      ${logoUrl ? `<img src="${logoUrl}" alt="" onload="this.classList.add('loaded')" onerror="this.remove()">` : ''}
+    </div>`;
 
   return `
     <div class="cc-card-face" style="--card-grad:linear-gradient(135deg, ${bankColor} 0%, ${bankColor}cc 55%, #0b0e1e 130%)">
       <div class="cc-face-top">
         <div class="cc-face-chip"></div>
-        <div class="cc-face-logo">${logoUrl ? `<img src="${logoUrl}" alt="" onerror="this.style.display='none'">` : ''}</div>
+        ${logoHTML}
       </div>
       <div class="cc-face-number">${maskedNum}</div>
       <div class="cc-face-bottom">
@@ -18802,9 +18838,19 @@ function renderCCCards() {
 
   if (!sameSet || !stackOuter) {
     // Cards were added/removed — rebuild the deck. New cards "deal" into place.
+    // The stack lives in its own scroll box (.cc-stack-scroll) so scrolling
+    // through many cards never touches the page's own scroll position — and
+    // the detail panel sits beside it, not underneath.
     panel.innerHTML = `
-      <div class="cc-stack-outer" id="cc-stack-outer"></div>
-      <div class="cc-stack-hint" id="cc-stack-hint"></div>
+      <div class="cc-stack-col">
+        <div class="cc-stack-col-head">
+          <span class="cc-stack-count" id="cc-stack-count"></span>
+          <span class="cc-stack-hint" id="cc-stack-hint"></span>
+        </div>
+        <div class="cc-stack-scroll" id="cc-stack-scroll">
+          <div class="cc-stack-outer" id="cc-stack-outer"></div>
+        </div>
+      </div>
       <div class="cc-active-detail" id="cc-active-detail"></div>
     `;
     stackOuter = document.getElementById('cc-stack-outer');
@@ -18854,7 +18900,10 @@ function setActiveCCCard(id) {
   renderCCActiveDetail();
 }
 
-// Positions every card in the deck based on its distance from the active card.
+// Positions every card in the deck based on its distance from the active card,
+// and sizes the stack's container to fit them all (absolute-positioned cards
+// don't otherwise contribute to layout height, so this has to be explicit).
+const CC_CARD_H = 206, CC_PEEK = 34;
 function layoutCCStack() {
   const order = [ccActiveId, ...ccCards.map(c => c.id).filter(id => id !== ccActiveId)];
   order.forEach((id, i) => {
@@ -18866,8 +18915,15 @@ function layoutCCStack() {
     const pct  = card && card.limit > 0 ? Math.min(100, (card.used / card.limit) * 100) : 0;
     el.classList.toggle('risk-high', pct >= 90);
   });
+
+  const outer = document.getElementById('cc-stack-outer');
+  if (outer) outer.style.height = (CC_CARD_H + (order.length - 1) * CC_PEEK) + 'px';
+
+  const countEl = document.getElementById('cc-stack-count');
+  if (countEl) countEl.textContent = `${ccCards.length} card${ccCards.length > 1 ? 's' : ''}`;
+
   const hint = document.getElementById('cc-stack-hint');
-  if (hint) hint.textContent = ccCards.length > 1 ? 'Tap a card behind the top one to bring it forward' : '';
+  if (hint) hint.textContent = ccCards.length > 1 ? 'Tap a card to bring it forward' : '';
 }
 
 // Renders the full utilization breakdown for whichever card is currently at the front.
