@@ -535,29 +535,28 @@ body.light-mode .finai-qa-pair:not(:last-child) { border-color:#e2e8f0; }
 .cc-stack-scroll::-webkit-scrollbar { width:6px; }
 .cc-stack-scroll::-webkit-scrollbar-thumb { background:rgba(255,255,255,0.16); border-radius:10px; }
 .cc-stack-scroll::-webkit-scrollbar-track { background:transparent; }
-.cc-stack-outer { position:relative; --peek:46px; } /* height + peek set via JS to use the full available screen height */
+.cc-stack-outer { position:relative; --peek:58px; } /* height + peek set via JS to use the full available screen height */
 .cc-stack-card {
   position:absolute; top:0; left:0; right:0; width:100%; max-width:100%; height:206px; margin:0 auto;
   border-radius:20px; cursor:pointer; transform-origin:top center;
-  transform: translate(calc(var(--idx,0) * 3px), calc(var(--idx,0) * var(--peek,46px))) scale(calc(1 - var(--idx,0) * 0.025));
+  transform: translateY(calc(var(--idx,0) * var(--peek,58px))) scale(calc(1 - var(--idx,0) * 0.018));
   z-index: calc(40 - var(--idx,0));
-  opacity: max(0.62, calc(1 - var(--idx,0) * 0.075));
-  filter: brightness(max(0.68, calc(1 - var(--idx,0) * 0.055)));
-  box-shadow: 0 calc(6px + var(--idx,0) * 2px) calc(20px + var(--idx,0) * 5px) rgba(0,0,0,0.4);
-  transition: transform .55s cubic-bezier(.22,1,.36,1), opacity .45s ease,
-              box-shadow .35s ease, filter .35s ease;
+  /* Solid, physical-card stack: no opacity/brightness fade — every card
+     stays fully opaque. Depth comes only from elevation/shadow/scale. */
+  box-shadow: 0 calc(4px + var(--idx,0) * 3px) calc(14px + var(--idx,0) * 4px) rgba(0,0,0,0.55);
+  transition: transform .5s cubic-bezier(.22,1,.36,1), box-shadow .3s ease;
 }
-.cc-stack-card[data-front="true"] { cursor:default; box-shadow:0 14px 34px rgba(0,0,0,0.45), 0 0 0 1px rgba(255,255,255,0.06); }
+.cc-stack-card[data-front="true"] { cursor:default; box-shadow:0 16px 36px rgba(0,0,0,0.5), 0 0 0 1px rgba(255,255,255,0.07); }
 .cc-stack-card[data-front="true"]:hover {
-  transform: translate(calc(var(--idx,0) * 3px), calc(var(--idx,0) * var(--peek,46px) - 6px)) scale(calc(1 - var(--idx,0) * 0.025 + 0.01));
+  transform: translateY(calc(var(--idx,0) * var(--peek,58px) - 5px)) scale(calc(1 - var(--idx,0) * 0.018 + 0.008));
 }
 .cc-stack-card:not([data-front="true"]):hover {
-  filter: brightness(1.1);
-  transform: translate(calc(var(--idx,0) * 3px), calc(var(--idx,0) * var(--peek,46px) - 6px)) scale(calc(1 - var(--idx,0) * 0.025));
+  transform: translateY(calc(var(--idx,0) * var(--peek,58px) - 5px)) scale(calc(1 - var(--idx,0) * 0.018));
+  box-shadow: 0 calc(4px + var(--idx,0) * 3px) calc(14px + var(--idx,0) * 4px) rgba(0,0,0,0.55), 0 0 0 1px rgba(255,255,255,0.14);
 }
-.cc-stack-card.entering { animation: ccCardDeal .6s cubic-bezier(.22,1,.36,1) backwards; }
+.cc-stack-card.entering { animation: ccCardDeal .55s cubic-bezier(.22,1,.36,1) backwards; }
 @keyframes ccCardDeal {
-  from { opacity:0; transform: translate(calc(var(--idx,0) * 3px), calc(var(--idx,0) * var(--peek,46px) + 60px)) scale(0.82) rotate(-3deg); }
+  from { opacity:0; transform: translateY(calc(var(--idx,0) * var(--peek,58px) + 50px)) scale(0.85); }
 }
 .cc-stack-card.is-frozen .cc-card-face { filter:saturate(0.35) brightness(0.8); }
 .cc-frozen-ribbon {
@@ -672,6 +671,106 @@ body.light-mode .finai-qa-pair:not(:last-child) { border-color:#e2e8f0; }
   font-size:0.7rem; color:#93c5fd; line-height:1.5;
 }
 .cc-frozen-note i { margin-top:1px; }
+
+/* ══════════════ CC ANALYTICS — fills the space below the stack/detail row ══════════════ */
+.cca-wrap { margin-top:1.6rem; }
+.cca-headrow { display:flex; align-items:flex-end; justify-content:space-between; flex-wrap:wrap; gap:10px; margin-bottom:1rem; }
+.cca-title { font-size:1.02rem; font-weight:800; color:var(--text-main); }
+.cca-sub { font-size:0.74rem; color:var(--text-muted); margin-top:3px; }
+.cca-filter-row { display:flex; gap:6px; background:rgba(255,255,255,0.03); border:1px solid var(--glass-border); border-radius:10px; padding:3px; }
+.cca-filter-btn { font-size:0.68rem; font-weight:700; padding:6px 11px; border-radius:8px; color:var(--text-muted); cursor:pointer; background:transparent; border:none; font-family:'DM Sans',sans-serif; }
+.cca-filter-btn.active { background:#f97316; color:#0b0e1e; }
+
+.cca-summary-grid { display:grid; grid-template-columns:repeat(4, 1fr); gap:12px; margin-bottom:1rem; }
+.cca-sum-card { background:rgba(255,255,255,0.03); border:1px solid var(--glass-border); border-radius:14px; padding:14px 16px; }
+.cca-sum-lbl { font-size:0.62rem; font-weight:700; text-transform:uppercase; letter-spacing:0.6px; color:var(--text-muted); margin-bottom:8px; }
+.cca-sum-val { font-family:'DM Mono',monospace; font-size:1.3rem; font-weight:700; color:var(--text-main); }
+.cca-sum-note { font-size:0.68rem; color:var(--text-muted); margin-top:6px; }
+.cca-status-pill { display:inline-flex; align-items:center; gap:5px; font-size:0.62rem; font-weight:800; padding:3px 9px; border-radius:20px; margin-top:7px; }
+.cca-status-pill.healthy  { background:rgba(52,211,153,0.15); color:#34d399; }
+.cca-status-pill.moderate { background:rgba(245,158,11,0.15); color:#f59e0b; }
+.cca-status-pill.high     { background:rgba(249,115,22,0.15); color:#f97316; }
+.cca-status-pill.vhigh    { background:rgba(239,68,68,0.15);  color:#ef4444; }
+
+.cca-grid-2 { display:grid; grid-template-columns:1.6fr 1fr; gap:12px; margin-bottom:1rem; align-items:stretch; }
+.cca-panel { background:rgba(255,255,255,0.03); border:1px solid var(--glass-border); border-radius:14px; padding:16px 18px; }
+.cca-panel-title { font-size:0.78rem; font-weight:700; color:var(--text-main); margin-bottom:3px; }
+.cca-panel-sub { font-size:0.66rem; color:var(--text-muted); margin-bottom:12px; }
+
+.cca-trend-legend { display:flex; gap:14px; flex-wrap:wrap; margin-top:10px; }
+.cca-trend-legend-item { display:flex; align-items:center; gap:6px; font-size:0.66rem; color:var(--text-muted); }
+.cca-trend-legend-dot { width:8px; height:8px; border-radius:50%; }
+
+.cca-breakdown-row { display:flex; align-items:center; gap:18px; }
+.cca-donut { width:118px; height:118px; border-radius:50%; flex-shrink:0; position:relative; }
+.cca-donut::after { content:''; position:absolute; inset:15px; border-radius:50%; background:#0b0e1e; }
+.cca-donut-pct { position:absolute; inset:0; display:flex; align-items:center; justify-content:center; flex-direction:column; z-index:1; font-family:'DM Mono',monospace; }
+.cca-donut-pct b { font-size:1.1rem; color:var(--text-main); }
+.cca-donut-pct span { font-size:0.56rem; color:var(--text-muted); text-transform:uppercase; letter-spacing:0.4px; }
+.cca-breakdown-legend { flex:1; display:flex; flex-direction:column; gap:9px; }
+.cca-bd-item { display:flex; align-items:center; justify-content:space-between; font-size:0.73rem; }
+.cca-bd-item-lbl { display:flex; align-items:center; gap:7px; color:var(--text-mid); }
+.cca-bd-dot { width:9px; height:9px; border-radius:3px; }
+.cca-bd-item-val { font-family:'DM Mono',monospace; font-weight:700; color:var(--text-main); }
+.cca-bd-total { margin-top:2px; padding-top:9px; border-top:1px solid rgba(255,255,255,0.07); font-size:0.7rem; color:var(--text-muted); display:flex; justify-content:space-between; }
+
+.cca-payment-grid { display:grid; grid-template-columns:repeat(3, 1fr); gap:12px 20px; margin-bottom:10px; }
+.cca-pay-lbl { font-size:0.64rem; color:var(--text-muted); margin-bottom:4px; }
+.cca-pay-val { font-family:'DM Mono',monospace; font-size:0.88rem; font-weight:700; color:var(--text-main); }
+.cca-pay-status { display:flex; align-items:center; gap:7px; font-size:0.78rem; font-weight:700; padding:9px 12px; border-radius:10px; margin-top:4px; }
+.cca-pay-status.ontime { background:rgba(52,211,153,0.1); color:#34d399; }
+.cca-pay-status.soon   { background:rgba(245,158,11,0.1); color:#f59e0b; }
+.cca-pay-status.overdue{ background:rgba(239,68,68,0.1);  color:#ef4444; }
+
+.cca-reco-box { border-radius:12px; padding:13px 15px; margin-top:2px; }
+.cca-reco-box.warn { background:rgba(249,115,22,0.08); border:1px solid rgba(249,115,22,0.25); }
+.cca-reco-box.ok   { background:rgba(52,211,153,0.08); border:1px solid rgba(52,211,153,0.25); }
+.cca-reco-title { font-size:0.8rem; font-weight:700; margin-bottom:4px; }
+.cca-reco-box.warn .cca-reco-title { color:#f97316; }
+.cca-reco-box.ok .cca-reco-title { color:#34d399; }
+.cca-reco-text { font-size:0.73rem; color:var(--text-mid); line-height:1.55; }
+.cca-reco-nums { display:flex; gap:18px; margin-top:10px; flex-wrap:wrap; }
+.cca-reco-num-lbl { font-size:0.62rem; color:var(--text-muted); }
+.cca-reco-num-val { font-family:'DM Mono',monospace; font-size:0.86rem; font-weight:700; color:var(--text-main); margin-top:2px; }
+
+.cca-table-wrap { overflow-x:auto; }
+.cca-table { width:100%; border-collapse:collapse; font-size:0.76rem; }
+.cca-table th { text-align:left; font-size:0.62rem; text-transform:uppercase; letter-spacing:0.5px; color:var(--text-muted); font-weight:700; padding:8px 10px; border-bottom:1px solid rgba(255,255,255,0.08); white-space:nowrap; }
+.cca-table td { padding:10px; border-bottom:1px solid rgba(255,255,255,0.05); color:var(--text-mid); white-space:nowrap; }
+.cca-table tr.clickable { cursor:pointer; transition:0.14s; }
+.cca-table tr.clickable:hover { background:rgba(255,255,255,0.04); }
+.cca-table tr.is-active td { color:var(--text-main); }
+.cca-table td b { color:var(--text-main); font-family:'DM Mono',monospace; }
+
+.cca-attn-item { display:flex; align-items:flex-start; gap:10px; padding:10px 12px; border-radius:10px; background:rgba(255,255,255,0.025); border:1px solid rgba(255,255,255,0.06); margin-bottom:8px; }
+.cca-attn-item:last-child { margin-bottom:0; }
+.cca-attn-dot { font-size:0.7rem; margin-top:2px; }
+.cca-attn-body b { font-size:0.75rem; color:var(--text-main); display:block; margin-bottom:2px; }
+.cca-attn-body span { font-size:0.7rem; color:var(--text-muted); }
+
+.cca-overall-grid { display:grid; grid-template-columns:repeat(4,1fr); gap:12px; margin-bottom:10px; }
+.cca-overall-item { text-align:left; }
+.cca-overall-note { font-size:0.75rem; color:var(--text-mid); line-height:1.6; padding-top:8px; border-top:1px solid rgba(255,255,255,0.07); }
+
+.cca-strategy-grid { display:grid; grid-template-columns:repeat(3,1fr); gap:12px; }
+.cca-strategy-card { background:rgba(255,255,255,0.03); border:1px solid var(--glass-border); border-radius:12px; padding:13px 15px; }
+.cca-strategy-lbl { font-size:0.66rem; color:var(--text-muted); margin-bottom:6px; }
+.cca-strategy-val { font-family:'DM Mono',monospace; font-size:1.05rem; font-weight:700; }
+
+@media (max-width:1150px) {
+  .cca-summary-grid { grid-template-columns:repeat(2,1fr); }
+  .cca-grid-2 { grid-template-columns:1fr; }
+  .cca-payment-grid { grid-template-columns:repeat(2,1fr); }
+  .cca-overall-grid { grid-template-columns:repeat(2,1fr); }
+  .cca-strategy-grid { grid-template-columns:1fr; }
+}
+@media (max-width:640px) {
+  .cca-summary-grid { grid-template-columns:1fr; }
+  .cca-payment-grid { grid-template-columns:1fr; }
+  .cca-overall-grid { grid-template-columns:1fr; }
+  .cc-cards-panel { flex-direction:column; }
+  .cc-stack-col { width:100%; }
+}
 
 /* Card Network Buttons */
 .cc-network-btn {
@@ -5620,6 +5719,9 @@ function passAppLockGate() {
         </div>
 
       </div>
+
+      <!-- Analytics — fills the space below the stack/detail row -->
+      <div id="cc-analytics-section"></div>
     </div>
 
     <div id="view-credit" class="view-section">
@@ -18815,6 +18917,19 @@ function ccCardNetworkBadge(network) {
   return '';
 }
 
+function ccShade(hex, pct) {
+  // Darkens (pct negative) or lightens (pct positive) a #rrggbb color, fully opaque.
+  hex = (hex || '#334155').replace('#', '');
+  if (hex.length === 3) hex = hex.split('').map(ch => ch + ch).join('');
+  const num = parseInt(hex, 16);
+  let r = (num >> 16) & 0xff, g = (num >> 8) & 0xff, b = num & 0xff;
+  const amt = Math.round(2.55 * pct);
+  r = Math.min(255, Math.max(0, r + amt));
+  g = Math.min(255, Math.max(0, g + amt));
+  b = Math.min(255, Math.max(0, b + amt));
+  return '#' + [r, g, b].map(v => v.toString(16).padStart(2, '0')).join('');
+}
+
 // Builds the front-of-card face markup for one card in the stack.
 function ccCardFaceHTML(c) {
   const pct    = c.limit > 0 ? Math.min(100, (c.used / c.limit) * 100) : 0;
@@ -18838,7 +18953,7 @@ function ccCardFaceHTML(c) {
     </div>`;
 
   return `
-    <div class="cc-card-face" style="--card-grad:linear-gradient(135deg, ${bankColor} 0%, ${bankColor}cc 55%, #0b0e1e 130%)">
+    <div class="cc-card-face" style="--card-grad:linear-gradient(135deg, ${ccShade(bankColor,12)} 0%, ${bankColor} 50%, ${ccShade(bankColor,-38)} 130%)">
       ${c.frozen ? '<div class="cc-frozen-ribbon"><i class="fas fa-snowflake"></i> Frozen</div>' : ''}
       <div class="cc-face-top">
         <div class="cc-face-chip"></div>
@@ -18876,6 +18991,8 @@ function renderCCCards() {
     ccActiveId = null;
     ccLastRenderedIds = [];
     Object.keys(ccStackEls).forEach(k => delete ccStackEls[k]);
+    const analyticsEl = document.getElementById('cc-analytics-section');
+    if (analyticsEl) analyticsEl.innerHTML = '';
     return;
   }
 
@@ -18942,6 +19059,7 @@ function renderCCCards() {
   ccLastRenderedIds = currentIds;
   layoutCCStack();
   renderCCActiveDetail();
+  renderCCAnalytics();
 }
 
 // Brings a card to the front of the stack with an animated reorder.
@@ -18950,6 +19068,7 @@ function setActiveCCCard(id) {
   ccActiveId = id;
   layoutCCStack();
   renderCCActiveDetail();
+  renderCCAnalytics();
 }
 
 // Positions every card in the deck based on its distance from the active card,
@@ -19098,6 +19217,347 @@ function copyCCNumber(id) {
   if (navigator.clipboard && navigator.clipboard.writeText) {
     navigator.clipboard.writeText(card.number.replace(/\s+/g, '')).then(done).catch(done);
   } else { done(); }
+}
+
+// ══════════════════════════════════════════════════════════════════════
+// CC ANALYTICS — fills the space below the stack/detail row. Everything
+// here is calculated from ccCards; only per-month trend history and
+// payment-cycle dates (which the data model has no fields for) are
+// deterministically derived per card (seeded by card.id) rather than
+// stored, so they stay stable across re-renders instead of being random.
+// ══════════════════════════════════════════════════════════════════════
+let ccTrendMonths = 6; // 1 | 3 | 6 | 12 — "This Month" shows the latest point only
+
+function ccUtilStatus4(pct) {
+  if (pct > 70) return { label:'Very High', cls:'vhigh',    color:'#ef4444' };
+  if (pct > 50) return { label:'High',      cls:'high',     color:'#f97316' };
+  if (pct > 30) return { label:'Moderate',  cls:'moderate', color:'#f59e0b' };
+  return          { label:'Healthy',  cls:'healthy',  color:'#34d399' };
+}
+
+function ccSeeded(seed) {
+  return function () {
+    seed |= 0; seed = (seed + 0x6D2B79F5) | 0;
+    let t = Math.imul(seed ^ (seed >>> 15), 1 | seed);
+    t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  };
+}
+
+function ccLast12MonthLabels() {
+  const labels = [], now = new Date();
+  for (let i = 11; i >= 0; i--) {
+    labels.push(new Date(now.getFullYear(), now.getMonth() - i, 1).toLocaleString('en-US', { month: 'short' }));
+  }
+  return labels;
+}
+
+// 12 monthly utilization % points, ending exactly at the card's current
+// utilization, wandering backward deterministically from card.id.
+function ccCardHistory(c) {
+  const pctNow = c.limit > 0 ? Math.min(100, (c.used / c.limit) * 100) : 0;
+  const rand = ccSeeded(c.id * 97 + 13);
+  const pts = [pctNow];
+  let v = pctNow;
+  for (let i = 0; i < 11; i++) {
+    v = Math.max(3, Math.min(97, v + (rand() - 0.5) * 24));
+    pts.unshift(v);
+  }
+  return pts;
+}
+
+// Deterministic payment-cycle info for a card (no due-date field exists on
+// the card model, so it's derived from card.id + today's date).
+function ccPaymentInfo(c) {
+  const dueDay = (c.id * 7) % 28 + 1;
+  const today = new Date();
+  let due = new Date(today.getFullYear(), today.getMonth(), dueDay);
+  if (due < today) due = new Date(today.getFullYear(), today.getMonth() + 1, dueDay);
+  const daysToDue = Math.round((due - today) / 86400000);
+  const minDue = Math.max(500, Math.round((c.used * 0.05) / 10) * 10);
+  const rand = ccSeeded(c.id * 53 + 9);
+  const lastPaymentAmt = Math.round(c.used * (0.2 + rand() * 0.5) / 10) * 10;
+  const lastPaymentDate = new Date(due.getFullYear(), due.getMonth() - 1, dueDay - 2);
+  let status = { label:'Paid on time', cls:'ontime', icon:'🟢' };
+  if (daysToDue <= 0) status = { label:'Payment overdue', cls:'overdue', icon:'🔴' };
+  else if (daysToDue <= 5) status = { label:'Payment due soon', cls:'soon', icon:'🟠' };
+  return { due, daysToDue, minDue, lastPaymentAmt, lastPaymentDate, status, statementBalance: c.used };
+}
+
+function ccFmtDate(d) { return d.toLocaleDateString('en-IN', { day:'2-digit', month:'short', year:'numeric' }); }
+function ccMoney(n) { return '₹' + Math.round(n).toLocaleString('en-IN'); }
+
+// Inline SVG line/area chart for the utilization trend, with 30/50/70%
+// threshold guides and a native tooltip (via <title>) per point showing
+// date, utilization, outstanding and available credit.
+function ccTrendSVG(c) {
+  const allPts = ccCardHistory(c);
+  const allLbls = ccLast12MonthLabels();
+  const n = Math.max(1, ccTrendMonths);
+  const pts = allPts.slice(12 - n);
+  const lbls = allLbls.slice(12 - n);
+
+  const W = 600, H = 190, padL = 34, padR = 12, padT = 14, padB = 26;
+  const innerW = W - padL - padR, innerH = H - padT - padB;
+  const x = i => pts.length > 1 ? padL + (i * innerW) / (pts.length - 1) : padL + innerW / 2;
+  const y = pct => padT + innerH - (Math.max(0, Math.min(100, pct)) / 100) * innerH;
+
+  const linePath = pts.map((p, i) => `${i === 0 ? 'M' : 'L'} ${x(i).toFixed(1)} ${y(p).toFixed(1)}`).join(' ');
+  const areaPath = `${linePath} L ${x(pts.length - 1).toFixed(1)} ${padT + innerH} L ${x(0).toFixed(1)} ${padT + innerH} Z`;
+
+  const thresholds = [
+    { v:30, color:'#34d399' }, { v:50, color:'#f59e0b' }, { v:70, color:'#ef4444' }
+  ];
+  const thresholdLines = thresholds.map(t => `
+    <line x1="${padL}" y1="${y(t.v).toFixed(1)}" x2="${W-padR}" y2="${y(t.v).toFixed(1)}" stroke="${t.color}" stroke-width="1" stroke-dasharray="4 4" opacity="0.35"/>
+    <text x="${W-padR}" y="${(y(t.v)-3).toFixed(1)}" text-anchor="end" font-size="8" fill="${t.color}" opacity="0.75">${t.v}%</text>
+  `).join('');
+
+  const dots = pts.map((p, i) => {
+    const outstanding = Math.round(c.limit * p / 100), avail = Math.max(0, c.limit - outstanding);
+    return `<circle cx="${x(i).toFixed(1)}" cy="${y(p).toFixed(1)}" r="3.4" fill="#f97316" stroke="#0b0e1e" stroke-width="1.4">
+      <title>${lbls[i]}&#10;Utilization: ${p.toFixed(1)}%&#10;Outstanding: ${ccMoney(outstanding)}&#10;Available: ${ccMoney(avail)}</title>
+    </circle>`;
+  }).join('');
+
+  const labelStep = pts.length > 8 ? 2 : 1;
+  const xLabels = lbls.map((l, i) => (i % labelStep === 0 || i === lbls.length - 1)
+    ? `<text x="${x(i).toFixed(1)}" y="${H-6}" text-anchor="middle" font-size="8.5" fill="rgba(255,255,255,0.4)">${l}</text>` : '').join('');
+
+  return `
+    <svg viewBox="0 0 ${W} ${H}" width="100%" height="${H}" xmlns="http://www.w3.org/2000/svg" style="overflow:visible">
+      <defs>
+        <linearGradient id="ccTrendFill-${c.id}" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%" stop-color="#f97316" stop-opacity="0.32"/>
+          <stop offset="100%" stop-color="#f97316" stop-opacity="0"/>
+        </linearGradient>
+      </defs>
+      ${thresholdLines}
+      <path d="${areaPath}" fill="url(#ccTrendFill-${c.id})"/>
+      <path d="${linePath}" fill="none" stroke="#f97316" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>
+      ${dots}
+      ${xLabels}
+    </svg>`;
+}
+
+function ccSetTrendRange(months) {
+  ccTrendMonths = months;
+  renderCCAnalytics();
+}
+
+// Full analytics section for the currently active card + the whole portfolio.
+function renderCCAnalytics() {
+  const host = document.getElementById('cc-analytics-section');
+  if (!host) return;
+  if (!ccCards.length) { host.innerHTML = ''; return; }
+
+  const c = ccCards.find(x => x.id === ccActiveId) || ccCards[0];
+  const pct   = c.limit > 0 ? Math.min(100, (c.used / c.limit) * 100) : 0;
+  const avail = Math.max(0, c.limit - c.used);
+  const status = ccUtilStatus4(pct);
+  const target30 = c.limit * 0.30;
+  const toReduce = Math.max(0, Math.round(c.used - target30));
+  const spendableBefore30 = Math.max(0, Math.round(target30 - c.used));
+
+  const pay = ccPaymentInfo(c);
+
+  // Portfolio-wide totals
+  const totalLimit = ccCards.reduce((s, x) => s + (x.limit || 0), 0);
+  const totalUsed  = ccCards.reduce((s, x) => s + (x.used  || 0), 0);
+  const totalAvail = Math.max(0, totalLimit - totalUsed);
+  const overallPct = totalLimit > 0 ? (totalUsed / totalLimit) * 100 : 0;
+
+  const attentionCards = ccCards
+    .map(x => ({ card:x, pct: x.limit > 0 ? (x.used / x.limit) * 100 : 0 }))
+    .filter(x => x.pct >= 50)
+    .sort((a, b) => b.pct - a.pct);
+
+  const donutOffset = 360 * (pct / 100);
+
+  host.innerHTML = `
+    <div class="cca-wrap">
+      <div class="cca-headrow">
+        <div>
+          <div class="cca-title">Credit Utilization Analytics</div>
+          <div class="cca-sub">Track utilization, available credit, payment activity and usage trends.</div>
+        </div>
+        <div class="cca-filter-row">
+          ${[[1,'This Month'],[3,'3 Months'],[6,'6 Months'],[12,'1 Year']].map(([m,l]) =>
+            `<button class="cca-filter-btn ${ccTrendMonths===m?'active':''}" onclick="ccSetTrendRange(${m})">${l}</button>`
+          ).join('')}
+        </div>
+      </div>
+
+      <!-- Summary cards -->
+      <div class="cca-summary-grid">
+        <div class="cca-sum-card">
+          <div class="cca-sum-lbl">Current Utilization</div>
+          <div class="cca-sum-val" style="color:${status.color}">${pct.toFixed(1)}%</div>
+          <div class="cca-sum-note">Recommended: Below 30%</div>
+          <div class="cca-status-pill ${status.cls}">${status.label}</div>
+        </div>
+        <div class="cca-sum-card">
+          <div class="cca-sum-lbl">Total Credit Limit</div>
+          <div class="cca-sum-val">${ccMoney(c.limit)}</div>
+          <div class="cca-sum-note">Across selected card</div>
+        </div>
+        <div class="cca-sum-card">
+          <div class="cca-sum-lbl">Available Credit</div>
+          <div class="cca-sum-val" style="color:#34d399">${ccMoney(avail)}</div>
+          <div class="cca-sum-note">${c.limit>0 ? (avail/c.limit*100).toFixed(1) : '0'}% of total limit</div>
+        </div>
+        <div class="cca-sum-card">
+          <div class="cca-sum-lbl">Outstanding</div>
+          <div class="cca-sum-val" style="color:${status.color}">${ccMoney(c.used)}</div>
+          <div class="cca-sum-note">Current reported balance</div>
+        </div>
+      </div>
+
+      <!-- Trend + Breakdown -->
+      <div class="cca-grid-2">
+        <div class="cca-panel">
+          <div class="cca-panel-title">Utilization Trend</div>
+          <div class="cca-panel-sub">${c.nickname} · Highest ${Math.max(...ccCardHistory(c)).toFixed(0)}% · Lowest ${Math.min(...ccCardHistory(c)).toFixed(0)}% · Current ${pct.toFixed(1)}%</div>
+          ${ccTrendSVG(c)}
+          <div class="cca-trend-legend">
+            <div class="cca-trend-legend-item"><div class="cca-trend-legend-dot" style="background:#34d399"></div>30% recommended</div>
+            <div class="cca-trend-legend-item"><div class="cca-trend-legend-dot" style="background:#f59e0b"></div>50% caution</div>
+            <div class="cca-trend-legend-item"><div class="cca-trend-legend-dot" style="background:#ef4444"></div>70% high</div>
+          </div>
+        </div>
+
+        <div class="cca-panel">
+          <div class="cca-panel-title">Credit Usage Breakdown</div>
+          <div class="cca-panel-sub">${c.nickname}</div>
+          <div class="cca-breakdown-row">
+            <div class="cca-donut" style="background:conic-gradient(${status.color} 0deg ${donutOffset}deg, rgba(255,255,255,0.08) ${donutOffset}deg 360deg)">
+              <div class="cca-donut-pct"><b>${pct.toFixed(0)}%</b><span>Used</span></div>
+            </div>
+            <div class="cca-breakdown-legend">
+              <div class="cca-bd-item">
+                <div class="cca-bd-item-lbl"><div class="cca-bd-dot" style="background:${status.color}"></div>Used Credit</div>
+                <div class="cca-bd-item-val">${ccMoney(c.used)}</div>
+              </div>
+              <div class="cca-bd-item">
+                <div class="cca-bd-item-lbl"><div class="cca-bd-dot" style="background:rgba(255,255,255,0.15)"></div>Available Credit</div>
+                <div class="cca-bd-item-val">${ccMoney(avail)}</div>
+              </div>
+              <div class="cca-bd-total"><span>${ccMoney(c.limit)} Total Limit</span><span>${pct.toFixed(1)}% used · ${(100-pct).toFixed(1)}% available</span></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Payment Health + Recommendations -->
+      <div class="cca-grid-2">
+        <div class="cca-panel">
+          <div class="cca-panel-title">Payment Health</div>
+          <div class="cca-panel-sub">${c.nickname} · estimated cycle</div>
+          <div class="cca-payment-grid">
+            <div><div class="cca-pay-lbl">Statement Balance</div><div class="cca-pay-val">${ccMoney(pay.statementBalance)}</div></div>
+            <div><div class="cca-pay-lbl">Minimum Due</div><div class="cca-pay-val">${ccMoney(pay.minDue)}</div></div>
+            <div><div class="cca-pay-lbl">Payment Due Date</div><div class="cca-pay-val">${ccFmtDate(pay.due)}</div></div>
+            <div><div class="cca-pay-lbl">Last Payment</div><div class="cca-pay-val">${ccMoney(pay.lastPaymentAmt)}</div></div>
+            <div><div class="cca-pay-lbl">Last Payment Date</div><div class="cca-pay-val">${ccFmtDate(pay.lastPaymentDate)}</div></div>
+            <div><div class="cca-pay-lbl">Days To Due</div><div class="cca-pay-val">${pay.daysToDue > 0 ? pay.daysToDue + ' days' : 'Due today'}</div></div>
+          </div>
+          <div class="cca-pay-status ${pay.status.cls}">${pay.status.icon} ${pay.status.label}</div>
+        </div>
+
+        <div class="cca-panel">
+          <div class="cca-panel-title">How to Improve Your Utilization</div>
+          <div class="cca-panel-sub">${c.nickname}</div>
+          ${toReduce > 0 ? `
+            <div class="cca-reco-box warn">
+              <div class="cca-reco-title">Bring utilization below 30%</div>
+              <div class="cca-reco-text">Pay approximately <b style="color:var(--text-main)">${ccMoney(toReduce)}</b> before the statement date to bring utilization below the recommended 30% level.</div>
+              <div class="cca-reco-nums">
+                <div><div class="cca-reco-num-lbl">Current Outstanding</div><div class="cca-reco-num-val" style="color:${status.color}">${ccMoney(c.used)}</div></div>
+                <div><div class="cca-reco-num-lbl">Target Outstanding</div><div class="cca-reco-num-val" style="color:#34d399">${ccMoney(target30)}</div></div>
+                <div><div class="cca-reco-num-lbl">Amount to Reduce</div><div class="cca-reco-num-val" style="color:#f97316">${ccMoney(toReduce)}</div></div>
+              </div>
+            </div>` : `
+            <div class="cca-reco-box ok">
+              <div class="cca-reco-title">🟢 Within the recommended range</div>
+              <div class="cca-reco-text">Your utilization is currently within the recommended range. You have <b style="color:var(--text-main)">${ccMoney(spendableBefore30)}</b> of headroom left before crossing the 30% mark.</div>
+            </div>`}
+        </div>
+      </div>
+
+      <!-- Credit Strategy -->
+      <div class="cca-panel" style="margin-bottom:1rem">
+        <div class="cca-panel-title">Credit Strategy</div>
+        <div class="cca-panel-sub">${c.nickname} · monthly guide</div>
+        <div class="cca-strategy-grid">
+          <div class="cca-strategy-card">
+            <div class="cca-strategy-lbl">Spendable Before 30%</div>
+            <div class="cca-strategy-val" style="color:#60a5fa">${ccMoney(spendableBefore30)}</div>
+          </div>
+          <div class="cca-strategy-card">
+            <div class="cca-strategy-lbl">Pay Down to 30%</div>
+            <div class="cca-strategy-val" style="color:#f97316">${ccMoney(toReduce)}</div>
+          </div>
+          <div class="cca-strategy-card">
+            <div class="cca-strategy-lbl">Available Credit</div>
+            <div class="cca-strategy-val" style="color:#34d399">${ccMoney(avail)}</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Portfolio -->
+      ${ccCards.length > 1 ? `
+      <div class="cca-panel" style="margin-bottom:1rem">
+        <div class="cca-panel-title">Portfolio Utilization</div>
+        <div class="cca-panel-sub">All active credit cards</div>
+        <div class="cca-table-wrap">
+          <table class="cca-table">
+            <thead><tr><th>Card</th><th>Limit</th><th>Outstanding</th><th>Available</th><th>Utilization</th><th>Status</th></tr></thead>
+            <tbody>
+              ${ccCards.map(x => {
+                const xp = x.limit > 0 ? (x.used / x.limit) * 100 : 0;
+                const xs = ccUtilStatus4(xp);
+                const xa = Math.max(0, x.limit - x.used);
+                return `<tr class="clickable ${x.id===c.id?'is-active':''}" onclick="setActiveCCCard(${x.id})">
+                  <td>${x.nickname}</td><td><b>${ccMoney(x.limit)}</b></td><td><b>${ccMoney(x.used)}</b></td>
+                  <td><b>${ccMoney(xa)}</b></td><td><b style="color:${xs.color}">${xp.toFixed(1)}%</b></td>
+                  <td><span class="cca-status-pill ${xs.cls}" style="margin-top:0">${xs.label}</span></td>
+                </tr>`;
+              }).join('')}
+            </tbody>
+          </table>
+        </div>
+      </div>` : ''}
+
+      <!-- Needs Attention -->
+      <div class="cca-panel" style="margin-bottom:1rem">
+        <div class="cca-panel-title">Needs Attention</div>
+        ${attentionCards.length === 0 ? `
+          <div class="cca-attn-item"><div class="cca-attn-dot">🟢</div><div class="cca-attn-body"><span>All cards are within your preferred utilization range.</span></div></div>
+        ` : attentionCards.map(a => {
+          const reduce = Math.max(0, Math.round(a.card.used - a.card.limit * 0.30));
+          const critical = a.pct >= 70;
+          return `<div class="cca-attn-item">
+            <div class="cca-attn-dot">${critical ? '🔴' : '🟠'}</div>
+            <div class="cca-attn-body">
+              <b>${a.card.nickname} — ${a.pct.toFixed(1)}% utilization</b>
+              <span>${reduce > 0 ? `${ccMoney(reduce)} reduction needed to reach 30%.` : `Consider keeping future spending below ${ccMoney(a.card.limit*0.3)}.`}</span>
+            </div>
+          </div>`;
+        }).join('')}
+      </div>
+
+      <!-- Overall Credit Health -->
+      <div class="cca-panel">
+        <div class="cca-panel-title">Overall Credit Utilization</div>
+        <div class="cca-overall-grid">
+          <div class="cca-overall-item"><div class="cca-sum-lbl">Total Credit Limit</div><div class="cca-sum-val">${ccMoney(totalLimit)}</div></div>
+          <div class="cca-overall-item"><div class="cca-sum-lbl">Total Outstanding</div><div class="cca-sum-val">${ccMoney(totalUsed)}</div></div>
+          <div class="cca-overall-item"><div class="cca-sum-lbl">Total Available</div><div class="cca-sum-val" style="color:#34d399">${ccMoney(totalAvail)}</div></div>
+          <div class="cca-overall-item"><div class="cca-sum-lbl">Overall Utilization</div><div class="cca-sum-val" style="color:${ccUtilStatus4(overallPct).color}">${overallPct.toFixed(1)}%</div></div>
+        </div>
+        <div class="cca-overall-note">Your overall credit utilization is currently ${overallPct.toFixed(1)}%. Reducing revolving balances before statement generation can help keep utilization lower.</div>
+      </div>
+    </div>`;
 }
 
 // Renders the full utilization breakdown for whichever card is currently at the front.
