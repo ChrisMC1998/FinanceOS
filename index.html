@@ -517,6 +517,84 @@ body.light-mode .finai-qa-pair:not(:last-child) { border-color:#e2e8f0; }
 .cc-empty-state i { font-size:2rem; opacity:0.3; }
 .cc-empty-state p { font-size:0.8rem; max-width:200px; line-height:1.5; }
 
+/* ══════════════════ CC STACK — interactive card deck ══════════════════ */
+.cc-stack-outer { position:relative; padding-top:4px; margin-bottom:0.6rem; }
+.cc-stack-card {
+  position:relative; width:100%; max-width:420px; height:206px; margin:0 auto;
+  border-radius:20px; cursor:pointer; transform-origin:top center;
+  transform: translateY(calc(var(--idx,0) * 32px)) scale(calc(1 - var(--idx,0) * 0.045));
+  z-index: calc(40 - var(--idx,0));
+  opacity: calc(1 - var(--idx,0) * 0.17);
+  filter: brightness(calc(1 - var(--idx,0) * 0.1));
+  box-shadow: 0 calc(6px + var(--idx,0) * 2px) calc(20px + var(--idx,0) * 5px) rgba(0,0,0,0.4);
+  transition: transform .55s cubic-bezier(.22,1,.36,1), opacity .45s ease,
+              box-shadow .35s ease, filter .35s ease;
+}
+.cc-stack-card[data-front="true"] { cursor:default; }
+.cc-stack-card[data-front="true"]:hover {
+  transform: translateY(calc(var(--idx,0) * 32px - 6px)) scale(calc(1 - var(--idx,0) * 0.045 + 0.01));
+}
+.cc-stack-card:not([data-front="true"]):hover {
+  filter: brightness(1.08);
+  transform: translateY(calc(var(--idx,0) * 32px - 5px)) scale(calc(1 - var(--idx,0) * 0.045));
+}
+.cc-stack-card.entering { animation: ccCardDeal .6s cubic-bezier(.22,1,.36,1) backwards; }
+@keyframes ccCardDeal {
+  from { opacity:0; transform: translateY(calc(var(--idx,0) * 32px + 60px)) scale(0.82) rotate(-3deg); }
+}
+.cc-stack-card.risk-high .cc-card-face { animation: ccRiskPulse 2.4s ease-in-out infinite; }
+@keyframes ccRiskPulse {
+  0%,100% { box-shadow: inset 0 0 0 1px rgba(255,255,255,0.12), 0 0 0 rgba(239,68,68,0); }
+  50%     { box-shadow: inset 0 0 0 1px rgba(255,255,255,0.12), 0 0 26px rgba(239,68,68,0.5); }
+}
+.cc-card-face {
+  position:absolute; inset:0; border-radius:20px; padding:20px 22px;
+  display:flex; flex-direction:column; justify-content:space-between;
+  background:var(--card-grad); overflow:hidden;
+  border:1px solid rgba(255,255,255,0.14);
+}
+.cc-card-face::before {
+  content:''; position:absolute; top:-45%; right:-15%; width:75%; height:150%;
+  background:radial-gradient(circle, rgba(255,255,255,0.18), transparent 65%);
+  pointer-events:none;
+}
+.cc-card-face::after {
+  content:''; position:absolute; inset:0; border-radius:20px; pointer-events:none;
+  background:linear-gradient(135deg, rgba(255,255,255,0.15), transparent 42%, transparent 68%, rgba(0,0,0,0.22));
+}
+.cc-face-top { display:flex; align-items:flex-start; justify-content:space-between; position:relative; z-index:1; }
+.cc-face-chip {
+  width:38px; height:28px; border-radius:6px; position:relative;
+  background:linear-gradient(135deg,#ffe9b0,#d4af57);
+  box-shadow:inset 0 0 0 1px rgba(0,0,0,0.18);
+}
+.cc-face-chip::before, .cc-face-chip::after { content:''; position:absolute; left:6px; right:6px; height:1px; background:rgba(0,0,0,0.28); }
+.cc-face-chip::before { top:10px; } .cc-face-chip::after { top:18px; }
+.cc-face-logo {
+  width:36px; height:36px; border-radius:10px; background:#fff; display:flex;
+  align-items:center; justify-content:center; padding:5px; box-shadow:0 2px 7px rgba(0,0,0,0.3);
+}
+.cc-face-logo img { width:100%; height:100%; object-fit:contain; border-radius:5px; }
+.cc-face-number { font-family:'DM Mono',monospace; font-size:1.08rem; letter-spacing:2.6px; color:#fff; text-shadow:0 1px 4px rgba(0,0,0,0.35); position:relative; z-index:1; }
+.cc-face-bottom { display:flex; align-items:flex-end; justify-content:space-between; gap:12px; position:relative; z-index:1; }
+.cc-face-name-lbl { font-size:0.58rem; text-transform:uppercase; letter-spacing:1.3px; color:rgba(255,255,255,0.68); margin-bottom:3px; }
+.cc-face-name { font-size:0.9rem; font-weight:700; color:#fff; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width:190px; }
+.cc-face-exp { font-size:0.63rem; color:rgba(255,255,255,0.62); margin-top:3px; }
+.cc-face-ring-wrap { position:relative; width:54px; height:54px; flex-shrink:0; }
+.cc-face-ring-wrap svg { width:100%; height:100%; transform:rotate(-90deg); }
+.cc-face-ring-track { fill:none; stroke:rgba(255,255,255,0.24); stroke-width:5; }
+.cc-face-ring-fill { fill:none; stroke-width:5; stroke-linecap:round; transition:stroke-dashoffset .9s cubic-bezier(.22,1,.36,1); }
+.cc-face-ring-pct { position:absolute; inset:0; display:flex; align-items:center; justify-content:center; font-size:0.68rem; font-weight:800; color:#fff; font-family:'DM Mono',monospace; text-shadow:0 1px 3px rgba(0,0,0,0.4); }
+.cc-face-network { position:absolute; bottom:18px; right:22px; z-index:1; }
+.cc-stack-hint { text-align:center; font-size:0.66rem; color:var(--text-muted); margin:10px 0 4px; opacity:0.7; }
+
+.cc-active-detail {
+  background:rgba(255,255,255,0.03); border:1px solid var(--glass-border);
+  border-radius:16px; padding:1.1rem 1.3rem;
+}
+.cc-active-detail.refresh { animation:ccDetailFade .35s ease; }
+@keyframes ccDetailFade { from { opacity:0.3; transform:translateY(5px); } }
+
 /* Card Network Buttons */
 .cc-network-btn {
   display:flex; align-items:center; justify-content:center;
@@ -9166,9 +9244,57 @@ function renderDashboardImmediate() {
 // ── NOTIFICATIONS SYSTEM ──────────────────────────────────────────────────
 let notifications = JSON.parse(localStorage.getItem('fos_notifications') || '[]');
 
+// Snooze/cooldown log — { [notificationId]: msTimestampWhenDismissed }
+// This is what makes "Clear" actually mean something: once a notification is
+// dismissed, we remember when, and won't regenerate the same alert until its
+// cooldown window has passed (even though the underlying condition is still true).
+let notifDismissed = JSON.parse(localStorage.getItem('fos_notif_dismissed') || '{}');
+
+// How long (in hours) a dismissed alert of a given type stays snoozed before
+// it's allowed to reappear. Tuned by real-world urgency: critical/financial-risk
+// alerts come back sooner, informational ones stay quiet longer.
+const NOTIF_COOLDOWN_HOURS = {
+  'cc-danger':        4,     // ≥90% utilization — serious, re-remind same day
+  'cc-warn':          12,
+  'budget-over':      6,
+  'budget-warn':      12,
+  'emi-due':          6,     // due-soon reminders can recur same day
+  'high-interest':    48,
+  'loan-ending':      48,
+  'port-loss':        24,
+  'unusual-spend':    24,
+  'overspend':        6,
+  'low-savings':      24,
+  'no-income':        24,
+  'big-expense':      72,    // a one-off large txn doesn't need to keep nagging
+  'goal-achievement': 999999, // effectively never — you only hit a milestone once
+  'nw-drop':          24,
+  'portfolio-update': 999999 // already gated weekly by its own timestamp check
+};
+
+function getNotifCooldownMs(type) {
+  const hours = NOTIF_COOLDOWN_HOURS[type];
+  return (hours === undefined ? 12 : hours) * 60 * 60 * 1000; // default 12h for unlisted types
+}
+
 function saveNotifications() {
   localStorage.setItem('fos_notifications', JSON.stringify(notifications));
 }
+
+function saveNotifDismissed() {
+  localStorage.setItem('fos_notif_dismissed', JSON.stringify(notifDismissed));
+}
+
+// Housekeeping — drop dismissal records older than 30 days so this never grows unbounded.
+function pruneNotifDismissed() {
+  const cutoff = Date.now() - 30 * 24 * 60 * 60 * 1000;
+  let changed = false;
+  Object.keys(notifDismissed).forEach(id => {
+    if (notifDismissed[id] < cutoff) { delete notifDismissed[id]; changed = true; }
+  });
+  if (changed) saveNotifDismissed();
+}
+pruneNotifDismissed();
 
 function checkAlertCategory() {
   const field = document.getElementById('alert-field').value;
@@ -9187,30 +9313,45 @@ function addCustomAlert() {
 }
 
 function addNotification(id, icon, color, title, message, type) {
-  if (notifications.find(n => n.id === id)) return;
-  
+  if (notifications.find(n => n.id === id)) return; // already showing, don't duplicate
+
+  // Respect the snooze: if this exact alert was dismissed recently, stay quiet.
+  const dismissedAt = notifDismissed[id];
+  if (dismissedAt && (Date.now() - dismissedAt) < getNotifCooldownMs(type)) {
+    return;
+  }
+
   notifications.unshift({
     id, icon, color, title, message, type,
     time: new Date().toLocaleString('en-IN', { day:'2-digit', month:'short', hour:'2-digit', minute:'2-digit' })
   });
-  
+
   saveNotifications();
   updateNotifBadge();
-  
+
   // NEW: Play sound whenever a new notification is added
   playNotificationSound();
 }
 
+// Dismiss ONE notification — snoozes just this alert for its type's cooldown.
 function removeNotification(id) {
+  notifDismissed[id] = Date.now();
+  saveNotifDismissed();
   notifications = notifications.filter(n => n.id !== id);
   saveNotifications();
   updateNotifBadge();
   renderNotifList();
 }
 
+// Clear everything currently shown — snoozes every visible alert individually
+// (each for its own type's cooldown) so nothing bounces straight back on the
+// next check, while still respecting how urgent each one is.
 function clearAllNotifications() {
   if (!notifications.length) return;
   if (!confirm('Clear all notifications?')) return;
+  const now = Date.now();
+  notifications.forEach(n => { notifDismissed[n.id] = now; });
+  saveNotifDismissed();
   notifications = [];
   saveNotifications();
   updateNotifBadge();
@@ -18486,6 +18627,7 @@ function addCCCard() {
   };
 
   ccCards.push(card);
+  ccActiveId = card.id; // new card deals in at the front of the stack
   saveCCCards();
   renderCCCards();
 
@@ -18581,6 +18723,59 @@ function getCCUtilStatus(pct) {
   return { label:'High Risk', cls:'high' };
 }
 
+// ── CC Stack state ──────────────────────────────────────────────────────
+let ccActiveId = null;           // id of the card currently at the front of the stack
+let ccLastRenderedIds = [];      // ids present the last time we did a full rebuild
+const ccStackEls = {};           // id -> DOM element (kept alive across re-renders so transitions animate)
+
+function ccCircumference(r) { return 2 * Math.PI * r; }
+
+function ccCardNetworkBadge(network) {
+  if (network === 'visa') return `<svg width="34" height="14" viewBox="0 0 48 16" xmlns="http://www.w3.org/2000/svg"><text x="0" y="13" font-family="Arial, Helvetica, sans-serif" font-size="15" font-weight="900" font-style="italic" letter-spacing="-0.5" fill="#fff">VISA</text></svg>`;
+  if (network === 'mastercard') return `<svg width="26" height="16" viewBox="0 0 26 16" xmlns="http://www.w3.org/2000/svg"><circle cx="9.5" cy="8" r="7.2" fill="#EB001B"/><circle cx="16.5" cy="8" r="7.2" fill="#F79E1B"/><path d="M13 2.4a7.18 7.18 0 0 1 0 11.2 7.18 7.18 0 0 1 0-11.2z" fill="#FF5F00"/></svg>`;
+  if (network === 'rupay') return `<svg width="40" height="14" viewBox="0 0 58 16" xmlns="http://www.w3.org/2000/svg"><text x="0" y="12" font-family="Arial, Helvetica, sans-serif" font-size="13" font-weight="800" letter-spacing="-0.3" fill="#fff">Ru<tspan fill="#ffd27a">Pay</tspan></text></svg>`;
+  return '';
+}
+
+// Builds the front-of-card face markup for one card in the stack.
+function ccCardFaceHTML(c) {
+  const pct    = c.limit > 0 ? Math.min(100, (c.used / c.limit) * 100) : 0;
+  const color  = getCCUtilColor(pct);
+  const maskedNum = c.number.replace(/\d(?=\d{4})/g, '•').replace(/\s+/g,' ').trim();
+
+  const freshBank = CC_BANKS.find(b => b.id === c.bankId);
+  const logoUrl   = freshBank ? freshBank.logo  : c.bankLogo;
+  const bankColor = freshBank ? freshBank.color : (c.bankColor || '#334155');
+
+  const r = 22, circ = ccCircumference(r);
+  const offset = circ - (pct / 100) * circ;
+
+  return `
+    <div class="cc-card-face" style="--card-grad:linear-gradient(135deg, ${bankColor} 0%, ${bankColor}cc 55%, #0b0e1e 130%)">
+      <div class="cc-face-top">
+        <div class="cc-face-chip"></div>
+        <div class="cc-face-logo">${logoUrl ? `<img src="${logoUrl}" alt="" onerror="this.style.display='none'">` : ''}</div>
+      </div>
+      <div class="cc-face-number">${maskedNum}</div>
+      <div class="cc-face-bottom">
+        <div>
+          <div class="cc-face-name-lbl">Card Holder</div>
+          <div class="cc-face-name">${c.nickname}</div>
+          <div class="cc-face-exp">Exp ${c.expiry}</div>
+        </div>
+        <div class="cc-face-ring-wrap">
+          <svg viewBox="0 0 52 52">
+            <circle class="cc-face-ring-track" cx="26" cy="26" r="${r}"></circle>
+            <circle class="cc-face-ring-fill" cx="26" cy="26" r="${r}" stroke="${color}"
+              stroke-dasharray="${circ}" stroke-dashoffset="${circ}" data-target-offset="${offset}"></circle>
+          </svg>
+          <div class="cc-face-ring-pct">${pct.toFixed(0)}%</div>
+        </div>
+      </div>
+      <div class="cc-face-network">${ccCardNetworkBadge(c.network)}</div>
+    </div>`;
+}
+
 function renderCCCards() {
   const panel = document.getElementById('cc-cards-panel');
   const empty = document.getElementById('cc-empty');
@@ -18589,95 +18784,158 @@ function renderCCCards() {
   if (ccCards.length === 0) {
     panel.innerHTML = '';
     panel.appendChild(empty || document.createElement('div'));
-    if(empty) empty.style.display = 'flex';
+    if (empty) empty.style.display = 'flex';
+    ccActiveId = null;
+    ccLastRenderedIds = [];
+    Object.keys(ccStackEls).forEach(k => delete ccStackEls[k]);
     return;
   }
-  if(empty) empty.style.display = 'none';
 
-  const html = ccCards.map(c => {
-    const pct    = c.limit > 0 ? Math.min(100, (c.used / c.limit) * 100) : 0;
-    const avail  = Math.max(0, c.limit - c.used);
-    const color  = getCCUtilColor(pct);
-    const status = getCCUtilStatus(pct);
-    const maskedNum = c.number.replace(/\d(?=\d{4})/g, '•').replace(/\s+/g,' ').trim();
-
-    const freshBank = CC_BANKS.find(b => b.id === c.bankId);
-    const logoUrl   = freshBank ? freshBank.logo  : c.bankLogo;
-    const bankColor = freshBank ? freshBank.color : (c.bankColor || '#334155');
-    const bankAbbr  = freshBank ? freshBank.abbr  : (c.bankAbbr || c.bankName || 'BANK');
-
-    return `
-    <div class="cc-card-item">
-      <div class="cc-card-top">
-        <div class="cc-card-logo-big" style="background:#ffffff;border:1px solid rgba(0,0,0,0.06);overflow:hidden;padding:4px;box-shadow:0 1px 3px rgba(0,0,0,0.18);">
-  ${logoUrl
-    ? `<img src="${logoUrl}" alt="${c.bankName||''}"
-         style="width:100%;height:100%;object-fit:contain;border-radius:4px;"
-         onerror="this.style.display='none';this.parentNode.innerHTML='<span style=color:${bankColor};font-size:0.62rem;font-weight:800;letter-spacing:-0.5px>${bankAbbr}</span>'">`
-    : `<span style="color:${bankColor};font-size:0.62rem;font-weight:800;letter-spacing:-0.5px">${bankAbbr}</span>`
+  if (!ccActiveId || !ccCards.find(c => c.id === ccActiveId)) {
+    ccActiveId = ccCards[0].id;
   }
-</div>
-        <div class="cc-card-info">
-          <div class="cc-card-name">${c.nickname}</div>
-          <div class="cc-card-number" style="display:flex;align-items:center;gap:8px">
-            <span>${maskedNum} &nbsp;·&nbsp; Exp ${c.expiry}</span>
-            ${c.network === 'visa' ? `<svg width="34" height="14" viewBox="0 0 48 16" xmlns="http://www.w3.org/2000/svg"><text x="0" y="13" font-family="Arial, Helvetica, sans-serif" font-size="15" font-weight="900" font-style="italic" letter-spacing="-0.5" fill="#aeb4c2">VISA</text></svg>` : ''}
-            ${c.network === 'mastercard' ? `<svg width="26" height="16" viewBox="0 0 26 16" xmlns="http://www.w3.org/2000/svg"><circle cx="9.5" cy="8" r="7.2" fill="#EB001B"/><circle cx="16.5" cy="8" r="7.2" fill="#F79E1B"/><path d="M13 2.4a7.18 7.18 0 0 1 0 11.2 7.18 7.18 0 0 1 0-11.2z" fill="#FF5F00"/></svg>` : ''}
-            ${c.network === 'rupay' ? `<svg width="40" height="14" viewBox="0 0 58 16" xmlns="http://www.w3.org/2000/svg"><text x="0" y="12" font-family="Arial, Helvetica, sans-serif" font-size="13" font-weight="800" letter-spacing="-0.3" fill="#0a8a3e">Ru<tspan fill="#f47b20">Pay</tspan></text></svg>` : ''}
-          </div>
-        </div>
-        <div class="cc-card-actions">
-          <button class="cc-card-del" onclick="editCCCard(${c.id})" title="Edit card" style="background:rgba(0,117,255,0.07);border-color:rgba(0,117,255,0.25);color:#60a5fa;margin-right:4px">
-            <i class="fas fa-edit"></i>
-          </button>
-          <button class="cc-card-del" onclick="deleteCCCard(${c.id})" title="Remove card">
-            <i class="fas fa-trash-alt"></i>
-          </button>
+
+  const currentIds = ccCards.map(c => c.id);
+  const sameSet = currentIds.length === ccLastRenderedIds.length &&
+    currentIds.every(id => ccLastRenderedIds.includes(id));
+  let stackOuter = document.getElementById('cc-stack-outer');
+
+  if (!sameSet || !stackOuter) {
+    // Cards were added/removed — rebuild the deck. New cards "deal" into place.
+    panel.innerHTML = `
+      <div class="cc-stack-outer" id="cc-stack-outer"></div>
+      <div class="cc-stack-hint" id="cc-stack-hint"></div>
+      <div class="cc-active-detail" id="cc-active-detail"></div>
+    `;
+    stackOuter = document.getElementById('cc-stack-outer');
+    Object.keys(ccStackEls).forEach(k => delete ccStackEls[k]);
+
+    ccCards.forEach(c => {
+      const el = document.createElement('div');
+      el.className = 'cc-stack-card entering';
+      el.dataset.id = c.id;
+      el.onclick = () => setActiveCCCard(c.id);
+      el.innerHTML = ccCardFaceHTML(c);
+      stackOuter.appendChild(el);
+      ccStackEls[c.id] = el;
+    });
+
+    // Draw the utilization ring in after the card lands.
+    requestAnimationFrame(() => requestAnimationFrame(() => {
+      Object.values(ccStackEls).forEach(el => {
+        const ring = el.querySelector('.cc-face-ring-fill');
+        if (ring) ring.style.strokeDashoffset = ring.dataset.targetOffset;
+      });
+    }));
+  } else {
+    // Same cards, values may have changed (edit) — update content in place
+    // so the deck itself doesn't flicker/replay its entrance animation.
+    ccCards.forEach(c => {
+      const el = ccStackEls[c.id];
+      if (!el) return;
+      el.innerHTML = ccCardFaceHTML(c);
+      requestAnimationFrame(() => requestAnimationFrame(() => {
+        const ring = el.querySelector('.cc-face-ring-fill');
+        if (ring) ring.style.strokeDashoffset = ring.dataset.targetOffset;
+      }));
+    });
+  }
+
+  ccLastRenderedIds = currentIds;
+  layoutCCStack();
+  renderCCActiveDetail();
+}
+
+// Brings a card to the front of the stack with an animated reorder.
+function setActiveCCCard(id) {
+  if (ccActiveId === id) return;
+  ccActiveId = id;
+  layoutCCStack();
+  renderCCActiveDetail();
+}
+
+// Positions every card in the deck based on its distance from the active card.
+function layoutCCStack() {
+  const order = [ccActiveId, ...ccCards.map(c => c.id).filter(id => id !== ccActiveId)];
+  order.forEach((id, i) => {
+    const el = ccStackEls[id];
+    if (!el) return;
+    el.style.setProperty('--idx', i);
+    el.dataset.front = i === 0 ? 'true' : 'false';
+    const card = ccCards.find(c => c.id === id);
+    const pct  = card && card.limit > 0 ? Math.min(100, (card.used / card.limit) * 100) : 0;
+    el.classList.toggle('risk-high', pct >= 90);
+  });
+  const hint = document.getElementById('cc-stack-hint');
+  if (hint) hint.textContent = ccCards.length > 1 ? 'Tap a card behind the top one to bring it forward' : '';
+}
+
+// Renders the full utilization breakdown for whichever card is currently at the front.
+function renderCCActiveDetail() {
+  const wrap = document.getElementById('cc-active-detail');
+  if (!wrap) return;
+  const c = ccCards.find(x => x.id === ccActiveId);
+  if (!c) { wrap.innerHTML = ''; return; }
+
+  const pct    = c.limit > 0 ? Math.min(100, (c.used / c.limit) * 100) : 0;
+  const avail  = Math.max(0, c.limit - c.used);
+  const color  = getCCUtilColor(pct);
+  const status = getCCUtilStatus(pct);
+
+  wrap.innerHTML = `
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:0.9rem">
+      <div style="font-size:0.92rem;font-weight:700;color:var(--text-main)">${c.nickname}</div>
+      <div class="cc-card-actions">
+        <button class="cc-card-del" onclick="editCCCard(${c.id})" title="Edit card" style="background:rgba(0,117,255,0.07);border-color:rgba(0,117,255,0.25);color:#60a5fa;margin-right:4px">
+          <i class="fas fa-edit"></i>
+        </button>
+        <button class="cc-card-del" onclick="deleteCCCard(${c.id})" title="Remove card">
+          <i class="fas fa-trash-alt"></i>
+        </button>
+      </div>
+    </div>
+    <div class="cc-util-bar-wrap">
+      <div class="cc-util-bar-header">
+        <span style="font-size:0.72rem;color:var(--text-muted)">Credit Utilization</span>
+        <div style="display:flex;align-items:center;gap:8px">
+          <span class="cc-util-pct" style="color:${color}">${pct.toFixed(1)}%</span>
+          <span class="cc-util-status ${status.cls}">${status.label}</span>
         </div>
       </div>
-
-      <div class="cc-util-bar-wrap">
-        <div class="cc-util-bar-header">
-          <span style="font-size:0.72rem;color:var(--text-muted)">Credit Utilization</span>
-          <div style="display:flex;align-items:center;gap:8px">
-            <span class="cc-util-pct" style="color:${color}">${pct.toFixed(1)}%</span>
-            <span class="cc-util-status ${status.cls}">${status.label}</span>
-          </div>
-        </div>
-        <div class="cc-util-track">
-          <div class="cc-util-fill" style="width:${pct}%;background:linear-gradient(90deg,${color}99,${color})"></div>
-        </div>
-        <div class="cc-util-legend">
-          <div class="cc-util-legend-item">
-            <div class="cc-util-legend-dot" style="background:${color}"></div>
-            Outstanding: ₹${c.used.toLocaleString('en-IN')}
-          </div>
-          <div class="cc-util-legend-item">
-            <div class="cc-util-legend-dot" style="background:rgba(255,255,255,0.15)"></div>
-            Available: ₹${avail.toLocaleString('en-IN')}
-          </div>
-        </div>
+      <div class="cc-util-track">
+        <div class="cc-util-fill" style="width:${pct}%;background:linear-gradient(90deg,${color}99,${color})"></div>
       </div>
-
-      <div class="cc-stats-row">
-        <div class="cc-stat-chip">
-          <div class="cs-lbl">Total Limit</div>
-          <div class="cs-val" style="color:#94a3b8">₹${c.limit.toLocaleString('en-IN')}</div>
+      <div class="cc-util-legend">
+        <div class="cc-util-legend-item">
+          <div class="cc-util-legend-dot" style="background:${color}"></div>
+          Outstanding: ₹${c.used.toLocaleString('en-IN')}
         </div>
-        <div class="cc-stat-chip">
-          <div class="cs-lbl">Outstanding</div>
-          <div class="cs-val" style="color:${color}">₹${c.used.toLocaleString('en-IN')}</div>
-        </div>
-        <div class="cc-stat-chip">
-          <div class="cs-lbl">Available</div>
-          <div class="cs-val" style="color:#34d399">₹${avail.toLocaleString('en-IN')}</div>
+        <div class="cc-util-legend-item">
+          <div class="cc-util-legend-dot" style="background:rgba(255,255,255,0.15)"></div>
+          Available: ₹${avail.toLocaleString('en-IN')}
         </div>
       </div>
     </div>
-    `;
-  }).join('');
+    <div class="cc-stats-row">
+      <div class="cc-stat-chip">
+        <div class="cs-lbl">Total Limit</div>
+        <div class="cs-val" style="color:#94a3b8">₹${c.limit.toLocaleString('en-IN')}</div>
+      </div>
+      <div class="cc-stat-chip">
+        <div class="cs-lbl">Outstanding</div>
+        <div class="cs-val" style="color:${color}">₹${c.used.toLocaleString('en-IN')}</div>
+      </div>
+      <div class="cc-stat-chip">
+        <div class="cs-lbl">Available</div>
+        <div class="cs-val" style="color:#34d399">₹${avail.toLocaleString('en-IN')}</div>
+      </div>
+    </div>
+  `;
 
-  panel.innerHTML = html;
+  // Restart the fade-in so switching cards feels responsive, not static.
+  wrap.classList.remove('refresh');
+  void wrap.offsetWidth;
+  wrap.classList.add('refresh');
 }
 
 // ══════════════════════════════════════════════
