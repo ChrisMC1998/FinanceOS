@@ -729,16 +729,44 @@ body.light-mode .finai-qa-pair:not(:last-child) { border-color:#e2e8f0; }
 .cc-face-logo img { position:absolute; inset:0; width:100%; height:100%; object-fit:contain; padding:5px; box-sizing:border-box; opacity:0; transition:opacity .2s ease; }
 .cc-face-logo img.loaded { opacity:1; }
 .cc-face-number { font-family:'DM Mono',monospace; font-size:1.08rem; letter-spacing:2.6px; color:#fff; text-shadow:0 1px 4px rgba(0,0,0,0.35); position:relative; z-index:1; }
-.cc-face-bottom { display:flex; align-items:flex-end; justify-content:space-between; gap:12px; position:relative; z-index:1; }
+/* Card-network logo has a fixed-width "protected slot" (var(--cc-net-w))
+   regardless of which network's actual logo art is inside it (Visa/RuPay/
+   Mastercard/etc all differ in intrinsic width) — the slot is right-aligned
+   to the card's own padding, so the badge below can reserve space against
+   the slot's width instead of any one logo's pixel size. */
+.cc-card-face { --cc-net-w:46px; --cc-net-gap:10px; --cc-ring-size:54px; }
+.cc-face-bottom {
+  display:flex; align-items:flex-end; justify-content:flex-start; gap:12px; position:relative; z-index:1;
+  padding-right: calc(var(--cc-ring-size) + var(--cc-net-gap) + var(--cc-net-w) + 6px);
+}
 .cc-face-name-lbl { font-size:0.58rem; text-transform:uppercase; letter-spacing:1.3px; color:rgba(255,255,255,0.68); margin-bottom:3px; }
 .cc-face-name { font-size:0.9rem; font-weight:700; color:#fff; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width:170px; }
 .cc-face-exp { font-size:0.63rem; color:rgba(255,255,255,0.62); margin-top:3px; }
-.cc-face-ring-wrap { position:relative; width:54px; height:54px; flex-shrink:0; }
+/* The ring is anchored independently of the bottom text row so it never
+   grows/shrinks with the cardholder name — it always sits clear of the
+   network logo's protected slot, above/left of it. */
+.cc-face-ring-wrap {
+  position:absolute; z-index:2;
+  right: calc(22px + var(--cc-net-w) + var(--cc-net-gap));
+  bottom: 14px;
+  width:var(--cc-ring-size); height:var(--cc-ring-size); flex-shrink:0;
+}
 .cc-face-ring-wrap svg { width:100%; height:100%; transform:rotate(-90deg); }
 .cc-face-ring-track { fill:none; stroke:rgba(255,255,255,0.24); stroke-width:5; }
 .cc-face-ring-fill { fill:none; stroke-width:5; stroke-linecap:round; transition:stroke-dashoffset .9s cubic-bezier(.22,1,.36,1); }
 .cc-face-ring-pct { position:absolute; inset:0; display:flex; align-items:center; justify-content:center; font-size:0.68rem; font-weight:800; color:#fff; font-family:'DM Mono',monospace; text-shadow:0 1px 3px rgba(0,0,0,0.4); }
-.cc-face-network { position:absolute; bottom:18px; right:22px; z-index:1; }
+/* Protected network-logo slot: fixed width/height box, right-aligned to the
+   card's own padding, so any current or future network mark is centered in
+   the same reserved footprint the ring above is calculated against. */
+.cc-face-network {
+  position:absolute; bottom:18px; right:22px; z-index:1;
+  width:var(--cc-net-w); height:16px;
+  display:flex; align-items:center; justify-content:flex-end;
+}
+@media (max-width:380px) {
+  .cc-card-face { --cc-net-w:40px; --cc-ring-size:46px; }
+  .cc-face-ring-wrap { bottom:12px; }
+}
 
 /* Right-hand detail panel — always visible beside the stack, updates on click */
 .cc-active-detail {
@@ -19870,7 +19898,7 @@ function triggerBackupExport() {
 // ══════════════════════════════════════════════════
 const CC_BANKS = [
   { id:'hdfc',    name:'HDFC',           abbr:'HDFC', color:'#004C8F', text:'#fff', logo:'https://www.google.com/s2/favicons?domain=hdfcbank.com&sz=128' },
-  { id:'sbi',     name:'SBI',            abbr:'SBI',  color:'#2563eb', text:'#fff', logo:'https://www.google.com/s2/favicons?domain=sbi.co.in&sz=128' },
+  { id:'sbi',     name:'SBI',            abbr:'SBI',  color:'#2563eb', text:'#fff', logo:'https://logo.clearbit.com/bank.sbi', logoFallback:'https://www.google.com/s2/favicons?domain=bank.sbi&sz=128' },
   { id:'icici',   name:'ICICI',          abbr:'ICIC', color:'#F37021', text:'#fff', logo:'https://www.google.com/s2/favicons?domain=icicibank.com&sz=128' },
   { id:'axis',    name:'Axis',           abbr:'AXIS', color:'#97144D', text:'#fff', logo:'https://www.google.com/s2/favicons?domain=axisbank.com&sz=128' },
   { id:'kotak',   name:'Kotak',          abbr:'KMB',  color:'#ED1C24', text:'#fff', logo:'https://www.google.com/s2/favicons?domain=kotak.com&sz=128' },
@@ -19883,7 +19911,7 @@ const CC_BANKS = [
   { id:'citi',    name:'Citi',           abbr:'CITI', color:'#003B8E', text:'#fff', logo:'https://www.google.com/s2/favicons?domain=citi.com&sz=128' },
   { id:'bob',     name:'Bank of Baroda', abbr:'BOB',  color:'#F26522', text:'#fff', logo:'https://www.google.com/s2/favicons?domain=bankofbaroda.in&sz=128' },
   { id:'pnb',     name:'PNB',            abbr:'PNB',  color:'#8B0000', text:'#fff', logo:'https://www.google.com/s2/favicons?domain=pnbindia.in&sz=128' },
-  { id:'union',   name:'Union Bank',     abbr:'UBI',  color:'#1B4F8A', text:'#fff', logo:'https://www.google.com/s2/favicons?domain=unionbankofindia.co.in&sz=128' },
+  { id:'union',   name:'Union Bank',     abbr:'UBI',  color:'#1B4F8A', text:'#fff', logo:'https://logo.clearbit.com/unionbankofindia.co.in', logoFallback:'https://www.google.com/s2/favicons?domain=unionbankofindia.co.in&sz=128' },
   { id:'canara',  name:'Canara',         abbr:'CNR',  color:'#005F6A', text:'#fff', logo:'https://www.google.com/s2/favicons?domain=canarabank.com&sz=128' },
   { id:'idfc',    name:'IDFC First',     abbr:'IDFC', color:'#F26522', text:'#fff', logo:'https://www.google.com/s2/favicons?domain=idfcfirstbank.com&sz=128' },
   { id:'au',      name:'AU Small',       abbr:'AU',   color:'#E31837', text:'#fff', logo:'https://www.google.com/s2/favicons?domain=aubank.in&sz=128' },
@@ -19898,9 +19926,10 @@ function initCCView() {
   grid.innerHTML = CC_BANKS.map(b => `
     <button class="cc-bank-btn ${ccSelectedBank===b.id?'selected':''}" onclick="selectCCBank('${b.id}')">
       <div class="cc-bank-logo" style="background:#ffffff;border:1px solid rgba(0,0,0,0.06);overflow:hidden;padding:3px;box-shadow:0 1px 3px rgba(0,0,0,0.18);">
-        <img src="${b.logo}" alt="${b.name}"
+        <img src="${b.logo}" alt="${b.name} Bank logo"
           style="width:100%;height:100%;object-fit:contain;border-radius:3px;"
-          onerror="this.style.display='none';this.parentNode.innerHTML='<span style=color:${b.color};font-size:0.62rem;font-weight:800;letter-spacing:-0.5px>${b.name.split(' ')[0].substring(0,4)}</span>'">
+          data-fallback="${b.logoFallback||''}"
+          onerror="if(this.dataset.fallback){this.src=this.dataset.fallback;this.dataset.fallback='';}else{this.style.display='none';this.parentNode.innerHTML='<span style=color:${b.color};font-size:0.62rem;font-weight:800;letter-spacing:-0.5px>${b.name.split(' ')[0].substring(0,4)}</span>'}">
       </div>
       <span>${b.name}</span>
     </button>
@@ -20139,10 +20168,13 @@ function ccCardFaceHTML(c) {
 
   // The coloured abbreviation is always rendered underneath — if the logo image
   // fails (or is blocked) it simply never covers it, so the badge never goes blank.
+  const logoFallbackUrl = freshBank ? (freshBank.logoFallback || '') : (c.bankLogoFallback || '');
   const logoHTML = `
     <div class="cc-face-logo">
       <span class="cc-face-logo-fallback" style="color:${bankColor}">${bankAbbr}</span>
-      ${logoUrl ? `<img src="${logoUrl}" alt="" onload="this.classList.add('loaded')" onerror="this.remove()">` : ''}
+      ${logoUrl ? `<img src="${logoUrl}" alt="${bankAbbr} bank logo" data-fallback="${logoFallbackUrl}"
+          onload="this.classList.add('loaded')"
+          onerror="if(this.dataset.fallback){this.src=this.dataset.fallback;this.dataset.fallback='';}else{this.remove()}">` : ''}
     </div>`;
 
   return `
@@ -20159,16 +20191,16 @@ function ccCardFaceHTML(c) {
           <div class="cc-face-name">${c.nickname}</div>
           <div class="cc-face-exp">Exp ${c.expiry}</div>
         </div>
-        <div class="cc-face-ring-wrap">
-          <svg viewBox="0 0 52 52">
-            <circle class="cc-face-ring-track" cx="26" cy="26" r="${r}"></circle>
-            <circle class="cc-face-ring-fill" cx="26" cy="26" r="${r}" stroke="${color}"
-              stroke-dasharray="${circ}" stroke-dashoffset="${circ}" data-target-offset="${offset}"></circle>
-          </svg>
-          <div class="cc-face-ring-pct">${pct.toFixed(0)}%</div>
-        </div>
       </div>
-      <div class="cc-face-network">${ccCardNetworkBadge(c.network)}</div>
+      <div class="cc-face-ring-wrap" role="img" aria-label="Utilization ${pct.toFixed(0)}%">
+        <svg viewBox="0 0 52 52">
+          <circle class="cc-face-ring-track" cx="26" cy="26" r="${r}"></circle>
+          <circle class="cc-face-ring-fill" cx="26" cy="26" r="${r}" stroke="${color}"
+            stroke-dasharray="${circ}" stroke-dashoffset="${circ}" data-target-offset="${offset}"></circle>
+        </svg>
+        <div class="cc-face-ring-pct">${pct.toFixed(0)}%</div>
+      </div>
+      <div class="cc-face-network" role="img" aria-label="${(c.network||'card').charAt(0).toUpperCase()+(c.network||'card').slice(1)} card network">${ccCardNetworkBadge(c.network)}</div>
     </div>`;
 }
 
