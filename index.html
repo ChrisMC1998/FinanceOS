@@ -13168,102 +13168,55 @@ function renderAnalytics() {
         invWrap.innerHTML = '<div class="empty-state"><i class="fas fa-coins"></i><p>No investment data</p></div>';
       }
 
-      // ── Debt Pyramid / Tier System ─────────────────────────────────────────────
+      // ── Loan Distribution — compact bars grouped by lender/category (replaces the old
+      // oversized pyramid tiers, which only fit 3–4 entries before eating the whole panel) ──
       const loanData = groupData('Loan', data);
       const totalLoan = Object.values(loanData).reduce((a,b)=>a+b,0);
       const loanContainer = document.getElementById('chart-loan-bif').parentNode;
-      
+
       document.getElementById('chart-loan-bif').style.display = 'none';
       const emptyLoanEl = document.getElementById('empty-loanbif');
-      
-      // Clear previous pyramid if it exists to prevent infinite stacking on refresh
+
+      // Clean up whichever previous render (old pyramid or these bars) exists, to avoid stacking on refresh
       const existingPyr = document.getElementById('loan-pyramid-container');
       if (existingPyr) existingPyr.remove();
+      let loanBarWrap = document.getElementById('loan-bar-wrap');
 
       if (totalLoan === 0) {
         emptyLoanEl.style.display = 'block';
+        if (loanBarWrap) loanBarWrap.remove();
       } else {
         emptyLoanEl.style.display = 'none';
-        
-        // Sort highest debt to the top
-        const sortedLoans = Object.entries(loanData).sort((a,b) => b[1] - a[1]);
-        const numTiers = sortedLoans.length;
-        
-        const pyrDiv = document.createElement('div');
-        pyrDiv.id = 'loan-pyramid-container';
-        pyrDiv.style.height = '100%'; 
-        pyrDiv.style.minHeight = '230px'; // Allows flexing
-        pyrDiv.style.display = 'flex';
-        pyrDiv.style.flexDirection = 'column';
-        pyrDiv.style.alignItems = 'center';
-        pyrDiv.style.justifyContent = 'flex-end';
-        pyrDiv.style.gap = '6px'; 
-        pyrDiv.style.paddingTop = '10px';
-        pyrDiv.style.paddingBottom = '10px';
-        pyrDiv.style.overflow = 'hidden'; // Hides both the bottom (horizontal) and side scrollbars completely
-        
-        const glowColors = [
-          { border: '#3b82f6', bg: 'rgba(59, 130, 246, 0.15)' }, // Blue
-          { border: '#8b5cf6', bg: 'rgba(139, 92, 246, 0.15)' }, // Purple
-          { border: '#06b6d4', bg: 'rgba(6, 182, 212, 0.15)' },  // Cyan
-          { border: '#10b981', bg: 'rgba(16, 185, 129, 0.15)' }, // Emerald
-          { border: '#f59e0b', bg: 'rgba(245, 158, 11, 0.15)' }  // Amber
-        ];
 
-        let html = '';
-        sortedLoans.forEach((loan, idx) => {
-          const [name, amt] = loan;
+        if (!loanBarWrap) {
+          loanBarWrap = document.createElement('div');
+          loanBarWrap.id = 'loan-bar-wrap';
+          loanContainer.appendChild(loanBarWrap);
+        }
+
+        // Sort highest outstanding to the top
+        const sortedLoans = Object.entries(loanData).sort((a,b) => b[1] - a[1]);
+        const loanMax = sortedLoans[0][1] || 1;
+        const isLightLoanBar = document.body.classList.contains('light-mode');
+        const loanHex = '#60a5fa';
+
+        loanBarWrap.style.cssText = 'display:flex;flex-direction:column;gap:11px;padding:6px 4px;overflow-y:auto;height:100%;scrollbar-width:none;-ms-overflow-style:none';
+        loanBarWrap.innerHTML = `<style>#loan-bar-wrap::-webkit-scrollbar{display:none}</style>` + sortedLoans.map(([name, amt]) => {
           const pct = Math.round((amt / totalLoan) * 100);
-          const color = glowColors[idx % glowColors.length];
-          
-          // Width scales progressively from narrowest (top) to widest (bottom)
-          const width = numTiers > 1 ? 55 + (45 / (numTiers - 1)) * idx : 100;
-          
-          // CRITICAL FIX 1: Increased min-height to 65px so text has guaranteed vertical space
-          const height = Math.max(65, Math.min(85, 200 / numTiers));
-          
-          // Math to create a continuous, smooth angled slope down the pyramid edges
-          const inset = numTiers > 1 ? 8 - (8 / (numTiers - 1)) * idx : 0;
-          
-          html += `
-            <div style="
-              width: ${width}%;
-              min-height: ${height}px; /* CRITICAL FIX 2: Changed fixed height to min-height */
-              position: relative;
-              transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1), filter 0.3s;
-              cursor: crosshair;
-              display: flex;
-              align-items: center;
-            "
-            onmouseover="this.style.filter='brightness(1.4)'; this.style.transform='translateY(-3px) scale(1.02)'"
-            onmouseout="this.style.filter='brightness(1)'; this.style.transform='translateY(0) scale(1)'"
-            title="${name}: ₹${amt.toLocaleString('en-IN')} (${pct}%)"
-            >
-              <div style="
-                position: absolute; inset: 0;
-                background: linear-gradient(180deg, ${color.bg}, transparent);
-                border-top: 2px solid ${color.border};
-                clip-path: polygon(${inset}% 0%, ${100 - inset}% 0%, 100% 100%, 0% 100%);
-                box-shadow: inset 0 10px 20px -10px ${color.border};
-              "></div>
-              
-              <div style="
-                position: relative; z-index: 2;
-                display: flex; flex-direction: column;
-                align-items: center; justify-content: center;
-                width: 100%;
-                padding: 14px 0 8px 0; 
-              ">
-                <div style="font-size:0.62rem; font-weight:700; color:var(--text-mid); text-transform:uppercase; letter-spacing:1px; margin-bottom:2px; line-height:1.2; text-align:center; padding: 0 10px;">${name}</div>
-                <div style="font-family:'DM Mono', monospace; font-size:1.05rem; font-weight:700; color:${document.body.classList.contains('light-mode') ? '#0f172a' : 'white'}; text-shadow:${document.body.classList.contains('light-mode') ? 'none' : '0 0 12px ' + color.border}; line-height:1.2;">₹${amt.toLocaleString('en-IN')}</div>
-                <div style="font-size:0.65rem; color:${color.border}; font-weight:700; margin-top:2px; opacity:0.9; line-height:1.2;">${pct}% of total</div>
+          const barPct = Math.max(3, (amt / loanMax) * 100);
+          const trackBg = isLightLoanBar ? 'rgba(0,0,0,0.05)' : 'rgba(255,255,255,0.05)';
+          return `
+            <div style="display:flex;flex-direction:column;gap:5px">
+              <div style="display:flex;justify-content:space-between;align-items:baseline;gap:8px">
+                <span style="font-size:0.76rem;font-weight:700;color:${chartTextColor()};white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${name}</span>
+                <span style="font-family:'DM Mono',monospace;font-size:0.78rem;font-weight:700;color:${loanHex};white-space:nowrap;flex-shrink:0">₹${Math.round(amt).toLocaleString('en-IN')} · ${pct}%</span>
+              </div>
+              <div style="height:10px;border-radius:99px;background:${trackBg};overflow:hidden;position:relative;border:1px solid ${loanHex}22">
+                <div style="height:100%;width:${barPct}%;border-radius:99px;background:linear-gradient(90deg, ${loanHex}aa, ${loanHex});box-shadow:0 0 10px ${loanHex}70,inset 0 1px 0 rgba(255,255,255,0.3)"></div>
               </div>
             </div>
           `;
-        });
-        
-        pyrDiv.innerHTML = html;
-        loanContainer.appendChild(pyrDiv);
+        }).join('');
       }
 
 // ── Debt vs Assets 3D Balance Scale (Flex-Safe Layout) ─────────────────────
