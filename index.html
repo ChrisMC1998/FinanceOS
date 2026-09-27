@@ -337,6 +337,68 @@ body.light-mode .ins-card-row { border-color:#e2e8f0; }
   .ins-kpi-grid, .ins-expiry-strip { grid-template-columns:repeat(2,1fr); }
 }
 
+/* ── Subscriptions Control Center (My Zone → Insurance → Subscriptions) ── */
+.sub-module-tabs { display:flex; gap:8px; margin-bottom:1rem; border-bottom:1px solid rgba(255,255,255,0.08); padding-bottom:.6rem; }
+.sub-module-tab { background:transparent; border:1px solid rgba(255,255,255,0.1); color:var(--text-muted); padding:7px 14px; border-radius:10px; font-size:0.8rem; font-weight:700; cursor:pointer; display:flex; align-items:center; gap:6px; transition:0.15s; }
+.sub-module-tab:hover { color:var(--text-main); }
+.sub-module-tab.active { background:rgba(52,211,153,0.16); border-color:#34d399; color:#34d399; }
+.insurance-subview { display:none; }
+.insurance-subview.active { display:block; }
+.sub-chip-row { display:flex; flex-wrap:wrap; gap:8px; margin:.2rem 0 1rem; }
+.sub-chip { background:rgba(255,255,255,0.04); border:1px solid rgba(255,255,255,0.08); color:var(--text-muted); padding:5px 12px; border-radius:999px; font-size:0.72rem; font-weight:600; cursor:pointer; }
+.sub-chip:hover { color:var(--text-main); }
+.sub-chip.active { background:rgba(52,211,153,0.16); border-color:#34d399; color:#34d399; }
+.sub-bucket-row { display:grid; grid-template-columns:repeat(auto-fit,minmax(110px,1fr)); gap:8px; margin-bottom:1rem; }
+.sub-bucket { background:rgba(255,255,255,0.04); border:1px solid rgba(255,255,255,0.08); border-radius:12px; padding:10px 8px; text-align:center; cursor:pointer; transition:0.15s; }
+.sub-bucket:hover, .sub-bucket.active { border-color:#34d399; background:rgba(52,211,153,0.14); }
+.sub-bucket-count { font-size:1.15rem; font-weight:800; font-family:'DM Mono',monospace; }
+.sub-bucket-label { font-size:0.66rem; color:var(--text-muted); text-transform:uppercase; letter-spacing:0.03em; margin-top:2px; }
+.sub-insight-list { display:flex; flex-direction:column; gap:7px; margin-bottom:.3rem; }
+.sub-insight-item { display:flex; align-items:center; justify-content:space-between; gap:10px; background:rgba(255,255,255,0.03); border:1px solid rgba(255,255,255,0.06); border-radius:10px; padding:9px 12px; font-size:0.8rem; }
+.sub-insight-item b { display:block; }
+.sub-insight-item .muted { color:var(--text-muted); font-size:0.72rem; }
+.sub-analytics-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(240px,1fr)); gap:1rem; margin-bottom:1rem; }
+.sub-analytics-card { background:rgba(255,255,255,0.03); border:1px solid rgba(255,255,255,0.07); border-radius:14px; padding:.9rem 1rem; }
+.sub-analytics-card-title { font-size:0.72rem; font-weight:800; text-transform:uppercase; letter-spacing:0.04em; color:var(--text-muted); margin-bottom:.6rem; }
+.sub-bar-row { margin-bottom:8px; }
+.sub-bar-row-top { display:flex; justify-content:space-between; font-size:0.74rem; margin-bottom:3px; }
+.sub-bar-track { height:7px; border-radius:4px; background:rgba(255,255,255,0.08); overflow:hidden; }
+.sub-bar-fill { height:100%; border-radius:4px; background:#34d399; }
+.sub-card-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(270px,1fr)); gap:.9rem; }
+.sub-card { background:rgba(255,255,255,0.03); border:1px solid rgba(255,255,255,0.07); border-radius:14px; padding:.95rem 1.05rem; cursor:pointer; transition:0.15s; }
+.sub-card:hover { border-color:rgba(52,211,153,0.4); }
+.sub-card-top { display:flex; justify-content:space-between; align-items:flex-start; gap:8px; }
+.sub-card-name { font-weight:800; font-size:0.95rem; }
+.sub-card-meta { font-size:0.7rem; color:var(--text-muted); margin-top:2px; }
+.sub-card-price { text-align:right; font-family:'DM Mono',monospace; font-weight:800; }
+.sub-card-price small { display:block; font-weight:600; color:var(--text-muted); font-size:0.64rem; }
+.sub-card-row { display:flex; justify-content:space-between; font-size:0.74rem; margin-top:8px; color:var(--text-muted); }
+.sub-card-row b { color:var(--text-main); font-weight:700; }
+.sub-card-badges { display:flex; gap:6px; margin-top:8px; flex-wrap:wrap; }
+.sub-badge { font-size:0.62rem; font-weight:800; text-transform:uppercase; letter-spacing:0.03em; padding:3px 8px; border-radius:999px; }
+.sub-badge.active { background:rgba(52,211,153,0.16); color:#34d399; }
+.sub-badge.trial { background:rgba(96,165,250,0.16); color:#60a5fa; }
+.sub-badge.paused { background:rgba(251,191,36,0.16); color:#fbbf24; }
+.sub-badge.cancelled, .sub-badge.expired, .sub-badge.payment-failed { background:rgba(248,113,113,0.16); color:#f87171; }
+.sub-badge.archived { background:rgba(148,163,184,0.16); color:#94a3b8; }
+.sub-badge.autorenew { background:rgba(255,255,255,0.06); color:var(--text-muted); }
+.sub-card-actions { display:flex; gap:6px; margin-top:10px; }
+.sub-health-badge { font-size:0.68rem; font-weight:800; padding:3px 10px; border-radius:999px; background:rgba(52,211,153,0.16); color:#34d399; }
+.sub-health-badge.warn { background:rgba(251,191,36,0.16); color:#fbbf24; }
+.sub-health-badge.err { background:rgba(248,113,113,0.16); color:#f87171; }
+.sub-health-warning { margin-top:8px; display:flex; align-items:center; gap:8px; flex-wrap:wrap; font-size:0.76rem; color:#fbbf24; background:rgba(251,191,36,0.08); border:1px solid rgba(251,191,36,0.25); border-radius:10px; padding:8px 10px; }
+.sub-dup-warning { display:flex; align-items:center; gap:8px; font-size:0.78rem; color:#fbbf24; background:rgba(251,191,36,0.08); border:1px solid rgba(251,191,36,0.25); border-radius:10px; padding:8px 10px; margin-bottom:.8rem; }
+.sub-drawer-section { border-top:1px dashed rgba(255,255,255,0.1); margin-top:1rem; padding-top:.9rem; }
+.sub-drawer-section:first-of-type { border-top:none; margin-top:0; padding-top:0; }
+.sub-drawer-section-title { font-size:0.72rem; font-weight:800; text-transform:uppercase; letter-spacing:0.05em; color:#34d399; margin-bottom:.5rem; }
+.sub-drawer-row { display:flex; justify-content:space-between; font-size:0.8rem; padding:4px 0; }
+.sub-drawer-row span:first-child { color:var(--text-muted); }
+.sub-price-history-item, .sub-payment-history-item { display:flex; justify-content:space-between; font-size:0.78rem; padding:6px 0; border-bottom:1px dashed rgba(255,255,255,0.06); }
+@media (max-width:640px) {
+  .sub-card-grid { grid-template-columns:1fr; }
+  .sub-analytics-grid { grid-template-columns:1fr; }
+}
+
 .notes-wrap { display:flex; gap:1.2rem; height:100%; min-height:560px; }
 .notes-list-pane { width:300px; flex-shrink:0; display:flex; flex-direction:column; background:rgba(255,255,255,0.02); border:1px solid rgba(255,255,255,0.06); border-radius:16px; padding:14px; }
 body.light-mode .notes-list-pane { background:#fff; border-color:#e2e8f0; }
@@ -5870,6 +5932,12 @@ function passAppLockGate() {
     </div>
 
     <div id="view-insurance" class="view-section">
+      <div class="sub-module-tabs">
+        <button class="sub-module-tab active" id="ins-subview-tab-policies" onclick="switchInsuranceSubview('policies')"><i class="fas fa-shield-alt"></i> Policies</button>
+        <button class="sub-module-tab" id="ins-subview-tab-subscriptions" onclick="switchInsuranceSubview('subscriptions')"><i class="fas fa-sync-alt"></i> Subscriptions</button>
+      </div>
+
+    <div id="insurance-subview-policies" class="insurance-subview active">
       <div class="ins-toolbar">
         <div class="ins-filter-tabs">
           <button class="ins-tab active" id="ins-tab-all" onclick="filterInsurance('all',this)">All Policies</button>
@@ -5944,6 +6012,85 @@ function passAppLockGate() {
         <i class="fas fa-shield-alt" style="font-size:2.2rem;opacity:0.2;display:block;margin-bottom:10px"></i>
         No insurance policies added yet. Click <b>Add Insurance</b> to get started.
       </div>
+    </div><!-- /insurance-subview-policies -->
+
+    <div id="insurance-subview-subscriptions" class="insurance-subview">
+      <div class="ins-toolbar">
+        <div class="ins-toolbar-controls">
+          <div class="ins-search-box">
+            <i class="fas fa-search" style="color:var(--text-muted)"></i>
+            <input type="text" id="sub-search-input" placeholder="Search subscription, provider, card…" oninput="renderSubscriptions()">
+          </div>
+          <select class="ins-mini-select" id="sub-filter-status" onchange="renderSubscriptions()">
+            <option value="">All Status</option>
+            <option value="Active">Active</option>
+            <option value="Trial">Trial</option>
+            <option value="Paused">Paused</option>
+            <option value="Cancelled">Cancelled</option>
+            <option value="Expired">Expired</option>
+            <option value="Payment Failed">Payment Failed</option>
+            <option value="Archived">Archived</option>
+          </select>
+          <select class="ins-mini-select" id="sub-filter-category" onchange="renderSubscriptions()"><option value="">All Categories</option></select>
+          <select class="ins-mini-select" id="sub-filter-payment" onchange="renderSubscriptions()"><option value="">All Payment Methods</option></select>
+          <select class="ins-mini-select" id="sub-sort-by" onchange="renderSubscriptions()">
+            <option value="nextBilling">Sort: Next Billing</option>
+            <option value="monthlyCost">Sort: Monthly Cost</option>
+            <option value="annualCost">Sort: Annual Cost</option>
+            <option value="name">Sort: Name</option>
+            <option value="provider">Sort: Provider</option>
+            <option value="recent">Sort: Recently Added</option>
+          </select>
+        </div>
+        <button class="btn-add" style="background:rgba(52,211,153,0.8)" onclick="openSubscriptionModal()">
+          <i class="fas fa-plus"></i> Add Subscription
+        </button>
+      </div>
+
+      <!-- 1. Subscription Dashboard -->
+      <div class="ins-kpi-grid" id="sub-kpi-grid"></div>
+
+      <!-- Quick filter chips -->
+      <div class="sub-chip-row" id="sub-quick-chips"></div>
+
+      <!-- Renewal Radar -->
+      <div class="ins-section-title"><i class="fas fa-satellite-dish"></i> Renewal Radar</div>
+      <div class="sub-bucket-row" id="sub-renewal-buckets"></div>
+      <div class="ins-table-wrap">
+        <table class="port-table ins-table" id="sub-radar-table">
+          <thead><tr><th>Subscription</th><th>Amount</th><th>Billing Date</th><th>Payment Source</th><th>Auto-Renew</th></tr></thead>
+          <tbody id="sub-radar-body"></tbody>
+        </table>
+      </div>
+
+      <!-- Trial Tracker -->
+      <div class="ins-section-title"><i class="fas fa-hourglass-half"></i> Trials Ending Soon</div>
+      <div id="sub-trial-list" class="sub-insight-list"></div>
+
+      <!-- Spending Analytics -->
+      <div class="ins-section-title"><i class="fas fa-chart-pie"></i> Subscription Spend Breakdown</div>
+      <div class="sub-analytics-grid" id="sub-analytics-grid"></div>
+
+      <!-- Payment Source Analytics -->
+      <div class="ins-section-title"><i class="fas fa-credit-card"></i> Where Are My Subscriptions Being Charged?</div>
+      <div id="sub-payment-source-list" class="sub-insight-list"></div>
+
+      <!-- Data Health -->
+      <div class="ins-section-title" style="justify-content:space-between">
+        <span><i class="fas fa-heart-pulse"></i> Subscription Data Health</span>
+        <span id="sub-health-badge" class="sub-health-badge"></span>
+      </div>
+      <div id="sub-health-list" class="sub-insight-list"></div>
+
+      <!-- Subscription list -->
+      <div class="ins-section-title"><i class="fas fa-list"></i> All Subscriptions</div>
+      <div id="sub-card-grid" class="sub-card-grid"></div>
+
+      <div class="ins-empty" id="sub-empty" style="display:none">
+        <i class="fas fa-sync-alt" style="font-size:2.2rem;opacity:0.2;display:block;margin-bottom:10px"></i>
+        No subscriptions added yet. Click <b>Add Subscription</b> to get started.
+      </div>
+    </div><!-- /insurance-subview-subscriptions -->
     </div>
 
     <div id="view-notes" class="view-section">
@@ -6652,6 +6799,157 @@ function passAppLockGate() {
       <button onclick="closeInsuranceModal()" class="btn-secondary">Cancel</button>
       <button onclick="deleteCurrentInsuranceEntry()" class="btn-delete" style="display:none" id="insurance-delete-btn"><i class="fas fa-trash"></i> Delete</button>
     </div>
+  </div>
+</div>
+
+<!-- MODAL: Add / Edit Subscription -->
+<div class="modal-overlay" id="subscription-modal">
+  <div class="modal-box" style="width:640px;max-height:88vh;overflow-y:auto;border-color:rgba(52,211,153,0.28)">
+    <div class="modal-title" style="color:#34d399" id="subscription-modal-title">Add Subscription</div>
+
+    <div id="sub-dup-warning" class="sub-dup-warning" style="display:none"></div>
+
+    <div class="ins-modal-section">
+      <div class="ins-modal-section-title">1. Basic Information</div>
+      <div class="form-grid">
+        <div class="form-group"><label>Subscription Name *</label><input class="input-field" id="sub-name" placeholder="Netflix" oninput="checkSubDuplicate()"></div>
+        <div class="form-group"><label>Provider / Merchant *</label><input class="input-field" id="sub-provider" placeholder="Netflix Inc." oninput="checkSubDuplicate()"></div>
+      </div>
+      <div class="form-group"><label>Description / What is this for? *</label><input class="input-field" id="sub-description" placeholder="Family streaming plan"></div>
+      <div class="form-grid">
+        <div class="form-group">
+          <label>Category *</label>
+          <select class="input-field" id="sub-category" onchange="toggleSubCustomCategory()">
+            <option>Entertainment</option><option>Streaming</option><option>Music</option><option>Gaming</option>
+            <option>Software</option><option>AI</option><option>Cloud Storage</option><option>Education</option>
+            <option>Fitness</option><option>News</option><option>Shopping</option><option>Finance</option>
+            <option>Productivity</option><option>Utilities</option><option>Insurance</option><option>Telecom</option>
+            <option value="Other">Other (custom)</option>
+          </select>
+          <input class="input-field" id="sub-category-custom" placeholder="Custom category name" style="display:none;margin-top:6px">
+        </div>
+        <div class="form-group"><label>Subcategory</label><input class="input-field" id="sub-subcategory"></div>
+      </div>
+      <div class="form-grid">
+        <div class="form-group">
+          <label>Personal / Family / Work</label>
+          <select class="input-field" id="sub-ownership"><option>Personal</option><option>Family</option><option>Work</option></select>
+        </div>
+        <div class="form-group"><label>Website / App URL</label><input class="input-field" id="sub-website" placeholder="https://"></div>
+      </div>
+      <div class="form-group"><label>Notes</label><textarea class="input-field" id="sub-notes" rows="2"></textarea></div>
+    </div>
+
+    <div class="ins-modal-section">
+      <div class="ins-modal-section-title">2. Billing Details</div>
+      <div class="form-grid">
+        <div class="form-group"><label>Amount *</label><input type="number" step="0.01" class="input-field" id="sub-amount" oninput="checkSubDuplicate()"></div>
+        <div class="form-group"><label>Currency</label><input class="input-field" id="sub-currency" value="₹" style="width:100%"></div>
+      </div>
+      <div class="form-group">
+        <label>Billing Frequency *</label>
+        <select class="input-field" id="sub-frequency" onchange="toggleSubCustomFrequency();checkSubDuplicate()">
+          <option value="Weekly">Weekly</option><option value="Monthly" selected>Monthly</option>
+          <option value="Quarterly">Quarterly</option><option value="Half-Yearly">Half-Yearly</option>
+          <option value="Yearly">Yearly</option><option value="Custom">Custom</option>
+        </select>
+      </div>
+      <div class="form-grid" id="sub-custom-interval-row" style="display:none">
+        <div class="form-group"><label>Every X</label><input type="number" min="1" class="input-field" id="sub-custom-n" value="1"></div>
+        <div class="form-group"><label>Unit</label>
+          <select class="input-field" id="sub-custom-unit"><option value="days">Days</option><option value="weeks">Weeks</option><option value="months">Months</option></select>
+        </div>
+      </div>
+      <div class="form-grid">
+        <div class="form-group"><label>Start Date</label><input type="date" class="input-field" id="sub-start-date"></div>
+        <div class="form-group"><label>Next Billing Date *</label><input type="date" class="input-field" id="sub-next-billing"></div>
+      </div>
+      <div class="form-grid">
+        <div class="form-group"><label>Renewal Date</label><input type="date" class="input-field" id="sub-renewal-date"></div>
+        <div class="form-group">
+          <label>Auto-Renew</label>
+          <select class="input-field" id="sub-auto-renew" onchange="toggleSubRenewalWarning()"><option value="Yes">Yes</option><option value="No">No</option></select>
+        </div>
+      </div>
+      <div class="form-grid">
+        <div class="form-group"><label>Trial Start Date</label><input type="date" class="input-field" id="sub-trial-start"></div>
+        <div class="form-group"><label>Trial End Date</label><input type="date" class="input-field" id="sub-trial-end"></div>
+      </div>
+      <div class="form-group" id="sub-renewal-warning-row">
+        <label>Renewal Reminder</label>
+        <select class="input-field" id="sub-reminder-days">
+          <option value="1">1 day before</option><option value="3">3 days before</option>
+          <option value="7" selected>7 days before</option><option value="14">14 days before</option>
+          <option value="30">30 days before</option>
+        </select>
+      </div>
+    </div>
+
+    <div class="ins-modal-section">
+      <div class="ins-modal-section-title">3. Payment Method</div>
+      <div class="form-group">
+        <label>Payment Method *</label>
+        <select class="input-field" id="sub-payment-method" onchange="toggleSubPaymentSource()">
+          <option value="">Select…</option>
+          <option value="Credit Card">Credit Card</option>
+          <option value="Debit Card">Debit Card</option>
+          <option value="Bank Account">Bank Account</option>
+          <option value="UPI">UPI</option>
+          <option value="Wallet">Wallet</option>
+          <option value="Other">Other</option>
+        </select>
+      </div>
+      <div id="sub-payment-source-fields"></div>
+      <div id="sub-payment-health-warning" class="sub-health-warning" style="display:none">
+        <i class="fas fa-triangle-exclamation"></i> Payment source may not be available for the next subscription debit.
+        <button class="btn-secondary" style="padding:3px 10px;font-size:0.7rem" onclick="toggleSubPaymentSource(true)">Change Payment Source</button>
+      </div>
+    </div>
+
+    <div class="ins-modal-section">
+      <div class="ins-modal-section-title">4. Usage / Review (optional)</div>
+      <div class="form-grid">
+        <div class="form-group"><label>Last Used Date</label><input type="date" class="input-field" id="sub-last-used"></div>
+        <div class="form-group">
+          <label>Usage Frequency</label>
+          <select class="input-field" id="sub-usage-freq">
+            <option value="">—</option><option>Daily</option><option>Several times a week</option>
+            <option>Weekly</option><option>Monthly</option><option>Rarely</option><option>Never</option>
+          </select>
+        </div>
+      </div>
+      <div class="form-grid">
+        <div class="form-group">
+          <label>Keep / Review / Cancel</label>
+          <select class="input-field" id="sub-review-status"><option value="">—</option><option>Keep</option><option>Review</option><option>Cancel</option></select>
+        </div>
+        <div class="form-group"><label>Personal Rating (1-5)</label><input type="number" min="1" max="5" class="input-field" id="sub-rating"></div>
+      </div>
+      <div class="form-group"><label>Status</label>
+        <select class="input-field" id="sub-status">
+          <option>Active</option><option>Trial</option><option>Paused</option><option>Cancelled</option>
+          <option>Expired</option><option>Payment Failed</option><option>Archived</option>
+        </select>
+      </div>
+    </div>
+
+    <input type="hidden" id="sub-edit-id" value="">
+    <div style="display:flex;gap:8px;margin-top:1.3rem">
+      <button onclick="saveSubscriptionEntry()" class="btn-add" style="flex:1;justify-content:center;background:rgba(52,211,153,0.8)" id="subscription-save-btn">Save Subscription</button>
+      <button onclick="closeSubscriptionModal()" class="btn-secondary">Cancel</button>
+      <button onclick="deleteCurrentSubscriptionEntry()" class="btn-delete" style="display:none" id="subscription-delete-btn"><i class="fas fa-trash"></i> Delete</button>
+    </div>
+  </div>
+</div>
+
+<!-- DRAWER: Subscription Details -->
+<div class="modal-overlay" id="subscription-drawer">
+  <div class="modal-box" style="width:560px;max-height:88vh;overflow-y:auto;border-color:rgba(52,211,153,0.28)">
+    <div style="display:flex;justify-content:space-between;align-items:flex-start">
+      <div class="modal-title" style="color:#34d399" id="sub-drawer-title">Subscription</div>
+      <button class="ins-icon-btn" onclick="closeSubscriptionDrawer()"><i class="fas fa-times"></i></button>
+    </div>
+    <div id="sub-drawer-body"></div>
   </div>
 </div>
 
@@ -7703,6 +8001,8 @@ let creditDb = JSON.parse(localStorage.getItem('fos_credit_v1')) || [];
 
 let insuranceDb = JSON.parse(localStorage.getItem('fos_insurance_v1')) || [];
 
+let subscriptionsDb = JSON.parse(localStorage.getItem('fos_subscriptions_v1')) || [];
+
 let notesDb = JSON.parse(localStorage.getItem('fos_notes_v1')) || [];
 
 let budgets = JSON.parse(localStorage.getItem('fos_budgets')) || {};
@@ -7814,9 +8114,9 @@ function scheduleSave() {
 // is now authenticated, and on logout — so one person's data can never be
 // mistaken for another's on a shared device/browser.
 function wipeLocalFinancialData() {
-  db = []; portDb = []; creditDb = []; insuranceDb = []; notesDb = [];
+  db = []; portDb = []; creditDb = []; insuranceDb = []; notesDb = []; subscriptionsDb = [];
   budgets = {}; ccCards = []; notifications = []; gameStats = {};
-  ['fos_db_v3','fos_port_v3','fos_credit_v1','fos_insurance_v1','fos_notes_v1',
+  ['fos_db_v3','fos_port_v3','fos_credit_v1','fos_insurance_v1','fos_notes_v1','fos_subscriptions_v1',
    'fos_budgets','financeOS_ccCards','fos_notifications','fos_game_stats',
    'fos_dashboard_layout_v4','fos_onboarding_goal','fos_last_active_view',
    'fos_last_nw_milestone','fos_last_portfolio_update'
@@ -7847,7 +8147,8 @@ const CLOUD_TABLES = [
   { key: 'creditDb',    table: 'loans_credit' },
   { key: 'insuranceDb', table: 'insurance' },
   { key: 'notesDb',     table: 'notes' },
-  { key: 'ccCards',     table: 'credit_cards' }
+  { key: 'ccCards',     table: 'credit_cards' },
+  { key: 'subscriptionsDb', table: 'subscriptions' }
 ];
 
 function getLocalArray(key) {
@@ -7858,6 +8159,7 @@ function getLocalArray(key) {
     case 'insuranceDb': return insuranceDb;
     case 'notesDb': return notesDb;
     case 'ccCards': return ccCards;
+    case 'subscriptionsDb': return subscriptionsDb;
   }
 }
 function setLocalArray(key, value) {
@@ -7869,6 +8171,7 @@ function setLocalArray(key, value) {
     case 'insuranceDb': insuranceDb = arr; localStorage.setItem('fos_insurance_v1', JSON.stringify(insuranceDb)); break;
     case 'notesDb': notesDb = arr; localStorage.setItem('fos_notes_v1', JSON.stringify(notesDb)); break;
     case 'ccCards': ccCards = arr; localStorage.setItem('financeOS_ccCards', JSON.stringify(ccCards)); break;
+    case 'subscriptionsDb': subscriptionsDb = arr; localStorage.setItem('fos_subscriptions_v1', JSON.stringify(subscriptionsDb)); break;
   }
 }
 
@@ -7994,6 +8297,7 @@ async function doAutoSave() {
   localStorage.setItem('fos_credit_v1', JSON.stringify(creditDb));
   localStorage.setItem('fos_insurance_v1', JSON.stringify(insuranceDb));
   localStorage.setItem('fos_notes_v1', JSON.stringify(notesDb));
+  localStorage.setItem('fos_subscriptions_v1', JSON.stringify(subscriptionsDb));
   localStorage.setItem('fos_budgets',   JSON.stringify(budgets));
   localStorage.setItem('financeOS_ccCards', JSON.stringify(ccCards));
   localStorage.setItem('fos_notifications', JSON.stringify(notifications));
@@ -8015,6 +8319,7 @@ async function doAutoSave() {
         creditDb: creditDb,
         insuranceDb: insuranceDb,
         notesDb: notesDb,
+        subscriptionsDb: subscriptionsDb,
         budgets: budgets,
         ccCards: ccCards,
         notifications: notifications,
@@ -8375,7 +8680,7 @@ function switchView(viewName, btn, group) {
   else if (viewName === 'ccutil') { setTimeout(initCCView, 50); }
   else if (viewName === 'roughboard') { setTimeout(initRoughBoard, 100); }
   else if (viewName === 'calculator') { setTimeout(initCalculator, 100); }
-  else if (viewName === 'insurance') { renderInsurance(); }
+  else if (viewName === 'insurance') { renderInsurance(); if (document.getElementById('insurance-subview-subscriptions')?.classList.contains('active')) renderSubscriptions(); }
   else if (viewName === 'notes') { renderNotesList(); }
   else if (viewName === 'finai') { renderFinAI(); }
 }
@@ -18287,6 +18592,7 @@ function downloadBackup() {
     db, portDb, creditDb, budgets,
     insuranceDb,
     notesDb,
+    subscriptionsDb,
     ccCards,
     notifications,
     gameStats,
@@ -18351,6 +18657,7 @@ function readRestoreFile(file) {
           ${(data.insuranceDb||[]).length} insurance policies · 
           ${(data.notesDb||[]).length} notes · 
           ${(data.ccCards||[]).length} CC cards · 
+          ${(data.subscriptionsDb||[]).length} subscriptions · 
           v${data.version||1} · 
           Exported ${data.exportedAt ? new Date(data.exportedAt).toLocaleDateString() : 'unknown date'}
         </span>`;
@@ -18372,6 +18679,7 @@ async function confirmRestore() {
   if (pendingRestoreData.creditDb) { creditDb = pendingRestoreData.creditDb; localStorage.setItem('fos_credit_v1', JSON.stringify(creditDb)); }
   if (pendingRestoreData.insuranceDb) { insuranceDb = pendingRestoreData.insuranceDb; localStorage.setItem('fos_insurance_v1', JSON.stringify(insuranceDb)); }
   if (pendingRestoreData.notesDb) { notesDb = pendingRestoreData.notesDb; localStorage.setItem('fos_notes_v1', JSON.stringify(notesDb)); }
+  if (pendingRestoreData.subscriptionsDb) { subscriptionsDb = pendingRestoreData.subscriptionsDb; localStorage.setItem('fos_subscriptions_v1', JSON.stringify(subscriptionsDb)); }
   if (pendingRestoreData.budgets)  { budgets  = pendingRestoreData.budgets; localStorage.setItem('fos_budgets', JSON.stringify(budgets)); }
 
   // CC Utilization cards
@@ -22865,6 +23173,767 @@ document.addEventListener('DOMContentLoaded', () => {
         timeInput.value = savedTime;
     }
 });
+
+
+// ══════════════════════════════════════════════════════════════════════════
+// ── SUBSCRIPTIONS CONTROL CENTER (My Zone → Insurance → Subscriptions) ─────
+// Reuses FinanceOS's existing theme, localStorage-backed persistence
+// (subscriptionsDb), ccCards for card payment sources, and the ins-* design
+// language already used by the Insurance module. Insurance itself is
+// untouched — this is purely additive.
+// ══════════════════════════════════════════════════════════════════════════
+
+let editingSubscriptionId = null;
+let subDrawerId = null;
+let subActiveQuickChip = null;
+let subActiveBucket = null;
+
+// ── Sub-tab switching within the Insurance view ─────────────────────────
+function switchInsuranceSubview(name) {
+  document.querySelectorAll('.insurance-subview').forEach(el => el.classList.remove('active'));
+  document.querySelectorAll('.sub-module-tab').forEach(el => el.classList.remove('active'));
+  const view = document.getElementById('insurance-subview-' + name);
+  const tab  = document.getElementById('ins-subview-tab-' + name);
+  if (view) view.classList.add('active');
+  if (tab) tab.classList.add('active');
+  if (name === 'subscriptions') renderSubscriptions();
+}
+
+// ── Frequency math — never sum raw amounts across mixed frequencies ─────
+function subMonthlyEquivalent(sub) {
+  const amt = parseFloat(sub.amount) || 0;
+  switch (sub.billing_frequency) {
+    case 'Weekly':      return amt * 52 / 12;
+    case 'Monthly':     return amt;
+    case 'Quarterly':   return amt / 3;
+    case 'Half-Yearly': return amt / 6;
+    case 'Yearly':      return amt / 12;
+    case 'Custom': {
+      const n = parseFloat(sub.custom_interval?.n) || 1;
+      const unit = sub.custom_interval?.unit || 'months';
+      const daysPerCycle = unit === 'days' ? n : unit === 'weeks' ? n * 7 : n * 30.4375;
+      return daysPerCycle > 0 ? (amt * 30.4375 / daysPerCycle) : 0;
+    }
+    default: return amt;
+  }
+}
+function subAnnualizedCost(sub) {
+  const amt = parseFloat(sub.amount) || 0;
+  switch (sub.billing_frequency) {
+    case 'Weekly':      return amt * 52;
+    case 'Monthly':     return amt * 12;
+    case 'Quarterly':   return amt * 4;
+    case 'Half-Yearly': return amt * 2;
+    case 'Yearly':      return amt;
+    case 'Custom':      return subMonthlyEquivalent(sub) * 12;
+    default: return amt * 12;
+  }
+}
+
+// ── Status auto-detection (never overrides a manually-set terminal status) ─
+function subEffectiveStatus(sub) {
+  const manual = ['Paused', 'Cancelled', 'Archived'];
+  if (manual.includes(sub.status)) return sub.status;
+  const today = new Date(); today.setHours(0,0,0,0);
+  if (sub.trial_end_date) {
+    const te = new Date(sub.trial_end_date);
+    if (te >= today && sub.trial_start_date) return 'Trial';
+  }
+  if (sub.status === 'Payment Failed' || sub.status === 'Expired') return sub.status;
+  if (sub.next_billing_date) {
+    const nb = new Date(sub.next_billing_date);
+    if (sub.auto_renew === 'No' && nb < today) return 'Expired';
+  }
+  return sub.status || 'Active';
+}
+
+function subDaysUntil(dateStr) {
+  if (!dateStr) return null;
+  const today = new Date(); today.setHours(0,0,0,0);
+  const d = new Date(dateStr); d.setHours(0,0,0,0);
+  return Math.round((d - today) / 86400000);
+}
+
+function subCurrencyFmt(val, currency) {
+  const cur = currency || '₹';
+  const n = Number(val) || 0;
+  return cur + n.toLocaleString('en-IN', { maximumFractionDigits: 0 });
+}
+
+function subActiveList() {
+  return (subscriptionsDb || []).filter(s => subEffectiveStatus(s) !== 'Archived');
+}
+
+// ── Payment source resolution ────────────────────────────────────────────
+function subPaymentSourceLabel(sub) {
+  if (!sub.payment_method) return 'Not set';
+  if ((sub.payment_method === 'Credit Card' || sub.payment_method === 'Debit Card') && sub.payment_source_id) {
+    const card = (ccCards || []).find(c => String(c.id) === String(sub.payment_source_id));
+    if (card) return `${card.nickname || card.bankName} ****${(card.number || '').replace(/\s+/g,'').slice(-4)}`;
+    return sub.payment_method + ' (source removed)';
+  }
+  if (sub.payment_method === 'UPI') return `UPI · ${sub.payment_source_meta?.upi_id || sub.payment_source_meta?.provider || 'Not set'}`;
+  if (sub.payment_method === 'Bank Account') return `Bank · ${sub.payment_source_meta?.bank_name || 'Not set'}`;
+  if (sub.payment_method === 'Wallet') return `Wallet · ${sub.payment_source_meta?.wallet_provider || 'Not set'}`;
+  return sub.payment_method + (sub.payment_source_meta?.label ? ` · ${sub.payment_source_meta.label}` : '');
+}
+
+function subPaymentSourceHealthy(sub) {
+  if ((sub.payment_method === 'Credit Card' || sub.payment_method === 'Debit Card') && sub.payment_source_id) {
+    const card = (ccCards || []).find(c => String(c.id) === String(sub.payment_source_id));
+    if (!card) return false; // deleted
+    if (card.expiry) {
+      const [mm, yy] = card.expiry.split('/');
+      if (mm && yy) {
+        const expDate = new Date(2000 + parseInt(yy), parseInt(mm), 0);
+        if (expDate < new Date()) return false; // expired
+      }
+    }
+  }
+  return true;
+}
+
+// ── Modal: category / frequency / payment-source field toggles ──────────
+function toggleSubCustomCategory() {
+  const isOther = document.getElementById('sub-category').value === 'Other';
+  document.getElementById('sub-category-custom').style.display = isOther ? 'block' : 'none';
+}
+function toggleSubCustomFrequency() {
+  const isCustom = document.getElementById('sub-frequency').value === 'Custom';
+  document.getElementById('sub-custom-interval-row').style.display = isCustom ? 'grid' : 'none';
+}
+function toggleSubRenewalWarning() {
+  const on = document.getElementById('sub-auto-renew').value === 'Yes';
+  document.getElementById('sub-renewal-warning-row').style.display = on ? 'block' : 'none';
+}
+
+function toggleSubPaymentSource(forceReselect) {
+  const method = document.getElementById('sub-payment-method').value;
+  const host = document.getElementById('sub-payment-source-fields');
+  document.getElementById('sub-payment-health-warning').style.display = 'none';
+  if (!method) { host.innerHTML = ''; return; }
+
+  if (method === 'Credit Card' || method === 'Debit Card') {
+    const cards = ccCards || [];
+    if (!cards.length) {
+      host.innerHTML = `<div class="sub-health-warning" style="color:var(--text-muted);background:rgba(255,255,255,0.03);border-color:rgba(255,255,255,0.08)">
+        No ${method === 'Credit Card' ? 'credit' : 'debit'} cards on file yet. Add one in Credit Card Utilization, or store it here as a reference.
+        <button class="btn-secondary" style="padding:3px 10px;font-size:0.7rem" onclick="subAddPaymentSourceInline()">+ Add New Payment Source</button>
+      </div>`;
+      return;
+    }
+    host.innerHTML = `
+      <div class="form-group">
+        <label>Select ${method}</label>
+        <select class="input-field" id="sub-payment-source-select" onchange="subCheckPaymentHealth()">
+          <option value="">Select…</option>
+          ${cards.map(c => `<option value="${c.id}">${(c.nickname || c.bankName)} · ****${(c.number||'').replace(/\s+/g,'').slice(-4)}</option>`).join('')}
+          <option value="__new__">+ Add New Payment Source</option>
+        </select>
+      </div>`;
+    if (!forceReselect && editingSubscriptionId) {
+      const sel = document.getElementById('sub-payment-source-select');
+      if (sel) sel.value = document.getElementById('sub-edit-id')._srcId || '';
+    }
+  } else if (method === 'UPI') {
+    host.innerHTML = `
+      <div class="form-grid">
+        <div class="form-group"><label>UPI Provider</label><input class="input-field" id="sub-upi-provider" placeholder="GPay / PhonePe / Paytm"></div>
+        <div class="form-group"><label>UPI ID</label><input class="input-field" id="sub-upi-id" placeholder="name@bank"></div>
+      </div>
+      <div class="form-group"><label>Linked Bank Account (if available)</label><input class="input-field" id="sub-upi-bank"></div>`;
+  } else if (method === 'Bank Account') {
+    host.innerHTML = `
+      <div class="form-grid">
+        <div class="form-group"><label>Bank Name</label><input class="input-field" id="sub-bank-name"></div>
+        <div class="form-group"><label>Account (last 4 digits)</label><input class="input-field" id="sub-bank-last4" maxlength="4"></div>
+      </div>`;
+  } else if (method === 'Wallet') {
+    host.innerHTML = `
+      <div class="form-grid">
+        <div class="form-group"><label>Wallet Provider</label><input class="input-field" id="sub-wallet-provider" placeholder="Amazon Pay / Paytm Wallet"></div>
+        <div class="form-group"><label>Wallet Identifier</label><input class="input-field" id="sub-wallet-id"></div>
+      </div>`;
+  } else {
+    host.innerHTML = `<div class="form-group"><label>Payment Source Label</label><input class="input-field" id="sub-other-label" placeholder="e.g. Company card, cheque, etc."></div>`;
+  }
+}
+function subAddPaymentSourceInline() {
+  alert('Add the card first from My Zone → Credit Card Utilization, then come back and select it here.');
+}
+function subCheckPaymentHealth() {
+  const sel = document.getElementById('sub-payment-source-select');
+  if (!sel || !sel.value || sel.value === '__new__') return;
+  const card = (ccCards || []).find(c => String(c.id) === sel.value);
+  const warn = document.getElementById('sub-payment-health-warning');
+  if (card && card.expiry) {
+    const [mm, yy] = card.expiry.split('/');
+    if (mm && yy) {
+      const expDate = new Date(2000 + parseInt(yy), parseInt(mm), 0);
+      warn.style.display = expDate < new Date() ? 'flex' : 'none';
+    }
+  }
+}
+
+// ── Duplicate detection (live, while filling the modal) ─────────────────
+function checkSubDuplicate() {
+  const box = document.getElementById('sub-dup-warning');
+  const name = document.getElementById('sub-name').value.trim().toLowerCase();
+  const provider = document.getElementById('sub-provider').value.trim().toLowerCase();
+  const amount = parseFloat(document.getElementById('sub-amount').value) || 0;
+  const freq = document.getElementById('sub-frequency').value;
+  if (!name && !provider) { box.style.display = 'none'; return; }
+
+  const dupe = (subscriptionsDb || []).find(s => {
+    if (String(s.id) === String(editingSubscriptionId)) return false;
+    const nameMatch = s.name?.toLowerCase() === name || s.provider?.toLowerCase() === provider;
+    const amtMatch = amount ? Math.abs((parseFloat(s.amount)||0) - amount) < 0.01 : false;
+    const freqMatch = s.billing_frequency === freq;
+    return nameMatch && (amtMatch || freqMatch);
+  });
+
+  if (dupe) {
+    box.style.display = 'flex';
+    box.innerHTML = `<i class="fas fa-triangle-exclamation"></i>
+      Possible duplicate: <b>${dupe.name}</b> (${dupe.provider || ''}) — ${subCurrencyFmt(dupe.amount, dupe.currency)} / ${dupe.billing_frequency}.
+      <button class="btn-secondary" style="padding:3px 10px;font-size:0.7rem" onclick="closeSubscriptionModal();openSubscriptionDrawer(${JSON.stringify(dupe.id)})">View Existing</button>`;
+  } else {
+    box.style.display = 'none';
+  }
+}
+
+// ── Open / close modal ───────────────────────────────────────────────────
+function openSubscriptionModal(id) {
+  editingSubscriptionId = id || null;
+  document.getElementById('subscription-modal-title').textContent = id ? 'Edit Subscription' : 'Add Subscription';
+  document.getElementById('subscription-delete-btn').style.display = id ? 'flex' : 'none';
+  document.getElementById('sub-dup-warning').style.display = 'none';
+
+  const fields = ['sub-name','sub-provider','sub-description','sub-subcategory','sub-website','sub-notes',
+    'sub-amount','sub-start-date','sub-next-billing','sub-renewal-date','sub-trial-start','sub-trial-end',
+    'sub-last-used','sub-rating'];
+  fields.forEach(f => { const el = document.getElementById(f); if (el) el.value = ''; });
+  document.getElementById('sub-currency').value = '₹';
+  document.getElementById('sub-frequency').value = 'Monthly';
+  document.getElementById('sub-ownership').value = 'Personal';
+  document.getElementById('sub-auto-renew').value = 'Yes';
+  document.getElementById('sub-category').value = 'Entertainment';
+  document.getElementById('sub-status').value = 'Active';
+  document.getElementById('sub-usage-freq').value = '';
+  document.getElementById('sub-review-status').value = '';
+  document.getElementById('sub-payment-method').value = '';
+  document.getElementById('sub-category-custom').style.display = 'none';
+  document.getElementById('sub-custom-interval-row').style.display = 'none';
+  document.getElementById('sub-payment-source-fields').innerHTML = '';
+  document.getElementById('sub-payment-health-warning').style.display = 'none';
+  toggleSubRenewalWarning();
+
+  const sub = id ? subscriptionsDb.find(s => String(s.id) === String(id)) : null;
+  if (sub) {
+    document.getElementById('sub-name').value = sub.name || '';
+    document.getElementById('sub-provider').value = sub.provider || '';
+    document.getElementById('sub-description').value = sub.description || '';
+    const knownCats = ['Entertainment','Streaming','Music','Gaming','Software','AI','Cloud Storage','Education','Fitness','News','Shopping','Finance','Productivity','Utilities','Insurance','Telecom'];
+    if (sub.category && !knownCats.includes(sub.category)) {
+      document.getElementById('sub-category').value = 'Other';
+      document.getElementById('sub-category-custom').style.display = 'block';
+      document.getElementById('sub-category-custom').value = sub.category;
+    } else {
+      document.getElementById('sub-category').value = sub.category || 'Entertainment';
+    }
+    document.getElementById('sub-subcategory').value = sub.subcategory || '';
+    document.getElementById('sub-ownership').value = sub.ownership_type || 'Personal';
+    document.getElementById('sub-website').value = sub.website_url || '';
+    document.getElementById('sub-notes').value = sub.notes || '';
+    document.getElementById('sub-amount').value = sub.amount || '';
+    document.getElementById('sub-currency').value = sub.currency || '₹';
+    document.getElementById('sub-frequency').value = sub.billing_frequency || 'Monthly';
+    toggleSubCustomFrequency();
+    if (sub.custom_interval) {
+      document.getElementById('sub-custom-n').value = sub.custom_interval.n || 1;
+      document.getElementById('sub-custom-unit').value = sub.custom_interval.unit || 'months';
+    }
+    document.getElementById('sub-start-date').value = sub.start_date || '';
+    document.getElementById('sub-next-billing').value = sub.next_billing_date || '';
+    document.getElementById('sub-renewal-date').value = sub.renewal_date || '';
+    document.getElementById('sub-trial-start').value = sub.trial_start_date || '';
+    document.getElementById('sub-trial-end').value = sub.trial_end_date || '';
+    document.getElementById('sub-auto-renew').value = sub.auto_renew || 'Yes';
+    toggleSubRenewalWarning();
+    document.getElementById('sub-reminder-days').value = sub.reminder_days || '7';
+    document.getElementById('sub-payment-method').value = sub.payment_method || '';
+    toggleSubPaymentSource();
+    setTimeout(() => {
+      if (sub.payment_method === 'Credit Card' || sub.payment_method === 'Debit Card') {
+        const sel = document.getElementById('sub-payment-source-select');
+        if (sel) { sel.value = sub.payment_source_id || ''; subCheckPaymentHealth(); }
+      } else if (sub.payment_method === 'UPI') {
+        if (document.getElementById('sub-upi-provider')) document.getElementById('sub-upi-provider').value = sub.payment_source_meta?.provider || '';
+        if (document.getElementById('sub-upi-id')) document.getElementById('sub-upi-id').value = sub.payment_source_meta?.upi_id || '';
+        if (document.getElementById('sub-upi-bank')) document.getElementById('sub-upi-bank').value = sub.payment_source_meta?.linked_bank || '';
+      } else if (sub.payment_method === 'Bank Account') {
+        if (document.getElementById('sub-bank-name')) document.getElementById('sub-bank-name').value = sub.payment_source_meta?.bank_name || '';
+        if (document.getElementById('sub-bank-last4')) document.getElementById('sub-bank-last4').value = sub.payment_source_meta?.last4 || '';
+      } else if (sub.payment_method === 'Wallet') {
+        if (document.getElementById('sub-wallet-provider')) document.getElementById('sub-wallet-provider').value = sub.payment_source_meta?.wallet_provider || '';
+        if (document.getElementById('sub-wallet-id')) document.getElementById('sub-wallet-id').value = sub.payment_source_meta?.wallet_id || '';
+      } else if (sub.payment_method === 'Other') {
+        if (document.getElementById('sub-other-label')) document.getElementById('sub-other-label').value = sub.payment_source_meta?.label || '';
+      }
+    }, 0);
+    document.getElementById('sub-last-used').value = sub.last_used_date || '';
+    document.getElementById('sub-usage-freq').value = sub.usage_frequency || '';
+    document.getElementById('sub-review-status').value = sub.review_status || '';
+    document.getElementById('sub-rating').value = sub.rating || '';
+    document.getElementById('sub-status').value = sub.status || 'Active';
+  }
+  document.getElementById('sub-edit-id').value = id || '';
+  document.getElementById('subscription-modal').style.display = 'flex';
+}
+function closeSubscriptionModal() { document.getElementById('subscription-modal').style.display = 'none'; }
+
+// ── Validation + Save ─────────────────────────────────────────────────────
+function saveSubscriptionEntry() {
+  const name = document.getElementById('sub-name').value.trim();
+  const provider = document.getElementById('sub-provider').value.trim();
+  const description = document.getElementById('sub-description').value.trim();
+  const amount = parseFloat(document.getElementById('sub-amount').value);
+  const frequency = document.getElementById('sub-frequency').value;
+  const nextBilling = document.getElementById('sub-next-billing').value;
+  const paymentMethod = document.getElementById('sub-payment-method').value;
+
+  const missing = [];
+  if (!name) missing.push('Subscription Name');
+  if (!provider) missing.push('Provider');
+  if (!amount && amount !== 0) missing.push('Amount');
+  if (!frequency) missing.push('Billing Frequency');
+  if (!nextBilling) missing.push('Next Billing Date');
+  if (!paymentMethod) missing.push('Payment Method');
+  if (missing.length) { alert('Please fill in the required fields:\n\n' + missing.join('\n')); return; }
+
+  let category = document.getElementById('sub-category').value;
+  if (category === 'Other') {
+    const custom = document.getElementById('sub-category-custom').value.trim();
+    if (custom) category = custom;
+  }
+
+  let customInterval = null;
+  if (frequency === 'Custom') {
+    customInterval = { n: parseFloat(document.getElementById('sub-custom-n').value) || 1, unit: document.getElementById('sub-custom-unit').value };
+  }
+
+  // Resolve payment source
+  let paymentSourceId = null, paymentSourceMeta = {};
+  if (paymentMethod === 'Credit Card' || paymentMethod === 'Debit Card') {
+    const sel = document.getElementById('sub-payment-source-select');
+    if (!sel || !sel.value) { alert('Please select a payment source, or add one first.'); return; }
+    paymentSourceId = sel.value;
+  } else if (paymentMethod === 'UPI') {
+    paymentSourceMeta = {
+      provider: document.getElementById('sub-upi-provider')?.value.trim() || '',
+      upi_id: document.getElementById('sub-upi-id')?.value.trim() || '',
+      linked_bank: document.getElementById('sub-upi-bank')?.value.trim() || ''
+    };
+  } else if (paymentMethod === 'Bank Account') {
+    paymentSourceMeta = {
+      bank_name: document.getElementById('sub-bank-name')?.value.trim() || '',
+      last4: (document.getElementById('sub-bank-last4')?.value.trim() || '').slice(-4)
+    };
+  } else if (paymentMethod === 'Wallet') {
+    paymentSourceMeta = {
+      wallet_provider: document.getElementById('sub-wallet-provider')?.value.trim() || '',
+      wallet_id: document.getElementById('sub-wallet-id')?.value.trim() || ''
+    };
+  } else if (paymentMethod === 'Other') {
+    paymentSourceMeta = { label: document.getElementById('sub-other-label')?.value.trim() || '' };
+  }
+
+  const id = document.getElementById('sub-edit-id').value || Date.now();
+  const existing = subscriptionsDb.find(s => String(s.id) === String(id));
+  const nowIso = new Date().toISOString();
+
+  const entry = {
+    id,
+    name, provider, description,
+    category,
+    subcategory: document.getElementById('sub-subcategory').value.trim(),
+    ownership_type: document.getElementById('sub-ownership').value,
+    website_url: document.getElementById('sub-website').value.trim(),
+    notes: document.getElementById('sub-notes').value.trim(),
+    amount, currency: document.getElementById('sub-currency').value.trim() || '₹',
+    billing_frequency: frequency,
+    custom_interval: customInterval,
+    start_date: document.getElementById('sub-start-date').value,
+    next_billing_date: nextBilling,
+    renewal_date: document.getElementById('sub-renewal-date').value,
+    trial_start_date: document.getElementById('sub-trial-start').value,
+    trial_end_date: document.getElementById('sub-trial-end').value,
+    auto_renew: document.getElementById('sub-auto-renew').value,
+    reminder_days: document.getElementById('sub-reminder-days').value,
+    payment_method: paymentMethod,
+    payment_source_id: paymentSourceId,
+    payment_source_meta: paymentSourceMeta,
+    status: document.getElementById('sub-status').value,
+    last_used_date: document.getElementById('sub-last-used').value,
+    usage_frequency: document.getElementById('sub-usage-freq').value,
+    review_status: document.getElementById('sub-review-status').value,
+    rating: document.getElementById('sub-rating').value,
+    price_history: existing?.price_history || [],
+    created_at: existing?.created_at || nowIso,
+    updated_at: nowIso,
+    archived_at: existing?.archived_at || null
+  };
+
+  // Track price history — never rewrite past entries, only append on change
+  if (existing && parseFloat(existing.amount) !== amount) {
+    entry.price_history = [...entry.price_history, { price: existing.amount, currency: existing.currency, effective_until: nowIso.slice(0,10) }];
+  } else if (!existing) {
+    entry.price_history = [];
+  }
+
+  if (existing) {
+    const idx = subscriptionsDb.findIndex(s => String(s.id) === String(id));
+    subscriptionsDb[idx] = entry;
+  } else {
+    subscriptionsDb.push(entry);
+  }
+
+  localStorage.setItem('fos_subscriptions_v1', JSON.stringify(subscriptionsDb));
+  scheduleSave(); doAutoSave();
+  closeSubscriptionModal();
+  renderSubscriptions();
+}
+
+function deleteCurrentSubscriptionEntry() {
+  const id = document.getElementById('sub-edit-id').value;
+  if (!id) return;
+  if (!confirm('Delete this subscription? This cannot be undone.')) return;
+  subscriptionsDb = subscriptionsDb.filter(s => String(s.id) !== String(id));
+  localStorage.setItem('fos_subscriptions_v1', JSON.stringify(subscriptionsDb));
+  scheduleSave(); doAutoSave();
+  closeSubscriptionModal();
+  renderSubscriptions();
+}
+
+function archiveSubscription(id) {
+  const sub = subscriptionsDb.find(s => String(s.id) === String(id));
+  if (!sub) return;
+  sub.status = 'Archived';
+  sub.archived_at = new Date().toISOString();
+  localStorage.setItem('fos_subscriptions_v1', JSON.stringify(subscriptionsDb));
+  scheduleSave(); doAutoSave();
+  renderSubscriptions();
+}
+
+// ── Details Drawer ────────────────────────────────────────────────────────
+function openSubscriptionDrawer(id) {
+  const sub = subscriptionsDb.find(s => String(s.id) === String(id));
+  if (!sub) return;
+  subDrawerId = id;
+  document.getElementById('sub-drawer-title').textContent = sub.name;
+  const status = subEffectiveStatus(sub);
+  const monthly = subMonthlyEquivalent(sub);
+  const annual = subAnnualizedCost(sub);
+  const daysLeft = subDaysUntil(sub.next_billing_date);
+
+  const priceHistoryHtml = (sub.price_history && sub.price_history.length)
+    ? sub.price_history.map(p => `<div class="sub-price-history-item"><span>Until ${p.effective_until}</span><span>${subCurrencyFmt(p.price, p.currency)}</span></div>`).join('')
+      + `<div class="sub-price-history-item"><span>Current</span><span><b>${subCurrencyFmt(sub.amount, sub.currency)}</b></span></div>`
+    : `<div class="sub-notrecorded" style="color:var(--text-muted);font-style:italic;font-size:0.8rem">No price changes recorded yet.</div>`;
+
+  document.getElementById('sub-drawer-body').innerHTML = `
+    <div class="sub-drawer-section">
+      <div class="sub-drawer-section-title">Overview</div>
+      <div class="sub-drawer-row"><span>Provider</span><span>${sub.provider || '—'}</span></div>
+      <div class="sub-drawer-row"><span>Description</span><span>${sub.description || '—'}</span></div>
+      <div class="sub-drawer-row"><span>Category</span><span>${sub.category}${sub.subcategory ? ' / ' + sub.subcategory : ''}</span></div>
+      <div class="sub-drawer-row"><span>Ownership</span><span>${sub.ownership_type || '—'}</span></div>
+      <div class="sub-drawer-row"><span>Status</span><span>${status}</span></div>
+    </div>
+    <div class="sub-drawer-section">
+      <div class="sub-drawer-section-title">Billing</div>
+      <div class="sub-drawer-row"><span>Current Amount</span><span>${subCurrencyFmt(sub.amount, sub.currency)} / ${sub.billing_frequency}</span></div>
+      <div class="sub-drawer-row"><span>Monthly Equivalent</span><span>${subCurrencyFmt(monthly, sub.currency)}</span></div>
+      <div class="sub-drawer-row"><span>Annualized Cost</span><span>${subCurrencyFmt(annual, sub.currency)}</span></div>
+      <div class="sub-drawer-row"><span>Start Date</span><span>${sub.start_date || '—'}</span></div>
+      <div class="sub-drawer-row"><span>Next Billing</span><span>${sub.next_billing_date || '—'} ${daysLeft !== null ? `(${daysLeft}d)` : ''}</span></div>
+      <div class="sub-drawer-row"><span>Renewal Date</span><span>${sub.renewal_date || '—'}</span></div>
+      <div class="sub-drawer-row"><span>Auto-Renew</span><span>${sub.auto_renew}</span></div>
+    </div>
+    <div class="sub-drawer-section">
+      <div class="sub-drawer-section-title">Payment Source</div>
+      <div class="sub-drawer-row"><span>Method</span><span>${sub.payment_method || '—'}</span></div>
+      <div class="sub-drawer-row"><span>Source</span><span>${subPaymentSourceLabel(sub)}</span></div>
+      ${!subPaymentSourceHealthy(sub) ? `<div class="sub-health-warning"><i class="fas fa-triangle-exclamation"></i> Payment source may not be available for the next subscription debit.</div>` : ''}
+    </div>
+    <div class="sub-drawer-section">
+      <div class="sub-drawer-section-title">Usage</div>
+      <div class="sub-drawer-row"><span>Last Used</span><span>${sub.last_used_date || '—'}</span></div>
+      <div class="sub-drawer-row"><span>Usage Frequency</span><span>${sub.usage_frequency || '—'}</span></div>
+      <div class="sub-drawer-row"><span>Keep / Review / Cancel</span><span>${sub.review_status || '—'}</span></div>
+      <div class="sub-drawer-row"><span>Rating</span><span>${sub.rating ? sub.rating + ' / 5' : '—'}</span></div>
+    </div>
+    <div class="sub-drawer-section">
+      <div class="sub-drawer-section-title">Price History</div>
+      ${priceHistoryHtml}
+    </div>
+    <div class="sub-drawer-section">
+      <div class="sub-drawer-section-title">Payment History</div>
+      <div class="sub-notrecorded" style="color:var(--text-muted);font-style:italic;font-size:0.8rem">Transaction not linked.</div>
+    </div>
+    ${sub.notes ? `<div class="sub-drawer-section"><div class="sub-drawer-section-title">Notes</div><div style="font-size:0.82rem">${sub.notes}</div></div>` : ''}
+    <div style="display:flex;gap:8px;margin-top:1.2rem">
+      <button class="btn-add" style="flex:1;justify-content:center;background:rgba(52,211,153,0.8)" onclick="closeSubscriptionDrawer();openSubscriptionModal(${JSON.stringify(id)})"><i class="fas fa-pen"></i> Edit</button>
+      <button class="btn-secondary" onclick="archiveSubscription(${JSON.stringify(id)});closeSubscriptionDrawer()"><i class="fas fa-box-archive"></i> Archive</button>
+    </div>
+  `;
+  document.getElementById('subscription-drawer').style.display = 'flex';
+}
+function closeSubscriptionDrawer() { document.getElementById('subscription-drawer').style.display = 'none'; subDrawerId = null; }
+
+// ── Quick filter chips / renewal buckets ────────────────────────────────
+function subSetQuickChip(chip) {
+  subActiveQuickChip = (subActiveQuickChip === chip) ? null : chip;
+  renderSubscriptions();
+}
+function subSetBucket(bucket) {
+  subActiveBucket = (subActiveBucket === bucket) ? null : bucket;
+  renderSubscriptions();
+}
+
+function subMatchesQuickChip(sub, chip) {
+  const days = subDaysUntil(sub.next_billing_date);
+  switch (chip) {
+    case 'Due This Week':  return days !== null && days >= 0 && days <= 7;
+    case 'Due This Month': return days !== null && days >= 0 && days <= 30;
+    case 'High Cost':      return subMonthlyEquivalent(sub) >= 1000;
+    case 'Annual Renewals':return sub.billing_frequency === 'Yearly';
+    case 'Trials':         return subEffectiveStatus(sub) === 'Trial';
+    case 'Auto-Renew':     return sub.auto_renew === 'Yes';
+    case 'Credit Cards':   return sub.payment_method === 'Credit Card';
+    case 'Bank Accounts':  return sub.payment_method === 'Bank Account';
+    case 'UPI':            return sub.payment_method === 'UPI';
+    default: return true;
+  }
+}
+
+function subBucketOf(days) {
+  if (days === null) return 'Later';
+  if (days < 0) return 'Expired / Overdue';
+  if (days === 0) return 'Due Today';
+  if (days <= 7) return 'Next 7 Days';
+  if (days <= 30) return '8–30 Days';
+  if (days <= 60) return '31–60 Days';
+  if (days <= 90) return '61–90 Days';
+  return 'Later';
+}
+
+// ── Data Health checks ───────────────────────────────────────────────────
+function subDataHealthIssues(sub) {
+  const issues = [];
+  if (!sub.provider) issues.push({ level: 'warn', msg: 'Missing provider' });
+  if (!sub.amount && sub.amount !== 0) issues.push({ level: 'error', msg: 'Missing amount' });
+  if (!sub.billing_frequency) issues.push({ level: 'error', msg: 'Missing billing frequency' });
+  if (!sub.next_billing_date) issues.push({ level: 'error', msg: 'Missing next billing date' });
+  if (!sub.payment_method) issues.push({ level: 'warn', msg: 'Missing payment source' });
+  if (!sub.category) issues.push({ level: 'warn', msg: 'Missing category' });
+  if (sub.start_date && sub.next_billing_date && new Date(sub.start_date) > new Date(sub.next_billing_date)) issues.push({ level: 'error', msg: 'Invalid dates (start after next billing)' });
+  if (sub.trial_end_date && subDaysUntil(sub.trial_end_date) !== null && subDaysUntil(sub.trial_end_date) <= 14 && subDaysUntil(sub.trial_end_date) >= 0 && !sub.payment_method) issues.push({ level: 'warn', msg: 'Trial ending without renewal information' });
+  if (!subPaymentSourceHealthy(sub)) issues.push({ level: 'error', msg: 'Expired / missing payment source' });
+  const status = subEffectiveStatus(sub);
+  if (status === 'Active' && sub.next_billing_date && subDaysUntil(sub.next_billing_date) < -3) issues.push({ level: 'warn', msg: 'Active subscription with past billing date' });
+  if (status === 'Cancelled' && sub.next_billing_date && subDaysUntil(sub.next_billing_date) >= 0) issues.push({ level: 'warn', msg: 'Cancelled subscription with future billing schedule' });
+  const dupe = (subscriptionsDb || []).find(s => s.id !== sub.id && s.name?.toLowerCase() === sub.name?.toLowerCase() && s.provider?.toLowerCase() === sub.provider?.toLowerCase());
+  if (dupe) issues.push({ level: 'warn', msg: 'Possible duplicate subscription' });
+  return issues;
+}
+
+// ── Main renderer ────────────────────────────────────────────────────────
+function renderSubscriptions() {
+  if (!document.getElementById('sub-kpi-grid')) return;
+  const all = subActiveList();
+
+  // Populate category / payment filter dropdowns once
+  const catSel = document.getElementById('sub-filter-category');
+  if (catSel && catSel.options.length <= 1) {
+    const cats = [...new Set(all.map(s => s.category).filter(Boolean))].sort();
+    catSel.innerHTML = '<option value="">All Categories</option>' + cats.map(c => `<option value="${c}">${c}</option>`).join('');
+  }
+  const paySel = document.getElementById('sub-filter-payment');
+  if (paySel && paySel.options.length <= 1) {
+    paySel.innerHTML = '<option value="">All Payment Methods</option>' + ['Credit Card','Debit Card','Bank Account','UPI','Wallet','Other'].map(p => `<option value="${p}">${p}</option>`).join('');
+  }
+
+  // ── KPI dashboard ──
+  const activeSubs = all.filter(s => subEffectiveStatus(s) === 'Active' || subEffectiveStatus(s) === 'Trial');
+  const monthlyCost = activeSubs.reduce((sum, s) => sum + subMonthlyEquivalent(s), 0);
+  const annualCost = activeSubs.reduce((sum, s) => sum + subAnnualizedCost(s), 0);
+  const dueThisMonth = all.filter(s => subMatchesQuickChip(s, 'Due This Month')).length;
+  const dueNext30 = dueThisMonth;
+  const autoRenewing = all.filter(s => s.auto_renew === 'Yes').length;
+  const trialsEndingSoon = all.filter(s => subEffectiveStatus(s) === 'Trial' && subDaysUntil(s.trial_end_date) !== null && subDaysUntil(s.trial_end_date) <= 14).length;
+  const dueToday = all.filter(s => subDaysUntil(s.next_billing_date) === 0).length;
+
+  document.getElementById('sub-kpi-grid').innerHTML = [
+    ['Active Subscriptions', activeSubs.length],
+    ['Monthly Cost', subCurrencyFmt(monthlyCost)],
+    ['Annualized Cost', subCurrencyFmt(annualCost)],
+    ['Due This Month', dueThisMonth],
+    ['Due Next 30 Days', dueNext30],
+    ['Auto-Renewing', autoRenewing],
+    ['Trials Ending Soon', trialsEndingSoon]
+  ].map(([label, val]) => `<div class="ins-kpi-card"><div class="ins-kpi-label">${label}</div><div class="ins-kpi-val">${val}</div></div>`).join('');
+
+  // ── Quick filter chips ──
+  const chips = ['Due This Week','Due This Month','High Cost','Annual Renewals','Trials','Auto-Renew','Credit Cards','Bank Accounts','UPI'];
+  document.getElementById('sub-quick-chips').innerHTML = chips.map(c =>
+    `<button class="sub-chip ${subActiveQuickChip===c?'active':''}" onclick="subSetQuickChip('${c}')">${c}</button>`
+  ).join('');
+
+  // ── Renewal Radar buckets + table ──
+  const buckets = ['Due Today','Next 7 Days','8–30 Days','31–60 Days','61–90 Days','Later','Expired / Overdue'];
+  const bucketCounts = {};
+  buckets.forEach(b => bucketCounts[b] = 0);
+  all.forEach(s => { if (s.next_billing_date) bucketCounts[subBucketOf(subDaysUntil(s.next_billing_date))]++; });
+  document.getElementById('sub-renewal-buckets').innerHTML = buckets.map(b =>
+    `<div class="sub-bucket ${subActiveBucket===b?'active':''}" onclick="subSetBucket('${b}')">
+      <div class="sub-bucket-count">${bucketCounts[b]}</div><div class="sub-bucket-label">${b}</div>
+    </div>`
+  ).join('');
+
+  let radarList = all.filter(s => s.next_billing_date).sort((a,b) => new Date(a.next_billing_date) - new Date(b.next_billing_date));
+  if (subActiveBucket) radarList = radarList.filter(s => subBucketOf(subDaysUntil(s.next_billing_date)) === subActiveBucket);
+  radarList = radarList.slice(0, 40);
+  document.getElementById('sub-radar-body').innerHTML = radarList.length ? radarList.map(s => `
+    <tr style="cursor:pointer" onclick="openSubscriptionDrawer(${JSON.stringify(s.id)})">
+      <td>${s.name}</td>
+      <td>${subCurrencyFmt(s.amount, s.currency)}</td>
+      <td>${s.next_billing_date}</td>
+      <td>${subPaymentSourceLabel(s)}</td>
+      <td>${s.auto_renew === 'Yes' ? '<span style="color:#34d399">ON</span>' : '<span style="color:var(--text-muted)">OFF</span>'}</td>
+    </tr>`).join('') : `<tr><td colspan="5" style="text-align:center;color:var(--text-muted);padding:14px">Nothing in this bucket.</td></tr>`;
+
+  // ── Trial Tracker ──
+  const trials = all.filter(s => subEffectiveStatus(s) === 'Trial' && s.trial_end_date).sort((a,b) => new Date(a.trial_end_date) - new Date(b.trial_end_date));
+  document.getElementById('sub-trial-list').innerHTML = trials.length ? trials.map(s => {
+    const d = subDaysUntil(s.trial_end_date);
+    return `<div class="sub-insight-item" style="cursor:pointer" onclick="openSubscriptionDrawer(${JSON.stringify(s.id)})">
+      <div><b>${s.name}</b><div class="muted">Trial ends ${d !== null ? (d <= 0 ? 'today' : 'in ' + d + ' day' + (d===1?'':'s')) : s.trial_end_date} · Then ${subCurrencyFmt(s.amount, s.currency)}/${s.billing_frequency} · ${subPaymentSourceLabel(s)}</div></div>
+      ${s.auto_renew === 'Yes' ? '<span class="sub-badge trial">Will auto-charge</span>' : '<span class="sub-badge autorenew">Manual</span>'}
+    </div>`;
+  }).join('') : `<div class="sub-notrecorded" style="color:var(--text-muted);font-style:italic;font-size:0.8rem">No trials currently tracked.</div>`;
+
+  // ── Spending analytics (category / payment method / frequency) ──
+  const byCategory = {}, byPayMethod = {}, byFreq = {};
+  activeSubs.forEach(s => {
+    byCategory[s.category] = (byCategory[s.category]||0) + subMonthlyEquivalent(s);
+    byPayMethod[s.payment_method||'Unknown'] = (byPayMethod[s.payment_method||'Unknown']||0) + subMonthlyEquivalent(s);
+    byFreq[s.billing_frequency] = (byFreq[s.billing_frequency]||0) + subMonthlyEquivalent(s);
+  });
+  function barsHtml(map) {
+    const max = Math.max(1, ...Object.values(map));
+    return Object.entries(map).sort((a,b) => b[1]-a[1]).map(([k,v]) => `
+      <div class="sub-bar-row">
+        <div class="sub-bar-row-top"><span>${k}</span><span>${subCurrencyFmt(v)}/mo</span></div>
+        <div class="sub-bar-track"><div class="sub-bar-fill" style="width:${Math.max(4,(v/max)*100)}%"></div></div>
+      </div>`).join('') || `<div class="sub-notrecorded" style="color:var(--text-muted);font-style:italic;font-size:0.8rem">No data yet.</div>`;
+  }
+  document.getElementById('sub-analytics-grid').innerHTML = `
+    <div class="sub-analytics-card"><div class="sub-analytics-card-title">By Category</div>${barsHtml(byCategory)}</div>
+    <div class="sub-analytics-card"><div class="sub-analytics-card-title">By Payment Method</div>${barsHtml(byPayMethod)}</div>
+    <div class="sub-analytics-card"><div class="sub-analytics-card-title">By Billing Frequency</div>${barsHtml(byFreq)}</div>
+  `;
+
+  // ── Payment source analytics (dedupe by actual source, not just label) ──
+  const bySource = {};
+  activeSubs.forEach(s => {
+    const key = subPaymentSourceLabel(s);
+    if (!bySource[key]) bySource[key] = { count: 0, monthly: 0 };
+    bySource[key].count++;
+    bySource[key].monthly += subMonthlyEquivalent(s);
+  });
+  const sourceEntries = Object.entries(bySource).sort((a,b) => b[1].monthly - a[1].monthly);
+  document.getElementById('sub-payment-source-list').innerHTML = sourceEntries.length ? sourceEntries.map(([label, d]) => `
+    <div class="sub-insight-item"><div><b>${label}</b><div class="muted">${d.count} subscription${d.count===1?'':'s'}</div></div><b>${subCurrencyFmt(d.monthly)}/mo</b></div>
+  `).join('') : `<div class="sub-notrecorded" style="color:var(--text-muted);font-style:italic;font-size:0.8rem">No payment sources linked yet.</div>`;
+
+  // ── Data health ──
+  let healthy = 0, warnings = 0, errors = 0;
+  const healthRows = [];
+  all.forEach(s => {
+    const issues = subDataHealthIssues(s);
+    if (!issues.length) { healthy++; return; }
+    issues.forEach(i => i.level === 'error' ? errors++ : warnings++);
+    healthRows.push({ sub: s, issues });
+  });
+  const badge = document.getElementById('sub-health-badge');
+  if (errors) { badge.className = 'sub-health-badge err'; badge.textContent = `${errors} error${errors===1?'':'s'}`; }
+  else if (warnings) { badge.className = 'sub-health-badge warn'; badge.textContent = `${warnings} warning${warnings===1?'':'s'}`; }
+  else { badge.className = 'sub-health-badge'; badge.textContent = 'Healthy'; }
+  document.getElementById('sub-health-list').innerHTML = healthRows.length ? healthRows.slice(0,20).map(({sub, issues}) => `
+    <div class="sub-insight-item" style="cursor:pointer" onclick="openSubscriptionModal(${JSON.stringify(sub.id)})">
+      <div><b>${sub.name || 'Unnamed'}</b><div class="muted">${issues.map(i=>i.msg).join(' · ')}</div></div>
+      <span class="sub-badge ${issues.some(i=>i.level==='error')?'cancelled':'paused'}">${issues.some(i=>i.level==='error')?'Fix':'Review'}</span>
+    </div>`).join('') : `<div class="sub-insight-item"><div><i class="fas fa-circle-check" style="color:#34d399;margin-right:6px"></i>All subscription records look healthy.</div></div>`;
+
+  // ── Search / filter / sort / render cards ──
+  const q = (document.getElementById('sub-search-input').value || '').toLowerCase();
+  const statusFilter = document.getElementById('sub-filter-status').value;
+  const catFilter = document.getElementById('sub-filter-category').value;
+  const payFilter = document.getElementById('sub-filter-payment').value;
+  const sortBy = document.getElementById('sub-sort-by').value;
+
+  let list = all.filter(s => {
+    if (q) {
+      const hay = [s.name, s.provider, s.category, s.description, subPaymentSourceLabel(s)].join(' ').toLowerCase();
+      if (!hay.includes(q)) return false;
+    }
+    if (statusFilter && subEffectiveStatus(s) !== statusFilter) return false;
+    if (catFilter && s.category !== catFilter) return false;
+    if (payFilter && s.payment_method !== payFilter) return false;
+    if (subActiveQuickChip && !subMatchesQuickChip(s, subActiveQuickChip)) return false;
+    return true;
+  });
+
+  list.sort((a,b) => {
+    switch (sortBy) {
+      case 'monthlyCost': return subMonthlyEquivalent(b) - subMonthlyEquivalent(a);
+      case 'annualCost':  return subAnnualizedCost(b) - subAnnualizedCost(a);
+      case 'name':        return (a.name||'').localeCompare(b.name||'');
+      case 'provider':    return (a.provider||'').localeCompare(b.provider||'');
+      case 'recent':      return new Date(b.created_at||0) - new Date(a.created_at||0);
+      default:            return new Date(a.next_billing_date||'2999-01-01') - new Date(b.next_billing_date||'2999-01-01');
+    }
+  });
+
+  document.getElementById('sub-empty').style.display = subscriptionsDb.length === 0 ? 'block' : 'none';
+  document.getElementById('sub-card-grid').innerHTML = list.map(s => {
+    const status = subEffectiveStatus(s);
+    const badgeClass = status.toLowerCase().replace(/\s+/g,'-');
+    return `
+    <div class="sub-card" onclick="openSubscriptionDrawer(${JSON.stringify(s.id)})">
+      <div class="sub-card-top">
+        <div>
+          <div class="sub-card-name">${s.name}</div>
+          <div class="sub-card-meta">${s.category}${s.ownership_type ? ' · ' + s.ownership_type : ''}</div>
+        </div>
+        <div class="sub-card-price">${subCurrencyFmt(s.amount, s.currency)}<small>/ ${s.billing_frequency}</small></div>
+      </div>
+      <div class="sub-card-row"><span>Next debit</span><b>${s.next_billing_date || '—'}</b></div>
+      <div class="sub-card-row"><span>Annual</span><b>${subCurrencyFmt(subAnnualizedCost(s), s.currency)}</b></div>
+      <div class="sub-card-row"><span>Payment</span><b>${subPaymentSourceLabel(s)}</b></div>
+      <div class="sub-card-badges">
+        <span class="sub-badge ${badgeClass}">${status}</span>
+        <span class="sub-badge autorenew">Auto-renew ${s.auto_renew === 'Yes' ? 'ON' : 'OFF'}</span>
+      </div>
+      <div class="sub-card-row" style="justify-content:flex-end;gap:6px;margin-top:10px" onclick="event.stopPropagation()">
+        <button class="ins-icon-btn" onclick="openSubscriptionDrawer(${JSON.stringify(s.id)})" title="View"><i class="fas fa-eye"></i></button>
+        <button class="ins-icon-btn" onclick="openSubscriptionModal(${JSON.stringify(s.id)})" title="Edit"><i class="fas fa-pen"></i></button>
+        <button class="ins-icon-btn" onclick="archiveSubscription(${JSON.stringify(s.id)})" title="Archive"><i class="fas fa-box-archive"></i></button>
+      </div>
+    </div>`;
+  }).join('');
+}
 
 </script>
 
