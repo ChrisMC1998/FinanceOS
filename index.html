@@ -5244,7 +5244,9 @@ function passAppLockGate() {
           </div>
           <div class="input-group">
             <label>Expected Return (% p.a.)</label>
-            <input type="number" id="sc-returns" class="input-field" value="12" oninput="calcScenario()">
+            <input type="number" id="sc-returns" class="input-field" value="12" step="0.01" min="0" oninput="calcScenario()">
+            <div id="sc-return-note" style="font-size:0.66rem;color:var(--text-muted);margin-top:4px;opacity:0.85">Default planning assumption — editable</div>
+            <div id="sc-return-warning" style="font-size:0.66rem;color:#f59e0b;margin-top:3px;display:none"><i class="fas fa-triangle-exclamation" style="margin-right:4px"></i>High return assumption — results may be highly sensitive to this value.</div>
           </div>
         </div>
         <div class="modal-row">
@@ -5253,13 +5255,9 @@ function passAppLockGate() {
             <input type="number" id="sc-years" class="input-field" value="10" oninput="calcScenario()">
           </div>
           <div class="input-group">
-            <label>Asset Type</label>
+            <label><i id="sc-asset-icon" class="fas fa-chart-pie" style="color:var(--c-mf);margin-right:5px;font-size:0.75rem"></i>Asset Type</label>
             <select id="sc-type" class="input-field" onchange="updateScenarioReturns()">
-              <option value="12">Mutual Funds (12%)</option>
-              <option value="7">Gold (7%)</option>
-              <option value="6">Silver (6%)</option>
-              <option value="6.5">Fixed Deposit (6.5%)</option>
-              <option value="8">Bonds (8%)</option>
+              <!-- Rendered by renderScenarioAssetOptions() from SCENARIO_ASSET_CONFIG -->
             </select>
           </div>
         </div>
@@ -5283,6 +5281,9 @@ function passAppLockGate() {
               <option value="yearly" selected>Yearly</option>
             </select>
           </div>
+        </div>
+        <div style="font-size:0.66rem;color:var(--text-muted);opacity:0.75;margin-top:2px;margin-bottom:10px">
+          <i class="fas fa-circle-info" style="margin-right:4px"></i>Returns are illustrative assumptions for scenario modelling. Actual returns may vary.
         </div>
         <div class="calc-preview">
           <div class="calc-item"><div class="calc-item-label">Total Invested</div><div class="calc-item-val" id="sc-invested">₹0</div></div>
@@ -19085,11 +19086,77 @@ function selectMarketCard(assetId) {
   }
 }
 
+// ── INVESTMENT SCENARIO — ASSET CONFIG ──────────────────────────────────────
+// Central config for the Scenario module's Asset Type dropdown. Adding a future
+// asset class only means adding an entry here — dropdown, default-return lookup,
+// and icon all read from this one place.
+const SCENARIO_ASSET_CONFIG = [
+  { id:'gold',        name:'Gold',              icon:'fas fa-coins',               color:'var(--c-gold)',       defaultReturn:8,    category:'Physical',      description:'Precious metal, inflation hedge',            editableReturn:true },
+  { id:'silver',      name:'Silver',            icon:'fas fa-medal',               color:'var(--c-silver)',     defaultReturn:7,    category:'Physical',      description:'Precious metal, more volatile than gold',    editableReturn:true },
+  { id:'realestate',  name:'Real Estate',       icon:'fas fa-home',                color:'var(--c-realestate)', defaultReturn:8,    category:'Physical',      description:'Property appreciation, long-term hold',      editableReturn:true },
+  { id:'mutualfunds', name:'Mutual Funds',      icon:'fas fa-chart-pie',           color:'var(--c-mf)',         defaultReturn:12,   category:'Market-linked', description:'Diversified market-linked fund',             editableReturn:true },
+  { id:'bonds',       name:'Bonds',             icon:'fas fa-file-invoice-dollar', color:'var(--c-bonds)',      defaultReturn:8,    category:'Fixed-income',  description:'Fixed-income debt instrument',               editableReturn:true },
+  { id:'stocks',      name:'Stocks',            icon:'fas fa-chart-line',          color:'var(--c-stocks)',     defaultReturn:12,   category:'Market-linked', description:'Direct equity exposure',                     editableReturn:true },
+  { id:'crypto',      name:'Crypto',            icon:'fab fa-bitcoin',             color:'var(--c-crypto)',     defaultReturn:15,   category:'Market-linked', description:'Digital asset, high volatility',              editableReturn:true },
+  { id:'fd',          name:'Fixed Deposit',     icon:'fas fa-piggy-bank',          color:'#14b8a6',              defaultReturn:6.5,  category:'Fixed-income',  description:'Bank fixed deposit',                          editableReturn:true },
+  { id:'rd',          name:'Recurring Deposit', icon:'fas fa-sync-alt',            color:'#0ea5e9',              defaultReturn:6.5,  category:'Fixed-income',  description:'Bank recurring deposit',                      editableReturn:true },
+  { id:'custom',      name:'Custom',            icon:'fas fa-sliders-h',           color:'var(--text-muted)',   defaultReturn:null, category:'Custom',        description:'User-defined return assumption — no preset',  editableReturn:true },
+];
+
+function getScenarioAsset(id) {
+  return SCENARIO_ASSET_CONFIG.find(a => a.id === id) || SCENARIO_ASSET_CONFIG[0];
+}
+
+// Cleanly formats a rate for display — 8 not 8.00, 6.5 not 6.50
+function fmtScenarioRate(n) {
+  return Number(n).toFixed(2).replace(/\.?0+$/, '');
+}
+
+function renderScenarioAssetOptions() {
+  const sel = document.getElementById('sc-type');
+  if (!sel) return;
+  sel.innerHTML = SCENARIO_ASSET_CONFIG.map(a => {
+    const label = a.id === 'custom' ? 'Custom' : `${a.name} (${fmtScenarioRate(a.defaultReturn)}%)`;
+    return `<option value="${a.id}">${label}</option>`;
+  }).join('');
+  sel.value = 'mutualfunds'; // preserves the existing default (12%) scenario on first load
+}
+
 function updateScenarioReturns() {
-  const rate = document.getElementById('sc-type').value;
-  document.getElementById('sc-returns').value = rate;
+  const asset = getScenarioAsset(document.getElementById('sc-type').value);
+  document.getElementById('sc-asset-icon').className = asset.icon;
+  document.getElementById('sc-asset-icon').style.color = asset.color;
+
+  // Custom carries no preset — leave whatever return the user already has in place
+  // rather than assigning it a fixed default.
+  if (asset.id !== 'custom') {
+    document.getElementById('sc-returns').value = fmtScenarioRate(asset.defaultReturn);
+  }
   calcScenario();
 }
+
+// Keeps the helper text under Expected Return honest about whether the current
+// value is still the asset's default assumption or something the user typed in.
+function updateScenarioReturnNote() {
+  const noteEl = document.getElementById('sc-return-note');
+  const warnEl = document.getElementById('sc-return-warning');
+  if (!noteEl) return;
+
+  const asset = getScenarioAsset(document.getElementById('sc-type').value);
+  const rawVal = document.getElementById('sc-returns').value;
+  const val = parseFloat(rawVal);
+
+  if (asset.id === 'custom') {
+    noteEl.textContent = 'Custom assumption';
+  } else if (!isNaN(val) && Math.abs(val - asset.defaultReturn) < 0.005) {
+    noteEl.textContent = 'Default planning assumption — editable';
+  } else {
+    noteEl.textContent = 'Custom assumption';
+  }
+
+  if (warnEl) warnEl.style.display = (!isNaN(val) && val > 25) ? 'block' : 'none';
+}
+
 
 function toggleScenarioStepup() {
   const enabled = document.getElementById('sc-stepup-enabled').checked;
@@ -19136,8 +19203,10 @@ function buildScenarioMonthlySeries(monthly, annualRatePct, totalMonths, stepUpE
 }
 
 function calcScenario() {
+  updateScenarioReturnNote();
+
   const monthly = parseFloat(document.getElementById('sc-monthly').value) || 0;
-  const rate    = parseFloat(document.getElementById('sc-returns').value) || 0;
+  const rate    = Math.max(0, parseFloat(document.getElementById('sc-returns').value) || 0);
   const years   = parseFloat(document.getElementById('sc-years').value) || 0;
   const months  = Math.max(1, Math.round(years * 12));
 
@@ -19244,6 +19313,8 @@ window.onload = () => {
   // Build the dropdown HTML options FIRST
   buildFilterDropdowns();
   buildPortDropdowns();
+  renderScenarioAssetOptions();
+  updateScenarioReturnNote();
 
   // 3. MAIN DASHBOARD: Set to Current Month & Year
   const today = new Date();
