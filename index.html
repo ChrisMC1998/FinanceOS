@@ -1204,6 +1204,15 @@ body.light-mode .inventory-pill span:last-child { color: #475569 !important; }
 
 .modal-overlay { position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.78); backdrop-filter:blur(12px); display:none; justify-content:center; align-items:center; z-index:200; }
 .modal-box { background: linear-gradient(127.09deg, rgba(6, 11, 38, 0.98) 19.41%, rgba(10, 14, 35, 0.98) 76.65%); width: 460px; padding: 1.8rem; border-radius: 20px; border: 1px solid rgba(0, 117, 255, 0.2); box-shadow: 0 0 60px rgba(0, 117, 255, 0.15); max-height: 92vh; overflow-y: auto; }
+/* ── Thin, unobtrusive scrollbar for scrolling modal content (Insurance / Subscriptions add-entry, and any other tall modal-box) ── */
+.modal-box { scrollbar-width: thin; scrollbar-color: rgba(255,255,255,0.18) transparent; }
+.modal-box::-webkit-scrollbar { width: 6px; }
+.modal-box::-webkit-scrollbar-track { background: transparent; }
+.modal-box::-webkit-scrollbar-thumb { background-color: rgba(255,255,255,0.18); border-radius: 10px; }
+.modal-box::-webkit-scrollbar-thumb:hover { background-color: rgba(255,255,255,0.32); }
+body.light-mode .modal-box { scrollbar-color: rgba(15,23,42,0.18) transparent; }
+body.light-mode .modal-box::-webkit-scrollbar-thumb { background-color: rgba(15,23,42,0.18); }
+body.light-mode .modal-box::-webkit-scrollbar-thumb:hover { background-color: rgba(15,23,42,0.32); }
 .modal-box.port-modal { border-color:rgba(167,139,250,0.28); box-shadow:0 0 60px rgba(167,139,250,0.1); }
 .modal-box.budget-modal { width: 500px; max-width: calc(100vw - 24px); border-color: rgba(0,117,255,0.28); box-shadow: 0 0 60px rgba(0,117,255,0.12); }
 .modal-title { font-size:1.05rem; font-weight:700; margin-bottom:1.3rem; }
@@ -23172,6 +23181,17 @@ document.addEventListener('DOMContentLoaded', () => {
     if (savedTime && timeInput) {
         timeInput.value = savedTime;
     }
+});
+
+// ── Esc closes the Insurance / Subscription add-entry modals & drawer ────
+document.addEventListener('keydown', (e) => {
+  if (e.key !== 'Escape') return;
+  const subModal = document.getElementById('subscription-modal');
+  const subDrawer = document.getElementById('subscription-drawer');
+  const insModal = document.getElementById('insurance-modal');
+  if (subModal && subModal.style.display === 'flex') { closeSubscriptionModal(); return; }
+  if (subDrawer && subDrawer.style.display === 'flex') { closeSubscriptionDrawer(); return; }
+  if (insModal && insModal.style.display === 'flex') { closeInsuranceModal(); return; }
 });
 
 
