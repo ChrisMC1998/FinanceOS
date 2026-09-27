@@ -18339,7 +18339,7 @@ const BADGES = [
   {id:'networth-10l',name:'10L Club',desc:'Reached ₹10 Lakh net worth',emoji:'💎',condition:()=>gameStats.networth>=1000000},
   {id:'networth-50l',name:'50L Club',desc:'Reached ₹50 Lakh net worth',emoji:'🏆',condition:()=>gameStats.networth>=5000000},
   {id:'tracker-30',name:'Consistency King',desc:'Logged data for 30 days straight',emoji:'📊',condition:()=>gameStats.trackingDays>=30},
-  {id:'debt-free',name:'Debt Free',desc:'Zero outstanding loans',emoji:'🎉',condition:()=>sumType('Loan',db)===0},
+  {id:'debt-free',name:'Debt Free',desc:'Zero outstanding loans',emoji:'🎉',condition:()=>creditDb.length>0 && creditDb.reduce((s,c)=>s+Number(c.outstandingBalance||0),0)===0},
 ];
 
 let gameStats = JSON.parse(localStorage.getItem('fos_game_stats')) || {
@@ -18348,7 +18348,11 @@ let gameStats = JSON.parse(localStorage.getItem('fos_game_stats')) || {
 
 function updateGameStats() {
   const totalInc=sumType('Income',db),totalExp=sumType('Expense',db),totalInv=sumType('Investment',db),totalLoan=sumType('Loan',db);
-  gameStats.networth = (totalInc-totalExp-totalInv+totalLoan>0 ? (totalInc-totalExp-totalInv+totalLoan) : 0) + totalInv;
+  const totalOutstandingDebt=creditDb.reduce((s,c)=>s+Number(c.outstandingBalance||0),0);
+  // Net worth = cash on hand (income minus expenses, investments, and loan/EMI payments already made,
+  // floored at 0) + the value of what's been invested, minus what's still owed on active loans/credit.
+  const cashOnHand = totalInc - totalExp - totalInv - totalLoan;
+  gameStats.networth = (cashOnHand>0 ? cashOnHand : 0) + totalInv - totalOutstandingDebt;
 
   const today = new Date().toISOString().split('T')[0];
   if (gameStats.lastActivity !== today) {
@@ -18358,18 +18362,24 @@ function updateGameStats() {
     gameStats.lastActivity = today;
   }
 
-  const fM=document.getElementById('filter-month').value, fY=document.getElementById('filter-year').value;
-  if (fM!=='all'||fY!=='all') {
-    const data=getFilteredData();
-    let allUnder=true;
+  // Streak is evaluated against TODAY's real calendar month, independent of whatever month/year
+  // the dashboard filter happens to be showing (previously it used the UI filter's fM/fY, so just
+  // browsing an old month could silently add or skip a streak day).
+  // It also now requires at least one budget to be configured — with no budgets set, "allUnder"
+  // was trivially true and the streak grew every day with nothing actually being tracked.
+  if (Object.keys(budgets).length > 0 && gameStats.lastCheck !== today) {
+    const curY = String(new Date().getFullYear());
+    const curM = String(new Date().getMonth()+1).padStart(2,'0');
+    const monthData = db.filter(item => item.date && item.date.slice(0,4)===curY && item.date.slice(5,7)===curM);
+    let allUnder = true;
     Object.entries(budgets).forEach(([cat,limit])=>{
-      const spent=data.filter(x=>x.sub===cat||x.name===cat).reduce((a,b)=>a+b.amount,0);
-      if(spent>limit) allUnder=false;
+      const spent = monthData.filter(x=>x.sub===cat||x.name===cat).reduce((a,b)=>a+Number(b.amount),0);
+      if (spent > limit) allUnder = false;
     });
-    if(allUnder && gameStats.lastCheck!==today) {
-      gameStats.streak++;
-      gameStats.lastCheck=today;
-    }
+    // Previously the streak only ever grew (or was wiped entirely when all data was deleted) —
+    // going over budget never broke it, so it wasn't tracking a real "streak" of good days.
+    gameStats.streak = allUnder ? gameStats.streak + 1 : 0;
+    gameStats.lastCheck = today;
   }
 
   // RE-VALIDATE ALL BADGES - Remove badges that no longer meet conditions
