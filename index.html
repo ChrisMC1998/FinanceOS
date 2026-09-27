@@ -19885,6 +19885,16 @@ function initCCView() {
 }
 
 function selectCCBank(id) {
+  // Clicking the already-selected bank again closes the form back up — there's no other
+  // way to dismiss it once it's open.
+  if (ccSelectedBank === id) {
+    ccSelectedBank = null;
+    document.querySelectorAll('.cc-bank-btn').forEach(b => b.classList.remove('selected'));
+    document.getElementById('cc-details-box').style.display = 'none';
+    document.getElementById('cc-limit-box').style.display = 'none';
+    return;
+  }
+
   ccSelectedBank = id;
   document.querySelectorAll('.cc-bank-btn').forEach(b => b.classList.remove('selected'));
   event.currentTarget.classList.add('selected');
