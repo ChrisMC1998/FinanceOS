@@ -276,6 +276,67 @@ body.light-mode .ins-card-row { border-color:#e2e8f0; }
 .ins-card-footer { display:flex; gap:6px; margin-top:10px; flex-wrap:wrap; }
 .ins-empty { text-align:center; padding:3rem 1rem; color:var(--text-muted); font-size:0.88rem; }
 
+/* ── Advanced Insurance Management System ── */
+.ins-section-title { font-size:0.78rem; font-weight:800; text-transform:uppercase; letter-spacing:0.05em; color:var(--text-muted); margin:1.3rem 0 0.7rem; display:flex; align-items:center; gap:8px; }
+.ins-section-title i { color:#34d399; }
+.ins-kpi-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(150px,1fr)); gap:.75rem; margin-bottom:.4rem; }
+.ins-kpi-card { background:rgba(52,211,153,0.05); border:1px solid rgba(52,211,153,0.14); border-radius:12px; padding:.85rem .95rem; }
+.ins-kpi-label { font-size:0.66rem; color:var(--text-muted); text-transform:uppercase; letter-spacing:0.04em; }
+.ins-kpi-val { font-size:1.18rem; font-weight:800; font-family:'DM Mono',monospace; margin-top:5px; }
+.ins-expiry-strip { display:grid; grid-template-columns:repeat(auto-fit,minmax(200px,1fr)); gap:.8rem; margin-bottom:.3rem; }
+.ins-expiry-card { background:rgba(255,255,255,0.03); border:1px solid rgba(255,255,255,0.07); border-radius:14px; padding:.9rem 1rem; }
+.ins-expiry-count { font-size:1.35rem; font-weight:800; font-family:'DM Mono',monospace; }
+.ins-expiry-list { margin-top:8px; display:flex; flex-direction:column; gap:6px; max-height:150px; overflow-y:auto; }
+.ins-expiry-item { font-size:0.72rem; padding:6px 8px; border-radius:8px; background:rgba(255,255,255,0.03); cursor:pointer; }
+.ins-expiry-item:hover { background:rgba(52,211,153,0.1); }
+.ins-expiry-item b { display:block; font-size:0.76rem; }
+.ins-expiry-item span { color:var(--text-muted); }
+.ins-insight-list { display:flex; flex-direction:column; gap:7px; margin-bottom:.3rem; }
+.ins-insight-item { display:flex; align-items:flex-start; gap:9px; background:rgba(255,255,255,0.03); border:1px solid rgba(255,255,255,0.06); border-radius:10px; padding:8px 12px; font-size:0.8rem; }
+.ins-insight-item i { margin-top:3px; font-size:0.78rem; }
+.ins-insight-item.good i { color:#34d399; }
+.ins-insight-item.warn i { color:#f59e0b; }
+.ins-insight-item.bad i { color:#f87171; }
+.ins-insight-item.info i { color:#60a5fa; }
+.ins-readiness-wrap { display:flex; align-items:center; gap:8px; }
+.ins-readiness-track { flex:1; height:7px; border-radius:4px; background:rgba(255,255,255,0.08); overflow:hidden; }
+.ins-readiness-fill { height:100%; border-radius:4px; }
+.ins-readiness-num { font-size:0.72rem; font-weight:700; font-family:'DM Mono',monospace; min-width:34px; text-align:right; }
+.ins-table-wrap { overflow-x:auto; }
+.ins-table th { font-size:0.63rem; padding:8px 9px; white-space:nowrap; }
+.ins-table td { font-size:0.77rem; padding:8px 9px; white-space:nowrap; }
+.ins-table td.wrap { white-space:normal; }
+.ins-row-actions { display:flex; gap:6px; }
+.ins-icon-btn { background:rgba(255,255,255,0.06); border:none; color:var(--text-main); width:26px; height:26px; border-radius:7px; cursor:pointer; font-size:0.68rem; display:inline-flex; align-items:center; justify-content:center; transition:0.15s; }
+.ins-icon-btn:hover { background:rgba(52,211,153,0.22); color:#34d399; }
+.ins-toolbar-controls { display:flex; gap:8px; flex-wrap:wrap; align-items:center; }
+.ins-search-box { display:flex; align-items:center; gap:6px; background:rgba(255,255,255,0.05); border:1px solid rgba(255,255,255,0.08); border-radius:10px; padding:6px 10px; font-size:0.78rem; }
+.ins-search-box input { background:transparent; border:none; outline:none; color:var(--text-main); font-size:0.78rem; width:130px; }
+.ins-mini-select { background:rgba(255,255,255,0.05); border:1px solid rgba(255,255,255,0.08); border-radius:10px; padding:6px 10px; font-size:0.76rem; color:var(--text-main); }
+.ins-bucket-picker { display:grid; grid-template-columns:repeat(auto-fit,minmax(110px,1fr)); gap:8px; margin-bottom:1rem; }
+.ins-bucket-btn { background:rgba(255,255,255,0.04); border:1px solid rgba(255,255,255,0.08); border-radius:12px; padding:12px 8px; text-align:center; cursor:pointer; font-size:0.76rem; font-weight:600; color:var(--text-muted); transition:0.15s; }
+.ins-bucket-btn i { display:block; font-size:1.1rem; margin-bottom:5px; color:#34d399; }
+.ins-bucket-btn.active { border-color:#34d399; background:rgba(52,211,153,0.14); color:var(--text-main); }
+.ins-modal-section { border-top:1px dashed rgba(255,255,255,0.1); margin-top:1.1rem; padding-top:1rem; }
+.ins-modal-section:first-of-type { border-top:none; margin-top:0; padding-top:0; }
+.ins-modal-section-title { font-size:0.74rem; font-weight:800; text-transform:uppercase; letter-spacing:0.05em; color:#34d399; margin-bottom:.6rem; }
+.ins-addon-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(160px,1fr)); gap:6px; }
+.ins-addon-chip { display:flex; align-items:center; gap:7px; background:rgba(255,255,255,0.04); border:1px solid rgba(255,255,255,0.07); border-radius:9px; padding:6px 9px; font-size:0.76rem; cursor:pointer; }
+.ins-addon-chip input { accent-color:#34d399; }
+.ins-addon-amt { width:80px; margin-left:auto; padding:3px 6px; font-size:0.7rem; border-radius:6px; border:1px solid rgba(255,255,255,0.1); background:rgba(0,0,0,0.15); color:var(--text-main); display:none; }
+.ins-addon-chip.checked .ins-addon-amt { display:block; }
+.ins-claim-item, .ins-doc-item { background:rgba(255,255,255,0.03); border:1px solid rgba(255,255,255,0.07); border-radius:10px; padding:9px 11px; margin-bottom:7px; font-size:0.78rem; }
+.ins-claim-item-top, .ins-doc-item-top { display:flex; justify-content:space-between; align-items:center; }
+.ins-claim-sub { color:var(--text-muted); font-size:0.71rem; margin-top:3px; }
+.ins-coverage-box { background:rgba(255,255,255,0.03); border:1px solid rgba(255,255,255,0.07); border-radius:12px; padding:.9rem 1rem; margin-top:.6rem; }
+.ins-coverage-check { font-size:0.76rem; padding:3px 0; }
+.ins-coverage-check.ok { color:#34d399; }
+.ins-coverage-check.missing { color:#f59e0b; }
+.ins-notrecorded { color:var(--text-muted); font-style:italic; }
+@media (max-width:640px) {
+  .ins-kpi-grid, .ins-expiry-strip { grid-template-columns:repeat(2,1fr); }
+}
+
 .notes-wrap { display:flex; gap:1.2rem; height:100%; min-height:560px; }
 .notes-list-pane { width:300px; flex-shrink:0; display:flex; flex-direction:column; background:rgba(255,255,255,0.02); border:1px solid rgba(255,255,255,0.06); border-radius:16px; padding:14px; }
 body.light-mode .notes-list-pane { background:#fff; border-color:#e2e8f0; }
@@ -5820,9 +5881,64 @@ function passAppLockGate() {
         </button>
       </div>
 
-      <div class="ins-summary-strip" id="ins-summary-strip"></div>
+      <!-- 1. Insurance Portfolio Dashboard -->
+      <div class="ins-kpi-grid" id="ins-kpi-grid"></div>
 
-      <div class="ins-grid" id="ins-grid"></div>
+      <!-- Expiry Intelligence -->
+      <div class="ins-section-title"><i class="fas fa-hourglass-half"></i> Expiry Intelligence</div>
+      <div class="ins-expiry-strip" id="ins-expiry-strip"></div>
+
+      <!-- Smart Insights -->
+      <div class="ins-section-title"><i class="fas fa-lightbulb"></i> Smart Insights</div>
+      <div class="ins-insight-list" id="ins-insight-list"></div>
+
+      <!-- Portfolio Table -->
+      <div class="ins-section-title" style="justify-content:space-between;flex-wrap:wrap;gap:8px">
+        <span><i class="fas fa-table-list"></i> Insurance Portfolio</span>
+        <div class="ins-toolbar-controls">
+          <div class="ins-search-box">
+            <i class="fas fa-search" style="color:var(--text-muted)"></i>
+            <input type="text" id="ins-search-input" placeholder="Search policy, insurer, vehicle…" oninput="renderInsurance()">
+          </div>
+          <select class="ins-mini-select" id="ins-filter-type" onchange="renderInsurance()">
+            <option value="">All Types</option>
+          </select>
+          <select class="ins-mini-select" id="ins-filter-insurer" onchange="renderInsurance()">
+            <option value="">All Insurers</option>
+          </select>
+          <select class="ins-mini-select" id="ins-filter-status" onchange="renderInsurance()">
+            <option value="">All Status</option>
+            <option value="Active">Active</option>
+            <option value="Expiring Soon">Expiring Soon</option>
+            <option value="Expired">Expired</option>
+            <option value="Lapsed">Lapsed</option>
+            <option value="Archived">Archived</option>
+          </select>
+        </div>
+      </div>
+      <div class="ins-table-wrap">
+        <table class="port-table ins-table" id="ins-portfolio-table">
+          <thead>
+            <tr>
+              <th onclick="sortInsurance('policy')">Policy <i class="sort-arrow">▾</i></th>
+              <th onclick="sortInsurance('type')">Type <i class="sort-arrow">▾</i></th>
+              <th onclick="sortInsurance('insurer')">Insurer <i class="sort-arrow">▾</i></th>
+              <th>Vehicle / Insured</th>
+              <th>Policy No.</th>
+              <th onclick="sortInsurance('coverage')">Coverage / IDV <i class="sort-arrow">▾</i></th>
+              <th onclick="sortInsurance('premium')">Premium <i class="sort-arrow">▾</i></th>
+              <th>Start</th>
+              <th onclick="sortInsurance('expiry')">Expiry <i class="sort-arrow">▾</i></th>
+              <th onclick="sortInsurance('days')">Days Left <i class="sort-arrow">▾</i></th>
+              <th>Status</th>
+              <th>Claims</th>
+              <th onclick="sortInsurance('readiness')">Readiness <i class="sort-arrow">▾</i></th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+          <tbody id="ins-table-body"></tbody>
+        </table>
+      </div>
 
       <div class="ins-empty" id="ins-empty" style="display:none">
         <i class="fas fa-shield-alt" style="font-size:2.2rem;opacity:0.2;display:block;margin-bottom:10px"></i>
@@ -6257,168 +6373,276 @@ function passAppLockGate() {
 
 <!-- MODAL: Add / Edit Insurance -->
 <div class="modal-overlay" id="insurance-modal">
-  <div class="modal-box" style="width:600px;border-color:rgba(52,211,153,0.28);box-shadow:0 0 60px rgba(52,211,153,0.12)">
+  <div class="modal-box" style="width:680px;max-height:88vh;overflow-y:auto;border-color:rgba(52,211,153,0.28);box-shadow:0 0 60px rgba(52,211,153,0.12)">
     <div class="modal-title" style="color:#34d399" id="insurance-modal-title">Add Insurance Policy</div>
 
-    <div class="modal-row">
-      <div class="input-group">
-        <label>Category</label>
-        <select id="ins-category" class="input-field" onchange="toggleInsuranceCategory()">
-          <option value="Personal">Personal</option>
-          <option value="Corporate">Corporate</option>
-        </select>
+    <!-- SECTION: Insurance Type -->
+    <div class="ins-modal-section">
+      <div class="ins-modal-section-title">1. Insurance Type</div>
+      <div class="ins-bucket-picker" id="ins-bucket-picker">
+        <div class="ins-bucket-btn" data-bucket="Motor" onclick="setInsBucket('Motor')"><i class="fas fa-car"></i>Motor</div>
+        <div class="ins-bucket-btn" data-bucket="Health" onclick="setInsBucket('Health')"><i class="fas fa-briefcase-medical"></i>Health</div>
+        <div class="ins-bucket-btn" data-bucket="Life" onclick="setInsBucket('Life')"><i class="fas fa-heart-pulse"></i>Life</div>
+        <div class="ins-bucket-btn" data-bucket="TermLife" onclick="setInsBucket('TermLife')"><i class="fas fa-heart"></i>Term Life</div>
+        <div class="ins-bucket-btn" data-bucket="PersonalAccident" onclick="setInsBucket('PersonalAccident')"><i class="fas fa-user-injured"></i>Personal Accident</div>
+        <div class="ins-bucket-btn" data-bucket="Home" onclick="setInsBucket('Home')"><i class="fas fa-house"></i>Home</div>
+        <div class="ins-bucket-btn" data-bucket="Travel" onclick="setInsBucket('Travel')"><i class="fas fa-plane"></i>Travel</div>
+        <div class="ins-bucket-btn" data-bucket="Other" onclick="setInsBucket('Other')"><i class="fas fa-shield-halved"></i>Other</div>
+      </div>
+      <input type="hidden" id="ins-bucket" value="Motor">
+    </div>
+
+    <!-- SECTION: Policyholder / Common Policy Info -->
+    <div class="ins-modal-section">
+      <div class="ins-modal-section-title">2. Policyholder & Policy Details</div>
+      <div class="modal-row">
+        <div class="input-group">
+          <label>Category</label>
+          <select id="ins-category" class="input-field" onchange="toggleInsuranceCategory()">
+            <option value="Personal">Personal</option>
+            <option value="Corporate">Corporate</option>
+          </select>
+        </div>
+        <div class="input-group">
+          <label>Policy Holder Name</label>
+          <input type="text" id="ins-holder" class="input-field" placeholder="Name on the policy">
+        </div>
+      </div>
+      <div class="modal-row" id="ins-employer-row">
+        <div class="input-group" style="grid-column:1/-1">
+          <label>Employer / Company Name</label>
+          <input type="text" id="ins-employer" class="input-field" placeholder="e.g. Provided by your employer">
+        </div>
+      </div>
+      <div class="modal-row">
+        <div class="input-group" style="grid-column:1/-1">
+          <label>Insurance Company</label>
+          <select id="ins-provider" class="input-field" onchange="toggleInsuranceOtherProvider()">
+            <optgroup label="Life Insurers">
+              <option>LIC of India</option><option>HDFC Life</option><option>ICICI Prudential Life</option>
+              <option>SBI Life</option><option>Max Life Insurance</option><option>Bajaj Allianz Life</option>
+              <option>Tata AIA Life</option><option>Kotak Mahindra Life</option><option>Aditya Birla Sun Life</option>
+              <option>PNB MetLife</option><option>Canara HSBC Life</option><option>Pramerica Life (Future Generali India Life)</option>
+              <option>Bharti AXA Life</option><option>Shriram Life</option><option>Star Union Dai-ichi Life</option>
+              <option>Edelweiss Tokio Life</option>
+            </optgroup>
+            <optgroup label="Health Insurers">
+              <option>Star Health Insurance</option><option>Niva Bupa Health (Max Bupa)</option>
+              <option>Care Health Insurance (Religare)</option><option>Manipal Cigna Health</option>
+              <option>Aditya Birla Health Insurance</option><option>HDFC ERGO Health</option><option>ICICI Lombard Health</option>
+            </optgroup>
+            <optgroup label="General Insurers">
+              <option>HDFC ERGO General</option><option>ICICI Lombard General</option><option>Bajaj Allianz General</option>
+              <option>Tata AIG General</option><option>New India Assurance</option><option>National Insurance Company</option>
+              <option>United India Insurance</option><option>Oriental Insurance Company</option><option>Reliance General Insurance</option>
+              <option>SBI General Insurance</option><option>Future Generali India Insurance</option><option>Cholamandalam MS General</option>
+              <option>Universal Sompo General</option><option>IFFCO Tokio General</option><option>Liberty General Insurance</option>
+              <option>Royal Sundaram General</option><option>Go Digit General Insurance</option><option>Acko General Insurance</option>
+              <option>Magma HDI General</option><option>Shriram General Insurance</option><option>Kotak Mahindra General</option>
+              <option>Edelweiss General Insurance</option>
+            </optgroup>
+            <option value="__other__">Other (type manually)</option>
+          </select>
+          <input type="text" id="ins-provider-other" class="input-field" placeholder="Enter provider name" style="display:none;margin-top:8px">
+        </div>
+      </div>
+      <div class="modal-row">
+        <div class="input-group">
+          <label>Policy Number</label>
+          <input type="text" id="ins-policy-number" class="input-field" placeholder="e.g. POL123456789">
+        </div>
+        <div class="input-group" id="ins-policytype-row" style="display:none">
+          <label>Policy Type</label>
+          <select id="ins-policy-type" class="input-field">
+            <option>Comprehensive</option><option>Third Party</option><option>Own Damage</option>
+            <option>Bundled</option><option>Other</option>
+          </select>
+        </div>
+      </div>
+      <div class="modal-row">
+        <div class="input-group">
+          <label id="ins-sum-insured-label">Sum Insured / Cover Amount (₹)</label>
+          <input type="number" id="ins-sum-insured" class="input-field" placeholder="0">
+        </div>
+        <div class="input-group">
+          <label>Premium Amount (₹)</label>
+          <input type="number" id="ins-premium" class="input-field" placeholder="0">
+        </div>
+      </div>
+      <div class="modal-row">
+        <div class="input-group">
+          <label>Premium Frequency</label>
+          <select id="ins-frequency" class="input-field">
+            <option>Yearly</option><option>Half-Yearly</option><option>Quarterly</option>
+            <option>Monthly</option><option>One-Time</option>
+          </select>
+        </div>
+        <div class="input-group">
+          <label>Status</label>
+          <select id="ins-status" class="input-field">
+            <option>Active</option><option>Expired</option><option>Lapsed</option><option>Archived</option>
+          </select>
+        </div>
+      </div>
+      <div class="modal-row">
+        <div class="input-group">
+          <label>Start Date</label>
+          <input type="date" id="ins-start-date" class="input-field">
+        </div>
+        <div class="input-group">
+          <label>Expiry Date</label>
+          <input type="date" id="ins-end-date" class="input-field">
+        </div>
       </div>
       <div class="input-group">
-        <label>Insurance Type</label>
-        <select id="ins-type" class="input-field">
-          <option>Health Insurance</option>
-          <option>Life Insurance</option>
-          <option>Term Life Insurance</option>
-          <option>Motor Insurance - Car</option>
-          <option>Motor Insurance - Two Wheeler</option>
-          <option>Home / Property Insurance</option>
-          <option>Travel Insurance</option>
-          <option>Personal Accident Insurance</option>
-          <option>Critical Illness Insurance</option>
-          <option>ULIP</option>
-          <option>Group Health Insurance (Corporate)</option>
-          <option>Group Life Insurance (Corporate)</option>
-          <option>Group Personal Accident (Corporate)</option>
-          <option>Other</option>
-        </select>
+        <label>Nominee Name</label>
+        <input type="text" id="ins-nominee" class="input-field" placeholder="e.g. Spouse, Parent name">
       </div>
     </div>
 
-    <div class="modal-row">
-      <div class="input-group" style="grid-column:1/-1">
-        <label>Insurance Provider</label>
-        <select id="ins-provider" class="input-field" onchange="toggleInsuranceOtherProvider()">
-          <optgroup label="Life Insurers">
-            <option>LIC of India</option>
-            <option>HDFC Life</option>
-            <option>ICICI Prudential Life</option>
-            <option>SBI Life</option>
-            <option>Max Life Insurance</option>
-            <option>Bajaj Allianz Life</option>
-            <option>Tata AIA Life</option>
-            <option>Kotak Mahindra Life</option>
-            <option>Aditya Birla Sun Life</option>
-            <option>PNB MetLife</option>
-            <option>Canara HSBC Life</option>
-            <option>Pramerica Life (Future Generali India Life)</option>
-            <option>Bharti AXA Life</option>
-            <option>Shriram Life</option>
-            <option>Star Union Dai-ichi Life</option>
-            <option>Edelweiss Tokio Life</option>
-          </optgroup>
-          <optgroup label="Health Insurers">
-            <option>Star Health Insurance</option>
-            <option>Niva Bupa Health (Max Bupa)</option>
-            <option>Care Health Insurance (Religare)</option>
-            <option>Manipal Cigna Health</option>
-            <option>Aditya Birla Health Insurance</option>
-            <option>HDFC ERGO Health</option>
-            <option>ICICI Lombard Health</option>
-          </optgroup>
-          <optgroup label="General Insurers">
-            <option>HDFC ERGO General</option>
-            <option>ICICI Lombard General</option>
-            <option>Bajaj Allianz General</option>
-            <option>Tata AIG General</option>
-            <option>New India Assurance</option>
-            <option>National Insurance Company</option>
-            <option>United India Insurance</option>
-            <option>Oriental Insurance Company</option>
-            <option>Reliance General Insurance</option>
-            <option>SBI General Insurance</option>
-            <option>Future Generali India Insurance</option>
-            <option>Cholamandalam MS General</option>
-            <option>Universal Sompo General</option>
-            <option>IFFCO Tokio General</option>
-            <option>Liberty General Insurance</option>
-            <option>Royal Sundaram General</option>
-            <option>Go Digit General Insurance</option>
-            <option>Acko General Insurance</option>
-            <option>Magma HDI General</option>
-            <option>Shriram General Insurance</option>
-            <option>Kotak Mahindra General</option>
-            <option>Edelweiss General Insurance</option>
-          </optgroup>
-          <option value="__other__">Other (type manually)</option>
-        </select>
-        <input type="text" id="ins-provider-other" class="input-field" placeholder="Enter provider name" style="display:none;margin-top:8px">
+    <!-- SECTION: Motor — Vehicle Information -->
+    <div class="ins-modal-section ins-sec" data-bucket="Motor">
+      <div class="ins-modal-section-title">3. Vehicle Information</div>
+      <div class="input-group">
+        <label>Vehicle Registration Number</label>
+        <input type="text" id="ins-veh-reg" class="input-field" placeholder="e.g. TN01AB1234" style="font-weight:700;letter-spacing:0.05em">
+      </div>
+      <div class="modal-row">
+        <div class="input-group"><label>Vehicle Make</label><input type="text" id="ins-veh-make" class="input-field" placeholder="e.g. Hyundai"></div>
+        <div class="input-group"><label>Vehicle Model</label><input type="text" id="ins-veh-model" class="input-field" placeholder="e.g. Venue"></div>
+      </div>
+      <div class="modal-row">
+        <div class="input-group"><label>Variant</label><input type="text" id="ins-veh-variant" class="input-field"></div>
+        <div class="input-group">
+          <label>Fuel Type</label>
+          <select id="ins-veh-fuel" class="input-field"><option value="">Select</option><option>Petrol</option><option>Diesel</option><option>CNG</option><option>Electric</option><option>Hybrid</option></select>
+        </div>
+      </div>
+      <div class="modal-row">
+        <div class="input-group"><label>Manufacturing Year</label><input type="number" id="ins-veh-year" class="input-field" placeholder="e.g. 2022"></div>
+        <div class="input-group"><label>Registration Date</label><input type="date" id="ins-veh-regdate" class="input-field"></div>
+      </div>
+      <div class="modal-row">
+        <div class="input-group"><label>Vehicle Colour</label><input type="text" id="ins-veh-colour" class="input-field"></div>
+        <div class="input-group"><label>Cubic Capacity (cc)</label><input type="text" id="ins-veh-cc" class="input-field"></div>
+      </div>
+      <div class="modal-row">
+        <div class="input-group"><label>Engine Number</label><input type="text" id="ins-veh-engine" class="input-field"></div>
+        <div class="input-group"><label>Chassis Number</label><input type="text" id="ins-veh-chassis" class="input-field"></div>
+      </div>
+      <div class="modal-row">
+        <div class="input-group"><label>Seating Capacity</label><input type="number" id="ins-veh-seating" class="input-field"></div>
+        <div class="input-group"><label>Current Odometer (km)</label><input type="number" id="ins-veh-odo" class="input-field"></div>
+      </div>
+      <div class="modal-row">
+        <div class="input-group">
+          <label>Vehicle Usage</label>
+          <select id="ins-veh-usage" class="input-field"><option value="">Select</option><option>Personal</option><option>Commercial</option></select>
+        </div>
+        <div class="input-group"><label>Financier / Hypothecation</label><input type="text" id="ins-veh-financier" class="input-field" placeholder="e.g. None"></div>
       </div>
     </div>
 
-    <div class="modal-row">
-      <div class="input-group">
-        <label>Policy Number</label>
-        <input type="text" id="ins-policy-number" class="input-field" placeholder="e.g. POL123456789">
+    <!-- SECTION: Motor — Policy Information -->
+    <div class="ins-modal-section ins-sec" data-bucket="Motor">
+      <div class="ins-modal-section-title">4. Motor Policy Information</div>
+      <div class="modal-row">
+        <div class="input-group"><label>IDV (₹)</label><input type="number" id="ins-motor-idv" class="input-field" placeholder="Insured Declared Value"></div>
+        <div class="input-group"><label>NCB (%)</label><input type="number" id="ins-motor-ncb" class="input-field" placeholder="e.g. 20"></div>
+      </div>
+      <div class="modal-row">
+        <div class="input-group"><label>Previous Insurer</label><input type="text" id="ins-motor-previnsurer" class="input-field"></div>
+        <div class="input-group"><label>Previous Policy Number</label><input type="text" id="ins-motor-prevpolicy" class="input-field"></div>
+      </div>
+      <div class="modal-row">
+        <div class="input-group"><label>Previous Policy Expiry</label><input type="date" id="ins-motor-prevexpiry" class="input-field"></div>
+        <div class="input-group"><label>Previous NCB (%)</label><input type="number" id="ins-motor-prevncb" class="input-field"></div>
+      </div>
+      <div class="modal-row">
+        <div class="input-group"><label>Previous Premium (₹)</label><input type="number" id="ins-motor-prevpremium" class="input-field"></div>
+        <div class="input-group"><label>Previous IDV (₹)</label><input type="number" id="ins-motor-previdv" class="input-field"></div>
       </div>
       <div class="input-group">
-        <label>Policy Holder Name</label>
-        <input type="text" id="ins-holder" class="input-field" placeholder="Name on the policy">
+        <label>Claim History (summary)</label>
+        <input type="text" id="ins-motor-claimhistory" class="input-field" placeholder="e.g. 1 claim in last 3 years">
       </div>
     </div>
 
-    <div class="modal-row" id="ins-employer-row">
-      <div class="input-group" style="grid-column:1/-1">
-        <label>Employer / Company Name</label>
-        <input type="text" id="ins-employer" class="input-field" placeholder="e.g. Provided by your employer">
+    <!-- SECTION: Motor — Add-ons -->
+    <div class="ins-modal-section ins-sec" data-bucket="Motor">
+      <div class="ins-modal-section-title">5. Add-ons</div>
+      <div class="ins-addon-grid" id="ins-addon-grid"></div>
+    </div>
+
+    <!-- SECTION: Health -->
+    <div class="ins-modal-section ins-sec" data-bucket="Health">
+      <div class="ins-modal-section-title">3. Health Insurance Details</div>
+      <div class="modal-row">
+        <div class="input-group"><label>Members Covered</label><input type="text" id="ins-health-members" class="input-field" placeholder="e.g. Self, Spouse, 2 Children"></div>
+        <div class="input-group">
+          <label>Plan Type</label>
+          <select id="ins-health-plantype" class="input-field"><option value="">Select</option><option>Individual</option><option>Floater</option></select>
+        </div>
+      </div>
+      <div class="modal-row">
+        <div class="input-group"><label>Room Rent Limit</label><input type="text" id="ins-health-roomrent" class="input-field" placeholder="e.g. Single Private / No Capping"></div>
+        <div class="input-group"><label>Restoration Benefit</label><input type="text" id="ins-health-restoration" class="input-field" placeholder="e.g. 100% once/year"></div>
+      </div>
+      <div class="modal-row">
+        <div class="input-group"><label>No-Claim Bonus</label><input type="text" id="ins-health-ncb" class="input-field"></div>
+        <div class="input-group"><label>Waiting Periods</label><input type="text" id="ins-health-waiting" class="input-field" placeholder="e.g. PED 3 yrs, Maternity 2 yrs"></div>
+      </div>
+      <div class="input-group"><label>Pre-Existing Disease (PED) Info</label><input type="text" id="ins-health-ped" class="input-field" placeholder="Not recorded if none declared"></div>
+    </div>
+
+    <!-- SECTION: Life / Term Life -->
+    <div class="ins-modal-section ins-sec" data-bucket="Life,TermLife">
+      <div class="ins-modal-section-title">3. Life Insurance Details</div>
+      <div class="modal-row">
+        <div class="input-group"><label>Policy Term (years)</label><input type="number" id="ins-life-term" class="input-field"></div>
+        <div class="input-group"><label>Premium Payment Term (years)</label><input type="number" id="ins-life-ppt" class="input-field"></div>
+      </div>
+      <div class="modal-row">
+        <div class="input-group"><label>Maturity Date</label><input type="date" id="ins-life-maturity" class="input-field"></div>
+        <div class="input-group"><label>Riders</label><input type="text" id="ins-life-riders" class="input-field" placeholder="e.g. Accidental Death, Waiver of Premium"></div>
       </div>
     </div>
 
-    <div class="modal-row">
-      <div class="input-group">
-        <label>Sum Insured / Cover Amount (₹)</label>
-        <input type="number" id="ins-sum-insured" class="input-field" placeholder="0">
-      </div>
-      <div class="input-group">
-        <label>Premium Amount (₹)</label>
-        <input type="number" id="ins-premium" class="input-field" placeholder="0">
-      </div>
+    <!-- SECTION: Personal Accident -->
+    <div class="ins-modal-section ins-sec" data-bucket="PersonalAccident">
+      <div class="ins-modal-section-title">3. Personal Accident Details</div>
+      <div class="input-group"><label>Covered Person</label><input type="text" id="ins-pa-covered" class="input-field"></div>
     </div>
 
-    <div class="modal-row">
-      <div class="input-group">
-        <label>Premium Frequency</label>
-        <select id="ins-frequency" class="input-field">
-          <option>Yearly</option>
-          <option>Half-Yearly</option>
-          <option>Quarterly</option>
-          <option>Monthly</option>
-          <option>One-Time</option>
-        </select>
-      </div>
-      <div class="input-group">
-        <label>Status</label>
-        <select id="ins-status" class="input-field">
-          <option>Active</option>
-          <option>Expired</option>
-          <option>Lapsed</option>
-        </select>
-      </div>
+    <!-- SECTION: Home / Travel / Other -->
+    <div class="ins-modal-section ins-sec" data-bucket="Home,Travel,Other">
+      <div class="ins-modal-section-title">3. Coverage Details</div>
+      <div class="input-group"><label>Insured Asset / Subject</label><input type="text" id="ins-other-subject" class="input-field" placeholder="e.g. Home address, Trip destination"></div>
     </div>
 
-    <div class="modal-row">
-      <div class="input-group">
-        <label>Start Date</label>
-        <input type="date" id="ins-start-date" class="input-field">
-      </div>
-      <div class="input-group">
-        <label>Renewal / Expiry Date</label>
-        <input type="date" id="ins-end-date" class="input-field">
-      </div>
-    </div>
-
-    <div class="input-group">
-      <label>Nominee Name</label>
-      <input type="text" id="ins-nominee" class="input-field" placeholder="e.g. Spouse, Parent name">
-    </div>
-
-    <div class="input-group">
-      <label>Notes</label>
+    <!-- SECTION: Notes -->
+    <div class="ins-modal-section">
+      <div class="ins-modal-section-title">Notes</div>
       <input type="text" id="ins-notes" class="input-field" placeholder="Any additional details">
+    </div>
+
+    <!-- SECTION: Claims -->
+    <div class="ins-modal-section" id="ins-claims-section" style="display:none">
+      <div class="ins-modal-section-title">Claims</div>
+      <div id="ins-claims-list"></div>
+      <button class="btn-secondary" style="margin-top:6px" onclick="openClaimForm()"><i class="fas fa-plus"></i> Add Claim</button>
+    </div>
+
+    <!-- SECTION: Documents -->
+    <div class="ins-modal-section" id="ins-docs-section" style="display:none">
+      <div class="ins-modal-section-title">Documents</div>
+      <div id="ins-docs-list"></div>
+      <input type="file" id="ins-doc-upload" style="display:none" onchange="handleInsDocUpload(event)">
+      <button class="btn-secondary" style="margin-top:6px" onclick="document.getElementById('ins-doc-upload').click()"><i class="fas fa-upload"></i> Upload Document</button>
+    </div>
+
+    <div class="ins-modal-section" id="ins-savefirst-hint" style="display:none;font-size:0.75rem;color:var(--text-muted)">
+      Save this policy first to add claims and documents.
     </div>
 
     <input type="hidden" id="ins-edit-id" value="">
@@ -6427,6 +6651,46 @@ function passAppLockGate() {
       <button onclick="saveInsuranceEntry()" class="btn-add" style="flex:1;justify-content:center;background:rgba(52,211,153,0.8)" id="insurance-save-btn">Save Policy</button>
       <button onclick="closeInsuranceModal()" class="btn-secondary">Cancel</button>
       <button onclick="deleteCurrentInsuranceEntry()" class="btn-delete" style="display:none" id="insurance-delete-btn"><i class="fas fa-trash"></i> Delete</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL: Add Claim -->
+<div class="modal-overlay" id="claim-modal">
+  <div class="modal-box" style="width:480px;border-color:rgba(248,113,113,0.28)">
+    <div class="modal-title" style="color:#f87171">Add Claim</div>
+    <div class="modal-row">
+      <div class="input-group"><label>Claim Number</label><input type="text" id="claim-number" class="input-field"></div>
+      <div class="input-group">
+        <label>Claim Status</label>
+        <select id="claim-status" class="input-field">
+          <option>Reported</option><option>Under Review</option><option>Survey</option><option>Approved</option>
+          <option>Partially Approved</option><option>Rejected</option><option>Settled</option><option>Withdrawn</option>
+        </select>
+      </div>
+    </div>
+    <div class="modal-row">
+      <div class="input-group"><label>Claim Date</label><input type="date" id="claim-date" class="input-field"></div>
+      <div class="input-group"><label>Incident / Accident Date</label><input type="date" id="claim-incident-date" class="input-field"></div>
+    </div>
+    <div class="input-group"><label>Claim Type</label><input type="text" id="claim-type" class="input-field" placeholder="e.g. Accidental Damage, Hospitalization"></div>
+    <div class="modal-row">
+      <div class="input-group"><label>Amount Claimed (₹)</label><input type="number" id="claim-amt-claimed" class="input-field"></div>
+      <div class="input-group"><label>Amount Approved (₹)</label><input type="number" id="claim-amt-approved" class="input-field"></div>
+    </div>
+    <div class="modal-row">
+      <div class="input-group"><label>Amount Settled (₹)</label><input type="number" id="claim-amt-settled" class="input-field"></div>
+      <div class="input-group"><label>Out-of-Pocket / Deductible (₹)</label><input type="number" id="claim-deductible" class="input-field"></div>
+    </div>
+    <div class="input-group"><label>Garage / Hospital / Service Provider</label><input type="text" id="claim-provider" class="input-field"></div>
+    <div class="modal-row">
+      <div class="input-group"><label>Surveyor / TPA</label><input type="text" id="claim-surveyor" class="input-field"></div>
+      <div class="input-group"><label>Settlement Date</label><input type="date" id="claim-settlement-date" class="input-field"></div>
+    </div>
+    <div class="input-group"><label>Notes</label><input type="text" id="claim-notes" class="input-field"></div>
+    <div style="display:flex;gap:8px;margin-top:1.1rem">
+      <button class="btn-add" style="flex:1;justify-content:center;background:rgba(248,113,113,0.75)" onclick="saveClaim()">Save Claim</button>
+      <button class="btn-secondary" onclick="closeClaimForm()">Cancel</button>
     </div>
   </div>
 </div>
@@ -15165,9 +15429,148 @@ function deleteCreditItem(id) {
   }
 }
 
-// ── INSURANCE (MY ZONE) ──────────────────────────────────────────────────
+// ── INSURANCE (MY ZONE) — Advanced Insurance Management System ───────────
 let editingInsuranceId = null;
+let editingClaimId = null;
 let insuranceFilter = 'all';
+let insSortKey = 'expiry';
+let insSortDir = 'asc';
+
+const MOTOR_ADDONS = ['Zero Depreciation','Roadside Assistance','Engine Protection','Consumables Cover','Return to Invoice','Key Replacement','Tyre Protection','NCB Protection','Personal Accident Cover','Passenger Accident Cover','Personal Belongings Cover','Other'];
+
+const INS_BUCKET_LABELS = {
+  Motor:'Motor Insurance', Health:'Health Insurance', Life:'Life Insurance', TermLife:'Term Life Insurance',
+  PersonalAccident:'Personal Accident Insurance', Home:'Home / Property Insurance', Travel:'Travel Insurance', Other:'Other Insurance'
+};
+
+function insBucketFromLegacy(insType) {
+  const t = (insType || '').toLowerCase();
+  if (t.includes('motor')) return 'Motor';
+  if (t.includes('term')) return 'TermLife';
+  if (t.includes('life')) return 'Life';
+  if (t.includes('health') || t.includes('critical illness')) return 'Health';
+  if (t.includes('personal accident')) return 'PersonalAccident';
+  if (t.includes('home') || t.includes('property')) return 'Home';
+  if (t.includes('travel')) return 'Travel';
+  return 'Other';
+}
+function insBucketOf(p) { return p.bucket || insBucketFromLegacy(p.insType); }
+function insLabelOf(p) { return p.insType || INS_BUCKET_LABELS[insBucketOf(p)]; }
+
+function daysUntil(d) {
+  if (!d) return null;
+  const diff = (new Date(d) - new Date(new Date().toDateString())) / 86400000;
+  return Math.round(diff);
+}
+
+function computeEffectiveStatus(p) {
+  if (p.status === 'Archived') return 'Archived';
+  if (p.status === 'Lapsed') return 'Lapsed';
+  const days = daysUntil(p.endDate);
+  if (days === null) return p.status || 'Active';
+  if (days < 0) return 'Expired';
+  if (days <= 30) return 'Expiring Soon';
+  return 'Active';
+}
+
+function annualizePremium(p) {
+  const mult = { 'Yearly':1, 'Half-Yearly':2, 'Quarterly':4, 'Monthly':12, 'One-Time':1 };
+  return Number(p.premium || 0) * (mult[p.frequency] || 1);
+}
+
+function coverageValueOf(p) {
+  const bucket = insBucketOf(p);
+  if (bucket === 'Motor' && p.motor && p.motor.idv) return Number(p.motor.idv) || 0;
+  return Number(p.sumInsured || 0);
+}
+
+function computeReadiness(p) {
+  const checks = [];
+  const add = (label, ok, level) => checks.push({ label, ok: !!ok, level });
+  add('Policy active', computeEffectiveStatus(p) === 'Active' || computeEffectiveStatus(p) === 'Expiring Soon', 'required');
+  add('Insurer recorded', !!p.provider, 'required');
+  add('Policy number recorded', !!p.policyNumber, 'required');
+  add('Start date recorded', !!p.startDate, 'required');
+  add('Expiry date recorded', !!p.endDate, 'required');
+  add('Nominee recorded', !!p.nominee, 'recommended');
+  add('At least one document uploaded', (p.documents || []).length > 0, 'recommended');
+
+  const bucket = insBucketOf(p);
+  if (bucket === 'Motor') {
+    const v = p.vehicle || {}, m = p.motor || {};
+    add('Vehicle registration number recorded', !!v.regNumber, 'required');
+    add('IDV recorded', !!m.idv, 'required');
+    add('NCB recorded', m.ncb !== undefined && m.ncb !== '' && m.ncb !== null, 'recommended');
+    add('Chassis number recorded', !!v.chassisNumber, 'recommended');
+    add('Engine number recorded', !!v.engineNumber, 'recommended');
+    add('Previous policy information recorded', !!(m.previousInsurer || m.previousPolicyNumber), 'recommended');
+    add('Add-ons recorded', (p.addons || []).length > 0, 'optional');
+  } else if (bucket === 'Health') {
+    add('Sum insured recorded', !!p.sumInsured, 'required');
+    const h = p.health || {};
+    add('Plan type recorded', !!h.plantype, 'required');
+    add('Members covered recorded', !!h.members, 'recommended');
+    add('Waiting period info recorded', !!h.waiting, 'recommended');
+  } else if (bucket === 'Life' || bucket === 'TermLife') {
+    add('Sum assured recorded', !!p.sumInsured, 'required');
+    add('Nominee recorded', !!p.nominee, 'required');
+    const l = p.life || {};
+    add('Policy term recorded', !!l.term, 'recommended');
+    add('Maturity date recorded', !!l.maturity, 'recommended');
+  } else if (bucket === 'PersonalAccident') {
+    add('Sum insured recorded', !!p.sumInsured, 'required');
+    add('Covered person recorded', !!(p.pa && p.pa.covered), 'recommended');
+  }
+
+  const req = checks.filter(c => c.level === 'required');
+  const rec = checks.filter(c => c.level === 'recommended');
+  const reqScore = req.length ? req.filter(c => c.ok).length / req.length : 1;
+  const recScore = rec.length ? rec.filter(c => c.ok).length / rec.length : 1;
+  const score = Math.round((reqScore * 0.7 + recScore * 0.3) * 100);
+  return { score, checks };
+}
+
+function fmtInsCurrency(n) {
+  return '₹' + Number(n || 0).toLocaleString('en-IN');
+}
+function notRec(v, formatter) {
+  if (v === undefined || v === null || v === '') return '<span class="ins-notrecorded">Not recorded</span>';
+  return formatter ? formatter(v) : v;
+}
+
+// ── Bucket-aware form section toggling ──
+function setInsBucket(bucket) {
+  document.getElementById('ins-bucket').value = bucket;
+  document.querySelectorAll('#ins-bucket-picker .ins-bucket-btn').forEach(b => b.classList.toggle('active', b.dataset.bucket === bucket));
+  document.querySelectorAll('.ins-sec').forEach(sec => {
+    const buckets = sec.dataset.bucket.split(',');
+    sec.style.display = buckets.includes(bucket) ? 'block' : 'none';
+  });
+  document.getElementById('ins-policytype-row').style.display = (bucket === 'Motor') ? 'flex' : 'none';
+  document.getElementById('ins-sum-insured-label').textContent = (bucket === 'Motor')
+    ? 'Sum Insured (optional — use IDV below for Motor)' : 'Sum Insured / Cover Amount (₹)';
+  if (bucket === 'Motor' && !document.getElementById('ins-addon-grid').innerHTML) renderAddonGrid([]);
+}
+
+function renderAddonGrid(selected) {
+  const sel = {}; (selected || []).forEach(a => sel[a.name] = a.amount);
+  const grid = document.getElementById('ins-addon-grid');
+  if (!grid) return;
+  grid.innerHTML = MOTOR_ADDONS.map(name => {
+    const checked = sel.hasOwnProperty(name);
+    const amt = checked ? (sel[name] || '') : '';
+    return `<label class="ins-addon-chip ${checked ? 'checked' : ''}" data-addon="${name}">
+      <input type="checkbox" ${checked ? 'checked' : ''} onchange="this.closest('.ins-addon-chip').classList.toggle('checked',this.checked)">
+      <span>${name}</span>
+      <input type="number" class="ins-addon-amt" placeholder="₹" value="${amt}" onclick="event.stopPropagation()">
+    </label>`;
+  }).join('');
+}
+function collectAddons() {
+  return Array.from(document.querySelectorAll('#ins-addon-grid .ins-addon-chip'))
+    .filter(c => c.querySelector('input[type=checkbox]').checked)
+    .map(c => ({ name: c.dataset.addon, amount: Number(c.querySelector('.ins-addon-amt').value) || 0 }));
+}
 
 function toggleInsuranceCategory() {
   const cat = document.getElementById('ins-category').value;
@@ -15184,17 +15587,29 @@ function openInsuranceModal() {
   document.getElementById('insurance-modal-title').textContent = 'Add Insurance Policy';
   document.getElementById('insurance-save-btn').textContent = 'Save Policy';
   document.getElementById('insurance-delete-btn').style.display = 'none';
-  ['ins-policy-number','ins-holder','ins-employer','ins-sum-insured','ins-premium','ins-nominee','ins-notes','ins-provider-other'].forEach(id => {
-    const el = document.getElementById(id); if (el) el.value = '';
-  });
+  ['ins-policy-number','ins-holder','ins-employer','ins-sum-insured','ins-premium','ins-nominee','ins-notes','ins-provider-other',
+   'ins-veh-reg','ins-veh-make','ins-veh-model','ins-veh-variant','ins-veh-year','ins-veh-regdate','ins-veh-colour','ins-veh-cc',
+   'ins-veh-engine','ins-veh-chassis','ins-veh-seating','ins-veh-odo','ins-veh-financier','ins-motor-idv','ins-motor-ncb',
+   'ins-motor-previnsurer','ins-motor-prevpolicy','ins-motor-prevexpiry','ins-motor-prevncb','ins-motor-prevpremium','ins-motor-previdv',
+   'ins-motor-claimhistory','ins-health-members','ins-health-roomrent','ins-health-restoration','ins-health-ncb','ins-health-waiting',
+   'ins-health-ped','ins-life-term','ins-life-ppt','ins-life-maturity','ins-life-riders','ins-pa-covered','ins-other-subject'
+  ].forEach(id => { const el = document.getElementById(id); if (el) el.value = ''; });
   document.getElementById('ins-category').value = 'Personal';
-  document.getElementById('ins-type').value = 'Health Insurance';
   document.getElementById('ins-provider').value = 'LIC of India';
   document.getElementById('ins-frequency').value = 'Yearly';
   document.getElementById('ins-status').value = 'Active';
+  document.getElementById('ins-policy-type').value = 'Comprehensive';
+  document.getElementById('ins-veh-fuel').value = '';
+  document.getElementById('ins-veh-usage').value = '';
+  document.getElementById('ins-health-plantype').value = '';
   document.getElementById('ins-start-date').value = new Date().toISOString().split('T')[0];
   document.getElementById('ins-end-date').value = '';
   document.getElementById('ins-edit-id').value = '';
+  setInsBucket('Motor');
+  renderAddonGrid([]);
+  document.getElementById('ins-claims-section').style.display = 'none';
+  document.getElementById('ins-docs-section').style.display = 'none';
+  document.getElementById('ins-savefirst-hint').style.display = 'block';
   toggleInsuranceCategory();
   toggleInsuranceOtherProvider();
   document.getElementById('insurance-modal').style.display = 'flex';
@@ -15209,72 +15624,364 @@ function editInsuranceEntry(id) {
   document.getElementById('insurance-modal-title').textContent = 'Edit Insurance Policy';
   document.getElementById('insurance-save-btn').textContent = 'Update Policy';
   document.getElementById('insurance-delete-btn').style.display = 'block';
-  document.getElementById('ins-category').value      = p.category;
-  document.getElementById('ins-type').value          = p.insType;
+  document.getElementById('ins-category').value = p.category || 'Personal';
 
   const providerSelect = document.getElementById('ins-provider');
   const knownProvider = Array.from(providerSelect.options).some(o => o.value === p.provider);
   providerSelect.value = knownProvider ? p.provider : '__other__';
-  document.getElementById('ins-provider-other').value = knownProvider ? '' : p.provider;
+  document.getElementById('ins-provider-other').value = knownProvider ? '' : (p.provider || '');
 
   document.getElementById('ins-policy-number').value = p.policyNumber || '';
-  document.getElementById('ins-holder').value         = p.holderName || '';
-  document.getElementById('ins-employer').value       = p.employer || '';
-  document.getElementById('ins-sum-insured').value    = p.sumInsured || '';
-  document.getElementById('ins-premium').value        = p.premium || '';
-  document.getElementById('ins-frequency').value      = p.frequency || 'Yearly';
-  document.getElementById('ins-status').value         = p.status || 'Active';
-  document.getElementById('ins-start-date').value     = p.startDate || '';
-  document.getElementById('ins-end-date').value       = p.endDate || '';
-  document.getElementById('ins-nominee').value        = p.nominee || '';
-  document.getElementById('ins-notes').value          = p.notes || '';
+  document.getElementById('ins-holder').value      = p.holderName || '';
+  document.getElementById('ins-employer').value    = p.employer || '';
+  document.getElementById('ins-sum-insured').value = p.sumInsured || '';
+  document.getElementById('ins-premium').value     = p.premium || '';
+  document.getElementById('ins-frequency').value   = p.frequency || 'Yearly';
+  document.getElementById('ins-status').value      = p.status || 'Active';
+  document.getElementById('ins-start-date').value  = p.startDate || '';
+  document.getElementById('ins-end-date').value    = p.endDate || '';
+  document.getElementById('ins-nominee').value     = p.nominee || '';
+  document.getElementById('ins-notes').value       = p.notes || '';
+
+  const bucket = insBucketOf(p);
+  setInsBucket(bucket);
+
+  const v = p.vehicle || {}, m = p.motor || {};
+  document.getElementById('ins-policy-type').value = m.policyType || 'Comprehensive';
+  document.getElementById('ins-veh-reg').value = v.regNumber || '';
+  document.getElementById('ins-veh-make').value = v.make || '';
+  document.getElementById('ins-veh-model').value = v.model || '';
+  document.getElementById('ins-veh-variant').value = v.variant || '';
+  document.getElementById('ins-veh-fuel').value = v.fuelType || '';
+  document.getElementById('ins-veh-year').value = v.mfgYear || '';
+  document.getElementById('ins-veh-regdate').value = v.regDate || '';
+  document.getElementById('ins-veh-colour').value = v.colour || '';
+  document.getElementById('ins-veh-cc').value = v.cc || '';
+  document.getElementById('ins-veh-engine').value = v.engineNumber || '';
+  document.getElementById('ins-veh-chassis').value = v.chassisNumber || '';
+  document.getElementById('ins-veh-seating').value = v.seating || '';
+  document.getElementById('ins-veh-odo').value = v.odometer || '';
+  document.getElementById('ins-veh-usage').value = v.usage || '';
+  document.getElementById('ins-veh-financier').value = v.financier || '';
+  document.getElementById('ins-motor-idv').value = m.idv || '';
+  document.getElementById('ins-motor-ncb').value = m.ncb || '';
+  document.getElementById('ins-motor-previnsurer').value = m.previousInsurer || '';
+  document.getElementById('ins-motor-prevpolicy').value = m.previousPolicyNumber || '';
+  document.getElementById('ins-motor-prevexpiry').value = m.previousPolicyExpiry || '';
+  document.getElementById('ins-motor-prevncb').value = m.previousNCB || '';
+  document.getElementById('ins-motor-prevpremium').value = m.previousPremium || '';
+  document.getElementById('ins-motor-previdv').value = m.previousIDV || '';
+  document.getElementById('ins-motor-claimhistory').value = m.claimHistory || '';
+  renderAddonGrid(p.addons || []);
+
+  const h = p.health || {};
+  document.getElementById('ins-health-members').value = h.members || '';
+  document.getElementById('ins-health-plantype').value = h.plantype || '';
+  document.getElementById('ins-health-roomrent').value = h.roomrent || '';
+  document.getElementById('ins-health-restoration').value = h.restoration || '';
+  document.getElementById('ins-health-ncb').value = h.ncb || '';
+  document.getElementById('ins-health-waiting').value = h.waiting || '';
+  document.getElementById('ins-health-ped').value = h.ped || '';
+
+  const l = p.life || {};
+  document.getElementById('ins-life-term').value = l.term || '';
+  document.getElementById('ins-life-ppt').value = l.ppt || '';
+  document.getElementById('ins-life-maturity').value = l.maturity || '';
+  document.getElementById('ins-life-riders').value = l.riders || '';
+
+  document.getElementById('ins-pa-covered').value = (p.pa && p.pa.covered) || '';
+  document.getElementById('ins-other-subject').value = (p.other && p.other.subject) || '';
 
   toggleInsuranceCategory();
   toggleInsuranceOtherProvider();
+
+  document.getElementById('ins-claims-section').style.display = 'block';
+  document.getElementById('ins-docs-section').style.display = 'block';
+  document.getElementById('ins-savefirst-hint').style.display = 'none';
+  renderClaimsList();
+  renderDocsList();
+
   document.getElementById('insurance-modal').style.display = 'flex';
 }
 
 function saveInsuranceEntry() {
-  const category     = document.getElementById('ins-category').value;
-  const insType       = document.getElementById('ins-type').value;
-  const providerSel    = document.getElementById('ins-provider').value;
-  const provider       = providerSel === '__other__' ? document.getElementById('ins-provider-other').value.trim() : providerSel;
-  const policyNumber   = document.getElementById('ins-policy-number').value.trim();
-  const holderName     = document.getElementById('ins-holder').value.trim();
-  const employer       = document.getElementById('ins-employer').value.trim();
-  const sumInsured     = Number(document.getElementById('ins-sum-insured').value) || 0;
-  const premium        = Number(document.getElementById('ins-premium').value) || 0;
-  const frequency      = document.getElementById('ins-frequency').value;
-  const status         = document.getElementById('ins-status').value;
-  const startDate       = document.getElementById('ins-start-date').value;
-  const endDate         = document.getElementById('ins-end-date').value;
-  const nominee         = document.getElementById('ins-nominee').value.trim();
-  const notes           = document.getElementById('ins-notes').value.trim();
+  const category = document.getElementById('ins-category').value;
+  const bucket = document.getElementById('ins-bucket').value;
+  const providerSel = document.getElementById('ins-provider').value;
+  const provider = providerSel === '__other__' ? document.getElementById('ins-provider-other').value.trim() : providerSel;
+  const policyNumber = document.getElementById('ins-policy-number').value.trim();
+  const holderName = document.getElementById('ins-holder').value.trim();
+  const employer = document.getElementById('ins-employer').value.trim();
+  const sumInsured = Number(document.getElementById('ins-sum-insured').value) || 0;
+  const premium = Number(document.getElementById('ins-premium').value) || 0;
+  const frequency = document.getElementById('ins-frequency').value;
+  const status = document.getElementById('ins-status').value;
+  const startDate = document.getElementById('ins-start-date').value;
+  const endDate = document.getElementById('ins-end-date').value;
+  const nominee = document.getElementById('ins-nominee').value.trim();
+  const notes = document.getElementById('ins-notes').value.trim();
 
-  if (!provider) { alert('Please select or enter an Insurance Provider'); return; }
+  if (!provider) { alert('Please select or enter an Insurance Company'); return; }
   if (!policyNumber) { alert('Please enter the Policy Number'); return; }
   if (!holderName) { alert('Please enter the Policy Holder Name'); return; }
 
-  const entry = { category, insType, provider, policyNumber, holderName, employer, sumInsured, premium, frequency, status, startDate, endDate, nominee, notes };
+  const insType = INS_BUCKET_LABELS[bucket];
+
+  const entry = { category, bucket, insType, provider, policyNumber, holderName, employer, sumInsured, premium, frequency, status, startDate, endDate, nominee, notes };
+
+  if (bucket === 'Motor') {
+    entry.vehicle = {
+      regNumber: document.getElementById('ins-veh-reg').value.trim(),
+      make: document.getElementById('ins-veh-make').value.trim(),
+      model: document.getElementById('ins-veh-model').value.trim(),
+      variant: document.getElementById('ins-veh-variant').value.trim(),
+      fuelType: document.getElementById('ins-veh-fuel').value,
+      mfgYear: document.getElementById('ins-veh-year').value,
+      regDate: document.getElementById('ins-veh-regdate').value,
+      colour: document.getElementById('ins-veh-colour').value.trim(),
+      cc: document.getElementById('ins-veh-cc').value.trim(),
+      engineNumber: document.getElementById('ins-veh-engine').value.trim(),
+      chassisNumber: document.getElementById('ins-veh-chassis').value.trim(),
+      seating: document.getElementById('ins-veh-seating').value,
+      odometer: document.getElementById('ins-veh-odo').value,
+      usage: document.getElementById('ins-veh-usage').value,
+      financier: document.getElementById('ins-veh-financier').value.trim()
+    };
+    entry.motor = {
+      policyType: document.getElementById('ins-policy-type').value,
+      idv: Number(document.getElementById('ins-motor-idv').value) || 0,
+      ncb: document.getElementById('ins-motor-ncb').value,
+      previousInsurer: document.getElementById('ins-motor-previnsurer').value.trim(),
+      previousPolicyNumber: document.getElementById('ins-motor-prevpolicy').value.trim(),
+      previousPolicyExpiry: document.getElementById('ins-motor-prevexpiry').value,
+      previousNCB: document.getElementById('ins-motor-prevncb').value,
+      previousPremium: document.getElementById('ins-motor-prevpremium').value,
+      previousIDV: document.getElementById('ins-motor-previdv').value,
+      claimHistory: document.getElementById('ins-motor-claimhistory').value.trim()
+    };
+    entry.addons = collectAddons();
+  } else if (bucket === 'Health') {
+    entry.health = {
+      members: document.getElementById('ins-health-members').value.trim(),
+      plantype: document.getElementById('ins-health-plantype').value,
+      roomrent: document.getElementById('ins-health-roomrent').value.trim(),
+      restoration: document.getElementById('ins-health-restoration').value.trim(),
+      ncb: document.getElementById('ins-health-ncb').value.trim(),
+      waiting: document.getElementById('ins-health-waiting').value.trim(),
+      ped: document.getElementById('ins-health-ped').value.trim()
+    };
+  } else if (bucket === 'Life' || bucket === 'TermLife') {
+    entry.life = {
+      term: document.getElementById('ins-life-term').value,
+      ppt: document.getElementById('ins-life-ppt').value,
+      maturity: document.getElementById('ins-life-maturity').value,
+      riders: document.getElementById('ins-life-riders').value.trim()
+    };
+  } else if (bucket === 'PersonalAccident') {
+    entry.pa = { covered: document.getElementById('ins-pa-covered').value.trim() };
+  } else {
+    entry.other = { subject: document.getElementById('ins-other-subject').value.trim() };
+  }
 
   if (editingInsuranceId) {
     const idx = insuranceDb.findIndex(x => x.id === editingInsuranceId);
     if (idx >= 0) insuranceDb[idx] = { ...insuranceDb[idx], ...entry };
+    scheduleSave();
+    renderInsurance();
+    editInsuranceEntry(editingInsuranceId); // refresh claims/docs sections, keep modal open? -> close instead
+    closeInsuranceModal();
   } else {
-    insuranceDb.push({ id: Date.now(), ...entry });
+    const newId = Date.now();
+    insuranceDb.push({ id: newId, claims: [], documents: [], ...entry });
+    scheduleSave();
+    closeInsuranceModal();
+    renderInsurance();
   }
-  scheduleSave();
-  closeInsuranceModal();
-  renderInsurance();
 }
 
 function deleteCurrentInsuranceEntry() {
-  if (editingInsuranceId && confirm('Delete this insurance policy?')) {
+  if (editingInsuranceId && confirm('Delete this insurance policy? This also removes its claims and documents.')) {
     insuranceDb = insuranceDb.filter(x => x.id !== editingInsuranceId);
     scheduleSave();
     closeInsuranceModal();
     renderInsurance();
   }
+}
+
+// ── Claims ──
+function openClaimForm(claimId) {
+  editingClaimId = claimId || null;
+  const p = insuranceDb.find(x => x.id === editingInsuranceId);
+  if (claimId && p) {
+    const c = (p.claims || []).find(x => x.id === claimId);
+    if (c) {
+      document.getElementById('claim-number').value = c.claimNumber || '';
+      document.getElementById('claim-status').value = c.status || 'Reported';
+      document.getElementById('claim-date').value = c.claimDate || '';
+      document.getElementById('claim-incident-date').value = c.incidentDate || '';
+      document.getElementById('claim-type').value = c.claimType || '';
+      document.getElementById('claim-amt-claimed').value = c.amtClaimed || '';
+      document.getElementById('claim-amt-approved').value = c.amtApproved || '';
+      document.getElementById('claim-amt-settled').value = c.amtSettled || '';
+      document.getElementById('claim-deductible').value = c.deductible || '';
+      document.getElementById('claim-provider').value = c.serviceProvider || '';
+      document.getElementById('claim-surveyor').value = c.surveyor || '';
+      document.getElementById('claim-settlement-date').value = c.settlementDate || '';
+      document.getElementById('claim-notes').value = c.notes || '';
+    }
+  } else {
+    ['claim-number','claim-type','claim-amt-claimed','claim-amt-approved','claim-amt-settled','claim-deductible','claim-provider','claim-surveyor','claim-settlement-date','claim-notes'].forEach(id => document.getElementById(id).value = '');
+    document.getElementById('claim-status').value = 'Reported';
+    document.getElementById('claim-date').value = new Date().toISOString().split('T')[0];
+    document.getElementById('claim-incident-date').value = '';
+  }
+  document.getElementById('claim-modal').style.display = 'flex';
+}
+function closeClaimForm() { document.getElementById('claim-modal').style.display = 'none'; }
+
+function saveClaim() {
+  const p = insuranceDb.find(x => x.id === editingInsuranceId);
+  if (!p) return;
+  p.claims = p.claims || [];
+  const claim = {
+    claimNumber: document.getElementById('claim-number').value.trim(),
+    status: document.getElementById('claim-status').value,
+    claimDate: document.getElementById('claim-date').value,
+    incidentDate: document.getElementById('claim-incident-date').value,
+    claimType: document.getElementById('claim-type').value.trim(),
+    amtClaimed: Number(document.getElementById('claim-amt-claimed').value) || 0,
+    amtApproved: Number(document.getElementById('claim-amt-approved').value) || 0,
+    amtSettled: Number(document.getElementById('claim-amt-settled').value) || 0,
+    deductible: Number(document.getElementById('claim-deductible').value) || 0,
+    serviceProvider: document.getElementById('claim-provider').value.trim(),
+    surveyor: document.getElementById('claim-surveyor').value.trim(),
+    settlementDate: document.getElementById('claim-settlement-date').value,
+    notes: document.getElementById('claim-notes').value.trim()
+  };
+  if (editingClaimId) {
+    const idx = p.claims.findIndex(c => c.id === editingClaimId);
+    if (idx >= 0) p.claims[idx] = { ...p.claims[idx], ...claim };
+  } else {
+    p.claims.push({ id: Date.now(), ...claim });
+  }
+  scheduleSave();
+  closeClaimForm();
+  renderClaimsList();
+  renderInsurance();
+}
+function deleteClaim(claimId) {
+  const p = insuranceDb.find(x => x.id === editingInsuranceId);
+  if (!p || !confirm('Delete this claim record?')) return;
+  p.claims = (p.claims || []).filter(c => c.id !== claimId);
+  scheduleSave();
+  renderClaimsList();
+  renderInsurance();
+}
+function renderClaimsList() {
+  const el = document.getElementById('ins-claims-list');
+  const p = insuranceDb.find(x => x.id === editingInsuranceId);
+  if (!el || !p) return;
+  const list = p.claims || [];
+  if (!list.length) { el.innerHTML = '<div class="ins-notrecorded">No claims recorded.</div>'; return; }
+  el.innerHTML = list.map(c => `
+    <div class="ins-claim-item">
+      <div class="ins-claim-item-top">
+        <b>${c.claimNumber || 'Claim'} — ${c.status}</b>
+        <div class="ins-row-actions">
+          <button class="ins-icon-btn" onclick="openClaimForm(${c.id})" title="Edit"><i class="fas fa-edit"></i></button>
+          <button class="ins-icon-btn" onclick="deleteClaim(${c.id})" title="Delete"><i class="fas fa-trash"></i></button>
+        </div>
+      </div>
+      <div class="ins-claim-sub">Claimed ${fmtInsCurrency(c.amtClaimed)} · Approved ${fmtInsCurrency(c.amtApproved)} · Settled ${fmtInsCurrency(c.amtSettled)} · Out-of-pocket ${fmtInsCurrency(c.deductible)}</div>
+    </div>`).join('');
+}
+
+// ── Documents ──
+function handleInsDocUpload(evt) {
+  const file = evt.target.files[0];
+  if (!file) return;
+  const p = insuranceDb.find(x => x.id === editingInsuranceId);
+  if (!p) return;
+  if (file.size > 4 * 1024 * 1024) { alert('Please upload a file under 4 MB.'); evt.target.value = ''; return; }
+  const reader = new FileReader();
+  reader.onload = () => {
+    p.documents = p.documents || [];
+    p.documents.push({ id: Date.now(), name: file.name, type: file.type, dataUrl: reader.result, uploadedAt: new Date().toISOString() });
+    scheduleSave();
+    renderDocsList();
+    renderInsurance();
+    evt.target.value = '';
+  };
+  reader.readAsDataURL(file);
+}
+function deleteInsDoc(docId) {
+  const p = insuranceDb.find(x => x.id === editingInsuranceId);
+  if (!p || !confirm('Remove this document?')) return;
+  p.documents = (p.documents || []).filter(d => d.id !== docId);
+  scheduleSave();
+  renderDocsList();
+  renderInsurance();
+}
+function renderDocsList() {
+  const el = document.getElementById('ins-docs-list');
+  const p = insuranceDb.find(x => x.id === editingInsuranceId);
+  if (!el || !p) return;
+  const list = p.documents || [];
+  if (!list.length) { el.innerHTML = '<div class="ins-notrecorded">No documents uploaded.</div>'; return; }
+  el.innerHTML = list.map(d => `
+    <div class="ins-doc-item">
+      <div class="ins-doc-item-top">
+        <span><i class="fas fa-file-lines" style="margin-right:6px;color:#34d399"></i>${d.name}</span>
+        <div class="ins-row-actions">
+          <a class="ins-icon-btn" href="${d.dataUrl}" download="${d.name}" title="Download"><i class="fas fa-download"></i></a>
+          <button class="ins-icon-btn" onclick="deleteInsDoc(${d.id})" title="Remove"><i class="fas fa-trash"></i></button>
+        </div>
+      </div>
+    </div>`).join('');
+}
+
+// ── Row / Action Center helpers ──
+function copyInsField(text) {
+  if (!text) return;
+  navigator.clipboard && navigator.clipboard.writeText(text);
+}
+function archivePolicy(id) {
+  const p = insuranceDb.find(x => x.id === id);
+  if (!p) return;
+  p.status = 'Archived';
+  scheduleSave();
+  renderInsurance();
+}
+function duplicateForRenewal(id) {
+  const p = insuranceDb.find(x => x.id === id);
+  if (!p) return;
+  const clone = JSON.parse(JSON.stringify(p));
+  clone.id = Date.now();
+  clone.startDate = p.endDate || clone.startDate;
+  clone.endDate = '';
+  clone.status = 'Active';
+  clone.claims = [];
+  clone.documents = [];
+  if (clone.motor) {
+    clone.motor.previousInsurer = p.provider;
+    clone.motor.previousPolicyNumber = p.policyNumber;
+    clone.motor.previousPolicyExpiry = p.endDate;
+    clone.motor.previousNCB = p.motor.ncb;
+    clone.motor.previousPremium = p.premium;
+    clone.motor.previousIDV = p.motor.idv;
+  }
+  insuranceDb.push(clone);
+  scheduleSave();
+  renderInsurance();
+  return clone;
+}
+function markAsRenewed(id) {
+  const p = insuranceDb.find(x => x.id === id);
+  if (!p || !confirm('Mark as renewed? This creates a fresh policy for the next term and archives this one.')) return;
+  duplicateForRenewal(id);
+  p.status = 'Archived';
+  scheduleSave();
+  renderInsurance();
 }
 
 function filterInsurance(cat, btn) {
@@ -15283,78 +15990,194 @@ function filterInsurance(cat, btn) {
   if (btn) btn.classList.add('active');
   renderInsurance();
 }
+function sortInsurance(key) {
+  if (insSortKey === key) insSortDir = insSortDir === 'asc' ? 'desc' : 'asc';
+  else { insSortKey = key; insSortDir = 'asc'; }
+  renderInsurance();
+}
 
-function fmtInsCurrency(n) {
-  return '₹' + Number(n || 0).toLocaleString('en-IN');
+function generateInsuranceInsights(list) {
+  const insights = [];
+  const nonArchived = list.filter(p => computeEffectiveStatus(p) !== 'Archived');
+  insights.push({ type:'info', text:`You have ${nonArchived.length} active insurance ${nonArchived.length === 1 ? 'policy' : 'policies'} on record.` });
+  list.forEach(p => {
+    const days = daysUntil(p.endDate);
+    const label = `${insLabelOf(p)} (${p.provider})`;
+    if (computeEffectiveStatus(p) === 'Archived') return;
+    if (days !== null && days < 0) insights.push({ type:'bad', text:`${label} expired ${Math.abs(days)} day${Math.abs(days) === 1 ? '' : 's'} ago.` });
+    else if (days !== null && days <= 30) insights.push({ type:'warn', text:`${label} expires in ${days} day${days === 1 ? '' : 's'}.` });
+    const bucket = insBucketOf(p);
+    if (bucket === 'Motor' && !(p.vehicle && p.vehicle.regNumber)) insights.push({ type:'warn', text:`Vehicle registration number has not been recorded for ${label}.` });
+    if (bucket === 'Motor' && !(p.motor && p.motor.previousNCB)) insights.push({ type:'info', text:`Previous NCB information is missing for ${label}.` });
+    if (!(p.documents && p.documents.length)) insights.push({ type:'warn', text:`No policy document has been uploaded for ${label}.` });
+    if (!(p.claims && p.claims.length)) insights.push({ type:'info', text:`Claim history has not been recorded for ${label}.` });
+  });
+  const expiring60 = nonArchived.filter(p => { const d = daysUntil(p.endDate); return d !== null && d >= 0 && d <= 60; }).length;
+  if (expiring60) insights.push({ type:'warn', text:`${expiring60} polic${expiring60 === 1 ? 'y' : 'ies'} expire within the next 60 days.` });
+  const severity = { bad:0, warn:1, info:2 };
+  return insights.sort((a,b) => severity[a.type] - severity[b.type]).slice(0, 8);
 }
 
 function renderInsurance() {
-  const grid = document.getElementById('ins-grid');
   const empty = document.getElementById('ins-empty');
-  const summary = document.getElementById('ins-summary-strip');
-  if (!grid) return;
+  const kpiGrid = document.getElementById('ins-kpi-grid');
+  const expiryStrip = document.getElementById('ins-expiry-strip');
+  const insightList = document.getElementById('ins-insight-list');
+  const tableBody = document.getElementById('ins-table-body');
+  if (!tableBody) return;
 
-  const list = insuranceFilter === 'all' ? insuranceDb : insuranceDb.filter(p => p.category === insuranceFilter);
+  const catFiltered = insuranceFilter === 'all' ? insuranceDb : insuranceDb.filter(p => p.category === insuranceFilter);
+  const nonArchived = catFiltered.filter(p => computeEffectiveStatus(p) !== 'Archived');
 
-  // Summary strip (always based on full set, not filtered, except active count uses filtered)
-  const totalPolicies   = insuranceDb.length;
-  const totalCover      = insuranceDb.reduce((s,p) => s + Number(p.sumInsured||0), 0);
-  const totalPremium    = insuranceDb.reduce((s,p) => s + Number(p.premium||0), 0);
-  const expiringSoon    = insuranceDb.filter(p => {
-    if (!p.endDate) return false;
-    const days = (new Date(p.endDate) - new Date()) / 86400000;
-    return days >= 0 && days <= 45;
-  }).length;
+  // ── 1. KPI Dashboard ──
+  const totalActive = catFiltered.filter(p => ['Active','Expiring Soon'].includes(computeEffectiveStatus(p))).length;
+  const totalAnnualPremium = nonArchived.reduce((s,p) => s + annualizePremium(p), 0);
+  const totalCoverage = nonArchived.reduce((s,p) => s + Number(p.sumInsured || 0), 0);
+  const motorIDV = nonArchived.filter(p => insBucketOf(p) === 'Motor').reduce((s,p) => s + Number((p.motor && p.motor.idv) || 0), 0);
+  const expiringSoonCount = catFiltered.filter(p => computeEffectiveStatus(p) === 'Expiring Soon').length;
+  const expiredCount = catFiltered.filter(p => computeEffectiveStatus(p) === 'Expired').length;
+  const totalClaims = catFiltered.reduce((s,p) => s + (p.claims || []).length, 0);
+  const pendingClaims = catFiltered.reduce((s,p) => s + (p.claims || []).filter(c => !['Settled','Rejected','Withdrawn'].includes(c.status)).length, 0);
+  const avgReadiness = nonArchived.length ? Math.round(nonArchived.reduce((s,p) => s + computeReadiness(p).score, 0) / nonArchived.length) : 0;
 
-  summary.innerHTML = `
-    <div class="ins-summary-card">
-      <div class="ins-summary-label">Total Policies</div>
-      <div class="ins-summary-val" style="color:#34d399">${totalPolicies}</div>
-    </div>
-    <div class="ins-summary-card">
-      <div class="ins-summary-label">Total Cover</div>
-      <div class="ins-summary-val">${fmtInsCurrency(totalCover)}</div>
-    </div>
-    <div class="ins-summary-card">
-      <div class="ins-summary-label">Total Annual Premium</div>
-      <div class="ins-summary-val" style="color:#f59e0b">${fmtInsCurrency(totalPremium)}</div>
-    </div>
-    <div class="ins-summary-card">
-      <div class="ins-summary-label">Renewing Soon (45d)</div>
-      <div class="ins-summary-val" style="color:${expiringSoon ? '#f87171' : 'inherit'}">${expiringSoon}</div>
-    </div>`;
+  if (kpiGrid) kpiGrid.innerHTML = [
+    ['Active Policies', totalActive, '#34d399'],
+    ['Total Annual Premium', fmtInsCurrency(totalAnnualPremium), '#f59e0b'],
+    ['Total Coverage', fmtInsCurrency(totalCoverage), '#60a5fa'],
+    ['Motor IDV', fmtInsCurrency(motorIDV), '#a78bfa'],
+    ['Expiring Soon', expiringSoonCount, expiringSoonCount ? '#f59e0b' : 'inherit'],
+    ['Expired Policies', expiredCount, expiredCount ? '#f87171' : 'inherit'],
+    ['Claims', totalClaims, 'inherit'],
+    ['Pending Claims', pendingClaims, pendingClaims ? '#f87171' : 'inherit'],
+    ['Insurance Readiness', avgReadiness + ' / 100', avgReadiness >= 70 ? '#34d399' : avgReadiness >= 40 ? '#f59e0b' : '#f87171']
+  ].map(([label,val,color]) => `
+    <div class="ins-kpi-card">
+      <div class="ins-kpi-label">${label}</div>
+      <div class="ins-kpi-val" style="color:${color}">${val}</div>
+    </div>`).join('');
 
-  if (!list.length) {
-    grid.innerHTML = '';
-    empty.style.display = 'block';
+  // ── Expiry Intelligence ──
+  if (expiryStrip) {
+    const buckets = [7,30,60,90];
+    expiryStrip.innerHTML = buckets.map(threshold => {
+      const items = nonArchived.filter(p => { const d = daysUntil(p.endDate); return d !== null && d >= 0 && d <= threshold; })
+        .sort((a,b) => daysUntil(a.endDate) - daysUntil(b.endDate));
+      return `
+        <div class="ins-expiry-card">
+          <div class="ins-kpi-label">Expiring within ${threshold} days</div>
+          <div class="ins-expiry-count" style="color:${items.length ? '#f59e0b' : 'inherit'}">${items.length}</div>
+          <div class="ins-expiry-list">${items.slice(0,5).map(p => `
+            <div class="ins-expiry-item" onclick="editInsuranceEntry(${p.id})">
+              <b>${insLabelOf(p)}${p.vehicle && p.vehicle.regNumber ? ' · ' + p.vehicle.regNumber : ''}</b>
+              <span>Expires ${p.endDate} · ${daysUntil(p.endDate)} day${daysUntil(p.endDate) === 1 ? '' : 's'} remaining</span>
+            </div>`).join('') || ''}</div>
+        </div>`;
+    }).join('');
+  }
+
+  // ── Smart Insights ──
+  if (insightList) {
+    const insights = generateInsuranceInsights(catFiltered);
+    insightList.innerHTML = insights.map(i => `
+      <div class="ins-insight-item ${i.type}"><i class="fas ${i.type === 'bad' ? 'fa-circle-exclamation' : i.type === 'warn' ? 'fa-triangle-exclamation' : 'fa-circle-info'}"></i><span>${i.text}</span></div>
+    `).join('') || '<div class="ins-notrecorded">No insights yet — add a policy to get started.</div>';
+  }
+
+  // ── Filter dropdown population ──
+  const typeSel = document.getElementById('ins-filter-type');
+  const insurerSel = document.getElementById('ins-filter-insurer');
+  if (typeSel && insurerSel) {
+    const types = [...new Set(catFiltered.map(p => insLabelOf(p)))].sort();
+    const insurers = [...new Set(catFiltered.map(p => p.provider).filter(Boolean))].sort();
+    const curType = typeSel.value, curInsurer = insurerSel.value;
+    typeSel.innerHTML = '<option value="">All Types</option>' + types.map(t => `<option ${t===curType?'selected':''}>${t}</option>`).join('');
+    insurerSel.innerHTML = '<option value="">All Insurers</option>' + insurers.map(i => `<option ${i===curInsurer?'selected':''}>${i}</option>`).join('');
+  }
+
+  // ── Search + filters ──
+  const search = (document.getElementById('ins-search-input')?.value || '').toLowerCase();
+  const filtType = document.getElementById('ins-filter-type')?.value || '';
+  const filtInsurer = document.getElementById('ins-filter-insurer')?.value || '';
+  const filtStatus = document.getElementById('ins-filter-status')?.value || '';
+
+  let list = catFiltered.filter(p => {
+    if (filtType && insLabelOf(p) !== filtType) return false;
+    if (filtInsurer && p.provider !== filtInsurer) return false;
+    if (filtStatus && computeEffectiveStatus(p) !== filtStatus) return false;
+    if (search) {
+      const hay = [p.provider, p.policyNumber, p.holderName, insLabelOf(p), p.vehicle && p.vehicle.regNumber, p.vehicle && p.vehicle.make, p.vehicle && p.vehicle.model].filter(Boolean).join(' ').toLowerCase();
+      if (!hay.includes(search)) return false;
+    }
+    return true;
+  });
+
+  // ── Sort ──
+  const sortVal = (p) => {
+    switch (insSortKey) {
+      case 'policy': return (p.provider || '') + (p.policyNumber || '');
+      case 'type': return insLabelOf(p);
+      case 'insurer': return p.provider || '';
+      case 'coverage': return coverageValueOf(p);
+      case 'premium': return annualizePremium(p);
+      case 'expiry': return p.endDate || '9999-99-99';
+      case 'days': { const d = daysUntil(p.endDate); return d === null ? 999999 : d; }
+      case 'readiness': return computeReadiness(p).score;
+      default: return '';
+    }
+  };
+  list = [...list].sort((a,b) => {
+    const va = sortVal(a), vb = sortVal(b);
+    const cmp = va > vb ? 1 : va < vb ? -1 : 0;
+    return insSortDir === 'asc' ? cmp : -cmp;
+  });
+
+  if (!catFiltered.length) {
+    tableBody.innerHTML = '';
+    if (empty) empty.style.display = 'block';
     return;
   }
-  empty.style.display = 'none';
+  if (empty) empty.style.display = 'none';
 
-  grid.innerHTML = list.map(p => `
-    <div class="ins-card" onclick="editInsuranceEntry(${p.id})">
-      <div class="ins-card-top">
-        <div>
-          <div class="ins-card-provider">${p.provider}</div>
-          <div class="ins-card-type">${p.insType}</div>
+  tableBody.innerHTML = list.map(p => {
+    const status = computeEffectiveStatus(p);
+    const statusColor = { 'Active':'#34d399','Expiring Soon':'#f59e0b','Expired':'#f87171','Lapsed':'#f59e0b','Archived':'#94a3b8' }[status] || 'inherit';
+    const days = daysUntil(p.endDate);
+    const readiness = computeReadiness(p);
+    const readinessColor = readiness.score >= 70 ? '#34d399' : readiness.score >= 40 ? '#f59e0b' : '#f87171';
+    const claimsCount = (p.claims || []).length;
+    const vehicleLabel = p.vehicle && p.vehicle.regNumber ? `${p.vehicle.regNumber}${p.vehicle.make ? ' · ' + p.vehicle.make + ' ' + (p.vehicle.model||'') : ''}` : (p.holderName || '');
+    return `
+    <tr>
+      <td class="wrap"><b>${p.provider}</b><br><span style="color:var(--text-muted);font-size:0.7rem">${p.holderName || ''}</span></td>
+      <td>${insLabelOf(p)}</td>
+      <td>${p.provider}</td>
+      <td class="wrap">${vehicleLabel || '<span class="ins-notrecorded">Not recorded</span>'}</td>
+      <td>${p.policyNumber || ''}</td>
+      <td>${fmtInsCurrency(coverageValueOf(p))}</td>
+      <td>${fmtInsCurrency(p.premium)} <span style="color:var(--text-muted);font-size:0.68rem">/${p.frequency}</span></td>
+      <td>${p.startDate || '—'}</td>
+      <td>${p.endDate || '—'}</td>
+      <td style="color:${days !== null && days < 0 ? '#f87171' : days !== null && days <= 30 ? '#f59e0b' : 'inherit'}">${days === null ? '—' : (days < 0 ? 'Expired ' + Math.abs(days) + 'd ago' : days + 'd')}</td>
+      <td><span class="badge" style="background:${statusColor}22;color:${statusColor}">${status}</span></td>
+      <td>${claimsCount || '—'}</td>
+      <td>
+        <div class="ins-readiness-wrap">
+          <div class="ins-readiness-track"><div class="ins-readiness-fill" style="width:${readiness.score}%;background:${readinessColor}"></div></div>
+          <span class="ins-readiness-num">${readiness.score}</span>
         </div>
-        <div style="display:flex;flex-direction:column;gap:5px;align-items:flex-end">
-          <span class="ins-badge ${p.category}">${p.category}</span>
-          <span class="ins-badge status-${p.status}">${p.status}</span>
+      </td>
+      <td>
+        <div class="ins-row-actions">
+          <button class="ins-icon-btn" onclick="editInsuranceEntry(${p.id})" title="Edit / View"><i class="fas fa-edit"></i></button>
+          ${p.vehicle && p.vehicle.regNumber ? `<button class="ins-icon-btn" onclick="copyInsField('${p.vehicle.regNumber}')" title="Copy Registration Number"><i class="fas fa-car"></i></button>` : ''}
+          <button class="ins-icon-btn" onclick="copyInsField('${(p.policyNumber||'').replace(/'/g,"")}')" title="Copy Policy Number"><i class="fas fa-copy"></i></button>
+          <button class="ins-icon-btn" onclick="duplicateForRenewal(${p.id})" title="Duplicate for Renewal"><i class="fas fa-rotate"></i></button>
+          <button class="ins-icon-btn" onclick="markAsRenewed(${p.id})" title="Mark as Renewed"><i class="fas fa-check-double"></i></button>
+          <button class="ins-icon-btn" onclick="archivePolicy(${p.id})" title="Archive"><i class="fas fa-box-archive"></i></button>
         </div>
-      </div>
-      <div class="ins-card-row"><span>Policy No.</span><span>${p.policyNumber}</span></div>
-      <div class="ins-card-row"><span>Holder</span><span>${p.holderName}</span></div>
-      ${p.employer ? `<div class="ins-card-row"><span>Employer</span><span>${p.employer}</span></div>` : ''}
-      <div class="ins-card-row"><span>Sum Insured</span><span>${fmtInsCurrency(p.sumInsured)}</span></div>
-      <div class="ins-card-row"><span>Premium</span><span>${fmtInsCurrency(p.premium)} / ${p.frequency}</span></div>
-      <div class="ins-card-row"><span>Renewal Date</span><span>${p.endDate || '—'}</span></div>
-      ${p.nominee ? `<div class="ins-card-row"><span>Nominee</span><span>${p.nominee}</span></div>` : ''}
-      <div class="ins-card-footer">
-        <button class="btn-secondary" style="padding:5px 12px;font-size:0.75rem" onclick="event.stopPropagation();editInsuranceEntry(${p.id})"><i class="fas fa-edit"></i> Edit</button>
-      </div>
-    </div>
-  `).join('');
+      </td>
+    </tr>`;
+  }).join('');
 }
 
 // ── NOTES (MY ZONE) ──────────────────────────────────────────────────────
