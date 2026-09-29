@@ -23284,6 +23284,13 @@ let subDrawerId = null;
 let subActiveQuickChip = null;
 let subActiveBucket = null;
 
+// Safe inline-handler argument: returns a single-quoted, HTML-attribute-safe JS string literal.
+// (JSON.stringify emits double quotes, which terminate a double-quoted onclick="..." attribute
+//  early and silently kill the handler whenever the id is a string.)
+function subJsArg(v) {
+  return "'" + String(v).replace(/\\/g, '\\\\').replace(/'/g, "\\'").replace(/"/g, '&quot;').replace(/</g, '\\x3c') + "'";
+}
+
 // ── Sub-tab switching within the Insurance view ─────────────────────────
 function switchInsuranceSubview(name) {
   document.querySelectorAll('.insurance-subview').forEach(el => el.classList.remove('active'));
@@ -23492,7 +23499,7 @@ function checkSubDuplicate() {
     box.style.display = 'flex';
     box.innerHTML = `<i class="fas fa-triangle-exclamation"></i>
       Possible duplicate: <b>${dupe.name}</b> (${dupe.provider || ''}) — ${subCurrencyFmt(dupe.amount, dupe.currency)} / ${dupe.billing_frequency}.
-      <button class="btn-secondary" style="padding:3px 10px;font-size:0.7rem" onclick="closeSubscriptionModal();openSubscriptionDrawer(${JSON.stringify(dupe.id)})">View Existing</button>`;
+      <button class="btn-secondary" style="padding:3px 10px;font-size:0.7rem" onclick="closeSubscriptionModal();openSubscriptionDrawer(${subJsArg(dupe.id)})">View Existing</button>`;
   } else {
     box.style.display = 'none';
   }
@@ -23644,7 +23651,7 @@ function saveSubscriptionEntry() {
     paymentSourceMeta = { label: document.getElementById('sub-other-label')?.value.trim() || '' };
   }
 
-  const id = document.getElementById('sub-edit-id').value || Date.now();
+  const id = String(document.getElementById('sub-edit-id').value || Date.now());
   const existing = subscriptionsDb.find(s => String(s.id) === String(id));
   const nowIso = new Date().toISOString();
 
@@ -23779,8 +23786,8 @@ function openSubscriptionDrawer(id) {
     </div>
     ${sub.notes ? `<div class="sub-drawer-section"><div class="sub-drawer-section-title">Notes</div><div style="font-size:0.82rem">${sub.notes}</div></div>` : ''}
     <div style="display:flex;gap:8px;margin-top:1.2rem">
-      <button class="btn-add" style="flex:1;justify-content:center;background:rgba(52,211,153,0.8)" onclick="closeSubscriptionDrawer();openSubscriptionModal(${JSON.stringify(id)})"><i class="fas fa-pen"></i> Edit</button>
-      <button class="btn-secondary" onclick="archiveSubscription(${JSON.stringify(id)});closeSubscriptionDrawer()"><i class="fas fa-box-archive"></i> Archive</button>
+      <button class="btn-add" style="flex:1;justify-content:center;background:rgba(52,211,153,0.8)" onclick="closeSubscriptionDrawer();openSubscriptionModal(${subJsArg(id)})"><i class="fas fa-pen"></i> Edit</button>
+      <button class="btn-secondary" onclick="archiveSubscription(${subJsArg(id)});closeSubscriptionDrawer()"><i class="fas fa-box-archive"></i> Archive</button>
     </div>
   `;
   document.getElementById('subscription-drawer').style.display = 'flex';
@@ -23901,7 +23908,7 @@ function renderSubscriptions() {
   if (subActiveBucket) radarList = radarList.filter(s => subBucketOf(subDaysUntil(s.next_billing_date)) === subActiveBucket);
   radarList = radarList.slice(0, 40);
   document.getElementById('sub-radar-body').innerHTML = radarList.length ? radarList.map(s => `
-    <tr style="cursor:pointer" onclick="openSubscriptionDrawer(${JSON.stringify(s.id)})">
+    <tr style="cursor:pointer" onclick="openSubscriptionDrawer(${subJsArg(s.id)})">
       <td>${s.name}</td>
       <td>${subCurrencyFmt(s.amount, s.currency)}</td>
       <td>${s.next_billing_date}</td>
@@ -23913,7 +23920,7 @@ function renderSubscriptions() {
   const trials = all.filter(s => subEffectiveStatus(s) === 'Trial' && s.trial_end_date).sort((a,b) => new Date(a.trial_end_date) - new Date(b.trial_end_date));
   document.getElementById('sub-trial-list').innerHTML = trials.length ? trials.map(s => {
     const d = subDaysUntil(s.trial_end_date);
-    return `<div class="sub-insight-item" style="cursor:pointer" onclick="openSubscriptionDrawer(${JSON.stringify(s.id)})">
+    return `<div class="sub-insight-item" style="cursor:pointer" onclick="openSubscriptionDrawer(${subJsArg(s.id)})">
       <div><b>${s.name}</b><div class="muted">Trial ends ${d !== null ? (d <= 0 ? 'today' : 'in ' + d + ' day' + (d===1?'':'s')) : s.trial_end_date} · Then ${subCurrencyFmt(s.amount, s.currency)}/${s.billing_frequency} · ${subPaymentSourceLabel(s)}</div></div>
       ${s.auto_renew === 'Yes' ? '<span class="sub-badge trial">Will auto-charge</span>' : '<span class="sub-badge autorenew">Manual</span>'}
     </div>`;
@@ -23967,7 +23974,7 @@ function renderSubscriptions() {
   else if (warnings) { badge.className = 'sub-health-badge warn'; badge.textContent = `${warnings} warning${warnings===1?'':'s'}`; }
   else { badge.className = 'sub-health-badge'; badge.textContent = 'Healthy'; }
   document.getElementById('sub-health-list').innerHTML = healthRows.length ? healthRows.slice(0,20).map(({sub, issues}) => `
-    <div class="sub-insight-item" style="cursor:pointer" onclick="openSubscriptionModal(${JSON.stringify(sub.id)})">
+    <div class="sub-insight-item" style="cursor:pointer" onclick="openSubscriptionModal(${subJsArg(sub.id)})">
       <div><b>${sub.name || 'Unnamed'}</b><div class="muted">${issues.map(i=>i.msg).join(' · ')}</div></div>
       <span class="sub-badge ${issues.some(i=>i.level==='error')?'cancelled':'paused'}">${issues.some(i=>i.level==='error')?'Fix':'Review'}</span>
     </div>`).join('') : `<div class="sub-insight-item"><div><i class="fas fa-circle-check" style="color:#34d399;margin-right:6px"></i>All subscription records look healthy.</div></div>`;
@@ -24007,7 +24014,7 @@ function renderSubscriptions() {
     const status = subEffectiveStatus(s);
     const badgeClass = status.toLowerCase().replace(/\s+/g,'-');
     return `
-    <div class="sub-card" onclick="openSubscriptionDrawer(${JSON.stringify(s.id)})">
+    <div class="sub-card" onclick="openSubscriptionDrawer(${subJsArg(s.id)})">
       <div class="sub-card-top">
         <div>
           <div class="sub-card-name">${s.name}</div>
@@ -24023,9 +24030,9 @@ function renderSubscriptions() {
         <span class="sub-badge autorenew">Auto-renew ${s.auto_renew === 'Yes' ? 'ON' : 'OFF'}</span>
       </div>
       <div class="sub-card-row" style="justify-content:flex-end;gap:6px;margin-top:10px" onclick="event.stopPropagation()">
-        <button class="ins-icon-btn" onclick="openSubscriptionDrawer(${JSON.stringify(s.id)})" title="View"><i class="fas fa-eye"></i></button>
-        <button class="ins-icon-btn" onclick="openSubscriptionModal(${JSON.stringify(s.id)})" title="Edit"><i class="fas fa-pen"></i></button>
-        <button class="ins-icon-btn" onclick="archiveSubscription(${JSON.stringify(s.id)})" title="Archive"><i class="fas fa-box-archive"></i></button>
+        <button class="ins-icon-btn" onclick="openSubscriptionDrawer(${subJsArg(s.id)})" title="View"><i class="fas fa-eye"></i></button>
+        <button class="ins-icon-btn" onclick="openSubscriptionModal(${subJsArg(s.id)})" title="Edit"><i class="fas fa-pen"></i></button>
+        <button class="ins-icon-btn" onclick="archiveSubscription(${subJsArg(s.id)})" title="Archive"><i class="fas fa-box-archive"></i></button>
       </div>
     </div>`;
   }).join('');
