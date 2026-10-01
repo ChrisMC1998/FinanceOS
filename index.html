@@ -1456,6 +1456,8 @@ body.light-mode .market-card:hover { border-color: rgba(0,117,255,0.3); box-shad
 body.light-mode .mc-name, body.light-mode .mc-price { color: #0f172a; }
 
 /* ── SETTINGS PREFERENCES MODAL ── */
+/* Sit above the fixed mobile header (z-index 300) so the tab buttons are never covered. */
+#settings-modal { z-index: 400; }
 .settings-modal-box {
   display: flex;
   width: 880px !important;
@@ -1539,6 +1541,9 @@ body.light-mode select.set-input option { background-color: #ffffff; color: #0f1
 .set-chip.active { background: var(--accent); color: white; font-weight: 600; }
 
 /* ── Data Tracking Mode selector ── */
+.about-feat-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+@media (max-width: 640px) { .about-feat-grid { grid-template-columns: 1fr; } }
+body.light-mode .about-feat-grid > div { background:#f8fafc !important; }
 .trk-options { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
 .trk-opt { text-align: left; cursor: pointer; padding: 0.85rem 0.95rem; border-radius: 12px; border: 1px solid var(--glass-border); background: rgba(255,255,255,0.04); color: var(--text-main); font-family: inherit; display: flex; flex-direction: column; gap: 6px; transition: 0.2s; }
 .trk-opt:hover { border-color: rgba(0,117,255,0.4); }
@@ -2443,12 +2448,31 @@ body.light-mode .backup-stat { background:rgba(0,0,0,0.03); }
   }
   .set-content {
     padding:1rem 1rem !important;
+    padding-bottom: calc(5.5rem + env(safe-area-inset-bottom, 0px)) !important; /* last card / Save button fully reachable */
     width:100%;
     flex: 1 1 auto;
     min-height: 0;
     overflow-y: auto !important;
     -webkit-overflow-scrolling: touch;
+    overscroll-behavior: contain;
   }
+  /* Phone: Settings becomes a full-height sheet pinned below the status bar */
+  #settings-modal { align-items: flex-end !important; }
+  #settings-modal .settings-modal-box {
+    width:100vw !important; max-width:100vw !important;
+    height: calc(100dvh - env(safe-area-inset-top, 0px) - 10px) !important;
+    max-height: none !important;
+    border-radius: 20px 20px 0 0 !important;
+    overflow: hidden !important;
+  }
+  .set-sidebar { max-height: 38%; overflow-y: auto !important; }
+  .set-header { position: sticky; top: -1rem; z-index: 5; background: var(--glass-bg, #0c1020); padding: 0.4rem 0; margin-bottom: 1rem; }
+  body.light-mode .set-header { background: #ffffff; }
+}
+/* Tablets (601–900px): same fix — modal must fit under the mobile header and scroll */
+@media (min-width:601px) and (max-width:900px) {
+  #settings-modal .settings-modal-box { height: min(80dvh, 760px) !important; margin-top: 60px; }
+  .set-content { padding-bottom: 4rem !important; }
 }
 
 
@@ -7281,6 +7305,9 @@ function passAppLockGate() {
       <div class="set-nav-item" onclick="switchSettingsTab('about', this)">
         <i class="fas fa-shield-alt"></i> Privacy & Updates
       </div>
+      <div class="set-nav-item" onclick="switchSettingsTab('appinfo', this)">
+        <i class="fas fa-circle-info"></i> About
+      </div>
     </div>
 
     <div class="set-content">
@@ -7871,6 +7898,102 @@ function passAppLockGate() {
 
       </div>
 
+      <div id="set-tab-appinfo" class="set-tab-pane">
+
+        <div class="set-card">
+          <div style="display:flex; gap:10px; align-items:center; margin-bottom: 0.3rem;">
+            <div style="width:32px; height:32px; border-radius:50%; background:rgba(0,117,255,0.15); color:var(--accent); display:flex; align-items:center; justify-content:center"><i class="fas fa-cube"></i></div>
+            <div class="set-label-block">
+              <div class="set-lbl readable-white">What is FinanceOS?</div>
+              <div class="set-desc" style="margin-top:0">Version v7.1.2</div>
+            </div>
+          </div>
+          <div class="set-desc" style="font-size:0.78rem; line-height:1.6; margin-top:0;">FinanceOS is a personal finance dashboard that runs in your browser on computer, tablet and phone. Record what you earn, spend, owe and invest, and it turns that into live charts, summaries and alerts so you can see where you stand at a glance. Your data is kept on your device first, and can also be synced to your cloud account or backed up as JSON &mdash; you choose in Data Tracking Mode.</div>
+        </div>
+
+        <div class="set-card">
+          <div style="display:flex; gap:10px; align-items:center; margin-bottom: 0.3rem;">
+            <div style="width:32px; height:32px; border-radius:50%; background:rgba(52,211,153,0.15); color:var(--c-inc); display:flex; align-items:center; justify-content:center"><i class="fas fa-layer-group"></i></div>
+            <div class="set-label-block">
+              <div class="set-lbl readable-white">What&rsquo;s inside</div>
+              <div class="set-desc" style="margin-top:0">Everything FinanceOS can do</div>
+            </div>
+          </div>
+          <div class="about-feat-grid">
+          <div style="display:flex; gap:10px; align-items:flex-start; padding:9px 10px; border:1px solid var(--glass-border); border-radius:10px; background:rgba(255,255,255,0.02);">
+            <i class="fas fa-chart-pie" style="color:var(--accent); width:18px; text-align:center; margin-top:2px;"></i>
+            <div><div class="set-lbl readable-white" style="font-size:0.78rem">Dashboard</div><div class="set-desc" style="margin-top:2px">Live overview: totals, cash flow, spending mix, portfolio and credit charts, market ticker, milestone badges.</div></div>
+          </div>
+          <div style="display:flex; gap:10px; align-items:flex-start; padding:9px 10px; border:1px solid var(--glass-border); border-radius:10px; background:rgba(255,255,255,0.02);">
+            <i class="fas fa-list" style="color:var(--c-inc); width:18px; text-align:center; margin-top:2px;"></i>
+            <div><div class="set-lbl readable-white" style="font-size:0.78rem">Transactions</div><div class="set-desc" style="margin-top:2px">Income and expenses with filters and custom tags; debt and emergency-fund entries kept separate.</div></div>
+          </div>
+          <div style="display:flex; gap:10px; align-items:flex-start; padding:9px 10px; border:1px solid var(--glass-border); border-radius:10px; background:rgba(255,255,255,0.02);">
+            <i class="fas fa-coins" style="color:var(--c-inv); width:18px; text-align:center; margin-top:2px;"></i>
+            <div><div class="set-lbl readable-white" style="font-size:0.78rem">Investments</div><div class="set-desc" style="margin-top:2px">Gold, silver, real estate, mutual funds, bonds, stocks, crypto, FDs and RDs with analytics.</div></div>
+          </div>
+          <div style="display:flex; gap:10px; align-items:flex-start; padding:9px 10px; border:1px solid var(--glass-border); border-radius:10px; background:rgba(255,255,255,0.02);">
+            <i class="fas fa-landmark" style="color:var(--c-loan); width:18px; text-align:center; margin-top:2px;"></i>
+            <div><div class="set-lbl readable-white" style="font-size:0.78rem">Loans & EMI</div><div class="set-desc" style="margin-top:2px">Track every loan, its EMI and what you still owe.</div></div>
+          </div>
+          <div style="display:flex; gap:10px; align-items:flex-start; padding:9px 10px; border:1px solid var(--glass-border); border-radius:10px; background:rgba(255,255,255,0.02);">
+            <i class="fas fa-credit-card" style="color:#fba96a; width:18px; text-align:center; margin-top:2px;"></i>
+            <div><div class="set-lbl readable-white" style="font-size:0.78rem">Credit Tracker & CC Utilization</div><div class="set-desc" style="margin-top:2px">Credit entries and how much of each card limit you use.</div></div>
+          </div>
+          <div style="display:flex; gap:10px; align-items:flex-start; padding:9px 10px; border:1px solid var(--glass-border); border-radius:10px; background:rgba(255,255,255,0.02);">
+            <i class="fas fa-sliders-h" style="color:var(--c-net); width:18px; text-align:center; margin-top:2px;"></i>
+            <div><div class="set-lbl readable-white" style="font-size:0.78rem">Budgets</div><div class="set-desc" style="margin-top:2px">Monthly limits per category with live progress.</div></div>
+          </div>
+          <div style="display:flex; gap:10px; align-items:flex-start; padding:9px 10px; border:1px solid var(--glass-border); border-radius:10px; background:rgba(255,255,255,0.02);">
+            <i class="fas fa-chart-line" style="color:#38bdf8; width:18px; text-align:center; margin-top:2px;"></i>
+            <div><div class="set-lbl readable-white" style="font-size:0.78rem">Analytics & Net Worth</div><div class="set-desc" style="margin-top:2px">Spending patterns and assets-minus-liabilities over time.</div></div>
+          </div>
+          <div style="display:flex; gap:10px; align-items:flex-start; padding:9px 10px; border:1px solid var(--glass-border); border-radius:10px; background:rgba(255,255,255,0.02);">
+            <i class="fas fa-flask" style="color:var(--c-gold); width:18px; text-align:center; margin-top:2px;"></i>
+            <div><div class="set-lbl readable-white" style="font-size:0.78rem">Scenario, Rough Board & Calculator</div><div class="set-desc" style="margin-top:2px">SIP planner, quick spreadsheet and a built-in scientific calculator.</div></div>
+          </div>
+          <div style="display:flex; gap:10px; align-items:flex-start; padding:9px 10px; border:1px solid var(--glass-border); border-radius:10px; background:rgba(255,255,255,0.02);">
+            <i class="fas fa-shield-heart" style="color:var(--c-exp); width:18px; text-align:center; margin-top:2px;"></i>
+            <div><div class="set-lbl readable-white" style="font-size:0.78rem">Insurance & Subscriptions</div><div class="set-desc" style="margin-top:2px">Policies (personal/corporate) and recurring subscriptions in one place.</div></div>
+          </div>
+          <div style="display:flex; gap:10px; align-items:flex-start; padding:9px 10px; border:1px solid var(--glass-border); border-radius:10px; background:rgba(255,255,255,0.02);">
+            <i class="fas fa-note-sticky" style="color:var(--text-mid); width:18px; text-align:center; margin-top:2px;"></i>
+            <div><div class="set-lbl readable-white" style="font-size:0.78rem">Notes</div><div class="set-desc" style="margin-top:2px">Keep notes next to your finances.</div></div>
+          </div>
+          <div style="display:flex; gap:10px; align-items:flex-start; padding:9px 10px; border:1px solid var(--glass-border); border-radius:10px; background:rgba(255,255,255,0.02);">
+            <i class="fas fa-robot" style="color:#38bdf8; width:18px; text-align:center; margin-top:2px;"></i>
+            <div><div class="set-lbl readable-white" style="font-size:0.78rem">Fin AI</div><div class="set-desc" style="margin-top:2px">Financial health score and insights from your own data.</div></div>
+          </div>
+          <div style="display:flex; gap:10px; align-items:flex-start; padding:9px 10px; border:1px solid var(--glass-border); border-radius:10px; background:rgba(255,255,255,0.02);">
+            <i class="fas fa-bell" style="color:var(--warning); width:18px; text-align:center; margin-top:2px;"></i>
+            <div><div class="set-lbl readable-white" style="font-size:0.78rem">Notifications</div><div class="set-desc" style="margin-top:2px">Alerts for large transactions, unusual spending and reminders.</div></div>
+          </div>
+          <div style="display:flex; gap:10px; align-items:flex-start; padding:9px 10px; border:1px solid var(--glass-border); border-radius:10px; background:rgba(255,255,255,0.02);">
+            <i class="fas fa-cloud" style="color:var(--accent); width:18px; text-align:center; margin-top:2px;"></i>
+            <div><div class="set-lbl readable-white" style="font-size:0.78rem">Cloud, JSON & Drive saving</div><div class="set-desc" style="margin-top:2px">Cloud sync, manual JSON backup/restore and Drive auto-save, chosen via Data Tracking Mode.</div></div>
+          </div>
+          <div style="display:flex; gap:10px; align-items:flex-start; padding:9px 10px; border:1px solid var(--glass-border); border-radius:10px; background:rgba(255,255,255,0.02);">
+            <i class="fas fa-fingerprint" style="color:var(--c-inc); width:18px; text-align:center; margin-top:2px;"></i>
+            <div><div class="set-lbl readable-white" style="font-size:0.78rem">Device Lock</div><div class="set-desc" style="margin-top:2px">Face ID, fingerprint, passkey or PC Lock to protect this device.</div></div>
+          </div>
+          </div>
+        </div>
+
+        <div class="set-card">
+          <div style="display:flex; gap:10px; align-items:center; margin-bottom: 0.3rem;">
+            <div style="width:32px; height:32px; border-radius:50%; background:rgba(167,139,250,0.15); color:var(--c-net); display:flex; align-items:center; justify-content:center"><i class="fas fa-book-open"></i></div>
+            <div class="set-label-block">
+              <div class="set-lbl readable-white">User Guide (PDF)</div>
+              <div class="set-desc" style="margin-top:0">A simple manual: getting started, every section, backups and security. Works offline.</div>
+            </div>
+          </div>
+          <div class="trk-actions">
+            <button type="button" class="btn-add" onclick="downloadUserGuidePDF()" style="justify-content:center"><i class="fas fa-download"></i> Download User Guide</button>
+          </div>
+        </div>
+
+      </div>
+
       <div id="set-tab-about" class="set-tab-pane">
 
         <div class="set-card">
@@ -8411,6 +8534,26 @@ async function handleLogout() {
   // Full reload guarantees a completely clean slate — no leftover in-memory
   // state can survive into whoever logs in next on this device.
   window.location.reload();
+}
+
+// ── About: embedded User Guide PDF (works offline, no network needed) ──
+const FOS_USER_GUIDE_B64 = 'JVBERi0xLjQKJZOMi54gUmVwb3J0TGFiIEdlbmVyYXRlZCBQREYgZG9jdW1lbnQgKG9wZW5zb3VyY2UpCjEgMCBvYmoKPDwKL0YxIDIgMCBSIC9GMiAzIDAgUgo+PgplbmRvYmoKMiAwIG9iago8PAovQmFzZUZvbnQgL0hlbHZldGljYSAvRW5jb2RpbmcgL1dpbkFuc2lFbmNvZGluZyAvTmFtZSAvRjEgL1N1YnR5cGUgL1R5cGUxIC9UeXBlIC9Gb250Cj4+CmVuZG9iagozIDAgb2JqCjw8Ci9CYXNlRm9udCAvSGVsdmV0aWNhLUJvbGQgL0VuY29kaW5nIC9XaW5BbnNpRW5jb2RpbmcgL05hbWUgL0YyIC9TdWJ0eXBlIC9UeXBlMSAvVHlwZSAvRm9udAo+PgplbmRvYmoKNCAwIG9iago8PAovQ29udGVudHMgMTMgMCBSIC9NZWRpYUJveCBbIDAgMCA1OTUuMjc1NiA4NDEuODg5OCBdIC9QYXJlbnQgMTIgMCBSIC9SZXNvdXJjZXMgPDwKL0ZvbnQgMSAwIFIgL1Byb2NTZXQgWyAvUERGIC9UZXh0IC9JbWFnZUIgL0ltYWdlQyAvSW1hZ2VJIF0KPj4gL1JvdGF0ZSAwIC9UcmFucyA8PAoKPj4gCiAgL1R5cGUgL1BhZ2UKPj4KZW5kb2JqCjUgMCBvYmoKPDwKL0NvbnRlbnRzIDE0IDAgUiAvTWVkaWFCb3ggWyAwIDAgNTk1LjI3NTYgODQxLjg4OTggXSAvUGFyZW50IDEyIDAgUiAvUmVzb3VyY2VzIDw8Ci9Gb250IDEgMCBSIC9Qcm9jU2V0IFsgL1BERiAvVGV4dCAvSW1hZ2VCIC9JbWFnZUMgL0ltYWdlSSBdCj4+IC9Sb3RhdGUgMCAvVHJhbnMgPDwKCj4+IAogIC9UeXBlIC9QYWdlCj4+CmVuZG9iago2IDAgb2JqCjw8Ci9Db250ZW50cyAxNSAwIFIgL01lZGlhQm94IFsgMCAwIDU5NS4yNzU2IDg0MS44ODk4IF0gL1BhcmVudCAxMiAwIFIgL1Jlc291cmNlcyA8PAovRm9udCAxIDAgUiAvUHJvY1NldCBbIC9QREYgL1RleHQgL0ltYWdlQiAvSW1hZ2VDIC9JbWFnZUkgXQo+PiAvUm90YXRlIDAgL1RyYW5zIDw8Cgo+PiAKICAvVHlwZSAvUGFnZQo+PgplbmRvYmoKNyAwIG9iago8PAovQ29udGVudHMgMTYgMCBSIC9NZWRpYUJveCBbIDAgMCA1OTUuMjc1NiA4NDEuODg5OCBdIC9QYXJlbnQgMTIgMCBSIC9SZXNvdXJjZXMgPDwKL0ZvbnQgMSAwIFIgL1Byb2NTZXQgWyAvUERGIC9UZXh0IC9JbWFnZUIgL0ltYWdlQyAvSW1hZ2VJIF0KPj4gL1JvdGF0ZSAwIC9UcmFucyA8PAoKPj4gCiAgL1R5cGUgL1BhZ2UKPj4KZW5kb2JqCjggMCBvYmoKPDwKL0NvbnRlbnRzIDE3IDAgUiAvTWVkaWFCb3ggWyAwIDAgNTk1LjI3NTYgODQxLjg4OTggXSAvUGFyZW50IDEyIDAgUiAvUmVzb3VyY2VzIDw8Ci9Gb250IDEgMCBSIC9Qcm9jU2V0IFsgL1BERiAvVGV4dCAvSW1hZ2VCIC9JbWFnZUMgL0ltYWdlSSBdCj4+IC9Sb3RhdGUgMCAvVHJhbnMgPDwKCj4+IAogIC9UeXBlIC9QYWdlCj4+CmVuZG9iago5IDAgb2JqCjw8Ci9Db250ZW50cyAxOCAwIFIgL01lZGlhQm94IFsgMCAwIDU5NS4yNzU2IDg0MS44ODk4IF0gL1BhcmVudCAxMiAwIFIgL1Jlc291cmNlcyA8PAovRm9udCAxIDAgUiAvUHJvY1NldCBbIC9QREYgL1RleHQgL0ltYWdlQiAvSW1hZ2VDIC9JbWFnZUkgXQo+PiAvUm90YXRlIDAgL1RyYW5zIDw8Cgo+PiAKICAvVHlwZSAvUGFnZQo+PgplbmRvYmoKMTAgMCBvYmoKPDwKL1BhZ2VNb2RlIC9Vc2VOb25lIC9QYWdlcyAxMiAwIFIgL1R5cGUgL0NhdGFsb2cKPj4KZW5kb2JqCjExIDAgb2JqCjw8Ci9BdXRob3IgKEZpbmFuY2VPUykgL0NyZWF0aW9uRGF0ZSAoRDoyMDI2MTAwMTAyMDEwMyswMCcwMCcpIC9DcmVhdG9yIChcKHVuc3BlY2lmaWVkXCkpIC9LZXl3b3JkcyAoKSAvTW9kRGF0ZSAoRDoyMDI2MTAwMTAyMDEwMyswMCcwMCcpIC9Qcm9kdWNlciAoUmVwb3J0TGFiIFBERiBMaWJyYXJ5IC0gXChvcGVuc291cmNlXCkpIAogIC9TdWJqZWN0IChcKHVuc3BlY2lmaWVkXCkpIC9UaXRsZSAoRmluYW5jZU9TIFVzZXIgR3VpZGUpIC9UcmFwcGVkIC9GYWxzZQo+PgplbmRvYmoKMTIgMCBvYmoKPDwKL0NvdW50IDYgL0tpZHMgWyA0IDAgUiA1IDAgUiA2IDAgUiA3IDAgUiA4IDAgUiA5IDAgUiBdIC9UeXBlIC9QYWdlcwo+PgplbmRvYmoKMTMgMCBvYmoKPDwKL0ZpbHRlciBbIC9BU0NJSTg1RGVjb2RlIC9GbGF0ZURlY29kZSBdIC9MZW5ndGggNTA3Cj4+CnN0cmVhbQpHYXNiVj8jLzFLJ1NjKVQvKUpJUCJCQ1dYXFtyVTFoJGNjUEdIamZjPGA2LStTNFE8cnMxWWUmVk0tU0UwRjVVQmBIZSVyYldzQGxrLUgoWWdCS1YyJSNncmFKZEVYSkkpQjVnck1eKCkvUz5FRDhtcy5SQEM+NXEsLUlxIjVGNUNgWSwtXl5OIzYlNlU7dWk5VSopY0BfYVM5XCNhXDFVMGAxaihCZ1NkV3FYRVhAMWg2aEpgSkxuVTEuXDByJkNfS0IxQkkiZVIqJzcmWXJLImBBZT5yPSwiRz9UYEhpPDRdJ2s3WlhvSkNxJC1kQkZmOT5kQ1Izbz5VNVhGSzokNmxralJYc1pYL1JecV1SQS8xWT5qQDwsY1dqYCI+WCtDNHBxI2lTSWk1Pihqa2pINGRaN2RKXkQoLzE2b11hc1pATlpDY00oa2lUMGdrNzVLQFdaYGxCbj9cJk5HUTVCSk1Acj5KdS40c05TTDUlPkZeaF8hMzEoU0M5VjZWXCNqN2kpZUNrZzVXKy5SZlRPUylEaC9tOTM6PHFtLDNjRilLOyIxOFUlX3M3X2UuZWJ0KkwmIkJ1SUMwQ2k0TG0/O3Mla0ZJQkBlU1VaZ0dFNDdNaVRxRmhyXUByTXFSW1Nxb3IqbzlkQXQvRyI/THJAWWo6YVQsWj9efj5lbmRzdHJlYW0KZW5kb2JqCjE0IDAgb2JqCjw8Ci9GaWx0ZXIgWyAvQVNDSUk4NURlY29kZSAvRmxhdGVEZWNvZGUgXSAvTGVuZ3RoIDE4MDYKPj4Kc3RyZWFtCkdiISNcPyNTSVUnUmU8MlxFSyxcMzMiN1laRmtyJT5MPS9MW1xkbigkajYmZTlAb0lKTSxbJXJZNHE3KzhCRzRTWjVRbE5bNyhhdSZwYHEva00tUytVKERmIXMiZ140SVtcYVdNaG4qcGsiQ1RPXzNqQiJkKik3PGEwWWI6bDVuMCRVZ0ZZbEJmWzsoJ1REcjMkSD5xIjlkWlo7REY7cEc1IlU/Oig9KzBDTklycFI5SURbI0JsSHBBK1okakRWSztVWVlia0s9UklhQEdKIlpUbkdQTCwnZDNzZkBpVWxudVtwbTtqKzcrNFc4JTJdY1wyUUlmVl9nc2giR2spQUklNyFINE44bmw/QUBOOkk9O2MsMWoqNkhaJjxXNiJuWy1iLzx0czUwKW9tJG9ObmxHLzNQWytLVXBMNVM7Iz9BVGNjdElka0xVQUtsUSorWTxDR1hBay5KdEBoMEBxJl8rJEM4ckFMbGgpYVo3J0ZRNC86PWFdaz5BOiUjWnIqcyYyKHJYOmVKXWhAb1M3MFFGL0pIaGc6YD4lTGtWLV4xKERFU1wuKjtKZWtBRW0zOT8wWypXIiovMDVSXFsibExULFU4a2s5YXBPaUVfKVpAPCRYTCguPj0/RzQtKTgsTDlMcHFfMFs2J2JNUXFEQUIrdGdePiNpaj01YVJlZjkmQ09iJyElRyNTKD1rZE9xaW40WFpzS0pQaVUtIWYiZzpBYlkrPUpoX3BGM01bZWRcJ1ElRkdCIT0tJzJeTyxlTWsvSyk9ZlhGJ0N1YGooRDd0SD5RVixraUciTDslRCgvUUtrJVNjOW4nZ2I8XUksZipGZkNeUmM5J2liLl8nNVAjOmlrJ0dWRC9NaTRyI1tqMVckdWNsO05vSihSQzRnZEtWalwqOz8+VWhISkk0MyZoImhbLUtOK0w9dV9JdEhyWllFXj5EQldBbzlML25YVz1fKjZgRE1xRlFMbSFOKUxzbDsvSmpWb0coc0tEL0RZcE44PVgjZUIidE5eODg9WnVzRjhGSUhgNVlfYSttbGtLWGlwPDprL2FaWW8iVSxgZmUlWWNISUd0UjZsI0w4XFZDYHElNUM1UTQpc0g9LXJcaktqPyZibSNpNU01U3RERGlXZyZTTnI4ayxLNSgoWTwqdVc0LS1fUHBeWzpOQTsuO1hqWCFTaWRdKTVPJC1GVUEzIURcbXU2LiNdRFkoOSQmYy9TTlBvLnM8ND9kLlFMKTEpV18hPzo+PVtQPjRdSlJcSXNZOG0lcSVDLnFnPVdyZltNLDBOXXNDZXFsWG8nS24sVHJMX2VdN00zWkc3NVZTQGRSPy9NPCJcSCdjJU9pTWVsUGYuM1hiZGgybSUvcGpkRW8iVz1UKzooTEwoPiNgbi9iX0djZHFXXE1BOmhuXl1Eb0BmPGomLHIvakV0JDxCVytgcjo7SixKczQlQWkjUD4lXlRzIS1jYlBAS0FObWsyYDdrcWxvSkRAOW0zJGJlJ1tGLFsjX05aUi02QD1BQGo1XmZ0NFAwX1xfXVpma0NtaEpARTg+ZSoobyomImlyYGJxSmdtTy9bMydERDRGakhPT1JmOUgmVkpOWzpCcHJcO18lK25AYjUxSCM2VUddOXJ0cE9DKV8tVW1AUEltV047UyhqJmslMVdRVV51W0JfWzopVFVtXzVnVTFjOCtdOzAsMygkdUZkUjFAUikvUUhATmhmaFFqUFBWcUtcKXBKYE9pY0BHQnFmTmY7RVZyPkU9XlkrdDw1Xk9PRHIyblwiKWJCVGg5XFRMVzdRP19vKC9eYTJUW2NtInQ1Z3ReZilSR0YlTD4tXT1xbWs1SE4qJ2chUlBaWjdQVWQmOFtNKy4pcDJiIkZnaWk4Xyo9cmlqRSdORkdLWl1ARSNCZmkqJV90OGtfMDJpVG11YSxSKDhDKSRmYGFHc0peKVUnMHEhI0dTImtMX2JrIlNoYj5LOVBSI11yYmlXTTQicG9BRmwkZ0hpMTNUal9jVVdtRjpcUDJEWjw2Lzg0QkxNIS0qXWJXRkVxOS1JaEFeVypOMm81ImpLZDo4RyZOXDhlQ3JgPnIrPiFSaGlEYj1SYkolV2w2YlpdOj5lbGthbm1icl0qZ1UkbFxCPCRxSE5pNVAsLTN1LypATyw3UGc6ZC1xTWZpOSc+c04vTUVgZUwmU0g+Yi5tWzdzKmswYGVlUVgqNHNFLFQ7Jmk3aitvcHRyQlVHLjJHQy1QVVczPXVeWWVUbFxnYDplJSI0bjtLalpfQmIxUzdhRkE7aiUwSDRqMUVcbS0hRGslVmwjXTFkO11bKVk1a05ubiVzPyk7XEE8UDVcIyQ7P2xaNktuO3NJWjhoIU5gdEs/PShgYV1IVFhacTQmZGBBcCxoLSVkRmhtVUk+XyN+PmVuZHN0cmVhbQplbmRvYmoKMTUgMCBvYmoKPDwKL0ZpbHRlciBbIC9BU0NJSTg1RGVjb2RlIC9GbGF0ZURlY29kZSBdIC9MZW5ndGggMjIxNQo+PgpzdHJlYW0KR2F0bTxnTiklLCY6TzpTbHIwc2wxO2dgJjRFU1RnRDs9OGcvIUhCXT9RXXNvJldtMXVKPG5gaG1mRjMmWChmT2IxNVNfV15iM3AoNGtQR2oyWkBqQ3MpQU5mM0ohT2MqLG8vTWJlV2EjKyFyKWZtSCFXc2ZtNHBsIihOaWReVU11cWpFaEE9VChySlNtbDcnciEmPCg9U0Z1LzVCU0JyP20iIjgnW00rVCRSLGZyR2BzUF9fb15gTl5fYCgtal1XWUYoP2JrXy05YEVDc0RtLylEUUwhNSFoJWRZYzM8YT46YGBJOGhSMWQpSFVFZltnJDo+JVdMcjIuSShkc01QaiFWSEZnMGRzMHE5Qi5WVXBvVSJIQyJgWyFkJDsuYD5ocGsnIU5XMytHKlpgWj1BMTdHLlpfW0VAZTwkRDJtLXFOSXJubF4iUyoqY2dYKEohJ2JNKi1sUFRwbWI3RmEuKlZaTVpkIlpAVl49Ny8kJyFbRFZWTm8+KjNKVlxvYVdSI0NjZ1lnLzE6J1tHJ0w1dUQwM0pPRVA4QiRKUW9pIlBXWkg5I0BmSy8wWmE0R3FqbkZzXzFhMlkxNzU8VkJROU1iTHNxci1mXCYoWU9nKmh1TkdeOWc+SUlcOmg6S1BeXztHY2JsJylpWW4kKUl1SjRYLyRgVUJiOEBydUckcUxlSTBLOENfKSxkQ2drT0dAbSs6MFJgTEBcLUxANzA8K3FVa1BVMCRSSmhTI0ZuWkQnOi5zM0lONllRaWo1b2ZeXyU0UyVHbFFIZy1dRFxPNTxsVjgjPT8/TklDOis1KCwicl9BIi1MblVjWEhXJjskXCc0L1I4YEE3LS9kRD1NKmNpbmg3b0xAbUprRiUiWF8zXiteVk9UO1c/VF1CYk5WUjNXaVsxTismV0gxUjxHJiRUVyZWVGZSVEsocC9zIytGLzVeZC1SOFUmRkprYFBcYikjJ1NPbSlyJG1nSjlZNkYobUprIm1HOElVQ0guJ0k2bTMoLWZzcjpDLFRzL2xfXSJMUjIhclZbJUtkJS4kYnBZby9KQTEiIzcmZ1woR0JrUz0kPU1cQickQStTQjhBIUFMa0M9c0BqW3RCaVYvN3FqIlp0KSVaWiFhRFprT3VsJzcoQXRoXmw2REIoXStpcmFsZjgyXiNWZlUqO0JwZlE8bUs2Oj5nN2oociphO09mT09AJ2ZFS05pP19hKEg/NCc7TzxcL2k6bzFCczQsJ2hlajFjW0tlbj8mV1VCbXNCJGYhSV9NYHVLPSNNOEZqRSdNT0ohXE47b0JfQDhsRFRvPnU0XzQjb1tXYXBrcVdQYzcqN3JwX2A1ZCZCRzUnY0cwOkxrQGgmYUozQWZ1Mj1WalpeW2QhKXBSbj5SOVo8VHIicUgqLkFtSFc4SFtuIlk8YG0sUkNxQVhkLWtbIkdlMDU1SVEhZzktZmVCXV9ebyskazcmYnFjMjc3KFJbO1s6OFktLFVGWDA/TkhgTTtKbjRkU2ouSiU2akEuWDU5JW5MI0NtVVUhL21rXztWN1prJU5OWUE6YXNwSkYlc0U0QUI2YEZfLlMtRz9wUmtrXUU9UUdeWi5wWExlLldyPGwjIU9cdGIrVURPY2whTmtdKicrOEZAVCkjZixWQXVQbjQzXmZcRydTR0MuVV0nX2ZyTGxWWkx0aVBdMV4sOiQ9M1tvcjM4YXFvNGpdJVMndDJFO11rQ3JIZnJeaS1jImJ1M10lTWdKPjlNTz40MT9mck5lLjZzPjJsNGFFSjkiLzFKK0ddRDJXVCg/Vzo0XG5dMWcuTV1zJTUoOEtKOGJQMlxONy9FOU8xMiQ+S2NrOD1VJzg+JVNXIWNCSEtoc2FlNWZXND9qP3RQdENBKUVebzJsSzFCa2V0aCNwLzRBQW1FaS9GLV5PPi8/I3I2VkBISkA1alRuVSYyaUwwYWcsQlFrck9BX0ljMGw3X0xrJUxnVGlYJzFRJGdDLFQyMmI9YkFZQ1I4MyhjW0wnY3M2YDlUSTFvRmVYTWcwQS5YN1JWcDwyS1oycmQ3IilWM0A2UjJPJFRANzhYTyUkQmhtT05oV2IwS0w8U0BOZDhrXGUjYXAsZV5EOl4yXiJiIVZFNzdaL2lYbnVOTTNwOD5TZDFxaUlrPFlpcyxiOyJKY09GLTdscFtAISpEMDRYSyhiTEVeazhAdWA9NSkmRV1yI1VMLzwoSihKSy8/PVtfYlRHJVs9Pmo0ZDtYJDdHXjguWjdqbkhnXXI9NjBnWWhfQ0MrbHVqOSVMYSVhK3NoQzdDL3JpZFFCWi1FPGQ4KTFQdWE0RT5AbUhNUzc+YyxbLWZwR2BLcy9YRy9gNFAqK29hY0ciXC5XbDFQVVAsbTJwZEIjInVLOGxiWWJaTlhvVmIwOklIVWovVEA6b206LkxSPEReLXBzcTpLI1gmZT1xVktQRWxmInJkTzBebkk/TTViJilELUREcFVKbGRzJkQ7cC5CZW84b2wsXk1SLz1STUtJMUYzN1cuNS0yOTo5IjdeU2xhJGo7Yl0kW0JJLCxVL1gyZko8cFliOEBWQzlvRV0wa3IxJDc5IU5xXkk2YmMvKk9BKk4taWhfXEBNSWFnZSMwLFxFW2BwYzNvbkw4RmAzT0tjNkM5K0JIUVk2Kl1jKmxLazItRUlEWissQ2s8TTJXXzFeWEtrNSVwVGQ0JCdoaFhHZXBrYlY8LWFKcypDRFdxWHJsOFJSckNxbWJ1PThXSCc2KWUmJlxBXTlYaXVSPSplNF1eUjpFOjRQUTJjXHFLbG5XcUBZUyRSRzEkWTghSy84VzZDaSdeS1JnTkEnVGtMajwlX0dWZnRRNjoqdFBFWElEOUltaS8qTVglV2M1Sy5MVkotblRoST4xVVFRbHVlLzw9TDokaXRQMDs8LFgkci5mdEYtNCE2bTM7RjxgSlFNWmNbZyZLNz1GKSh+PmVuZHN0cmVhbQplbmRvYmoKMTYgMCBvYmoKPDwKL0ZpbHRlciBbIC9BU0NJSTg1RGVjb2RlIC9GbGF0ZURlY29kZSBdIC9MZW5ndGggMjI0Ngo+PgpzdHJlYW0KR2F0bTxnTVliKiY6TWwrYmdYRVgmbGsqKz8xcV1YaFU2OE1wVURVZWE5c1RJJktALVs4TGduQ0lWMSczOy47VWFaOy1OK1tOdEc1YmFGa1QkR2FdM0picVo9ITUraT1vPFNGSyY+akxTK3RuUTQjQyYkZnFLOjpvOGEvUyhgVTNEK1ImJitoISxxNFFebCpkZU0nbnJMbCUsTDVJMWdtSCgxbVQrLEw2bElhVFNJSyhuQ3VUQUJtRTNfXlRzbD5mNTwiJ2A4ZkY1QE9ESShAU0Y8TjRqMnMtYiExUF9DZGk6XWRMTjxkKjNlVGZQWy5yWidXSU1KLVgkOVNqLGZxMEVUU0hyI2dwNiRmV1QpaiNgJ0ZMaFZZLUJBblQnUFlPPmUrXik0XSt1ZDtKIU0/bFUrJWs7WSg1MUtkVThOTlwhRV8+QCpUbitNTFo7Q1Zabyk1YUIjMF5IIl9Qa2YrbGpxI1JDLTtDInNAMlNYJyxUXUw/JjQ/K19xMUY/byhYZC8lQy9DQS5oSTVmPnRdQSRnbkhgOHJ0KlFjXi9jb004MTFoMXNWXHVsIUZBNzBsZFs8OSVwUlMsOVtHJ0A+UF1aYmpuRSdmOGROWlpbKDZuXCgnXEBGKDc9RyZIZ0slR1RlVy08PypcIjlXai1gKGFvPSEjbExMIlFqXFIhUFQzJE1cMWJhKGxYTm03PVVkX11iNFlxVUkmSyRoRTM7I3M5VltdTkIlIXA9XylbJmJqXThfUTdcKy0/WSc/X2RIJ0E2IzNOQkNDKVMpRWk+LCVuaSFnRWdtO1UrQUksW2RpLTUmQi9cYmxNYClITy9hNGlBQ0YsUlRfZjpGSCNnO0FvXUpoIXM6NUtVKmZyb2ArRTVwcyk+XGctKXJHVztiQ0RVOnJ1MThWL2NRV1YzYWZMWHRQZmw5STJeYWg6TkJiJl05bEBAMGxGLUNEV1dCQyQ5YCFgcFAoMzsjKDNMVDAwK0BtRj02PjY/LjdzO1lyZmhnUCNFXFw8WzchLGxfX3RXZVU9TWFbOi5lNGZPRC1WPz9dQ11RY0FDY2ZDYXFvMG4iNEpiZ2lWWCkmKEgyOmJTTFVfL3E+PGVNPkhdViUpLiE+V2c2VSdhTTlORSZuZEtBc2ldW08xcj5sKGJrKFlRbkJHLVFQUFw1bi0wZEZsTDR0XS1eZXNbTV9dLnJpWSIvK11KT3QiT1RMY2suZENmNiF0Xzc8YnVWTD1BKTpsMjZja2BedExPW2cvdVNcMkAha3VYakE6dSouLjEtUlhXQUU9QXJFSSg3YVpqbCc/OmQrdVdVZVVZITJTTmknQjZpaEw4VTxZLCU/NVpsJWppR3RCS18pQSVicFJkKkQlMSs/by5iQFMvZ0xCVEpwVjdSc1kkJkpuNU4pRE8iNSZwNjUnUE5HWWBsb2gtQTNJP0ljVVM3KixVQjRaUCRkckg8KCZwRHQ+N3E/I207Wz8mVCtzRU4xZ2M7Im9hQTFZNiZXLydrUVFPXzlrO05RNGM9ODoyVykrQSlfaDlzWU8vNmYxODtOYldvYWpMYilSVzQ8ZV1HQDppaiQpITFZVWBocXBXOE5gTS9qbHNXPW8mM1tJckU5M2ZMcFRTZE5MUkkpX0VlYUhEVThhcmElQSJZMnVPPiIpZSUiQG02WWJnOTVFb3BfM0IvbWQwVkg7S15CYGVcaDxGUEsuTVtWWWJQVkhBZiliRk4zK3BAIVNuaU03VG1tPitmSE09YldgIjxIPiFfXSFLaktcU0NJUlAjRWxOPEVtUjs4RkZwKVgsWVZiWiQ4VTNFJSpWJ2JPcGlGOzlGTjByKVlKc1kuTE4qTCJyOl8/KF9fS15pcjAxSG8nUGU7KVdNazxxV2JmTmFXaDZmITNZL2BhUWMqQjsrY0NgWGs7XTZINlhySVVuVF1xWVRtMVQ9LWYhX25uREYjXXQ2bSNcJEZgQkZkV3VlRl04WTJQSSQ8QDRcZlprOjV1UEw7b0Rybks9PV4xOHJUIU5qayMpbjdpSD4yPVRNZUs8OTFzbV5VbllYKl9qbzopWD91aiZvWk08aSs/SDNoYmVtJyM8STNDLU0rOklXVXJGNV0oYixLSDJjKGo2dDs9MD9JWmY4XG4nKS9TNTghNiZtPSZxIkZDZTJkVT5ucm8wZz1qLzM3MGgkKFJuXW1vP2BzNXEmUCpQN1kwLWxJPnRndWxwTmxwODxYcG8xZmNxNW88YGRJJ0Iya1cmLFBwPz9WbFR0VUFIVC8tYkopZVpEUEw+WE5AZjVCbnBoWSQ6PzJSKjo4OFdgPkVQJSE2YnBcWEIsWTJwaXUnIkAmazJlPjphZloiI0k2VGUybzBpMyRmNG5zKkFnR2wlNCJEVzE5PG83LyVHO25lKU5UcFJucCk1OlspQmMuYzJZNFdDWDdrcURFSHVtWUQkVGpbK1NQUiJlSzlWSTVASmJBaXVsQHFfTUtOdG1lLz9DVzNQWzdIOzJZOkc/QmovaFkjIShCKDhVJGomaHM3LyhST3NXYzNbXGAzIztrOHQhc1ZORTJsQDU9c1tsNVl0Nm0pYk8mYiUlRD1NRFFeJU4+RmZDKyk1ZjAmXjh0RjNKLlI8OWFcJmdpKFg6O10sVm5FTEUzQjhIPiU9Q1hOYTNVQ0tEa2daNy8vRXErLDVuOXElVzM1IjsnTU8jRCgyXDdXIjFkRzYpUmRIRVBmOCZTc2tPQjIlPXRZZUpSJkRkOlcpQkFZO3IrImY9VGcwLi9TMWNWVWxXLioqKFtscTQuVSJON15sP2RzazcrYlVCaSlrUjhnYnBHPEhsMls+RmpqTWluJT4pNjMtLygrRlRUK04oUlpZLGJJdVVsQyM8b2xRSFd0PTNAMFppVklhWipsbmE4Skk+Py5SWjRBJUokTDojUSc5UU1MRDpjcTlTVTlScydZL2NBIix1TjA4cm9YWS5wXSduY25yKTdSLGRzUUM7IVZOaTkzQylaciMzfj5lbmRzdHJlYW0KZW5kb2JqCjE3IDAgb2JqCjw8Ci9GaWx0ZXIgWyAvQVNDSUk4NURlY29kZSAvRmxhdGVEZWNvZGUgXSAvTGVuZ3RoIDIxMTYKPj4Kc3RyZWFtCkdiITtkZ01ZYjgmOk86U2JZdDI8MlQkaVtNY3E1ZylUUVFFPmhoa2FKS2NgdEVbQHQ7XF1qS2lNWjE9R2JEUmNNWks0SVhnJyJaSm1VXlJmYlcuSUgidG9tZHAxSTgnciZmVUU8dChIJFpOW1M8MVBYUmVHVnFTW0VuNjhoMWJgcGRwOl1LVG5ecUw0cSI+NFhBJmI1cyE0QVUrWFBII0ZTVCpSXykjLlVdQU8uJEdYRlNcdTxxOCFYKy9XdVhUPHFHYV0kPTREIkQzLyJsbVpkOGdrIzlda0ldLjAlYkgoVys7aDNUJTFoL0UkLCtvJydTXUAmTCgjX2tfaT5cU1lyO20tU1tgSktLIz5IRmpHJWtSbHA9NVlTbT9VXigsPVdpb11nMzxQbFcycFFlbyFbaG1WdF9EIXIzSzBxaGVvYi1XczVDTExNYWk9aic2RTw5cEA6PWReLyYoU0ReW2knYVpPSz43ci0wbDopb1Uobjg/RGRpZ08sVyhwayklMmpXUXVgU1M6MmJWVW1YNmBCdCRFdTZCaFtdWSU0LDlqXGdfMV8iL1BVZiMkWHM6WDZULE8oOl02aTdKNUw9YDJUTW8qcU1OI1hCVi1FPVRXVCtkTUArYyhyLVpvVUkvUUYyb1siZ25pLzIiaF5kbl1VM1RaakMuKFdqRjJhT2NEcSU7MV8oUlQtcGNIImgtP2EwPSlzOURZQC9Zazg5YkdkPG8rclVcUC41WCRcVEtzZS5UMjBcSWtSYVRfVTI5IVtrXk1JV3VCW1g+WEhlNjQlYE9yTU9rXVMwcDZnLSMzWDRddWtBSDtwLyZhQl9qRkw0XEouXExHNHBYZzYzWTw2UVtdOFNQKjVIOkxHLnUtXVRRLz5pNV5VQGUnKjdbQ1w8Iz09SjVBIyRyci5TTi5bR3A8Z2FnTypPTEljaVYsXytdPnQ9MTUtSThCQkk1ZCNvWC1uL0ZSZ2QsR2w2XDZEYlRbSzI8aGBsM2Q8PFU2XyxiYTlxSkwwK0RUZzIyOExARHJsIjJUWmMlU09wZDpWX3IwW106cFQ5YzgrN1o6W29uPVtuK11VMCg/Rlo4PCxbL0guRDsmTkR0KVhrTG5jYkRZMD5oYWxTQlg2KDNDQE0jNVQ9OkcvYD1qJTQ6VlxLPlhoWmBiV3FiLHBMOGlsX2RWRF5mMlNlYjA3a2dbbUtaVEFGaEtoSmdmRVhHOTJeUGAjLU00ST8rOU1VPCknRDlhN11WWE9CcjUpIXVdTi0+SEhrcWhRZiFJbGRcW1dNWzA/QzFDPCpFSyg7clpBSF5vYzZlOVMiTldYI2pnUUYoOXVQMENiQTs+Ykk1WkY2NFtSU0tpNGZaSE1eMVUtMEdiWE03QVA6JzYqWDw+IShuTTdWJjdoKkhCVE1MI2E2OmticEpoLCxxNztuJCsxTDEnWUA2VV0qLHJRKiE7VVErR1k4KUNBW3NzaDlGIzJKVGJhIU8hOV9BbHA0PTJhU11kITlANTknJm1zbzQ7N2todG0rOUYlJ0VVc2skN1VfLjszJD47O3NdTHJyNyVmQ0E1VWwmOlljNUJJWSU3MUY4YVBAbU03Z1lHPm8+JFxEIWc2V0EpP1NuKXMxRFBYOyZaNSk3Xz5uLGxvR00rTG5raXM1PU8rOSU4SF1sNHUuO2JRMmhEI0g+WzlOTidyQmUuNU1PJnRuJ1UrOShgTTAwS0UkUUgvYjZJW051LSUyOGM4X05ANSdPTTtLKHNWOTs1cy9kYTNIc2A3TFM1XFhqNnRGWmFQIi0+Lm0iNmFTNE4/bUNBNC1DOVBTMyszNjpLWU1va2FWZmZdSyM6TjUhXk1DNzxHWTwtSWxENXItNk42YCRrTkY/VDYxJGducUMlKVdfUW9pLzIuazUkPicqT0BNcSpyIV9ObnAicDdwT1VTKyslLSttXkxrYDYnTE43KUlVWm48RVNLXjpncFxsRWNqYXRQXDgxKVoqR3NjcldhdGNQVU1hPzNMIllALVtLVTkmXUsjb3FyO2tTbDZuLzpJJiY1T0ZyMEpHYCQsS0xAWU1jUFpML2R1Sk4sYihZalxGMSgwU0xrX3QsUnAtYVddMUNYUis2YzprTzxkTF0mbEM6TGNXTU1qYjZCJG1nKj4lPVtcVGRzITtbYSozUVUpal8zJDouJXFcSVlfcHB1XyhcSGc5aSZNcjpERlZvLm5hM2hiKl0xVTRBSixkZlA5YT1yKlA3W20mUjtVRjZWbVIoQjBXZnRbJW5xYT89YmhQaTs+L2loVEE4ZHJzWVokJ1xMX3I4KUlGbjU1U0xhRSVoNnA7TGlLaWM/LkpVLzNwZiVpcE8kSTJqck9fVTBVdVhVOWZKIW1EaFYiZC4uNkBoW2gvdCd1RSlSdUMyInBOQ2txcjZnNVcnVyctckY/N0UlQ1xzbGBZWnFrIVxCXTB1bzEyTHEjSS0zTGNoUW9sWiFjQTRGSDxLO2htUmRQTkBfKU9DIyhtO1QsajckR3VXQFc1ZEBuMFdCJjRJLilhZTk3Ul9GXkdecGdSPFg2Vzw7TmtkWEshZkgwbChnJV0xNXVNIyFobV9hNDBvKypQPVpfdEhNWCouLFJYSS1MbyZbXydhSUdDc0JgKjVcVWteX1QoYytvQyUnMSxpcWY4TjVsVVxzaltVYjVLMC5YTSlUQExLYVAocVgtK0hmMDtJM0AhPytWZzskM0VtMF9FJFJLPjZfJGdXUGVEI207UDdUJW1obFYuRm9NWCVhZlBhRSkvaUgiaD9MOylhOEktQFJcUztIVVFmcFckZzQzOytNMztYWFk+SVxKfj5lbmRzdHJlYW0KZW5kb2JqCjE4IDAgb2JqCjw8Ci9GaWx0ZXIgWyAvQVNDSUk4NURlY29kZSAvRmxhdGVEZWNvZGUgXSAvTGVuZ3RoIDE1OTAKPj4Kc3RyZWFtCkdiISNbPkJBTFomOldlRG0qY2orK2NeLW9nSWwxIjNVKj9nLFldRyNHbklMI0RKWS8lRVoiZlM9aW5aPDhgN3IqJWdgbVJCZE4wQG1CMVY2IkMxajlxamdhZms+T0BSLCFcOFhjQExxRjBoZkAiXlhMJGY1cUBlTytFPjhBaFhSPWJsaz0+Y3Faa0U2Tz0xTiYwJEZPSlNmV1BbUiE4bzxKKmFaakxdV3JFMFlBa3BqWElnMl5eMytPLUsvYEdBRid0J0omMWNgM1A5aENuSyNyIlVbOF9EY2lvJytcKVNOXERSUDQpWCMuXCNFPlQ8NkxnaC9UIycnIWhFUUwrMihbUy0hPSEhSUVkLkJIPEVZcGxXP1Bocj86cCpobVdcJlhJTj8tOVolaXJGNmtUbTlJT3MjXU5eWDo1RUxJWWYkSjhuOFEzKTNwQm5RWyYrIzRwLkNmLGlXJ1pPVXVXNmJMXGIqRD5tLFlMVllrXUdya004SjZWQl9LIlhrRGNsajJhInFGKTIlck9RXjFLdFJLJ3N0QFknJk1KTmZMKDBiaEAwOmBYaUVFLWhwPkdqSFskPzIuVFpiLWtwV282KjVFOW46Z0s2SHFCXycpJENTZE81TTNwKGU/XWMpVjFWZU1WX0NRSyFQam00cCZSREshUSRuPjFUZGMxaGBlTVZHRSFdREZESlFHL1o6T1lzQ09jLXEwXExYKjFnOD5FN2E9ZmxDOkkuKFdIRmIiOUUoTDRAZy9BRCYsbG91IVAscDtEKVljTzk0XDlpaiQ9Kzp0bi5iYl84Yk9wajVeWldfLVFJcClaRzwrYlZaJ1tlVSsvTEA2bVkjVyspbldPJWM+U2xMVk0vMUdYZV9FLFw2Q0xpZUAqN2g+VV05ZydGQVR1S01qM1clIjo6K05NLyxxZzZEbGdKOzU3N0ghKWViYVBoVV5RYCIwIyNTLVwiUylCbjRuV2VzZ2NCVVhnSUNMYScrZC5zVVBeUFgyTipPdDZONls7QmZLK0JKa3FAU0lIZEs0P0YyPlhmKGgoP2lpPTFxIiU4aSslK2UzXHUpLE1JSDRPVHBNPS9DRT9yQCpfTkxkSExuNE9WXS8vQyJrJyNbLWdCa190L1ddLkshdWtvKiRiY01PL3AsTkhwcnJxb2dmanJtV0wySSIlJWtNOyp1SDBoOUY4QTEzRWE7NSEvSSk1Z1IlY0NgOWJuMyh1ajFSOSxyQGsnLzIkWDtGPW5bOzFOT05jT1onc2swJW5DaWVcbz1DPiY5P1taSykvIyt1LEllSyJRa3EyL0ZdIixaJnNIUWtTXnB1KD9xTTcxckJoQEgxZ1MhYG4/QmhdYSlMPFstPklCMWE8WyNQTkltOk1ySmFnX1VuIV0oRHQ2WUlXLzomWCVRZl1bRFgyJWxEJSpASlg9VGcqJ1I5Tic+Ilplc0snOkFJJi5xcmImI05aYTRCYzk+TnFyZ1ooXCQmMEVsazc6bTM3OUk8XmdVL0kxPj9qVnBDJ1ltaWhVYHMxXGI1UF89aShTQ2VAYiI+dW9bNU9kWHBmKV0+YXAla29YViVbVms4c2lfY2dEQEQpZSpiZjhoUC1RciZZLyhsYyouazg+OU0ubydEXkxOI19zP3JQNFUlW2cnRkVTVW5VJF1DZSZnciomUmQxXFcmZl9LNVUxcWk7UmptREwxWmJIZyxlND5xZiU1SVM1JnIjX3VcUWhFND9nW1NPa1txdWVPUWAhVUIjV2o1SElwViNmNjciIz4oNFdgNzI6QShMNWhBPCZNLGA4WnVvKlJPNyViXTk/aGJgSHBbOGYpJDA5UVwvMy1gXWwiR0thTEdRaCw3NSxmaSYpKChSTVchND8xbDwwRTE8SUErRFYuJVknJC9zLTAxcG9AOyY5ZSZuQVZccUguZUkoU1ktRzlDJGA5MzZvOU9BYmRBJ2Y6ZkwhWjIqQ1EwPz5jUGYrImI0T2Q8QUFBQCtaOkZUV05XMiY1KG9OIkhzQ3Q2XEliY1gzOF9IZiVPKFJ0bzFkZ2VkWEYhIyNjUz8pPWYvVWZWVi9WaFk5PFRtbj5UXjttNmIrPkZSc2Fdcj9wNVM+OmpYOGhEPmBzcF5hY3NOZHF+PmVuZHN0cmVhbQplbmRvYmoKeHJlZgowIDE5CjAwMDAwMDAwMDAgNjU1MzUgZiAKMDAwMDAwMDA2MSAwMDAwMCBuIAowMDAwMDAwMTAyIDAwMDAwIG4gCjAwMDAwMDAyMDkgMDAwMDAgbiAKMDAwMDAwMDMyMSAwMDAwMCBuIAowMDAwMDAwNTI2IDAwMDAwIG4gCjAwMDAwMDA3MzEgMDAwMDAgbiAKMDAwMDAwMDkzNiAwMDAwMCBuIAowMDAwMDAxMTQxIDAwMDAwIG4gCjAwMDAwMDEzNDYgMDAwMDAgbiAKMDAwMDAwMTU1MSAwMDAwMCBuIAowMDAwMDAxNjIxIDAwMDAwIG4gCjAwMDAwMDE5MDUgMDAwMDAgbiAKMDAwMDAwMTk5NSAwMDAwMCBuIAowMDAwMDAyNTkzIDAwMDAwIG4gCjAwMDAwMDQ0OTEgMDAwMDAgbiAKMDAwMDAwNjc5OCAwMDAwMCBuIAowMDAwMDA5MTM2IDAwMDAwIG4gCjAwMDAwMTEzNDQgMDAwMDAgbiAKdHJhaWxlcgo8PAovSUQgCls8NzY2ZjIzM2NlNjAyZTlmMzJiZDhjYzJmOTliMDYwZjM+PDc2NmYyMzNjZTYwMmU5ZjMyYmQ4Y2MyZjk5YjA2MGYzPl0KJSBSZXBvcnRMYWIgZ2VuZXJhdGVkIFBERiBkb2N1bWVudCAtLSBkaWdlc3QgKG9wZW5zb3VyY2UpCgovSW5mbyAxMSAwIFIKL1Jvb3QgMTAgMCBSCi9TaXplIDE5Cj4+CnN0YXJ0eHJlZgoxMzAyNgolJUVPRgo=';
+function downloadUserGuidePDF() {
+  try {
+    const bin = atob(FOS_USER_GUIDE_B64);
+    const bytes = new Uint8Array(bin.length);
+    for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
+    const blob = new Blob([bytes], { type: 'application/pdf' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url; a.download = 'FinanceOS_User_Guide.pdf';
+    document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 4000);
+    if (typeof showDeviceLockToast === 'function') showDeviceLockToast('User Guide downloaded', 'success');
+  } catch (err) {
+    console.error('User guide download failed:', err);
+    if (typeof showDeviceLockToast === 'function') showDeviceLockToast('Could not download the User Guide', 'error');
+  }
 }
 
 // ── DATA TRACKING MODE (user-facing control over the existing sync systems) ──
@@ -17862,6 +18005,7 @@ function switchSettingsTab(tabId, el) {
 'notifications': { title: 'Notifications', desc: 'Alerts, reminders, sounds' },
 'shortcuts': { title: 'Shortcuts', desc: 'Global hotkeys and automation' },
 'about': { title: 'Privacy & Updates', desc: 'Data storage, cloud security, and version info' },
+'appinfo': { title: 'About FinanceOS', desc: 'What it is, what it does, and the user guide' },
 'tags': { title: 'Transaction Tags', desc: 'Manage custom tags for tracking' }
 };
   
