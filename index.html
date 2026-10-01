@@ -1538,6 +1538,21 @@ body.light-mode select.set-input option { background-color: #ffffff; color: #0f1
 .set-chip { padding: 6px 12px; font-size: 0.75rem; border-radius: 6px; cursor: pointer; color: var(--text-muted); transition: 0.2s; }
 .set-chip.active { background: var(--accent); color: white; font-weight: 600; }
 
+/* ── Data Tracking Mode selector ── */
+.trk-options { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.trk-opt { text-align: left; cursor: pointer; padding: 0.85rem 0.95rem; border-radius: 12px; border: 1px solid var(--glass-border); background: rgba(255,255,255,0.04); color: var(--text-main); font-family: inherit; display: flex; flex-direction: column; gap: 6px; transition: 0.2s; }
+.trk-opt:hover { border-color: rgba(0,117,255,0.4); }
+.trk-opt.active { background: var(--accent-soft); border-color: var(--accent); box-shadow: 0 0 18px rgba(0,117,255,0.18); }
+.trk-opt-title { font-size: 0.82rem; font-weight: 700; display: flex; align-items: center; gap: 8px; }
+.trk-opt-desc { font-size: 0.68rem; color: var(--text-muted); line-height: 1.45; }
+.trk-radio { width: 14px; height: 14px; border-radius: 50%; border: 2px solid var(--text-muted); margin-left: auto; flex-shrink: 0; box-sizing: border-box; }
+.trk-opt.active .trk-radio { border-color: var(--accent); background: radial-gradient(circle, var(--accent) 40%, transparent 45%); }
+.trk-status { display: flex; align-items: center; justify-content: space-between; gap: 8px 12px; flex-wrap: wrap; }
+.trk-actions { display: flex; gap: 8px; flex-wrap: wrap; }
+body.light-mode .trk-opt { background: #f8fafc; border-color: #cbd5e1; color: #0f172a; }
+body.light-mode .trk-opt.active { background: rgba(0,117,255,0.08); border-color: var(--accent); }
+@media (max-width: 640px) { .trk-options { grid-template-columns: 1fr; } }
+
 .shortcut-btn {
   background: rgba(255,255,255,0.06);
   border: 1px solid var(--glass-border);
@@ -3414,8 +3429,12 @@ function setCloudStatus(state) {
     syncing:     { color: '#eab308', label: 'Syncing…' },
     offline:     { color: '#888',    label: 'Offline' },
     error:       { color: '#ef4444', label: 'Sync Error' },
-    synced:      { color: '#22c55e', label: 'Sync Complete' }
+    synced:      { color: '#22c55e', label: 'Sync Complete' },
+    manual:      { color: '#a78bfa', label: 'Manual JSON' }
   };
+  // In Manual JSON mode nothing is syncing — show that instead of "Connected".
+  if ((state === 'connected' || state === 'syncing' || state === 'synced') &&
+      typeof isCloudTrackingOn === 'function' && !isCloudTrackingOn()) state = 'manual';
   const cfg = map[state] || map.offline;
   if (dot && text) { dot.style.background = cfg.color; text.textContent = cfg.label; }
   if (mobDot && mobText) { mobDot.style.background = cfg.color; mobText.textContent = cfg.label; }
@@ -3426,6 +3445,10 @@ function setCloudStatus(state) {
 }
 function handleCloudPillClick() {
   if (!cloudSession) { showLoginPanel(); document.getElementById('login-overlay').classList.remove('hidden'); return; }
+  if (typeof isCloudTrackingOn === 'function' && !isCloudTrackingOn()) {
+    alert('Manual JSON tracking is on — changes stay on this device.\n\nSwitch to Cloud Tracking in Settings → Privacy & Updates to sync with the cloud.');
+    return;
+  }
   if (typeof syncNow === 'function') syncNow();
 }
 
@@ -4488,7 +4511,13 @@ function renderPrivacyAboutTab() {
 
   const syncBadge = document.getElementById('about-sync-badge');
   if (syncBadge) {
-    if (cloudSession) {
+    if (!isCloudTrackingOn()) {
+      syncBadge.textContent = 'Paused (Manual JSON mode)';
+      syncBadge.className = 'badge';
+      syncBadge.style.background = 'rgba(255,255,255,0.05)';
+      syncBadge.style.color = 'var(--text-mid)';
+      syncBadge.style.border = '1px solid var(--glass-border)';
+    } else if (cloudSession) {
       syncBadge.textContent = 'Active';
       syncBadge.className = 'badge bg-inc';
     } else {
@@ -4499,6 +4528,8 @@ function renderPrivacyAboutTab() {
       syncBadge.style.border = '1px solid var(--glass-border)';
     }
   }
+
+  if (typeof renderTrackingModeCard === 'function') renderTrackingModeCard();
 
   const providerEl = document.getElementById('about-provider-value');
   if (providerEl) providerEl.textContent = cloudSession ? 'Supabase Auth (signed in)' : 'Supabase Auth (signed out)';
@@ -7227,6 +7258,7 @@ function passAppLockGate() {
 
 
 <!-- MODAL: Settings & Preferences -->
+<div class="modal-overlay" id="tracking-mode-modal" style="z-index:100000"><div class="modal-box" style="width:440px; max-width:calc(100vw - 24px)" id="tracking-mode-modal-box"></div></div>
 <div class="modal-overlay" id="settings-modal">
   <div class="modal-box settings-modal-box">
     
@@ -7915,6 +7947,37 @@ function passAppLockGate() {
           </div>
         </div>
 
+        <div class="set-card" id="tracking-mode-card">
+          <div style="display:flex; gap:10px; align-items:center; margin-bottom: 0.5rem;">
+            <div style="width:32px; height:32px; border-radius:50%; background:rgba(0,117,255,0.15); color:var(--accent); display:flex; align-items:center; justify-content:center"><i class="fas fa-crosshairs"></i></div>
+            <div class="set-label-block">
+              <div class="set-lbl readable-white">Data Tracking Mode</div>
+              <div class="set-desc" style="margin-top:0">Choose how FinanceOS saves and tracks your financial data.</div>
+            </div>
+          </div>
+
+          <div class="trk-options" role="radiogroup" aria-label="Data Tracking Mode">
+            <button type="button" class="trk-opt" id="trk-opt-cloud" role="radio" aria-checked="false" onclick="requestTrackingMode('cloud')">
+              <div class="trk-opt-title readable-white"><span>☁️</span> Cloud Tracking <span class="trk-radio"></span></div>
+              <div class="trk-opt-desc">Automatically save and sync your FinanceOS data to the cloud whenever you are signed in and online.</div>
+            </button>
+            <button type="button" class="trk-opt" id="trk-opt-manual" role="radio" aria-checked="false" onclick="requestTrackingMode('manual')">
+              <div class="trk-opt-title readable-white"><span>📁</span> Manual JSON Tracking <span class="trk-radio"></span></div>
+              <div class="trk-opt-desc">Keep FinanceOS data locally and use manual JSON export/import for backup and transfer.</div>
+            </button>
+          </div>
+
+          <div class="trk-status">
+            <div class="set-lbl readable-white" style="font-size:0.8rem" id="trk-active-line">Currently Active: Cloud Tracking</div>
+            <div class="badge" id="trk-status-badge">—</div>
+          </div>
+          <div class="set-desc" id="trk-status-note" style="margin-top:-0.4rem"></div>
+          <div class="trk-actions">
+            <button type="button" class="btn-secondary" id="trk-signin-btn" style="display:none" onclick="trackingPromptSignIn()"><i class="fas fa-right-to-bracket"></i> Sign in</button>
+            <button type="button" class="btn-secondary" id="trk-json-btn" style="display:none" onclick="openBackupModal()"><i class="fas fa-file-export"></i> Export / Import JSON</button>
+          </div>
+        </div>
+
         <div class="set-card">
           <div style="display:flex; gap:10px; align-items:center; margin-bottom: 0.5rem;">
             <div style="width:32px; height:32px; border-radius:50%; background:rgba(167,139,250,0.15); color:var(--c-net); display:flex; align-items:center; justify-content:center"><i class="fas fa-hdd"></i></div>
@@ -8332,6 +8395,13 @@ function wipeLocalFinancialData() {
 }
 
 async function handleLogout() {
+  // Manual JSON mode: this device's data was never pushed to the cloud, and
+  // logout clears local data — so offer a JSON backup first.
+  if (typeof isCloudTrackingOn === 'function' && !isCloudTrackingOn()) {
+    if (confirm('You are in Manual JSON mode — your data is NOT saved in the cloud, and logging out clears it from this device.\n\nPress OK to download a JSON backup now, or Cancel to continue without one.')) {
+      downloadBackup();
+    }
+  }
   if (!confirm('Log out of FinanceOS?')) return;
   await sb.auth.signOut();
   cloudSession = null;
@@ -8341,6 +8411,207 @@ async function handleLogout() {
   // Full reload guarantees a completely clean slate — no leftover in-memory
   // state can survive into whoever logs in next on this device.
   window.location.reload();
+}
+
+// ── DATA TRACKING MODE (user-facing control over the existing sync systems) ──
+// 'cloud'  → existing Supabase sync (local storage stays the working cache)
+// 'manual' → no automatic pushes/pulls; JSON export/import is the backup path
+// Per-device preference. Switching NEVER deletes data on either side.
+const TRACKING_MODE_KEY = 'fos_tracking_mode';
+function getTrackingMode() {
+  try { return localStorage.getItem(TRACKING_MODE_KEY) === 'manual' ? 'manual' : 'cloud'; } catch (e) { return 'cloud'; }
+}
+function isCloudTrackingOn() { return getTrackingMode() === 'cloud'; }
+
+function renderTrackingModeCard() {
+  const cloudBtn = document.getElementById('trk-opt-cloud');
+  const manBtn   = document.getElementById('trk-opt-manual');
+  if (!cloudBtn || !manBtn) return;
+  const mode = getTrackingMode();
+  const signedIn = !!cloudSession;
+  cloudBtn.classList.toggle('active', mode === 'cloud');
+  manBtn.classList.toggle('active', mode === 'manual');
+  cloudBtn.setAttribute('aria-checked', mode === 'cloud');
+  manBtn.setAttribute('aria-checked', mode === 'manual');
+
+  const line  = document.getElementById('trk-active-line');
+  const badge = document.getElementById('trk-status-badge');
+  const note  = document.getElementById('trk-status-note');
+  const signBtn = document.getElementById('trk-signin-btn');
+  const jsonBtn = document.getElementById('trk-json-btn');
+  line.textContent = 'Currently Active: ' + (mode === 'cloud' ? 'Cloud Tracking' : 'Manual JSON');
+  badge.className = 'badge'; badge.style.cssText = '';
+  if (mode === 'cloud' && signedIn) {
+    badge.textContent = 'Cloud Tracking — Active'; badge.classList.add('bg-inc');
+    note.textContent = 'Changes save on this device first, then sync to your cloud account automatically while you\u2019re online.';
+  } else if (mode === 'cloud') {
+    badge.textContent = 'Cloud Tracking — Sign-in required';
+    badge.style.background = 'rgba(245,158,11,0.15)'; badge.style.color = 'var(--warning)';
+    note.textContent = 'Cloud Tracking requires you to be signed in. Until then, changes are saved on this device only.';
+  } else {
+    badge.textContent = 'Manual JSON — Active';
+    badge.style.background = 'var(--accent-soft)'; badge.style.color = 'var(--accent)';
+    note.textContent = 'Changes stay on this device and are not sent to the cloud. Use JSON export/import to back up or move your data.';
+  }
+  signBtn.style.display = (mode === 'cloud' && !signedIn) ? '' : 'none';
+  jsonBtn.style.display = (mode === 'manual') ? '' : 'none';
+}
+
+function showTrackingModal(cfg) {
+  const box = document.getElementById('tracking-mode-modal-box');
+  box.innerHTML = '';
+  const title = document.createElement('div');
+  title.className = 'modal-title';
+  title.innerHTML = '<i class="fas ' + (cfg.icon || 'fa-crosshairs') + '" style="margin-right:8px"></i>';
+  title.appendChild(document.createTextNode(cfg.title));
+  const body = document.createElement('div');
+  body.className = 'set-desc';
+  body.style.cssText = 'font-size:0.8rem; line-height:1.55; margin:0.6rem 0 1.1rem; white-space:pre-line;';
+  body.textContent = cfg.body;
+  box.appendChild(title); box.appendChild(body);
+  if (cfg.buttons && cfg.buttons.length) {
+    const row = document.createElement('div');
+    row.style.cssText = 'display:flex; flex-direction:column; gap:8px;';
+    cfg.buttons.forEach(b => {
+      const btn = document.createElement('button');
+      btn.type = 'button';
+      btn.className = b.primary ? 'btn-add' : 'btn-secondary';
+      btn.style.cssText = 'justify-content:center; display:flex; width:100%;';
+      btn.textContent = b.label;
+      btn.addEventListener('click', () => { if (b.fn) b.fn(); else closeTrackingModal(); });
+      row.appendChild(btn);
+    });
+    box.appendChild(row);
+  }
+  document.getElementById('tracking-mode-modal').style.display = 'flex';
+}
+function closeTrackingModal() { document.getElementById('tracking-mode-modal').style.display = 'none'; }
+
+function trackingPromptSignIn() {
+  closeTrackingModal();
+  if (typeof closeSettingsModal === 'function') closeSettingsModal();
+  if (typeof showLoginPanel === 'function') showLoginPanel();
+  const ov = document.getElementById('login-overlay');
+  if (ov) ov.classList.remove('hidden');
+}
+
+function requestTrackingMode(mode) {
+  if (mode === getTrackingMode()) return;
+  if (mode === 'manual') {
+    showTrackingModal({
+      icon: 'fa-folder-open',
+      title: 'Switch to Manual JSON Tracking?',
+      body: 'Automatic cloud syncing will stop. Future changes will stay on this device until you switch back to Cloud Tracking or export a JSON backup yourself.\n\nNothing is deleted — your data here and in the cloud stays as it is.',
+      buttons: [
+        { label: 'Switch to Manual JSON', primary: true, fn: () => {
+            localStorage.setItem(TRACKING_MODE_KEY, 'manual');
+            closeTrackingModal();
+            setCloudStatus(cloudSession ? 'connected' : 'offline');
+            renderTrackingModeCard();
+            showDeviceLockToast('Manual JSON tracking is now active', 'success');
+        } },
+        { label: 'Keep Cloud Tracking' }
+      ]
+    });
+    return;
+  }
+  // → Cloud
+  if (!cloudSession) {
+    showTrackingModal({
+      icon: 'fa-cloud',
+      title: 'Sign in to enable Cloud Tracking',
+      body: 'Cloud Tracking saves your data to your FinanceOS cloud account, so you need to be signed in first. You\u2019re staying on Manual JSON for now — nothing has changed.',
+      buttons: [
+        { label: 'Sign in', primary: true, fn: trackingPromptSignIn },
+        { label: 'Not now' }
+      ]
+    });
+    return;
+  }
+  enableCloudTracking();
+}
+
+// Manual → Cloud. Uses the existing reconcile building blocks, but never
+// overwrites either side silently: when BOTH have data, the user chooses,
+// and a JSON safety copy of whatever would be replaced is downloaded first.
+async function enableCloudTracking() {
+  const uid = cloudSession.user.id;
+  showTrackingModal({ icon: 'fa-cloud', title: 'Checking your cloud data…', body: 'One moment.' });
+  let hasCloud;
+  try {
+    ensureRecordIds();
+    hasCloud = await cloudHasAnyData(uid);
+  } catch (err) {
+    console.error(err);
+    showTrackingModal({ icon: 'fa-triangle-exclamation', title: 'Couldn\u2019t reach the cloud',
+      body: 'Staying on Manual JSON — nothing was changed. Check your connection and try again.',
+      buttons: [{ label: 'OK' }] });
+    return;
+  }
+  const finish = async (how) => {
+    try {
+      showTrackingModal({ icon: 'fa-cloud', title: 'Enabling Cloud Tracking…', body: how === 'pull' ? 'Loading your cloud data…' : 'Saving this device\u2019s data to the cloud…' });
+      localStorage.setItem(TRACKING_MODE_KEY, 'cloud');
+      if (how === 'pull') {
+        await pullAllFromCloud();
+        setCloudStatus('connected');
+        showTrackingModal({ icon: 'fa-check', title: 'Cloud Tracking is active', body: 'Your cloud data has been loaded. Reloading…' });
+        setTimeout(() => location.reload(), 700);
+        return;
+      }
+      await syncNow({ force: true });
+      setCloudStatus('connected');
+      closeTrackingModal();
+      renderTrackingModeCard();
+      showDeviceLockToast('Cloud Tracking is now active', 'success');
+    } catch (err) {
+      console.error(err);
+      localStorage.setItem(TRACKING_MODE_KEY, 'manual');
+      setCloudStatus('connected');
+      renderTrackingModeCard();
+      showTrackingModal({ icon: 'fa-triangle-exclamation', title: 'Couldn\u2019t enable Cloud Tracking',
+        body: 'Something went wrong while syncing, so you\u2019re still on Manual JSON. Your data was not deleted.\n\n' + (err.message || ''),
+        buttons: [{ label: 'OK' }] });
+    }
+  };
+
+  if (!hasCloud) return finish('push');                       // nothing in cloud → just upload local
+  if (localDataIsEmpty()) return finish('pull');              // nothing local → just load cloud
+
+  showTrackingModal({
+    icon: 'fa-code-compare',
+    title: 'Which data should Cloud Tracking use?',
+    body: 'Both this device and your cloud account already have data. Pick which copy to keep — a JSON safety copy of the one being replaced is downloaded first.',
+    buttons: [
+      { label: 'Keep this device\u2019s data (replaces cloud copy)', primary: true, fn: async () => {
+          try { await downloadCloudSnapshot(uid); } catch (e) {
+            console.error(e);
+            if (!confirm('Couldn\u2019t save a safety copy of your cloud data. Continue and replace it anyway?')) return;
+          }
+          finish('push');
+      } },
+      { label: 'Use cloud data (replaces this device\u2019s data)', fn: () => { downloadBackup(); finish('pull'); } },
+      { label: 'Cancel — stay on Manual JSON' }
+    ]
+  });
+}
+
+// Read-only JSON export of what's currently in the cloud (safety copy).
+async function downloadCloudSnapshot(uid) {
+  const out = { type: 'financeos-cloud-snapshot', exportedAt: new Date().toISOString(), tables: {} };
+  for (const { key, table } of CLOUD_TABLES) {
+    const { data, error } = await sb.from(table).select('data').eq('user_id', uid);
+    if (error) throw error;
+    out.tables[key] = (data || []).map(r => r.data);
+  }
+  const { data: b, error: be } = await sb.from('budgets').select('data').eq('user_id', uid).maybeSingle();
+  if (be) throw be;
+  out.budgets = b ? b.data : {};
+  const blob = new Blob([JSON.stringify(out, null, 2)], { type: 'application/json' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = 'financeos_cloud_snapshot_' + new Date().toISOString().split('T')[0] + '.json';
+  a.click();
 }
 
 // ── CLOUD SYNC ENGINE (Supabase) ─────────────────────────────────────────────
@@ -8439,8 +8710,10 @@ async function pullAllFromCloud() {
 }
 
 // Manual "Sync Now" / auto-sync entry point — always pushes local → cloud.
-async function syncNow() {
+async function syncNow(opts) {
   if (!cloudSession) return;
+  // Data Tracking Mode: Manual JSON never pushes automatically.
+  if (!isCloudTrackingOn() && !(opts && opts.force)) return;
   try {
     await pushAllToCloud();
     setCloudStatus('synced');
@@ -8484,6 +8757,8 @@ async function cloudHasAnyData(uid) {
 // has never synced anything yet (a brand-new account) — that happens once,
 // silently, so a fresh signup isn't just wiped to empty.
 async function reconcileCloudAndLocalData(uid) {
+  // Manual JSON mode: never pull over (or push from) local data on sign-in.
+  if (!isCloudTrackingOn()) { setCloudStatus('connected'); return; }
   ensureRecordIds();
   const hasCloud = await cloudHasAnyData(uid);
 
@@ -8512,7 +8787,7 @@ async function doAutoSave() {
   localStorage.setItem('fos_game_stats', JSON.stringify(gameStats));
   
   // 2b. Cloud sync (Supabase) — fire-and-forget, never blocks local save
-  if (cloudSession) {
+  if (cloudSession && isCloudTrackingOn()) {
     syncNow().catch(err => console.error('Cloud sync failed:', err));
   }
 
@@ -18986,7 +19261,9 @@ async function confirmRestore() {
   // Push the just-restored JSON straight to Supabase, so the cloud copy
   // matches what you just restored locally (this is what makes "restore a
   // backup" also mean "restore to the cloud").
-  if (cloudSession) {
+  if (cloudSession && !isCloudTrackingOn()) {
+    alert('✅ Backup restored successfully!\n\n(Manual JSON mode — not synced to the cloud.)');
+  } else if (cloudSession) {
     ensureRecordIds();
     try {
       await syncNow();
