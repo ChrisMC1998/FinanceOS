@@ -2333,29 +2333,51 @@ body.light-mode .backup-stat { background:rgba(0,0,0,0.03); }
   .budget-amounts { font-size:0.65rem; min-width:fit-content; }
 }
 
-/* ══ MOBILE ROOT + MODAL FIX ═══════════════════════════════════════════════
-   1) White strip: with viewport-fit=cover the page now paints under the home
-      indicator, and <html> (the canvas behind <body>) gets its own dark
-      background so no un-themed area can ever show through.
-   2) Clipped form headers: .modal-overlay (z-index 200) sat BELOW the fixed
-      mobile header (300) and FAB (280), so both painted over the top/bottom
-      of every form. Overlays now sit above all app chrome, are sized to the
-      dynamic viewport (not 100vh), and the box is capped to what is actually
-      visible; its title stays pinned while the fields scroll. */
-html { background-color:#050507; }
-html:has(body.light-mode) { background-color:#f4f7f9; }
+/* ══ MOBILE VIEWPORT / SHELL / FORM FIX ════════════════════════════════════
+   ROOT CAUSES (found by measuring the real layout, not guessing):
+   A) Shell height. <body> was sized with 100vh/100dvh. On iOS those units do
+      not reliably equal the area the page is actually drawn in, so the shell
+      stopped short of the physical bottom and the canvas behind it showed
+      (white, then black). On top of that, .main carried
+      padding-bottom:env(safe-area-inset-bottom), which cut the scrolling
+      content off 34px above the shell's own bottom edge — a dead band.
+      FIX: on mobile the body is pinned to the layout viewport itself
+      (position:fixed; inset:0) so it is exactly as tall as the screen the
+      page is drawn in, whatever that is. No vh/dvh arithmetic, nothing to
+      keep in sync. The safe-area padding moves INSIDE the scroll area so
+      content scrolls edge-to-edge underneath the home indicator.
+   B) iOS input zoom. iOS Safari auto-zooms any focused field whose computed
+      font-size is under 16px. Entry-form inputs were 13.4px. FIX: every
+      text-entry control is 16px on touch devices. Pinch/double-tap zoom stays
+      enabled — the viewport meta is untouched.
+   C) Forms. Overlay sat below the fixed header/FAB/backup banner, and the
+      box was capped with 92vh (taller than the visible area). FIX: overlay is
+      a fixed, inset:0 flex container above all chrome; the box is capped to
+      100% of that container, with the title pinned and only the body
+      scrolling. */
 @media (max-width:900px) {
-  html, body { width:100%; height:100%; min-height:100dvh; overscroll-behavior:none; }
+  html { height:100%; }
+  body {
+    position:fixed; top:0; right:0; bottom:0; left:0;
+    width:100%; height:auto !important; min-height:0 !important;
+    overflow:hidden; overscroll-behavior:none;
+  }
+  .main { padding-bottom:0 !important; }
+  .scroll-area { padding-bottom:calc(1rem + env(safe-area-inset-bottom)) !important; }
+
   .modal-overlay {
     z-index:400 !important;
-    inset:0; width:100%; height:100dvh;
-    padding:env(safe-area-inset-top) 0 env(safe-area-inset-bottom);
+    position:fixed; top:0; right:0; bottom:0; left:0;
+    width:auto; height:auto;
+    padding:calc(12px + env(safe-area-inset-top)) 12px calc(12px + env(safe-area-inset-bottom));
     box-sizing:border-box; align-items:center; justify-content:center;
+    overscroll-behavior:contain;
   }
   .modal-box:not(.settings-modal-box) {
-    max-height:calc(100dvh - 24px - env(safe-area-inset-top) - env(safe-area-inset-bottom)) !important;
+    width:100% !important; margin:0 !important;
+    max-height:100% !important;
     overflow-y:auto !important; overflow-x:hidden;
-    overscroll-behavior:contain;
+    overscroll-behavior:contain; -webkit-overflow-scrolling:touch;
     padding-top:0 !important;
   }
   .modal-box:not(.settings-modal-box) > .modal-title {
@@ -2368,9 +2390,14 @@ html:has(body.light-mode) { background-color:#f4f7f9; }
     -webkit-appearance:none; appearance:none; min-width:0; max-width:100%; width:100%;
   }
   .mobile-fab { bottom:calc(22px + env(safe-area-inset-bottom)); }
-  /* The backup reminder banner is fixed at z-index 9990 — above every modal —
-     so it was painting over the form title. Tuck it away while any modal is open. */
+  /* backup banner is z-index 9990 (above every modal) — tuck it away while a form is open */
   body:has(.modal-overlay[style*="display: flex"]) #backup-banner { opacity:0 !important; pointer-events:none !important; transform:translateY(-100%); }
+}
+/* iOS auto-zoom guard: >=16px on every control the user can type/select in.
+   Keyed on touch input (not width) so tablets and landscape phones are covered. */
+@media (hover:none) and (pointer:coarse), (max-width:900px) {
+  input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="color"]):not([type="file"]):not([type="button"]):not([type="submit"]):not([type="reset"]):not([type="image"]),
+  select, textarea, [contenteditable="true"] { font-size:16px !important; }
 }
 
 /* Phone portrait (<600px) */
