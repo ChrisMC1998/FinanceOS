@@ -2976,7 +2976,7 @@ body.light-mode select option {
   .fos-atmosphere {
     display:block; position:fixed; left:0; right:0; bottom:-40px;
     height:calc(150px + env(safe-area-inset-bottom));
-    z-index:240; pointer-events:none; overflow:hidden;
+    z-index:190; pointer-events:none; overflow:hidden;
   }
   .fos-atmosphere::before {
     content:""; position:absolute; inset:0;
@@ -3019,6 +3019,29 @@ body.light-mode select option {
 @media (max-width:900px) {
   html body .mobile-fab,
   html body.liteai-open .mobile-fab { display:none !important; }
+}
+
+/* 5 ─ Add Entry / Add Asset sheets: start BELOW the fixed FinanceOS header so
+   the top of the form (title + first field) is never hidden behind it, and
+   end above the bottom safe area. The overlay still tracks the visible
+   viewport (keyboard) via the existing --vv-top / --vv-h variables. */
+@media (max-width:900px) {
+  #modal, #port-modal {
+    padding-top:calc(58px + env(safe-area-inset-top) + 10px);
+    padding-bottom:calc(env(safe-area-inset-bottom) + 10px);
+    padding-left:0; padding-right:0;
+    align-items:center;
+  }
+  #modal .modal-box, #port-modal .modal-box {
+    margin:0 !important;
+    max-height:100%;
+  }
+  /* iOS date fields have a built-in minimum width that pushed them past the
+     right edge of the form — pin them to the field column. */
+  #modal input[type="date"], #port-modal input[type="date"] {
+    display:block; width:100%; max-width:100%; min-width:0;
+    -webkit-appearance:none; appearance:none; box-sizing:border-box;
+  }
 }
 </style>
 
