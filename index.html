@@ -3020,6 +3020,16 @@ body.light-mode select option {
   html body .mobile-fab,
   html body.liteai-open .mobile-fab { display:none !important; }
 }
+
+/* 5 ─ Add Entry / Add Asset sheets: begin below the fixed FinanceOS header so
+   the top of the form (title + first field) is no longer hidden behind it.
+   Only the overlay's top edge moves; the box keeps its existing size, margin,
+   scrolling and Save/Cancel row. */
+@media (max-width:900px) {
+  #modal, #port-modal {
+    padding-top:calc(58px + env(safe-area-inset-top));
+  }
+}
 </style>
 
 <div id="app-lock-overlay" class="hidden">
