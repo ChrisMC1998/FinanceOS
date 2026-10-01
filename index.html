@@ -3011,6 +3011,15 @@ body.light-mode select option {
 @media (prefers-reduced-motion: reduce) {
   .fos-atmosphere::after { animation:none; }
 }
+
+/* 4 ─ Mobile floating "+" button removed. Same breakpoint where the app shows
+   it (≤900px). display:none takes it out of layout entirely (no gap/padding);
+   the element stays in the DOM so existing JS references don't break. The top
+   "+ New Entry" button is a different element and is not affected. */
+@media (max-width:900px) {
+  html body .mobile-fab,
+  html body.liteai-open .mobile-fab { display:none !important; }
+}
 </style>
 
 <div id="app-lock-overlay" class="hidden">
