@@ -2928,6 +2928,89 @@ body.light-mode select option {
 .applock-title { font-size: 1.15rem; font-weight: 700; color: #fff; margin-bottom: 0.3rem; }
 .applock-sub { font-size: 0.8rem; color: #64748b; margin-bottom: 1.6rem; }
 .applock-error { color: #ef4444; font-size: 0.75rem; margin-top: 0.7rem; display: none; }
+
+/* ══════════════════════════════════════════════════════════════════════
+   FINANCEOS MOBILE — TradingView removal + seamless bottom atmosphere
+   (phone/mobile layout only; desktop & tablet rules above are untouched)
+══════════════════════════════════════════════════════════════════════ */
+.fos-atmosphere { display:none; }
+
+/* 1 ─ TradingView panel: gone on phones, even in "Show Full Dashboard".
+   Same collapse technique the app already uses for other mobile-hidden
+   sections (visibility + zero height, NOT display:none) so the dashboard's
+   width-wait logic still passes. Margin/padding/border all zeroed → no gap. */
+@media (max-width:640px) {
+  html body .tv-mobile-hide,
+  html body.mobile-full-view .tv-mobile-hide {
+    visibility:hidden !important; height:0 !important; min-height:0 !important;
+    overflow:hidden !important; margin:0 !important; padding:0 !important;
+    border-width:0 !important; box-shadow:none !important; opacity:0 !important;
+    pointer-events:none !important;
+  }
+}
+
+/* 2 ─ One continuous surface: the theme background lives on <html> (fixed),
+   so it fills the true screen incl. the bottom safe area / overscroll —
+   there is no separate box left to show white. */
+@media (max-width:900px) {
+  html {
+    min-height:100%;
+    background-color:#07091a;
+    background-image:
+      radial-gradient(circle at 15% 0%, rgba(0,117,255,0.08), transparent 40%),
+      radial-gradient(circle at 85% 100%, rgba(167,139,250,0.06), transparent 40%),
+      linear-gradient(135deg, #0a0a0c 0%, #000000 100%);
+    background-repeat:no-repeat;
+    background-size:cover;
+    background-attachment:fixed;
+  }
+  html:has(body.light-mode) { background-image:none; background-color:#f4f7f9; }
+  body, body.light-mode { background:transparent; }
+
+  /* Let content scroll all the way down under the glow instead of stopping
+     at a hard line above the safe area. */
+  .main { padding-bottom:0; }
+  .main .scroll-area { padding-bottom:calc(5.5rem + env(safe-area-inset-bottom)); }
+
+  /* 3 ─ Bottom atmosphere: content → soft navy fade → deeper navy → safe area */
+  .fos-atmosphere {
+    display:block; position:fixed; left:0; right:0; bottom:-40px;
+    height:calc(150px + env(safe-area-inset-bottom));
+    z-index:240; pointer-events:none; overflow:hidden;
+  }
+  .fos-atmosphere::before {
+    content:""; position:absolute; inset:0;
+    background:linear-gradient(to bottom,
+      rgba(7,9,26,0) 0%, rgba(7,9,26,0.35) 30%,
+      rgba(6,8,22,0.78) 62%, rgba(5,7,18,0.96) 84%, #04050f 100%);
+  }
+  .fos-atmosphere::after {
+    content:""; position:absolute; left:-15%; right:-15%; bottom:0; height:100%;
+    background:
+      radial-gradient(ellipse 55% 70% at 28% 100%, rgba(0,117,255,0.17), transparent 70%),
+      radial-gradient(ellipse 45% 60% at 74% 100%, rgba(167,139,250,0.10), transparent 70%);
+    opacity:0.85; will-change:transform, opacity;
+    animation:fosAtmoDrift 18s ease-in-out infinite alternate;
+  }
+  body.light-mode .fos-atmosphere::before {
+    background:linear-gradient(to bottom,
+      rgba(244,247,249,0) 0%, rgba(244,247,249,0.55) 40%,
+      rgba(244,247,249,0.92) 78%, #f4f7f9 100%);
+  }
+  body.light-mode .fos-atmosphere::after {
+    background:
+      radial-gradient(ellipse 55% 70% at 28% 100%, rgba(0,117,255,0.08), transparent 70%),
+      radial-gradient(ellipse 45% 60% at 74% 100%, rgba(167,139,250,0.06), transparent 70%);
+  }
+  body.liteai-open .fos-atmosphere { opacity:0; }
+}
+@keyframes fosAtmoDrift {
+  0%   { transform:translate3d(-4%,0,0); opacity:0.70; }
+  100% { transform:translate3d(4%,-3px,0); opacity:0.95; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .fos-atmosphere::after { animation:none; }
+}
 </style>
 
 <div id="app-lock-overlay" class="hidden">
@@ -4514,6 +4597,9 @@ function passAppLockGate() {
 <!-- MOBILE QUICK-ADD FLOATING BUTTON -->
 <button class="mobile-fab" id="mobile-fab" onclick="mobileFabAdd()" aria-label="Add Entry"><i class="fas fa-plus"></i></button>
 
+<!-- MOBILE BOTTOM ATMOSPHERE (decorative; hidden on desktop) -->
+<div class="fos-atmosphere" aria-hidden="true"></div>
+
 <!-- MOBILE DRAWER OVERLAY -->
 <div class="mobile-menu-overlay" id="mob-overlay" onclick="closeMobileDrawer()"></div>
 
@@ -4968,7 +5054,7 @@ function passAppLockGate() {
           </div>
       </div>
 
-<div class="glass-panel draggable-section" style="margin-bottom: 1.3rem; padding-bottom: 0;">
+<div class="glass-panel draggable-section tv-mobile-hide" style="margin-bottom: 1.3rem; padding-bottom: 0;">
         <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 1rem;">
           <div class="panel-title" style="margin-bottom:0; display:flex; align-items:center; gap:8px; cursor:pointer;" onclick="document.getElementById('symbol-selector').style.display='flex'">
             <i class="fas fa-chart-line" style="color:#38bdf8;"></i> <span id="current-symbol" style="font-size: 0.85rem;">USD/JPY</span> <i class="fas fa-caret-down" style="font-size:0.7rem; opacity:0.6;"></i>
