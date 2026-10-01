@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="theme-color" content="#07091a">
 <meta name="description" content="Personal finance dashboard - track income, expenses, investments, loans and portfolio">
 <link rel="manifest" href="data:application/manifest+json,%7B%22name%22%3A%20%22FinanceOS%22%2C%20%22short_name%22%3A%20%22FinanceOS%22%2C%20%22start_url%22%3A%20%22.%22%2C%20%22scope%22%3A%20%22.%22%2C%20%22display%22%3A%20%22standalone%22%2C%20%22background_color%22%3A%20%22%2307091a%22%2C%20%22theme_color%22%3A%20%22%2307091a%22%2C%20%22icons%22%3A%20%5B%7B%22src%22%3A%20%22data%3Aimage/svg%2Bxml%2C%253Csvg%2520xmlns%253D%2522http%253A//www.w3.org/2000/svg%2522%2520viewBox%253D%25220%25200%2520192%2520192%2522%253E%253Crect%2520width%253D%2522192%2522%2520height%253D%2522192%2522%2520rx%253D%252236%2522%2520fill%253D%2522%252307091a%2522/%253E%253Cg%2520fill%253D%2522%25230075ff%2522%253E%253Cpath%2520d%253D%2522M96%252028l56%252032v64l-56%252032-56-32V60z%2522%2520opacity%253D%25220.25%2522/%253E%253Cpath%2520d%253D%2522M96%252044l40%252023v46l-40%252023-40-23V67z%2522/%253E%253C/g%253E%253C/svg%253E%22%2C%20%22sizes%22%3A%20%22192x192%22%2C%20%22type%22%3A%20%22image/svg%2Bxml%22%2C%20%22purpose%22%3A%20%22any%22%7D%2C%20%7B%22src%22%3A%20%22data%3Aimage/svg%2Bxml%2C%253Csvg%2520xmlns%253D%2522http%253A//www.w3.org/2000/svg%2522%2520viewBox%253D%25220%25200%2520192%2520192%2522%253E%253Crect%2520width%253D%2522192%2522%2520height%253D%2522192%2522%2520rx%253D%252236%2522%2520fill%253D%2522%252307091a%2522/%253E%253Cg%2520fill%253D%2522%25230075ff%2522%253E%253Cpath%2520d%253D%2522M96%252028l56%252032v64l-56%252032-56-32V60z%2522%2520opacity%253D%25220.25%2522/%253E%253Cpath%2520d%253D%2522M96%252044l40%252023v46l-40%252023-40-23V67z%2522/%253E%253C/g%253E%253C/svg%253E%22%2C%20%22sizes%22%3A%20%22512x512%22%2C%20%22type%22%3A%20%22image/svg%2Bxml%22%2C%20%22purpose%22%3A%20%22any%22%7D%5D%7D">
@@ -2333,73 +2333,6 @@ body.light-mode .backup-stat { background:rgba(0,0,0,0.03); }
   .budget-amounts { font-size:0.65rem; min-width:fit-content; }
 }
 
-/* ══ MOBILE VIEWPORT / SHELL / FORM FIX ════════════════════════════════════
-   ROOT CAUSES (found by measuring the real layout, not guessing):
-   A) Shell height. <body> was sized with 100vh/100dvh. On iOS those units do
-      not reliably equal the area the page is actually drawn in, so the shell
-      stopped short of the physical bottom and the canvas behind it showed
-      (white, then black). On top of that, .main carried
-      padding-bottom:env(safe-area-inset-bottom), which cut the scrolling
-      content off 34px above the shell's own bottom edge — a dead band.
-      FIX: on mobile the body is pinned to the layout viewport itself
-      (position:fixed; inset:0) so it is exactly as tall as the screen the
-      page is drawn in, whatever that is. No vh/dvh arithmetic, nothing to
-      keep in sync. The safe-area padding moves INSIDE the scroll area so
-      content scrolls edge-to-edge underneath the home indicator.
-   B) iOS input zoom. iOS Safari auto-zooms any focused field whose computed
-      font-size is under 16px. Entry-form inputs were 13.4px. FIX: every
-      text-entry control is 16px on touch devices. Pinch/double-tap zoom stays
-      enabled — the viewport meta is untouched.
-   C) Forms. Overlay sat below the fixed header/FAB/backup banner, and the
-      box was capped with 92vh (taller than the visible area). FIX: overlay is
-      a fixed, inset:0 flex container above all chrome; the box is capped to
-      100% of that container, with the title pinned and only the body
-      scrolling. */
-@media (max-width:900px) {
-  html { height:100%; }
-  body {
-    position:fixed; top:0; right:0; bottom:0; left:0;
-    width:100%; height:auto !important; min-height:0 !important;
-    overflow:hidden; overscroll-behavior:none;
-  }
-  .main { padding-bottom:0 !important; }
-  .scroll-area { padding-bottom:calc(1rem + env(safe-area-inset-bottom)) !important; }
-
-  .modal-overlay {
-    z-index:400 !important;
-    position:fixed; top:0; right:0; bottom:0; left:0;
-    width:auto; height:auto;
-    padding:calc(12px + env(safe-area-inset-top)) 12px calc(12px + env(safe-area-inset-bottom));
-    box-sizing:border-box; align-items:center; justify-content:center;
-    overscroll-behavior:contain;
-  }
-  .modal-box:not(.settings-modal-box) {
-    width:100% !important; margin:0 !important;
-    max-height:100% !important;
-    overflow-y:auto !important; overflow-x:hidden;
-    overscroll-behavior:contain; -webkit-overflow-scrolling:touch;
-    padding-top:0 !important;
-  }
-  .modal-box:not(.settings-modal-box) > .modal-title {
-    position:sticky; top:0; z-index:5;
-    margin:0 -1.2rem 1rem; padding:1.1rem 1.2rem .8rem;
-    background:#080d26; border-bottom:1px solid rgba(255,255,255,0.06);
-  }
-  body.light-mode .modal-box:not(.settings-modal-box) > .modal-title { background:#ffffff; border-bottom-color:#e2e8f0; }
-  .modal-box input[type="date"], .modal-box input[type="month"], .modal-box input[type="time"] {
-    -webkit-appearance:none; appearance:none; min-width:0; max-width:100%; width:100%;
-  }
-  .mobile-fab { bottom:calc(22px + env(safe-area-inset-bottom)); }
-  /* backup banner is z-index 9990 (above every modal) — tuck it away while a form is open */
-  body:has(.modal-overlay[style*="display: flex"]) #backup-banner { opacity:0 !important; pointer-events:none !important; transform:translateY(-100%); }
-}
-/* iOS auto-zoom guard: >=16px on every control the user can type/select in.
-   Keyed on touch input (not width) so tablets and landscape phones are covered. */
-@media (hover:none) and (pointer:coarse), (max-width:900px) {
-  input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="color"]):not([type="file"]):not([type="button"]):not([type="submit"]):not([type="reset"]):not([type="image"]),
-  select, textarea, [contenteditable="true"] { font-size:16px !important; }
-}
-
 /* Phone portrait (<600px) */
 @media (max-width:600px) {
   .kpi-grid { grid-template-columns:1fr 1fr !important; }
@@ -2722,6 +2655,51 @@ body.light-mode .settings-undo-btn:hover { color: white; }
 #port-profit-donut-wrap canvas { width: 130px !important; height: 130px !important; }
 
 #chart-invest-wrap canvas { width: 130px !important; height: 130px !important; }
+
+/* ══════════════════════════════════════════════════════════════════════
+   MOBILE ENTRY FORMS — no input-triggered zoom + Portfolio "Add Entry"
+   iOS Safari auto-zooms any focused field whose computed font-size is
+   below 16px. Fix the cause (font-size) — never restrict user zoom.
+══════════════════════════════════════════════════════════════════════ */
+.mob-port-add-bar { display:none; }
+@media (max-width:900px) {
+  input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="hidden"]):not([type="file"]):not([type="color"]):not([type="button"]):not([type="submit"]),
+  select, textarea, [contenteditable="true"] {
+    font-size:16px !important;
+  }
+  /* Keep horizontal notch/safe-area clear now that viewport-fit=cover is set */
+  body { padding-left:env(safe-area-inset-left); padding-right:env(safe-area-inset-right); }
+
+  /* Portfolio "+ Add Entry" — visible on every mobile Portfolio screen */
+  .mob-port-add-bar { display:flex; margin-bottom:0.9rem; }
+  .mob-port-add-btn {
+    width:100%; min-height:44px; justify-content:center; gap:8px;
+    background:rgba(167,139,250,0.85); box-shadow:none; font-size:0.9rem;
+  }
+
+  /* Add Entry / Portfolio modals: keep the box inside the *visible* area
+     (tracks the on-screen keyboard via visualViewport) and keep the
+     Save / Cancel row reachable while the form scrolls. */
+  #modal, #port-modal {
+    top:var(--vv-top, 0px); height:var(--vv-h, 100%); align-items:center;
+  }
+  #modal .modal-box, #port-modal .modal-box {
+    max-height:calc(100% - 24px); overscroll-behavior:contain;
+  }
+  #modal .modal-actions, #port-modal .modal-actions {
+    position:sticky; bottom:-1.2rem; z-index:2;
+    margin:1rem -1.2rem -1.2rem !important; padding:0.7rem 1.2rem calc(0.7rem + env(safe-area-inset-bottom));
+    background:#080c24; border-top:1px solid var(--glass-border);
+    border-radius:0 0 20px 20px;
+  }
+  body.light-mode #modal .modal-actions, body.light-mode #port-modal .modal-actions { background:#ffffff; }
+  #modal .modal-actions button, #port-modal .modal-actions button { min-height:44px; }
+  /* Invisible layout spacers used only to pair fields side-by-side on desktop */
+  #port-modal .modal-row > .input-group[style*="opacity:0"] { display:none; }
+  #port-modal .calc-preview { gap:10px 16px; }
+  #port-modal .calc-item { min-width:calc(50% - 8px); }
+  #modal .modal-box, #port-modal .modal-box { overflow-x:hidden; }
+}
 
 </style>
 
@@ -4534,7 +4512,7 @@ function passAppLockGate() {
 </div>
 
 <!-- MOBILE QUICK-ADD FLOATING BUTTON -->
-<button class="mobile-fab" onclick="openModal()" aria-label="Add Entry"><i class="fas fa-plus"></i></button>
+<button class="mobile-fab" id="mobile-fab" onclick="mobileFabAdd()" aria-label="Add Entry"><i class="fas fa-plus"></i></button>
 
 <!-- MOBILE DRAWER OVERLAY -->
 <div class="mobile-menu-overlay" id="mob-overlay" onclick="closeMobileDrawer()"></div>
@@ -4563,6 +4541,7 @@ function passAppLockGate() {
     <div class="drawer-item" id="mob-networth" onclick="mobNav('networth','finance')"><i class="fas fa-chart-area" style="width:16px;text-align:center"></i> Net Worth</div>
 
     <div class="drawer-section-label" style="color:#7c6eb3">Portfolio</div>
+    <div class="drawer-item" onclick="openPortModal();closeMobileDrawer()" style="color:#c4b5fd"><i class="fas fa-plus-circle" style="color:#a78bfa;width:16px;text-align:center"></i> Add Portfolio Asset</div>
     <div class="drawer-item" id="mob-port-overview" onclick="mobNav('port-overview','portfolio')"><i class="fas fa-layer-group" style="color:#a78bfa;width:16px;text-align:center"></i> Summary</div>
     <div class="drawer-item" id="mob-port-table" onclick="mobNav('port-table','portfolio')"><i class="fas fa-table" style="color:#a78bfa;width:16px;text-align:center"></i> Holdings Table</div>
     <div class="drawer-item" id="mob-port-analytics" onclick="mobNav('port-analytics','portfolio')"><i class="fas fa-chart-bar" style="color:#a78bfa;width:16px;text-align:center"></i> Port. Analytics</div>
@@ -5649,6 +5628,9 @@ function passAppLockGate() {
 
     <!-- PORTFOLIO: SUMMARY -->
     <div id="view-port-overview" class="view-section">
+      <div class="mob-port-add-bar">
+        <button type="button" class="btn-add mob-port-add-btn" onclick="openPortModal()" aria-label="Add Portfolio Entry"><i class="fas fa-plus"></i> Add Entry</button>
+      </div>
       <div class="port-kpi-strip">
         <div class="port-kpi-card">
           <div class="kpi-label">Total Invested</div>
@@ -5726,6 +5708,9 @@ function passAppLockGate() {
 
     <!-- PORTFOLIO: TABLE -->
     <div id="view-port-table" class="view-section">
+      <div class="mob-port-add-bar">
+        <button type="button" class="btn-add mob-port-add-btn" onclick="openPortModal()" aria-label="Add Portfolio Entry"><i class="fas fa-plus"></i> Add Entry</button>
+      </div>
       <div class="glass-panel">
         <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:.9rem">
           <div class="panel-title" style="margin-bottom:0">Holdings Register</div>
@@ -5781,6 +5766,9 @@ function passAppLockGate() {
 
     <!-- PORTFOLIO: ANALYTICS -->
     <div id="view-port-analytics" class="view-section">
+      <div class="mob-port-add-bar">
+        <button type="button" class="btn-add mob-port-add-btn" onclick="openPortModal()" aria-label="Add Portfolio Entry"><i class="fas fa-plus"></i> Add Entry</button>
+      </div>
      <div class="glass-panel span-full" style="margin-bottom:1.3rem">
         <div class="panel-title">Appreciation Timeline (by Purchase Date)</div>
         <div style="height:250px"><canvas id="port-timeline"></canvas></div>
@@ -6409,7 +6397,7 @@ function passAppLockGate() {
         <span class="toggle-slider"></span>
       </label>
     </div>
-    <div style="display:flex;gap:8px;margin-top:1.3rem">
+    <div class="modal-actions" style="display:flex;gap:8px;margin-top:1.3rem">
       <button onclick="saveEntry()" class="btn-add" style="flex:1;justify-content:center" id="fin-save-btn">Save Entry</button>
       <button onclick="closeModal()" class="btn-secondary">Cancel</button>
       <button onclick="deleteCurrentEntry()" class="btn-delete" style="display:none" id="fin-delete-btn"><i class="fas fa-trash"></i> Delete</button>
@@ -6504,7 +6492,7 @@ function passAppLockGate() {
       <input type="text" id="p-notes" class="input-field port-focus" placeholder="e.g. SGB 2023-24, Plot near highway…">
     </div>
 
-    <div style="display:flex;gap:8px;margin-top:1.3rem">
+    <div class="modal-actions" style="display:flex;gap:8px;margin-top:1.3rem">
       <button onclick="savePortEntry()" class="btn-add" style="flex:1;justify-content:center;background:rgba(167,139,250,0.8)" id="port-save-btn">Save Asset</button>
       <button onclick="closePortModal()" class="btn-secondary">Cancel</button>
       <button onclick="deleteCurrentPortEntry()" class="btn-delete" style="display:none" id="port-delete-btn"><i class="fas fa-trash"></i> Delete</button>
@@ -8708,6 +8696,7 @@ function applyFilters() {
 // ── NAVIGATION ─────────────────────────────────────────────────────────────
 function switchView(viewName, btn, group) {
   activeView = viewName;
+  if (typeof syncMobileFabLabel === 'function') syncMobileFabLabel();
 
   if (localStorage.getItem('fos_set_remember-page') !== 'false') {
     localStorage.setItem('fos_last_active_view', JSON.stringify({ view: viewName, group: group || 'finance' }));
@@ -14914,6 +14903,41 @@ function makeDonut(id, labels, data, colors) {
 // Removed - use makeDonut directly
 
 // ── FINANCE ENTRY MODAL ────────────────────────────────────────────────────
+// ── MOBILE ENTRY HELPERS ───────────────────────────────────────────────────
+// FAB adds a Portfolio asset while on a Portfolio screen, otherwise a Finance record.
+function mobileFabAdd() {
+  if (typeof activeView === 'string' && activeView.indexOf('port-') === 0) openPortModal();
+  else openModal();
+}
+function syncMobileFabLabel() {
+  const fab = document.getElementById('mobile-fab');
+  if (!fab) return;
+  fab.setAttribute('aria-label', (typeof activeView === 'string' && activeView.indexOf('port-') === 0) ? 'Add Portfolio Entry' : 'Add Entry');
+}
+// Keep Add Entry / Portfolio modals inside the visible area when the on-screen
+// keyboard opens, and scroll the active field into view. No zoom is touched.
+(function initMobileEntryViewport() {
+  const vv = window.visualViewport;
+  const root = document.documentElement;
+  const isMob = () => window.matchMedia('(max-width:900px)').matches;
+  function sync() {
+    if (!vv || !isMob()) { root.style.removeProperty('--vv-h'); root.style.removeProperty('--vv-top'); return; }
+    root.style.setProperty('--vv-h', vv.height + 'px');
+    root.style.setProperty('--vv-top', vv.offsetTop + 'px');
+  }
+  if (vv) { vv.addEventListener('resize', sync); vv.addEventListener('scroll', sync); }
+  window.addEventListener('orientationchange', () => setTimeout(sync, 250));
+  document.addEventListener('focusin', e => {
+    if (!isMob()) return;
+    const t = e.target;
+    if (!t || !t.closest || !t.closest('#modal, #port-modal')) return;
+    if (!/^(INPUT|SELECT|TEXTAREA)$/.test(t.tagName)) return;
+    setTimeout(() => { try { t.scrollIntoView({ block:'center', behavior:'smooth' }); } catch (_) {} }, 320);
+  });
+  document.addEventListener('focusout', () => { setTimeout(sync, 150); });
+  sync();
+})();
+
 function openModal() {
   editingFinanceId = null;
   document.getElementById('modal-title').textContent = 'Add Finance Record';
