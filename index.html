@@ -3030,6 +3030,17 @@ body.light-mode select option {
     padding-top:calc(58px + env(safe-area-inset-top));
   }
 }
+
+/* 6 ─ Cash Flow Snapshot on mobile: the card was a fixed 360px tall with the
+   four bars vertically centred, leaving big empty bands above and below.
+   Let it size to its content instead (desktop keeps the 360px layout). */
+@media (max-width:900px) {
+  .cf-snap-body { height:auto !important; }
+  .cf-snap-body #dashChart-liquid-wrap {
+    height:auto !important; justify-content:flex-start !important;
+    gap:16px !important; padding:4px 2px 2px !important;
+  }
+}
 </style>
 
 <div id="app-lock-overlay" class="hidden">
@@ -5150,7 +5161,7 @@ function passAppLockGate() {
       <div class="charts-row">
         <div class="glass-panel" style="margin-bottom:0">
           <div class="panel-title">Cash Flow Snapshot</div>
-          <div style="height:360px"><canvas id="dashChart"></canvas></div>
+          <div class="cf-snap-body" style="height:360px"><canvas id="dashChart"></canvas></div>
         </div>
         <div class="glass-panel" style="margin-bottom:0">
           <div class="panel-title">Spending Mix</div>
