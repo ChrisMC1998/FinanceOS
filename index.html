@@ -8575,6 +8575,7 @@ function renderTrackingModeCard() {
   const manBtn   = document.getElementById('trk-opt-manual');
   if (!cloudBtn || !manBtn) return;
   const mode = getTrackingMode();
+  if (typeof refreshBackupBanner === 'function') refreshBackupBanner();
   const signedIn = !!cloudSession;
   cloudBtn.classList.toggle('active', mode === 'cloud');
   manBtn.classList.toggle('active', mode === 'manual');
@@ -8803,7 +8804,6 @@ function setLocalArray(key, value) {
 
 async function pushTableToCloud(key, table, uid) {
   const localArr = getLocalArray(key) || [];
-  const localIds = localArr.map(r => r.id);
 
   const { data: existing, error: selErr } = await sb.from(table).select('id').eq('user_id', uid);
   if (selErr) throw selErr;
@@ -8814,7 +8814,10 @@ async function pushTableToCloud(key, table, uid) {
     const { error } = await sb.from(table).upsert(rows, { onConflict: 'user_id,id' });
     if (error) throw error;
   }
-  const toDelete = cloudIds.filter(id => !localIds.includes(id));
+  // Compare ids as strings (subscription ids are strings, cloud may return numbers) and
+  // against the LIVE array, so a record added while this push was running is never deleted.
+  const liveIds = new Set((getLocalArray(key) || []).map(r => String(r.id)));
+  const toDelete = cloudIds.filter(id => !liveIds.has(String(id)));
   if (toDelete.length) {
     const { error } = await sb.from(table).delete().eq('user_id', uid).in('id', toDelete);
     if (error) throw error;
@@ -8857,18 +8860,27 @@ async function pullAllFromCloud() {
 }
 
 // Manual "Sync Now" / auto-sync entry point — always pushes local → cloud.
-async function syncNow(opts) {
-  if (!cloudSession) return;
+// Pushes are serialised: if a sync is already running, one more run is queued so the latest
+// local state always goes up, and two pushes never overlap/race each other.
+let _syncPromise = null, _syncAgain = false;
+function syncNow(opts) {
+  if (!cloudSession) return Promise.resolve();
   // Data Tracking Mode: Manual JSON never pushes automatically.
-  if (!isCloudTrackingOn() && !(opts && opts.force)) return;
-  try {
-    await pushAllToCloud();
-    setCloudStatus('synced');
-    setTimeout(() => setCloudStatus('connected'), 2000);
-  } catch (err) {
-    console.error('Cloud sync error:', err);
-    setCloudStatus('error');
-  }
+  if (!isCloudTrackingOn() && !(opts && opts.force)) return Promise.resolve();
+  if (_syncPromise) { _syncAgain = true; return _syncPromise; }
+  _syncPromise = (async () => {
+    try {
+      do { _syncAgain = false; await pushAllToCloud(); } while (_syncAgain);
+      setCloudStatus('synced');
+      setTimeout(() => setCloudStatus('connected'), 2000);
+    } catch (err) {
+      console.error('Cloud sync error:', err);
+      setCloudStatus('error');
+    } finally {
+      _syncPromise = null;
+    }
+  })();
+  return _syncPromise;
 }
 
 // Explicit "Backup to Cloud" action for the UI (identical to syncNow, kept as
@@ -19252,6 +19264,11 @@ function downloadBackup() {
   const date = new Date().toISOString().split('T')[0];
   a.href = url; a.download = `financeos_backup_${date}.json`; a.click();
   URL.revokeObjectURL(url);
+  try {
+    localStorage.setItem('financeOS_lastBackup', Date.now().toString());
+    localStorage.removeItem('financeOS_backupDismissed');
+  } catch (e) {}
+  document.getElementById('backup-banner')?.classList.add('hidden');
 }
 
 function handleRestoreFile(e) {
@@ -20483,7 +20500,13 @@ function updateChartSymbol() {
     if (banner) banner.classList.remove('hidden');
   }
 
+  function isManualMode() {
+    try { return localStorage.getItem('fos_tracking_mode') === 'manual'; } catch (e) { return false; }
+  }
+
   function checkAndShow() {
+    // Cloud Tracking saves automatically — the JSON backup reminder is for Manual JSON mode only
+    if (!isManualMode()) { document.getElementById('backup-banner')?.classList.add('hidden'); return; }
     // Don't show again if dismissed today
     const dismissed = localStorage.getItem(DISMISS_KEY);
     if (dismissed) {
@@ -20493,19 +20516,12 @@ function updateChartSymbol() {
     if (daysSinceBackup() >= DAYS_LIMIT) showBanner();
   }
 
-  // Stamp backup time whenever the existing export runs
-  const _origExport = window.exportData;
-  if (typeof _origExport === 'function') {
-    window.exportData = function(...args) {
-      localStorage.setItem(BACKUP_KEY, Date.now().toString());
-      localStorage.removeItem(DISMISS_KEY);
-      document.getElementById('backup-banner')?.classList.add('hidden');
-      return _origExport.apply(this, args);
-    };
-  }
+  // Re-evaluate the banner (called on load and whenever the tracking mode changes)
+  window.refreshBackupBanner = checkAndShow;
 
   // Run check on load
-  window.addEventListener('DOMContentLoaded', checkAndShow);
+  if (document.readyState === 'loading') window.addEventListener('DOMContentLoaded', checkAndShow);
+  else checkAndShow();
 })();
 
 function dismissBackupBanner() {
@@ -20517,11 +20533,7 @@ function triggerBackupExport() {
   localStorage.setItem('financeOS_lastBackup', Date.now().toString());
   localStorage.removeItem('financeOS_backupDismissed');
   document.getElementById('backup-banner')?.classList.add('hidden');
-  if (typeof exportData === 'function') {
-    exportData();
-  } else {
-    alert('Export function not found — please back up manually.');
-  }
+  downloadBackup();
 }
 
 // ══════════════════════════════════════════════════
