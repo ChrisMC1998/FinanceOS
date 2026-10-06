@@ -1312,12 +1312,12 @@ body.light-mode #daily-summary-time { color-scheme: light !important; }
 .calc-item-val { font-family:'DM Mono',monospace; font-weight:700; font-size:0.92rem; }
 .toggle-row { display:flex; align-items:center; gap:10px; padding:9px 12px; background:rgba(255,255,255,0.03); border-radius:9px; border:1px solid var(--glass-border); margin-bottom:12px; }
 .toggle-label { font-size:0.8rem; color:var(--text-mid); flex:1; }
-.toggle-switch { position:relative; width:34px; height:19px; }
-.toggle-switch input { opacity:0; width:0; height:0; }
-.toggle-slider { position:absolute; inset:0; background:rgba(255,255,255,0.1); border:1px solid rgba(255,255,255,0.25); border-radius:19px; cursor:pointer; transition:0.18s; }
-.toggle-slider:before { content:''; position:absolute; width:13px; height:13px; left:2px; top:2px; background:white; border-radius:50%; transition:0.18s; }
+.toggle-switch { position:relative; display:inline-block; flex:0 0 36px; width:36px; min-width:36px; height:20px; vertical-align:middle; box-sizing:border-box; }
+.toggle-switch input { position:absolute; opacity:0; width:0; height:0; margin:0; }
+.toggle-slider { position:absolute; inset:0; box-sizing:border-box; background:rgba(255,255,255,0.1); border:1px solid rgba(255,255,255,0.25); border-radius:20px; cursor:pointer; transition:0.18s; }
+.toggle-slider:before { content:''; position:absolute; box-sizing:border-box; width:14px; height:14px; left:2px; top:2px; background:white; border-radius:50%; transition:0.18s; }
 .toggle-switch input:checked + .toggle-slider { background:var(--accent); border-color:var(--accent); }
-.toggle-switch input:checked + .toggle-slider:before { transform:translateX(15px); }
+.toggle-switch input:checked + .toggle-slider:before { transform:translateX(16px); }
 
 /* Ensure Light Mode toggles are also perfectly visible */
 body.light-mode .toggle-slider { background:rgba(0,0,0,0.1); border-color:rgba(0,0,0,0.2); }
@@ -3750,7 +3750,29 @@ async function obFinish() {
   if (activeView === 'dashboard') { renderDashboard(); }
 }
 
+// ── PROFILE STORE ─────────────────────────────────────────────────────────
+// Profile edits (name, workspace, age bracket, income, work type) are saved per account:
+//  • on this device (fos_profile_v1, keyed by the account email), and
+//  • on the cloud account itself (Supabase user_metadata.profile) so they survive a cleared
+//    browser / new device. The most recently saved copy wins.
+const PROFILE_STORE_KEY = 'fos_profile_v1';
+function currentProfileKey() {
+  try { return String(JSON.parse(localStorage.getItem('fos_current_user') || '{}').identifier || '').toLowerCase(); }
+  catch (e) { return ''; }
+}
+function getUserProfile() {
+  let local = {}, cloud = {};
+  try { local = JSON.parse(localStorage.getItem(PROFILE_STORE_KEY) || '{}')[currentProfileKey()] || {}; } catch (e) {}
+  try {
+    if (typeof cloudSession !== 'undefined' && cloudSession && cloudSession.user && cloudSession.user.user_metadata) {
+      cloud = cloudSession.user.user_metadata.profile || {};
+    }
+  } catch (e) {}
+  return ((cloud.updatedAt || 0) > (local.updatedAt || 0)) ? cloud : local;
+}
+
 function applyLoggedInUser(name) {
+  { const _p = getUserProfile(); if (_p && _p.name) name = _p.name; }
   const first = name.split(' ')[0];
   const sidebarEl   = document.getElementById('sidebar-user-name');
   const portfolioEl = document.getElementById('portfolio-user-name');
@@ -3777,7 +3799,11 @@ function applyLoggedInUser(name) {
   if (setDispHandle) setDispHandle.textContent = '@' + name.toLowerCase().replace(/\s+/g, '');
   if (setDispInitial) setDispInitial.textContent = name.charAt(0).toUpperCase();
   if (setInputName) setInputName.value = name;
-  if (setInputWorkspace) setInputWorkspace.value = name + "'s Workspace";
+  const _prof = getUserProfile();
+  if (setInputWorkspace) setInputWorkspace.value = _prof.workspace || (name + "'s Workspace");
+  // Email always comes from the signed-in account (cloud or local)
+  const _acctEmail = (currUser.identifier && String(currUser.identifier).includes('@')) ? currUser.identifier : '';
+  if (setInputEmail && _acctEmail) setInputEmail.value = _acctEmail;
 
   // Pre-fill dropdowns from database
   if (userData) {
@@ -3795,46 +3821,72 @@ function applyLoggedInUser(name) {
       });
     }
   }
+
+  // Saved profile (works for cloud sign-in too) overrides the defaults above
+  if (_prof.age && setInputAge) setInputAge.value = _prof.age;
+  if (_prof.income && setInputIncome) setInputIncome.value = _prof.income;
+  if (_prof.workType) {
+    document.querySelectorAll('#set-input-worktype .set-chip').forEach(c => {
+      c.classList.toggle('active', c.dataset.val === _prof.workType);
+    });
+  }
 }
 
 // Function to save the profile from the settings menu and trigger chart updates
-function saveUserProfile(btn) {
+async function saveUserProfile(btn) {
   const newName = document.getElementById('set-input-name').value.trim();
+  if (!newName) { if (typeof showSettingsToast === 'function') showSettingsToast('Please enter your full name'); return; }
+  const workspace = document.getElementById('set-input-workspace').value.trim() || (newName + "'s Workspace");
   const newAge = document.getElementById('set-input-age').value;
   const newIncome = document.getElementById('set-input-income').value;
   const activeWorkTypeChip = document.querySelector('#set-input-worktype .set-chip.active');
   const workType = activeWorkTypeChip ? activeWorkTypeChip.dataset.val : 'Individual';
 
   const currUser = JSON.parse(localStorage.getItem('fos_current_user') || '{}');
+  const profile = { name: newName, workspace, age: newAge, income: newIncome, workType, updatedAt: Date.now() };
+
+  // 1) Always save on this device (keyed by account email)
+  try {
+    const store = JSON.parse(localStorage.getItem(PROFILE_STORE_KEY) || '{}');
+    store[String(currUser.identifier || '').toLowerCase()] = profile;
+    localStorage.setItem(PROFILE_STORE_KEY, JSON.stringify(store));
+  } catch (e) { console.error('Profile save failed:', e); }
+
+  // 2) Keep the legacy local user record in step (only exists for local accounts)
   let users = JSON.parse(localStorage.getItem('fos_users') || '[]');
   const userIdx = users.findIndex(u => u.identifier === currUser.identifier);
-
   if (userIdx > -1) {
-    // Update the user record
     users[userIdx].name = newName;
     if (!users[userIdx].onboarding) users[userIdx].onboarding = {};
     users[userIdx].onboarding.age = newAge;
     users[userIdx].onboarding.income = newIncome;
     users[userIdx].workType = workType;
-
-    // Save back to storage
     localStorage.setItem('fos_users', JSON.stringify(users));
-    
-    // Update active session
-    currUser.name = newName;
-    localStorage.setItem('fos_current_user', JSON.stringify(currUser));
-
-    // Re-apply to UI
-    applyLoggedInUser(newName);
-    
-    // CRITICAL: Re-render the Portfolio Analytics to instantly update the Systemic Exposure chart!
-    if (activeView === 'port-analytics') {
-      renderPortAnalytics();
-    }
   }
 
+  // 3) Active session
+  currUser.name = newName;
+  localStorage.setItem('fos_current_user', JSON.stringify(currUser));
+
+  // 4) Cloud account (so it survives clearing the browser / another device)
+  let cloudOk = null;
+  if (typeof cloudSession !== 'undefined' && cloudSession && typeof sb !== 'undefined') {
+    try {
+      const { data, error } = await sb.auth.updateUser({ data: { name: newName, profile } });
+      if (error) throw error;
+      if (data && data.user) cloudSession.user = data.user;
+      cloudOk = true;
+    } catch (err) { console.error('Cloud profile update failed:', err); cloudOk = false; }
+  }
+
+  // Re-apply to UI + refresh the Systemic Exposure chart
+  applyLoggedInUser(newName);
+  if (activeView === 'port-analytics') renderPortAnalytics();
+
   // Visual Feedback
-  if(typeof showSettingsToast === 'function') showSettingsToast('Updated: Profile & Demographics');
+  if (typeof showSettingsToast === 'function') {
+    showSettingsToast(cloudOk === false ? 'Profile saved on this device (cloud update failed — will retry on next save)' : 'Updated: Profile & Demographics');
+  }
   const origHtml = btn.innerHTML;
   btn.innerHTML = '<i class="fas fa-check-double"></i> Saved!';
   setTimeout(() => btn.innerHTML = origHtml, 2500);
@@ -7364,7 +7416,7 @@ function passAppLockGate() {
               </div>
               <div>
                 <div class="set-desc readable-white" style="text-transform:uppercase; letter-spacing:1px; margin-bottom:2px; font-weight:600; font-size:0.6rem;">WORKSPACE</div>
-                <input type="text" id="set-input-workspace" class="set-input" style="width:100%; padding: 5px 10px;" value="Chris Mcguinness">
+                <input type="text" id="set-input-workspace" class="set-input" style="width:100%; padding: 5px 10px;" value="">
               </div>
             </div>
 
@@ -13015,6 +13067,9 @@ function renderPortAnalytics() {
         if (userData.onboarding.age) ageTier = userData.onboarding.age;
         if (userData.onboarding.income) incomeTier = userData.onboarding.income;
       }
+      const _sp = (typeof getUserProfile === 'function') ? getUserProfile() : {};
+      if (_sp.age) ageTier = _sp.age;
+      if (_sp.income) incomeTier = _sp.income;
     } catch(e) { }
 
     let baseData;
@@ -23207,10 +23262,15 @@ function handleThemeToggle(checkbox) {
 
 // ── NEW: SETTINGS TOAST ENGINE ──
 let settingsToastTimeout;
-function showSettingsToast(msg) {
+function showSettingsToast(msg, customDesc) {
   const toast = document.getElementById('settings-right-toast');
   if (!toast) return;
-  
+  window._lastSettingsToast = Date.now();
+  // Older call style: showSettingsToast('timeFormat', 'Format set to 12h') → show the description
+  if (customDesc !== undefined) {
+    const cfg = (typeof SETTINGS_TOAST_MESSAGES !== 'undefined') ? SETTINGS_TOAST_MESSAGES[msg] : null;
+    msg = (cfg && msg !== 'toggle') ? (cfg.title + ': ' + customDesc) : customDesc;
+  }
   document.getElementById('settings-right-msg').textContent = msg;
   toast.style.transform = 'translateX(0)'; // Slide it in
 
@@ -23221,6 +23281,28 @@ function showSettingsToast(msg) {
     toast.style.transform = 'translateX(150%)'; // Slide it out
   }, 3000); 
 }
+
+// Safety net: any settings toggle / chip change that didn't raise its own popup still gets one
+(function initSettingsChangeToasts() {
+  function maybeToast(label, t0) {
+    setTimeout(() => {
+      if (!window._lastSettingsToast || window._lastSettingsToast < t0) showSettingsToast('Updated: ' + label);
+    }, 350);
+  }
+  // capture phase → t0 is taken BEFORE the control's own handler runs
+  document.addEventListener('click', e => {
+    const chip = e.target.closest && e.target.closest('#settings-modal .set-chip');
+    if (!chip || chip.closest('#set-input-worktype')) return;
+    maybeToast(chip.textContent.trim() || 'Setting', Date.now());
+  }, true);
+  document.addEventListener('change', e => {
+    const el = e.target;
+    if (!el || !el.closest || !el.closest('#settings-modal')) return;
+    if (!['checkbox', 'radio', 'range', 'color'].includes(el.type)) return;
+    const lbl = el.closest('.set-row') && el.closest('.set-row').querySelector('.set-lbl');
+    maybeToast(lbl ? lbl.textContent.trim() : 'Setting', Date.now());
+  }, true);
+})();
 
 // ── NEW: SETTINGS TOGGLE LOGIC ──
 function toggleSetting(settingId, settingName, checkbox) {
@@ -24781,7 +24863,7 @@ function renderSubscriptions() {
 
 <div id="undo-toast"></div>
 
-<div id="settings-right-toast" class="set-card" style="position:fixed; bottom:20px; right:20px; margin:0; border-left:4px solid #a78bfa; padding:12px 16px; display:flex; align-items:center; gap:12px; transform:translateX(150%); transition:transform 0.3s cubic-bezier(0.4, 0, 0.2, 1); z-index:9999; box-shadow:0 10px 25px rgba(0,0,0,0.15);">
+<div id="settings-right-toast" class="set-card" style="position:fixed; bottom:20px; right:20px; margin:0; border-left:4px solid #a78bfa; padding:12px 16px; display:flex; align-items:center; gap:12px; transform:translateX(150%); transition:transform 0.3s cubic-bezier(0.4, 0, 0.2, 1); z-index:100050; pointer-events:none; box-shadow:0 10px 25px rgba(0,0,0,0.15);">
   <div style="width:28px; height:28px; border-radius:50%; background:rgba(167,139,250,0.15); color:#a78bfa; display:flex; align-items:center; justify-content:center; flex-shrink:0;">
     <i class="fas fa-check"></i>
   </div>
