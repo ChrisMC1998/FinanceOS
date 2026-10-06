@@ -2150,7 +2150,10 @@ body.light-mode .tag-suggestion-item { color:#0f172a; }
 .more-toggle { display:flex; align-items:center; gap:8px; font-size:0.78rem; color:var(--text-mid); cursor:pointer; padding:6px 0; margin-bottom:6px; user-select:none; }
 .more-toggle .ms { color:var(--text-muted); font-size:0.72rem; flex:1; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
 #entry-err { color:#ef4444; font-size:0.78rem; margin-top:8px; }
-#entry-err:empty { display:none; }
+#entry-err:empty, #port-err:empty { display:none; }
+#port-err { color:#ef4444; font-size:0.78rem; margin-top:8px; }
+#p-type-seg { flex-wrap:wrap; }
+#p-type-seg button { flex:1 1 28%; }
 #modal .modal-actions { flex-wrap:wrap; }
 .input-field.err { border-color:#ef4444; }
 .tag-filter-row { display:flex; flex-wrap:wrap; gap:5px; margin-bottom:10px; align-items:center; }
@@ -6672,51 +6675,53 @@ function passAppLockGate() {
   <div class="modal-box port-modal">
     <div class="modal-title" style="color:#c4b5fd" id="port-modal-title">Add Portfolio Asset</div>
 
+    <div class="type-seg" id="p-type-seg">
+      <button type="button" data-t="Gold" onclick="setPortType('Gold')">Gold</button>
+      <button type="button" data-t="Silver" onclick="setPortType('Silver')">Silver</button>
+      <button type="button" data-t="MutualFund" onclick="setPortType('MutualFund')">Mutual Fund</button>
+      <button type="button" data-t="RealEstate" onclick="setPortType('RealEstate')">Real Estate</button>
+      <button type="button" data-t="Stocks" onclick="setPortType('Stocks')">Stocks</button>
+      <button type="button" data-t="Crypto" onclick="setPortType('Crypto')">Crypto</button>
+      <button type="button" data-t="" onclick="setPortType('')">Other</button>
+    </div>
+    <input type="text" id="p-assetType" class="input-field port-focus" placeholder="Asset type, e.g. Bonds, Fixed Deposit" style="display:none;margin-bottom:10px" oninput="updatePortUnit()">
+    <div class="input-group">
+      <label>Name / Sub-Type</label>
+      <input type="text" id="p-subType" class="input-field port-focus" list="p-sub-list" autocomplete="off" placeholder="e.g. Silver Coins, Parag Parikh Flexi Cap, Plot name" oninput="portAutofill()" onchange="portAutofill()">
+      <datalist id="p-sub-list"></datalist>
+    </div>
     <div class="modal-row">
       <div class="input-group">
-        <label>Asset Type</label>
-        <input type="text" id="p-assetType" class="input-field port-focus" placeholder="Gold / Silver / Real Estate / MF / Bonds / Stocks / Crypto" oninput="updatePortUnit()">
+        <label>Quantity</label>
+        <input type="number" id="p-qty" class="input-field port-focus" placeholder="0" inputmode="decimal" oninput="syncPortTotal('qty');calcPortPreview()">
+        <div class="qa-chips" id="p-qty-chips"></div>
       </div>
       <div class="input-group">
-        <label>Sub-Type</label>
-        <input type="text" id="p-subType" class="input-field port-focus" placeholder="e.g. Coins, Jewellery, Land, House, Stock Name...">
+        <label>Unit <span id="p-unit-hint" style="color:#a78bfa;font-size:0.7rem"></span></label>
+        <input type="text" id="p-unit" class="input-field port-focus" placeholder="grams / units / sq.ft" oninput="this.dataset.auto='0'">
       </div>
     </div>
-
+    <div class="modal-row">
+      <div class="input-group">
+        <label id="p-lbl-buy">Purchase Price / unit (₹)</label>
+        <input type="number" id="p-buyPrice" class="input-field port-focus" placeholder="0.00" inputmode="decimal" oninput="syncPortTotal('buy');calcPortPreview()">
+        <div class="qa-chips" id="p-buy-chips"></div>
+      </div>
+      <div class="input-group" id="p-total-grp">
+        <label>Total paid (₹) <span style="color:var(--text-muted);font-size:0.68rem">→ fills price</span></label>
+        <input type="number" id="p-total" class="input-field port-focus" placeholder="0.00" inputmode="decimal" oninput="syncPortTotal('total');calcPortPreview()">
+      </div>
+    </div>
+    <div class="input-group">
+      <label id="p-lbl-cur">Current Price / unit (₹)</label>
+      <input type="number" id="p-currPrice" class="input-field port-focus" placeholder="0.00" inputmode="decimal" oninput="this.dataset.auto='0';calcPortPreview()">
+      <div class="qa-hint" id="p-cur-hint" style="color:var(--text-muted)"></div>
+    </div>
     <div class="modal-row">
       <div class="input-group">
         <label>Date of Purchase</label>
         <input type="date" id="p-date" class="input-field port-focus">
       </div>
-      <div class="input-group" style="opacity:0;pointer-events:none">
-        <label>&nbsp;</label>
-        <input type="text" class="input-field" disabled>
-      </div>
-    </div>
-
-    <div class="modal-row">
-      <div class="input-group">
-        <label>Quantity</label>
-        <input type="number" id="p-qty" class="input-field port-focus" placeholder="0" oninput="calcPortPreview()">
-      </div>
-      <div class="input-group">
-        <label>Unit <span id="p-unit-hint" style="color:#a78bfa;font-size:0.7rem">(grams)</span></label>
-        <input type="text" id="p-unit" class="input-field port-focus" placeholder="grams / units / sq.ft">
-      </div>
-    </div>
-
-    <div class="modal-row">
-      <div class="input-group">
-        <label>Purchase Price / unit (₹)</label>
-        <input type="number" id="p-buyPrice" class="input-field port-focus" placeholder="0.00" oninput="calcPortPreview()">
-      </div>
-      <div class="input-group">
-        <label>Current Price / unit (₹)</label>
-        <input type="number" id="p-currPrice" class="input-field port-focus" placeholder="0.00" oninput="calcPortPreview()">
-      </div>
-    </div>
-
-    <div class="modal-row">
       <div class="input-group">
         <label>Status</label>
         <select id="p-status" class="input-field port-focus" onchange="togglePortSellFields();calcPortPreview()">
@@ -6724,20 +6729,15 @@ function passAppLockGate() {
           <option value="sold">Sold</option>
         </select>
       </div>
-      <div class="input-group" id="p-status-spacer" style="opacity:0;pointer-events:none">
-        <label>&nbsp;</label>
-        <input type="text" class="input-field" disabled>
-      </div>
     </div>
-
     <div class="modal-row" id="p-sell-fields" style="display:none">
       <div class="input-group">
         <label>Sell Date</label>
         <input type="date" id="p-sellDate" class="input-field port-focus">
       </div>
       <div class="input-group">
-        <label>Sell Price / unit (₹)</label>
-        <input type="number" id="p-sellPrice" class="input-field port-focus" placeholder="0.00" oninput="calcPortPreview()">
+        <label id="p-lbl-sell">Sell Price / unit (₹)</label>
+        <input type="number" id="p-sellPrice" class="input-field port-focus" placeholder="0.00" inputmode="decimal" oninput="calcPortPreview()">
       </div>
     </div>
 
@@ -6754,8 +6754,10 @@ function passAppLockGate() {
       <input type="text" id="p-notes" class="input-field port-focus" placeholder="e.g. SGB 2023-24, Plot near highway…">
     </div>
 
-    <div class="modal-actions" style="display:flex;gap:8px;margin-top:1.3rem">
+    <div id="port-err"></div>
+    <div class="modal-actions" style="display:flex;gap:8px;margin-top:1.3rem;flex-wrap:wrap">
       <button onclick="savePortEntry()" class="btn-add" style="flex:1;justify-content:center;background:rgba(167,139,250,0.8)" id="port-save-btn">Save Asset</button>
+      <button onclick="savePortEntry(true)" class="btn-secondary" id="port-another-btn" title="Ctrl+Enter" style="white-space:nowrap">Save &amp; add another</button>
       <button onclick="closePortModal()" class="btn-secondary">Cancel</button>
       <button onclick="deleteCurrentPortEntry()" class="btn-delete" style="display:none" id="port-delete-btn"><i class="fas fa-trash"></i> Delete</button>
     </div>
@@ -8846,7 +8848,7 @@ async function downloadCloudSnapshot(uid) {
   const blob = new Blob([JSON.stringify(out, null, 2)], { type: 'application/json' });
   const a = document.createElement('a');
   a.href = URL.createObjectURL(blob);
-  a.download = 'financeos_cloud_snapshot_' + new Date().toISOString().split('T')[0] + '.json';
+  a.download = 'financeos_cloud_snapshot_' + localISO() + '.json';
   a.click();
 }
 
@@ -10905,7 +10907,7 @@ function isNotifEnabled(key) {
 function checkAlerts() {
   if (!isNotifEnabled('desktop-notif')) return; // master switch
 
-  const today = new Date().toISOString().split('T')[0];
+  const today = localISO();
   const data = getFilteredData();
 
   // ── 1. CC Utilization Alerts ─────────────────────────────────────────
@@ -16079,28 +16081,67 @@ function deleteItem(id) {
 }
 
 // ── PORTFOLIO ENTRY MODAL ──────────────────────────────────────────────────
+const _PORT_KEYS = ['Gold','Silver','MutualFund','RealEstate','Stocks','Crypto'];
+let _portDup = '';
+const _pEl = id => document.getElementById(id);
+const _pType = () => normalizeAssetType(_pEl('p-assetType').value.trim());
+function setPortType(v) { _pEl('p-assetType').value = v; _pEl('p-unit').dataset.auto = '1'; _pEl('p-currPrice').dataset.auto = '1'; if (v === '') { _pEl('p-assetType').style.display = 'block'; _pEl('p-assetType').focus(); } updatePortUnit(); portAutofill(); }
+// Chips, labels and the Total field depend on the asset type. Gold/Silver are priced per unit;
+// funds, stocks, crypto and real estate store TOTAL amounts (that is how the app already computes them).
+function portUiSync() {
+  const t = _pType(), perUnit = !t || isQtyBased(t);
+  document.querySelectorAll('#p-type-seg button').forEach(b => b.classList.toggle('on', !!t && b.dataset.t === t));
+  _pEl('p-assetType').style.display = (t && !_PORT_KEYS.includes(t)) || (!t && _pEl('p-assetType').style.display === 'block') ? 'block' : 'none';
+  _pEl('p-lbl-buy').textContent  = perUnit ? 'Purchase Price / unit (₹)' : 'Amount Invested (₹)';
+  _pEl('p-lbl-cur').textContent  = perUnit ? 'Current Price / unit (₹)'  : 'Current Value (₹)';
+  _pEl('p-lbl-sell').textContent = perUnit ? 'Sell Price / unit (₹)'     : 'Sold For (₹)';
+  _pEl('p-total-grp').style.display = perUnit ? '' : 'none';
+  const subs = {}; portDb.forEach(r => { if (!t || normalizeAssetType(r.assetType) === t) { const k = (r.subType || '').trim(); if (k) subs[k] = (subs[k] || 0) + 1; } });
+  _pEl('p-sub-list').innerHTML = Object.entries(subs).sort((a, b) => b[1] - a[1]).map(x => `<option value="${_esc(x[0])}">`).join('');
+}
 function updatePortUnit() {
-  const t = document.getElementById('p-assetType').value;
-  
-  let unit = 'units'; // Default
+  const t = _pType();
+  let unit = 'units';
   if (t === 'Gold' || t === 'Silver') unit = 'grams';
   else if (t === 'RealEstate') unit = 'sq.ft';
   else if (t === 'Stocks') unit = 'shares';
   else if (t === 'Crypto') unit = 'tokens';
-  
-  document.getElementById('p-unit').value = unit;
-  document.getElementById('p-unit-hint').textContent = '('+unit+')';
+  const u = _pEl('p-unit');
+  if (!u.value || u.dataset.auto === '1') { u.value = unit; u.dataset.auto = '1'; }   // never overwrite a unit you typed / saved
+  _pEl('p-unit-hint').textContent = '(' + unit + ')';
+  portUiSync(); calcPortPreview();
+}
+// Prefill current price / unit from your latest holding of the same name (else same type) and offer past quantities & prices as chips
+function portAutofill() {
+  portUiSync();
+  if (editingPortId) return;
+  const t = _pType(), sub = _pEl('p-subType').value.trim().toLowerCase();
+  const same = portDb.filter(r => normalizeAssetType(r.assetType) === t && (r.subType || '').trim().toLowerCase() === sub && sub);
+  const pool = same.length ? same : portDb.filter(r => normalizeAssetType(r.assetType) === t);
+  const latest = pool.slice().sort((a, b) => b.id - a.id)[0];
+  const cur = _pEl('p-currPrice');
+  if (latest && (!cur.value || cur.dataset.auto === '1') && latest.currentPrice) {
+    cur.value = Math.round(latest.currentPrice * 100) / 100; cur.dataset.auto = '1';
+    _pEl('p-cur-hint').textContent = 'Auto-filled from your latest ' + (same.length ? (latest.subType || assetTypeLabel(t)) : assetTypeLabel(t)) + ' entry — edit if the price changed';
+  }
+  if (same.length && _pEl('p-unit').dataset.auto === '1') _pEl('p-unit').value = same[0].unit || _pEl('p-unit').value;
+  const top = (arr, n) => Object.entries(arr.reduce((o, v) => (o[v] = (o[v] || 0) + 1, o), {})).sort((a, b) => b[1] - a[1]).slice(0, n).map(x => Number(x[0]));
+  _pEl('p-qty-chips').innerHTML = top(same.map(r => r.quantity), 3).map(q => `<button type="button" class="qa-chip" onclick="_pEl('p-qty').value=${q};syncPortTotal('qty');calcPortPreview()">${q}</button>`).join('');
+  _pEl('p-buy-chips').innerHTML = same.slice().sort((a, b) => b.id - a.id).slice(0, 3).map(r => r.purchasePrice).filter((v, i, a) => a.indexOf(v) === i).map(v => `<button type="button" class="qa-chip" onclick="_pEl('p-buyPrice').value=${v};syncPortTotal('buy');calcPortPreview()">₹${Number(v).toLocaleString('en-IN')}</button>`).join('');
   calcPortPreview();
 }
+// Total paid ⇄ price per unit (per-unit assets only)
+function syncPortTotal(src) {
+  const t = _pType(); if (t && !isQtyBased(t)) return;
+  const q = parseFloat(_pEl('p-qty').value) || 0, buy = _pEl('p-buyPrice'), tot = _pEl('p-total');
+  if (src === 'total') { const v = parseFloat(tot.value); if (q > 0 && v > 0) buy.value = Math.round(v / q * 100) / 100; }
+  else { const b = parseFloat(buy.value); tot.value = q > 0 && b > 0 ? Math.round(q * b * 100) / 100 : ''; }
+}
 function togglePortSellFields() {
-  const isSold = document.getElementById('p-status').value === 'sold';
-  document.getElementById('p-sell-fields').style.display = isSold ? 'flex' : 'none';
-  if (isSold && !document.getElementById('p-sellDate').value) {
-    document.getElementById('p-sellDate').value = new Date().toISOString().split('T')[0];
-  }
-  if (isSold && !document.getElementById('p-sellPrice').value) {
-    document.getElementById('p-sellPrice').value = document.getElementById('p-currPrice').value;
-  }
+  const isSold = _pEl('p-status').value === 'sold';
+  _pEl('p-sell-fields').style.display = isSold ? 'flex' : 'none';
+  if (isSold && !_pEl('p-sellDate').value) _pEl('p-sellDate').value = localISO();
+  if (isSold && !_pEl('p-sellPrice').value) _pEl('p-sellPrice').value = _pEl('p-currPrice').value;
 }
 
 function calcPortPreview() {
@@ -16135,19 +16176,23 @@ function calcPortPreview() {
 }
 
 function openPortModal() {
-  editingPortId = null;
-  document.getElementById('port-modal-title').textContent = 'Add Portfolio Asset';
-  document.getElementById('p-date').value = new Date().toISOString().split('T')[0];
-  document.getElementById('p-unit-hint').textContent = '(grams)';
-  document.getElementById('port-save-btn').textContent = 'Save Asset';
-  document.getElementById('port-delete-btn').style.display = 'none';
-  ['p-assetType','p-subType','p-qty','p-unit','p-buyPrice','p-currPrice','p-notes','p-sellDate','p-sellPrice'].forEach(id => document.getElementById(id).value = '');
-  document.getElementById('p-status').value = 'active';
-  togglePortSellFields();
-  calcPortPreview();
-  document.getElementById('port-modal').style.display = 'flex';
+  editingPortId = null; _portDup = '';
+  _pEl('port-modal-title').textContent = 'Add Portfolio Asset';
+  _pEl('p-date').value = localISO();
+  _pEl('port-save-btn').textContent = 'Save Asset';
+  _pEl('port-delete-btn').style.display = 'none';
+  _pEl('port-another-btn').style.display = '';
+  _pEl('port-err').textContent = '';
+  ['p-assetType','p-subType','p-qty','p-unit','p-buyPrice','p-total','p-currPrice','p-notes','p-sellDate','p-sellPrice'].forEach(id => { _pEl(id).value = ''; _pEl(id).dataset.auto = '1'; });
+  ['p-qty-chips','p-buy-chips','p-cur-hint'].forEach(id => _pEl(id).innerHTML = '');
+  _pEl('p-status').value = 'active';
+  const last = portDb.slice().sort((a, b) => b.id - a.id)[0];            // start on your most recently used asset type
+  if (last) _pEl('p-assetType').value = normalizeAssetType(last.assetType);
+  togglePortSellFields(); updatePortUnit(); portAutofill();
+  _pEl('port-modal').style.display = 'flex';
+  setTimeout(() => { const el = _pEl('p-subType'); if (el) el.focus(); }, 60);
 }
-function closePortModal() { document.getElementById('port-modal').style.display = 'none'; }
+function closePortModal() { _pEl('port-modal').style.display = 'none'; }
 
 function editPortEntry(id) {
   const entry = portDb.find(x => x.id === id);
@@ -16167,7 +16212,11 @@ function editPortEntry(id) {
   document.getElementById('p-sellPrice').value = entry.sellPrice || '';
   document.getElementById('port-save-btn').textContent = 'Update Asset';
   document.getElementById('port-delete-btn').style.display = 'block';
-  updatePortUnit();
+  ['p-unit','p-currPrice'].forEach(id => _pEl(id).dataset.auto = '0');
+  _pEl('port-another-btn').style.display = 'none'; _pEl('port-err').textContent = '';
+  ['p-qty-chips','p-buy-chips','p-cur-hint'].forEach(id => _pEl(id).innerHTML = '');
+  _pEl('p-unit-hint').textContent = '(' + entry.unit + ')';
+  portUiSync(); syncPortTotal('qty');
   togglePortSellFields();
   calcPortPreview();
   document.getElementById('port-modal').style.display = 'flex';
@@ -16180,42 +16229,64 @@ function deleteCurrentPortEntry() {
   }
 }
 
-function savePortEntry() {
-  const assetType    = normalizeAssetType(document.getElementById('p-assetType').value.trim());
-  const subType      = document.getElementById('p-subType').value.trim();
-  const date         = document.getElementById('p-date').value;
-  const quantity     = parseFloat(document.getElementById('p-qty').value);
-  const unit         = document.getElementById('p-unit').value.trim() || 'units';
-  const purchasePrice = parseFloat(document.getElementById('p-buyPrice').value);
-  const currentPrice  = parseFloat(document.getElementById('p-currPrice').value);
-  const notes        = document.getElementById('p-notes').value.trim();
-  const status       = document.getElementById('p-status').value === 'sold' ? 'sold' : 'active';
-  const sellDate     = status === 'sold' ? document.getElementById('p-sellDate').value : '';
-  const sellPriceRaw = document.getElementById('p-sellPrice').value;
-  const sellPrice    = status === 'sold' && sellPriceRaw !== '' ? parseFloat(sellPriceRaw) : '';
-  if (!assetType || !date || !quantity || !purchasePrice || !currentPrice) {
-    alert('Please fill all required fields'); return;
+function savePortEntry(another) {
+  const assetType = normalizeAssetType(_pEl('p-assetType').value.trim());
+  const subType = _pEl('p-subType').value.trim(), date = _pEl('p-date').value;
+  const quantity = parseFloat(_pEl('p-qty').value), unit = _pEl('p-unit').value.trim() || 'units';
+  const purchasePrice = parseFloat(_pEl('p-buyPrice').value), currentPrice = parseFloat(_pEl('p-currPrice').value);
+  const notes = _pEl('p-notes').value.trim();
+  const status = _pEl('p-status').value === 'sold' ? 'sold' : 'active';
+  const sellDate = status === 'sold' ? _pEl('p-sellDate').value : '';
+  const sellRaw = _pEl('p-sellPrice').value, sellPrice = status === 'sold' && sellRaw !== '' ? parseFloat(sellRaw) : '';
+  const err = _pEl('port-err'), perUnit = !assetType || isQtyBased(assetType);
+  document.querySelectorAll('#port-modal .input-field.err').forEach(e => e.classList.remove('err'));
+  const bad = [];
+  if (!assetType) bad.push(['p-assetType', 'asset type']);
+  if (!(quantity > 0)) bad.push(['p-qty', 'quantity']);
+  if (!(purchasePrice > 0)) bad.push(['p-buyPrice', perUnit ? 'purchase price' : 'amount invested']);
+  if (!(currentPrice > 0)) bad.push(['p-currPrice', perUnit ? 'current price' : 'current value']);
+  if (!date) bad.push(['p-date', 'purchase date']);
+  if (status === 'sold' && !sellDate) bad.push(['p-sellDate', 'sell date']);
+  err.style.color = '';
+  if (bad.length) {
+    bad.forEach(b => { _pEl(b[0]).classList.add('err'); });
+    if (bad[0][0] === 'p-assetType') _pEl('p-assetType').style.display = 'block';
+    err.textContent = 'Please enter ' + bad.map(b => b[1]).join(', ') + '.'; _pEl(bad[0][0]).focus(); return;
   }
-  if (status === 'sold' && !sellDate) {
-    alert('Please set a sell date for a sold asset'); return;
+  err.textContent = '';
+  if (!editingPortId) {
+    const key = [assetType, subType.toLowerCase(), date, quantity, purchasePrice].join('|');
+    const dup = portDb.find(r => normalizeAssetType(r.assetType) === assetType && (r.subType || '').trim().toLowerCase() === subType.toLowerCase() && r.date === date && Number(r.quantity) === quantity && Number(r.purchasePrice) === purchasePrice);
+    if (_portDup !== key && dup) {
+      _portDup = key; err.style.color = '#f59e0b';
+      err.textContent = '⚠ Already added: ' + (subType || assetTypeLabel(assetType)) + ', ' + quantity + ' ' + unit + ' on ' + date + '. Press Save again to add it anyway.'; return;
+    }
   }
+  _portDup = '';
 
   if (editingPortId) {
     const idx = portDb.findIndex(x => x.id === editingPortId);
     if (idx >= 0) portDb[idx] = { ...portDb[idx], assetType, subType, date, quantity, unit, purchasePrice, currentPrice, notes, status, sellDate, sellPrice };
   } else {
-    portDb.push({ id:Date.now(), assetType, subType, date, quantity, unit, purchasePrice, currentPrice, notes, status, sellDate, sellPrice });
+    portDb.push({ id: Date.now(), assetType, subType, date, quantity, unit, purchasePrice, currentPrice, notes, status, sellDate, sellPrice });
   }
-
   scheduleSave();
   buildPortDropdowns();
-  closePortModal();
-
   if      (activeView === 'port-overview')  renderPortOverview();
   else if (activeView === 'port-table')     renderPortTable();
   else if (activeView === 'port-analytics') renderPortAnalytics();
   else if (activeView === 'dashboard')      renderDashboard();
+
+  if (another === true && !editingPortId) {   // keep type, name, date, unit & current price — clear the per-purchase fields
+    ['p-qty','p-buyPrice','p-total','p-notes'].forEach(id => _pEl(id).value = '');
+    err.style.color = '#34d399'; err.textContent = '✓ Saved ' + (subType || assetTypeLabel(assetType)) + ' — add the next one';
+    portAutofill(); calcPortPreview(); _pEl('p-qty').focus();
+  } else closePortModal();
 }
+document.addEventListener('keydown', e => {
+  const t = e.target; if (!t || !t.closest || !t.closest('#port-modal')) return;
+  if (e.key === 'Enter' && !e.shiftKey && t.tagName !== 'BUTTON') { e.preventDefault(); savePortEntry(e.ctrlKey || e.metaKey); }
+});
 
 // Quick action: mark a holding as Sold without opening the full modal.
 // Prefills sell price with the last known current price and sell date with today.
@@ -16225,7 +16296,7 @@ function markPortSold(id) {
   const entry = portDb[idx];
   const sellPrice = prompt(`Sell price / unit for ${assetTypeLabel(entry.assetType)} (${entry.subType || ''})?`, entry.currentPrice);
   if (sellPrice === null) return;
-  portDb[idx] = { ...entry, status: 'sold', sellDate: new Date().toISOString().split('T')[0], sellPrice: parseFloat(sellPrice) || entry.currentPrice };
+  portDb[idx] = { ...entry, status: 'sold', sellDate: localISO(), sellPrice: parseFloat(sellPrice) || entry.currentPrice };
   scheduleSave();
   if      (activeView === 'port-overview')  renderPortOverview();
   else if (activeView === 'port-table')     renderPortTable();
@@ -16641,7 +16712,7 @@ function openCreditModal() {
   document.getElementById('credit-modal-title').textContent = 'Add Credit Entry';
   document.getElementById('credit-save-btn').textContent = 'Save Entry';
   document.getElementById('credit-delete-btn').style.display = 'none';
-  document.getElementById('cr-startdate').value = new Date().toISOString().split('T')[0];
+  document.getElementById('cr-startdate').value = localISO();
   ['cr-lender','cr-principal','cr-outstanding','cr-interest','cr-emi','cr-duedate','cr-tenure','cr-bal-tenure','cr-enddate','cr-remarks'].forEach(id => {
     const el = document.getElementById(id); if (el) el.value = '';
   });
@@ -16901,7 +16972,7 @@ function openInsuranceModal() {
   document.getElementById('ins-veh-fuel').value = '';
   document.getElementById('ins-veh-usage').value = '';
   document.getElementById('ins-health-plantype').value = '';
-  document.getElementById('ins-start-date').value = new Date().toISOString().split('T')[0];
+  document.getElementById('ins-start-date').value = localISO();
   document.getElementById('ins-end-date').value = '';
   document.getElementById('ins-edit-id').value = '';
   setInsBucket('Motor');
@@ -17131,7 +17202,7 @@ function openClaimForm(claimId) {
   } else {
     ['claim-number','claim-type','claim-amt-claimed','claim-amt-approved','claim-amt-settled','claim-deductible','claim-provider','claim-surveyor','claim-settlement-date','claim-notes'].forEach(id => document.getElementById(id).value = '');
     document.getElementById('claim-status').value = 'Reported';
-    document.getElementById('claim-date').value = new Date().toISOString().split('T')[0];
+    document.getElementById('claim-date').value = localISO();
     document.getElementById('claim-incident-date').value = '';
   }
   document.getElementById('claim-modal').style.display = 'flex';
@@ -18472,7 +18543,7 @@ function runExport() {
   const blob = new Blob([csv], {type:'text/csv'});
   const url  = window.URL.createObjectURL(blob);
   const a    = document.createElement('a');
-  const date = new Date().toISOString().split('T')[0];
+  const date = localISO();
   a.href=url; a.download=`financeos_export_${date}.csv`; a.click();
   window.URL.revokeObjectURL(url);
   document.getElementById('export-modal').style.display='none';
@@ -18897,7 +18968,7 @@ async function runPDFExport() {
   doc.text('Generated by FinanceOS - Personal Finance Dashboard', pageWidth / 2, pageHeight - 10, { align: 'center' });
 
   // Save the PDF
-  const date = new Date().toISOString().split('T')[0];
+  const date = localISO();
   doc.save(`FinanceOS_Report_${date}.pdf`);
   
   document.getElementById('export-modal').style.display = 'none';
@@ -19340,7 +19411,7 @@ function updateGameStats() {
   const cashOnHand = totalInc - totalExp - totalInv - totalLoan;
   gameStats.networth = (cashOnHand>0 ? cashOnHand : 0) + totalInv - totalOutstandingDebt;
 
-  const today = new Date().toISOString().split('T')[0];
+  const today = localISO();
   if (gameStats.lastActivity !== today) {
     const yesterday = new Date(Date.now()-86400000).toISOString().split('T')[0];
     if (gameStats.lastActivity===yesterday) gameStats.trackingDays++;
@@ -19624,7 +19695,7 @@ function downloadBackup() {
   const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' });
   const url  = URL.createObjectURL(blob);
   const a    = document.createElement('a');
-  const date = new Date().toISOString().split('T')[0];
+  const date = localISO();
   a.href = url; a.download = `financeos_backup_${date}.json`; a.click();
   URL.revokeObjectURL(url);
   try {
@@ -24233,7 +24304,7 @@ if (wantsAnalytics) {
   }
 
   // Save
-  const dateStr = new Date().toISOString().split('T')[0];
+  const dateStr = localISO();
   doc.save('FinanceOS_Advanced_Report_' + dateStr + '.pdf');
 
   btnElement.innerHTML = originalHtml;
