@@ -2134,6 +2134,25 @@ body.light-mode .tag-suggestions { background:#fff; border-color:rgba(0,117,255,
 }
 body.light-mode .tag-suggestion-item { color:#0f172a; }
 .tag-suggestion-item:hover { background:rgba(0,117,255,0.1); }
+.tag-suggestion-item.sel { background:rgba(0,117,255,0.18); }
+.type-seg { display:flex; gap:4px; background:rgba(255,255,255,0.05); border:1px solid var(--glass-border); border-radius:11px; padding:3px; margin-bottom:12px; }
+.type-seg button { flex:1; border:0; background:transparent; color:var(--text-muted); padding:7px 4px; border-radius:8px; font-size:0.76rem; font-weight:600; cursor:pointer; font-family:inherit; transition:0.15s; }
+.type-seg button.on { background:var(--accent); color:#fff; }
+.qa-lbl { font-size:0.68rem; color:var(--text-muted); font-weight:600; text-transform:uppercase; letter-spacing:0.8px; }
+.qa-chips { display:flex; flex-wrap:wrap; gap:5px; margin-top:6px; }
+.qa-chips:empty { display:none; }
+.qa-chip { background:rgba(0,117,255,0.1); border:1px solid rgba(0,117,255,0.25); color:var(--text-main); border-radius:999px; padding:4px 10px; font-size:0.74rem; cursor:pointer; font-family:inherit; transition:0.14s; }
+.qa-chip:hover, .qa-chip.on { background:var(--accent); color:#fff; border-color:var(--accent); }
+.qa-msg { font-size:0.76rem; color:#34d399; margin:0 0 8px; }
+.qa-msg:empty { display:none; }
+.qa-hint { font-size:0.72rem; color:#f59e0b; margin-top:4px; }
+.qa-hint a { color:var(--accent); cursor:pointer; text-decoration:underline; }
+.more-toggle { display:flex; align-items:center; gap:8px; font-size:0.78rem; color:var(--text-mid); cursor:pointer; padding:6px 0; margin-bottom:6px; user-select:none; }
+.more-toggle .ms { color:var(--text-muted); font-size:0.72rem; flex:1; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+#entry-err { color:#ef4444; font-size:0.78rem; margin-top:8px; }
+#entry-err:empty { display:none; }
+#modal .modal-actions { flex-wrap:wrap; }
+.input-field.err { border-color:#ef4444; }
 .tag-filter-row { display:flex; flex-wrap:wrap; gap:5px; margin-bottom:10px; align-items:center; }
 .tag-filter-chip {
   display:inline-flex; align-items:center; gap:4px;
@@ -6576,55 +6595,72 @@ function passAppLockGate() {
 <div class="modal-overlay" id="modal">
   <div class="modal-box">
     <div class="modal-title" id="modal-title">Add Finance Record</div>
+    <div id="qa-wrap" style="display:none;margin-bottom:12px"><label class="qa-lbl">Quick add — tap to save</label><div class="qa-chips" id="qa-chips"></div></div>
+    <div class="qa-msg" id="qa-msg"></div>
+    <div class="type-seg" id="type-seg">
+      <button type="button" data-t="Expense" onclick="setEntryType('Expense')">Expense</button>
+      <button type="button" data-t="Loan" onclick="setEntryType('Loan')">Loan / EMI</button>
+      <button type="button" data-t="Investment" onclick="setEntryType('Investment')">Investment</button>
+      <button type="button" data-t="Income" onclick="setEntryType('Income')">Income</button>
+    </div>
+    <select id="inp-cat" style="display:none">
+      <option value="Expense">General Expense</option>
+      <option value="Loan">Loan / EMI</option>
+      <option value="Investment">Investment / Asset</option>
+      <option value="Income">Income</option>
+    </select>
     <div class="input-group">
-      <label>Entity Name</label>
-      <input type="text" id="inp-name" class="input-field" placeholder="e.g. HDFC Loan">
-    </div>
-    <div class="modal-row">
-      <div class="input-group">
-        <label>Amount (₹)</label>
-        <input type="number" id="inp-amt" class="input-field" placeholder="0.00">
-      </div>
-      <div class="input-group">
-        <label>Date</label>
-        <input type="date" id="inp-date" class="input-field">
-      </div>
+      <label>Amount (₹)</label>
+      <input type="number" id="inp-amt" class="input-field" placeholder="0.00" inputmode="decimal" min="0" style="font-size:1.1rem;font-weight:700">
+      <div class="qa-chips" id="amt-chips"></div>
     </div>
     <div class="input-group">
-      <label>Category Type</label>
-      <select id="inp-cat" class="input-field">
-        <option value="Expense">General Expense</option>
-        <option value="Loan">Loan / EMI</option>
-        <option value="Investment">Investment / Asset</option>
-        <option value="Income">Income</option>
-      </select>
+      <label>Category / Payee</label>
+      <div style="position:relative">
+        <input type="text" id="inp-name" class="input-field" placeholder="e.g. Food, HDFC Loan" autocomplete="off" oninput="entryNameInput()" onfocus="entryNameInput()" onblur="setTimeout(function(){var b=document.getElementById('name-suggestions');if(b)b.style.display='none';},150)">
+        <div class="tag-suggestions" id="name-suggestions"></div>
+      </div>
+      <div class="qa-hint" id="name-hint"></div>
     </div>
-    <div class="modal-row">
+    <div class="input-group">
+      <label>Date</label>
+      <input type="date" id="inp-date" class="input-field" onchange="syncDateChips()" oninput="syncDateChips()">
+      <div class="qa-chips" id="date-chips"><button type="button" class="qa-chip" data-d="0" onclick="setEntryDate(0)">Today</button><button type="button" class="qa-chip" data-d="1" onclick="setEntryDate(1)">Yesterday</button></div>
+    </div>
+    <div class="input-group">
+      <label>Notes (Optional)</label>
+      <input type="text" id="inp-notes" class="input-field" placeholder="Memo" oninput="_autoFill.notes=false" onfocus="if(_autoFill.notes)this.select()">
+      <div class="qa-chips" id="note-chips"></div>
+    </div>
+    <div class="more-toggle" onclick="toggleMoreDetails()"><i class="fas fa-chevron-right" id="more-chev" style="font-size:0.65rem;transition:0.15s"></i><span>More details</span><span class="ms" id="more-summary"></span></div>
+    <div id="more-details" style="display:none">
       <div class="input-group">
         <label>Sub-Category</label>
-        <input type="text" id="inp-sub" class="input-field" placeholder="e.g. Food, Stocks">
+        <input type="text" id="inp-sub" class="input-field" placeholder="Auto-filled from your history" oninput="_autoFill.sub=false">
       </div>
       <div class="input-group">
-        <label>Notes (Optional)</label>
-        <input type="text" id="inp-notes" class="input-field" placeholder="Memo">
+        <label>Paid via</label>
+        <select id="inp-pay" class="input-field" onchange="_autoFill.pay=false;renderMoreSummary()"></select>
+      </div>
+      <div class="input-group tag-input-wrap">
+        <label>Tags <span style="color:var(--text-muted);font-weight:400;text-transform:none;letter-spacing:0">(optional — press Enter or comma to add)</span></label>
+        <input type="text" id="inp-tags-input" class="input-field" placeholder="e.g. essential, emi, festival…" autocomplete="off" oninput="showTagSuggestions(this.value)" onkeydown="_autoFill.tags=false;handleTagKey(event)">
+        <div class="tag-suggestions" id="tag-suggestions"></div>
+        <div class="tag-chips" id="tag-chips-preview"></div>
+        <input type="hidden" id="inp-tags">
+      </div>
+      <div class="toggle-row">
+        <div class="toggle-label"><i class="fas fa-redo" style="color:var(--accent);margin-right:6px"></i> Recurring monthly <span style="color:var(--text-muted);font-size:0.68rem">(auto-adds each month)</span></div>
+        <label class="toggle-switch">
+          <input type="checkbox" id="inp-recurring">
+          <span class="toggle-slider"></span>
+        </label>
       </div>
     </div>
-    <div class="input-group tag-input-wrap">
-      <label>Tags <span style="color:var(--text-muted);font-weight:400;text-transform:none;letter-spacing:0">(optional — press Enter or comma to add)</span></label>
-      <input type="text" id="inp-tags-input" class="input-field" placeholder="e.g. essential, emi, festival…" autocomplete="off" oninput="showTagSuggestions(this.value)" onkeydown="handleTagKey(event)">
-      <div class="tag-suggestions" id="tag-suggestions"></div>
-      <div class="tag-chips" id="tag-chips-preview"></div>
-      <input type="hidden" id="inp-tags">
-    </div>
-    <div class="toggle-row">
-      <div class="toggle-label"><i class="fas fa-redo" style="color:var(--accent);margin-right:6px"></i> Recurring monthly</div>
-      <label class="toggle-switch">
-        <input type="checkbox" id="inp-recurring">
-        <span class="toggle-slider"></span>
-      </label>
-    </div>
+    <div id="entry-err"></div>
     <div class="modal-actions" style="display:flex;gap:8px;margin-top:1.3rem">
       <button onclick="saveEntry()" class="btn-add" style="flex:1;justify-content:center" id="fin-save-btn">Save Entry</button>
+      <button onclick="saveEntry(true)" class="btn-secondary" id="fin-another-btn" title="Ctrl+Enter" style="white-space:nowrap">Save &amp; add another</button>
       <button onclick="closeModal()" class="btn-secondary">Cancel</button>
       <button onclick="deleteCurrentEntry()" class="btn-delete" style="display:none" id="fin-delete-btn"><i class="fas fa-trash"></i> Delete</button>
     </div>
@@ -8979,6 +9015,7 @@ async function reconcileCloudAndLocalData(uid) {
     await syncNow();
   }
   setCloudStatus('connected');
+  if (typeof processRecurring === 'function') processRecurring();
   if (typeof renderDashboard === 'function' && activeView === 'dashboard') renderDashboard();
 }
 
@@ -11538,7 +11575,7 @@ const allData = getFilteredData();
     // Add to string variable instead of DOM
     htmlRows += `<tr data-id="${item.id}">
       <td style="width:52px;padding:0 12px;text-align:center;vertical-align:middle;white-space:nowrap"><input type="checkbox" class="txn-checkbox row-chk" data-id="${item.id}" onclick="onRowCheckChange()" style="vertical-align:middle"><span style="color:var(--text-muted);font-size:0.68rem;font-family:'DM Mono',monospace;margin-left:5px;display:inline-block;min-width:16px;text-align:right;vertical-align:middle">${index+1}</span></td>
-      <td style="font-weight:500">${item.name} ${item.recurring?'<i class="fas fa-redo recur-icon" title="Recurring"></i>':''} ${item.notes?`<span style="font-size:0.7rem;color:var(--text-muted)">(${item.notes})</span>`:''}</td>
+      <td style="font-weight:500">${item.name} ${item.recurring?'<i class="fas fa-redo recur-icon" title="Recurring"></i>':''} ${item.notes?`<span style="font-size:0.7rem;color:var(--text-muted)">(${item.notes})</span>`:''}${item.pay?` <span style="font-size:0.66rem;color:var(--text-muted)">· ${typeof payLabel==='function'?payLabel(item.pay):item.pay}</span>`:''}${item.auto?' <span style="font-size:0.6rem;color:var(--accent);border:1px solid rgba(0,117,255,0.3);border-radius:4px;padding:0 4px" title="Added automatically (recurring)">auto</span>':''}</td>
       <td><span class="badge ${bc}">${item.type}</span></td>
       <td style="color:var(--text-muted)">${item.sub||'-'}</td>
       <td>${tagsHtml}</td>
@@ -11625,6 +11662,12 @@ function editFinanceEntry(id) {
   renderTagChips(tags);
   document.getElementById('fin-save-btn').textContent = 'Update Entry';
   document.getElementById('fin-delete-btn').style.display = 'block';
+  _autoFill = { sub:false, notes:false, tags:false, pay:false };
+  ['amt-chips','note-chips','name-hint','qa-msg'].forEach(id => document.getElementById(id).innerHTML = '');
+  document.getElementById('name-suggestions').style.display = 'none';
+  fillPayOptions(entry.pay || '');
+  entryUiSync(true);
+  toggleMoreDetails(!!(entry.sub || tags.length || entry.recurring || entry.pay));
   document.getElementById('modal').style.display = 'flex';
 }
 
@@ -15542,49 +15585,314 @@ function syncMobileFabLabel() {
   sync();
 })();
 
+// ── SMART ADD-ENTRY ───────────────────────────────────────────────────────
+// Suggestions, autofill and quick-add chips are all built from the user's own entries (db).
+let _qaList = [], _qaLast = 0, _entryCount = 0, _nameSel = -1, _nameList = [], _noteList = [], _hintName = '';
+let _autoFill = { sub:false, notes:false, tags:false, pay:false };
+const _pad2 = n => String(n).padStart(2, '0');
+// LOCAL date (toISOString() is UTC and gave "yesterday" before 5:30 AM IST)
+function localISO(d) { d = d || new Date(); return d.getFullYear() + '-' + _pad2(d.getMonth() + 1) + '-' + _pad2(d.getDate()); }
+function _esc(x) { return String(x == null ? '' : x).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+function _lev(a, b) {
+  if (Math.abs(a.length - b.length) > 3) return 9;
+  let prev = Array.from({ length: b.length + 1 }, (_, i) => i);
+  for (let i = 1; i <= a.length; i++) {
+    const cur = [i];
+    for (let j = 1; j <= b.length; j++) cur[j] = Math.min(prev[j] + 1, cur[j - 1] + 1, prev[j - 1] + (a[i - 1] === b[j - 1] ? 0 : 1));
+    prev = cur;
+  }
+  return prev[b.length];
+}
+function _entryHistory(type) {
+  const m = {};
+  db.forEach(r => {
+    if (type && r.type !== type) return;
+    const k = String(r.name || '').trim().toLowerCase(); if (!k) return;
+    const h = m[k] || (m[k] = { name: r.name, n: 0, last: r, amounts: {}, notes: {} });
+    h.n++; if ((r.date || '') >= (h.last.date || '')) h.last = r;
+    h.amounts[r.amount] = (h.amounts[r.amount] || 0) + 1;
+    const nt = String(r.notes || '').trim(); if (nt) h.notes[nt] = (h.notes[nt] || 0) + 1;
+  });
+  Object.values(m).forEach(h => { h.name = h.last.name; });
+  return m;
+}
+const _topKeys = (o, n) => Object.entries(o).sort((a, b) => b[1] - a[1]).slice(0, n).map(x => x[0]);
+const _entryType = () => document.getElementById('inp-cat').value;
+
+function setEntryType(t) {
+  document.getElementById('inp-cat').value = t;
+  entryUiSync(!!editingFinanceId);
+  entryAutofill();
+}
+function setEntryDate(off) { const d = new Date(); d.setDate(d.getDate() - off); document.getElementById('inp-date').value = localISO(d); syncDateChips(); }
+function syncDateChips() {
+  const v = document.getElementById('inp-date').value, d = new Date(); d.setDate(d.getDate() - 1);
+  document.querySelectorAll('#date-chips .qa-chip').forEach(b => b.classList.toggle('on', v === (b.dataset.d === '0' ? localISO() : localISO(d))));
+}
+function toggleMoreDetails(force) {
+  const box = document.getElementById('more-details'), open = force !== undefined ? force : box.style.display === 'none';
+  box.style.display = open ? 'block' : 'none';
+  document.getElementById('more-chev').style.transform = open ? 'rotate(90deg)' : '';
+}
+function payLabel(v) {
+  if (!v) return '';
+  if (v.indexOf('cc:') === 0) { const c = (ccCards || []).find(x => String(x.id) === v.slice(3)); return c ? (c.nickname || c.bankName) : 'Credit card'; }
+  return v;
+}
+function fillPayOptions(cur) {
+  const sel = document.getElementById('inp-pay');
+  const base = ['Cash', 'UPI', 'Debit Card', 'Bank Transfer'];
+  let h = '<option value="">— Not set —</option>' + base.map(b => `<option value="${b}">${b}</option>`).join('');
+  const cards = (ccCards || []);
+  if (cards.length) h += '<optgroup label="Credit cards">' + cards.map(c => `<option value="cc:${_esc(c.id)}">${_esc(c.nickname || c.bankName)}</option>`).join('') + '</optgroup>';
+  sel.innerHTML = h; sel.value = cur || '';
+}
+function renderMoreSummary() {
+  const sub = document.getElementById('inp-sub').value.trim(), tags = getCurrentTags(), pay = payLabel(document.getElementById('inp-pay').value);
+  document.getElementById('more-summary').textContent = [pay, sub, tags.map(t => '#' + t).join(' ')].filter(Boolean).join(' · ');
+}
+
+// Name box: ranked, typo-tolerant suggestions + "similar to existing" hint
+function entryNameInput() {
+  const q = document.getElementById('inp-name').value.trim().toLowerCase();
+  const hist = _entryHistory(_entryType()), box = document.getElementById('name-suggestions'), hint = document.getElementById('name-hint');
+  _nameSel = -1; hint.innerHTML = ''; _hintName = '';
+  const list = Object.entries(hist).map(([k, h]) => {
+    let sc = 0;
+    if (!q) sc = 1;
+    else if (k.startsWith(q)) sc = 100;
+    else if (k.split(/[\s\-_\/]+/).some(w => w.startsWith(q))) sc = 80;
+    else if (k.includes(q)) sc = 60;
+    else if (q.length >= 3 && _lev(k.slice(0, q.length + 1), q) <= 1) sc = 40;
+    else if (q.length >= 4 && _lev(k, q) <= 2) sc = 30;
+    return { h, sc };
+  }).filter(x => x.sc > 0).sort((a, b) => b.sc - a.sc || b.h.n - a.h.n).slice(0, 6);
+  _nameList = list.map(x => x.h.name);
+  const exact = !!hist[q];
+  if (list.length && !(exact && list.length === 1)) {
+    box.style.display = 'block';
+    box.innerHTML = list.map((x, i) => `<div class="tag-suggestion-item" onmousedown="event.preventDefault();pickEntryName(${i})">${_esc(x.h.name)} <span style="color:var(--text-muted);font-size:0.68rem">×${x.h.n}</span></div>`).join('');
+  } else box.style.display = 'none';
+  if (q.length >= 4 && !exact) {
+    const near = Object.keys(hist).find(k => _lev(k, q) <= 2);
+    if (near) { _hintName = hist[near].name; hint.innerHTML = 'Similar to existing “' + _esc(_hintName) + '” — <a onmousedown="event.preventDefault();pickEntryName(-1)">use it</a>'; }
+  }
+  entryAutofill();
+}
+function pickEntryName(i) {
+  const name = i < 0 ? _hintName : _nameList[i]; if (!name) return;
+  document.getElementById('inp-name').value = name;
+  document.getElementById('name-suggestions').style.display = 'none';
+  document.getElementById('name-hint').innerHTML = '';
+  entryAutofill();
+  const amt = document.getElementById('inp-amt'); if (!amt.value) amt.focus();
+}
+
+// Fill sub-category / tags / last note from history; offer last amounts + notes as chips
+function entryAutofill() {
+  const q = document.getElementById('inp-name').value.trim().toLowerCase();
+  const hist = editingFinanceId ? null : _entryHistory(_entryType())[q];
+  const ac = document.getElementById('amt-chips'), nc = document.getElementById('note-chips');
+  const sub = document.getElementById('inp-sub'), notes = document.getElementById('inp-notes');
+  if (!hist) {
+    ac.innerHTML = ''; nc.innerHTML = '';
+    if (!editingFinanceId) {
+      if (_autoFill.sub) sub.value = '';
+      if (_autoFill.notes) notes.value = '';
+      if (_autoFill.pay) document.getElementById('inp-pay').value = '';
+      if (_autoFill.tags) { document.getElementById('inp-tags').value = ''; renderTagChips([]); }
+      _autoFill = { sub:false, notes:false, tags:false, pay:false };
+    }
+    renderMoreSummary(); return;
+  }
+  ac.innerHTML = _topKeys(hist.amounts, 3).map(a => `<button type="button" class="qa-chip" onclick="document.getElementById('inp-amt').value=${Number(a)};document.getElementById('inp-amt').focus()">₹${Number(a).toLocaleString('en-IN')}</button>`).join('');
+  _noteList = _topKeys(hist.notes, 3);
+  nc.innerHTML = _noteList.map((n, i) => `<button type="button" class="qa-chip" onclick="document.getElementById('inp-notes').value=_noteList[${i}];_autoFill.notes=false">${_esc(n)}</button>`).join('');
+  const L = hist.last;
+  if (!sub.value || _autoFill.sub) { sub.value = L.sub || ''; _autoFill.sub = true; }
+  if (!notes.value || _autoFill.notes) { notes.value = L.notes || ''; _autoFill.notes = true; }
+  const payEl = document.getElementById('inp-pay');
+  if (!payEl.value || _autoFill.pay) { payEl.value = L.pay || ''; _autoFill.pay = !!L.pay; }
+  if (!getCurrentTags().length || _autoFill.tags) {
+    const t = (L.tags || []).slice(); document.getElementById('inp-tags').value = t.join(','); renderTagChips(t); _autoFill.tags = true;
+  }
+  renderMoreSummary();
+}
+
+// Quick-add chips: your most frequent exact repeats (same name + note + amount) for the chosen type
+function buildQuickAdd() {
+  const wrap = document.getElementById('qa-wrap');
+  if (editingFinanceId) { wrap.style.display = 'none'; return; }
+  const type = _entryType(), g = {};
+  db.forEach(r => {
+    if (r.type !== type) return;
+    const k = [r.name, String(r.notes || '').trim().toLowerCase(), r.amount].join('|');
+    const x = g[k] || (g[k] = { r, n: 0 }); x.n++; if ((r.date || '') > (x.r.date || '')) x.r = r;
+  });
+  _qaList = Object.values(g).filter(x => x.n >= 2).sort((a, b) => b.n - a.n || (b.r.date > a.r.date ? 1 : -1)).slice(0, 8);
+  wrap.style.display = _qaList.length ? 'block' : 'none';
+  document.getElementById('qa-chips').innerHTML = _qaList.map((x, i) => `<button type="button" class="qa-chip" title="used ${x.n} times" onclick="quickAdd(${i})">${_esc(x.r.notes || x.r.name)} · ₹${Number(x.r.amount).toLocaleString('en-IN')}</button>`).join('');
+}
+let _dupKey = '';
+function _dupFind(type, name, amt, date) {
+  const n = String(name).trim().toLowerCase();
+  return db.find(r => r.type === type && String(r.name).trim().toLowerCase() === n && Number(r.amount) === Number(amt) && r.date === date);
+}
+function quickAdd(i) {
+  const x = _qaList[i]; if (!x || Date.now() - _qaLast < 500) return; _qaLast = Date.now();
+  const r = x.r, date = document.getElementById('inp-date').value || localISO();
+  const qm = document.getElementById('qa-msg'), key = ['q', r.type, String(r.name).toLowerCase(), Number(r.amount), String(r.notes || '').toLowerCase(), date].join('|');
+  if (_dupKey !== key && _dupFind(r.type, r.name, r.amount, date)) {
+    _dupKey = key; qm.style.color = '#f59e0b';
+    qm.textContent = '⚠ ' + (r.notes || r.name) + ' ₹' + Number(r.amount).toLocaleString('en-IN') + ' is already on ' + date + ' — tap again to add it anyway.'; return;
+  }
+  _dupKey = ''; qm.style.color = '';
+  db.push({ id: Date.now(), name: r.name, amount: Number(r.amount), type: r.type, sub: r.sub || '', date, notes: r.notes || '', recurring: false, tags: (r.tags || []).slice(), pay: r.pay || '' });
+  _entryCount++; _afterEntrySaved();
+  document.getElementById('qa-msg').textContent = '✓ Added ' + (r.notes || r.name) + ' ₹' + Number(r.amount).toLocaleString('en-IN') + ' on ' + date + (_entryCount > 1 ? '  (' + _entryCount + ' added this session)' : '');
+  buildQuickAdd();
+}
+
+// Sync every piece of form UI that depends on mode / type / date
+function entryUiSync(edit) {
+  const t = _entryType();
+  document.querySelectorAll('#type-seg button').forEach(b => b.classList.toggle('on', b.dataset.t === t));
+  syncDateChips();
+  document.getElementById('entry-err').textContent = '';
+  document.querySelectorAll('#modal .input-field.err').forEach(el => el.classList.remove('err'));
+  document.getElementById('fin-another-btn').style.display = edit ? 'none' : '';
+  if (!edit) buildQuickAdd(); else document.getElementById('qa-wrap').style.display = 'none';
+  renderMoreSummary();
+}
+
 function openModal() {
-  editingFinanceId = null;
+  editingFinanceId = null; _entryCount = 0; _autoFill = { sub:false, notes:false, tags:false, pay:false };
   document.getElementById('modal-title').textContent = 'Add Finance Record';
-  document.getElementById('inp-date').value = new Date().toISOString().split('T')[0];
+  document.getElementById('inp-date').value = localISO();
   document.getElementById('inp-cat').value = 'Expense';
   document.getElementById('inp-recurring').checked = false;
   document.getElementById('fin-save-btn').textContent = 'Save Entry';
   document.getElementById('fin-delete-btn').style.display = 'none';
   ['inp-name','inp-amt','inp-sub','inp-notes','inp-tags','inp-tags-input'].forEach(id => document.getElementById(id).value = '');
-  document.getElementById('tag-chips-preview').innerHTML = '';
+  ['tag-chips-preview','amt-chips','note-chips','name-hint','qa-msg'].forEach(id => document.getElementById(id).innerHTML = '');
   document.getElementById('tag-suggestions').style.display = 'none';
+  document.getElementById('name-suggestions').style.display = 'none';
+  _dupKey = ''; document.getElementById('qa-msg').style.color = '';
+  fillPayOptions('');
+  toggleMoreDetails(false);
+  entryUiSync(false);
   document.getElementById('modal').style.display = 'flex';
+  setTimeout(() => { const a = document.getElementById('inp-amt'); if (a) a.focus(); }, 60);
 }
-function closeModal() { document.getElementById('modal').style.display = 'none'; }
+function closeModal() { document.getElementById('modal').style.display = 'none'; _entryCount = 0; }
 
-function saveEntry() {
-  const name = document.getElementById('inp-name').value.trim();
-  const amt  = document.getElementById('inp-amt').value;
-  const type = document.getElementById('inp-cat').value;
-  const sub  = document.getElementById('inp-sub').value.trim();
-  const date = document.getElementById('inp-date').value;
-  const notes     = document.getElementById('inp-notes').value.trim();
-  const recurring = document.getElementById('inp-recurring').checked;
-  const tagsRaw   = document.getElementById('inp-tags').value;
-  const tags      = tagsRaw ? tagsRaw.split(',').map(t=>t.trim()).filter(Boolean) : [];
-  if (!name || !amt || !date) { alert('Please fill in Name, Amount and Date'); return; }
-
-  if (editingFinanceId) {
-    const idx = db.findIndex(x => x.id === editingFinanceId);
-    if (idx >= 0) db[idx] = { ...db[idx], name, amount:Number(amt), type, sub, date, notes, recurring, tags };
-  } else {
-    db.push({ id:Date.now(), name, amount:Number(amt), type, sub, date, notes, recurring, tags });
-  }
-
+function _afterEntrySaved() {
   scheduleSave();
   buildFilterDropdowns();
-  closeModal();
-
   if      (activeView === 'dashboard')   renderDashboard();
   else if (activeView === 'analytics')   renderAnalytics();
   else if (activeView === 'networth')    renderNetWorth();
   else if (activeView === 'transactions' || activeView === 'loans' || activeView === 'investments') renderTable();
 }
+
+function saveEntry(another) {
+  const f = id => document.getElementById(id);
+  const name = f('inp-name').value.trim(), amt = f('inp-amt').value, type = _entryType();
+  let sub = f('inp-sub').value.trim();
+  const date = f('inp-date').value, notes = f('inp-notes').value.trim(), recurring = f('inp-recurring').checked;
+  const tagsRaw = f('inp-tags').value, pay = f('inp-pay').value;
+  const tags = tagsRaw ? tagsRaw.split(',').map(t => t.trim()).filter(Boolean) : [];
+  const addMore = another === true && !editingFinanceId;
+
+  document.querySelectorAll('#modal .input-field.err').forEach(el => el.classList.remove('err'));
+  const bad = [];
+  if (!(Number(amt) > 0)) bad.push(['inp-amt', 'an amount']);
+  if (!name) bad.push(['inp-name', 'a category / payee']);
+  if (!date) bad.push(['inp-date', 'a date']);
+  if (bad.length) {
+    bad.forEach(b => f(b[0]).classList.add('err'));
+    f('entry-err').textContent = 'Please enter ' + bad.map(b => b[1]).join(', ') + '.';
+    f(bad[0][0]).focus(); return;
+  }
+  f('entry-err').textContent = ''; f('entry-err').style.color = '';
+  if (!editingFinanceId) {
+    const key = ['s', type, name.toLowerCase(), Number(amt), date].join('|');
+    if (_dupKey !== key && _dupFind(type, name, amt, date)) {
+      _dupKey = key; f('entry-err').style.color = '#f59e0b';
+      f('entry-err').textContent = '⚠ Already added: ' + name + ' ₹' + Number(amt).toLocaleString('en-IN') + ' on ' + date + '. Press Save again to add it anyway.'; return;
+    }
+  }
+  _dupKey = '';
+
+  // Sub-category falls back to your history, then (for expenses) the category name — same convention as your existing data
+  if (!sub) { const h = _entryHistory(type)[name.toLowerCase()]; sub = (h && h.last.sub) || (type === 'Expense' ? name : ''); }
+
+  if (editingFinanceId) {
+    const idx = db.findIndex(x => x.id === editingFinanceId);
+    if (idx >= 0) db[idx] = { ...db[idx], name, amount: Number(amt), type, sub, date, notes, recurring, tags, pay };
+  } else {
+    db.push({ id: Date.now(), name, amount: Number(amt), type, sub, date, notes, recurring, tags, pay });
+  }
+  _afterEntrySaved();
+
+  if (addMore) {
+    _entryCount++;
+    ['inp-name','inp-amt','inp-sub','inp-notes','inp-tags','inp-tags-input'].forEach(id => f(id).value = '');
+    ['tag-chips-preview','amt-chips','note-chips','name-hint'].forEach(id => f(id).innerHTML = '');
+    f('inp-recurring').checked = false; f('inp-pay').value = ''; _autoFill = { sub:false, notes:false, tags:false, pay:false };
+    f('qa-msg').textContent = '✓ Saved ' + name + ' ₹' + Number(amt).toLocaleString('en-IN') + ' — ' + _entryCount + ' added this session. Date kept as ' + date + '.';
+    buildQuickAdd(); renderMoreSummary(); f('inp-amt').focus();
+  } else closeModal();
+}
+
+// ── RECURRING ENTRIES ─────────────────────────────────────────────────────
+// A bill is "active" when the LATEST entry for that type+name has Recurring ticked. For every month that has
+// passed since that entry, one copy is created (same day-of-month, clamped to month end), up to today.
+// Untick Recurring on the latest entry to stop a series. Auto-created entries carry auto:true.
+function processRecurring() {
+  try {
+    if (!Array.isArray(db) || !db.length) return 0;
+    const today = localISO(), grp = {}, added = [];
+    db.forEach(r => { if (!r.date) return; const k = r.type + '|' + String(r.name).trim().toLowerCase(); (grp[k] = grp[k] || []).push(r); });
+    Object.values(grp).forEach(rows => {
+      rows.sort((a, b) => (a.date < b.date ? -1 : a.date > b.date ? 1 : 0));
+      const last = rows[rows.length - 1];
+      if (!last.recurring) return;
+      const day = Number(last.date.slice(8, 10)) || 1;
+      let y = Number(last.date.slice(0, 4)), m = Number(last.date.slice(5, 7));
+      for (let g = 0; g < 24; g++) {
+        m++; if (m > 12) { m = 1; y++; }
+        const d = y + '-' + _pad2(m) + '-' + _pad2(Math.min(day, new Date(y, m, 0).getDate()));
+        if (d > today) break;
+        added.push({ id: Date.now() + added.length, name: last.name, amount: Number(last.amount), type: last.type, sub: last.sub || '', date: d, notes: last.notes || '', recurring: true, tags: (last.tags || []).slice(), pay: last.pay || '', auto: true });
+      }
+    });
+    if (!added.length) return 0;
+    added.forEach(e => db.push(e));
+    _afterEntrySaved();
+    if (typeof showSettingsToast === 'function') showSettingsToast('Added ' + added.length + ' recurring ' + (added.length > 1 ? 'entries' : 'entry') + ': ' + [...new Set(added.map(a => a.name))].slice(0, 3).join(', '));
+    return added.length;
+  } catch (e) { console.error('Recurring entries failed:', e); return 0; }
+}
+window.addEventListener('load', () => setTimeout(processRecurring, 1500));
+document.addEventListener('visibilitychange', () => { if (!document.hidden) processRecurring(); });
+setInterval(processRecurring, 3600000);
+
+// Enter saves (Ctrl/Cmd+Enter = save & add another); ↑/↓ + Enter pick a name suggestion
+document.addEventListener('keydown', e => {
+  const t = e.target; if (!t || !t.closest || !t.closest('#modal')) return;
+  if (t.id === 'inp-name' && (e.key === 'ArrowDown' || e.key === 'ArrowUp')) {
+    const items = document.querySelectorAll('#name-suggestions .tag-suggestion-item'); if (!items.length) return;
+    e.preventDefault();
+    _nameSel = e.key === 'ArrowDown' ? Math.min(_nameSel + 1, items.length - 1) : Math.max(_nameSel - 1, 0);
+    items.forEach((el, i) => el.classList.toggle('sel', i === _nameSel)); return;
+  }
+  if (e.key === 'Enter' && !e.shiftKey && t.tagName !== 'BUTTON' && t.id !== 'inp-tags-input') {
+    e.preventDefault();
+    if (t.id === 'inp-name' && _nameSel >= 0) { pickEntryName(_nameSel); return; }
+    saveEntry(e.ctrlKey || e.metaKey);
+  }
+});
 
 // ── UNDO SYSTEM ENGINE ──
 let pendingUndo = null;
