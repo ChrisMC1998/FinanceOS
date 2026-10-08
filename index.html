@@ -399,6 +399,54 @@ body.light-mode .ins-card-row { border-color:#e2e8f0; }
   .sub-analytics-grid { grid-template-columns:1fr; }
 }
 
+/* ── Insurance + Subscriptions: visible containers in LIGHT mode ───────────
+   The dark-theme cards use rgba(255,255,255,.03) fills and white-alpha borders,
+   which vanish on a white page. These overrides give every panel a solid white
+   fill, a clear slate outline and a soft shadow. Dark mode is untouched. */
+body.light-mode .ins-kpi-card,
+body.light-mode .ins-expiry-card,
+body.light-mode .ins-insight-item,
+body.light-mode .ins-coverage-box,
+body.light-mode .ins-claim-item,
+body.light-mode .ins-doc-item,
+body.light-mode .ins-addon-chip,
+body.light-mode .ins-bucket-btn,
+body.light-mode .sub-insight-item,
+body.light-mode .sub-analytics-card,
+body.light-mode .sub-card,
+body.light-mode .sub-bucket,
+body.light-mode .ins-summary-card,
+body.light-mode .ins-card {
+  background:#ffffff; border:1px solid #cbd5e1; box-shadow:0 1px 3px rgba(15,23,42,.07), 0 1px 2px rgba(15,23,42,.04);
+}
+body.light-mode .ins-kpi-card { background:#f0fdf9; border-color:#a7f3d0; }
+body.light-mode .ins-expiry-item { background:#f1f5f9; border:1px solid #e2e8f0; }
+body.light-mode .ins-insight-item,
+body.light-mode .sub-insight-item { box-shadow:0 1px 2px rgba(15,23,42,.05); }
+body.light-mode .sub-chip,
+body.light-mode .ins-search-box,
+body.light-mode .ins-mini-select,
+body.light-mode .sub-module-tab { background:#ffffff; border:1px solid #cbd5e1; color:var(--text-main); }
+body.light-mode .sub-module-tab.active { background:#d1fae5; border-color:#6ee7b7; color:#047857; }
+body.light-mode .ins-filter-tabs { background:#e8eef5; border:1px solid #cbd5e1; }
+body.light-mode .sub-module-tabs { border-bottom-color:#cbd5e1; }
+body.light-mode .ins-icon-btn { background:#eef2f7; border:1px solid #d5dde8; }
+body.light-mode .ins-readiness-track,
+body.light-mode .sub-bar-track { background:#e2e8f0; }
+body.light-mode .ins-modal-section,
+body.light-mode .sub-drawer-section { border-top-color:#cbd5e1; }
+body.light-mode .sub-price-history-item,
+body.light-mode .sub-payment-history-item,
+body.light-mode .ins-card-row { border-color:#e2e8f0; }
+/* Tables sit inside their own outlined panel */
+body.light-mode .ins-table-wrap { background:#ffffff; border:1px solid #cbd5e1; border-radius:14px; box-shadow:0 1px 3px rgba(15,23,42,.07); }
+body.light-mode .ins-table th { background:#f1f5f9; color:#334155; border-bottom:1px solid #cbd5e1; }
+body.light-mode .ins-table td { border-bottom:1px solid #e8edf3; }
+body.light-mode .ins-table tbody tr:last-child td { border-bottom:none; }
+body.light-mode .ins-table tbody tr:hover td { background:#f8fafc; }
+body.light-mode .ins-section-title { color:#0f172a; }
+body.light-mode .ins-card:hover, body.light-mode .sub-card:hover { border-color:#34d399; box-shadow:0 4px 14px rgba(15,23,42,.1); }
+
 .notes-wrap { display:flex; gap:1.2rem; height:100%; min-height:560px; }
 .notes-list-pane { width:300px; flex-shrink:0; display:flex; flex-direction:column; background:rgba(255,255,255,0.02); border:1px solid rgba(255,255,255,0.06); border-radius:16px; padding:14px; }
 body.light-mode .notes-list-pane { background:#fff; border-color:#e2e8f0; }
@@ -11271,6 +11319,7 @@ function finaiExtraAnswer(amt, lump, q) {
   } else {
     const p = finaiDebtPlan(amt);
     finaiDebtExtra = amt; try { finaiRenderDebt(); } catch (e) {}
+    L.push(w.hasData && amt > w.capacity ? `⚠️ <b>Great idea, but ${fmt(amt)}/month is above what you can safely spare (${fmt(w.capacity)}).</b>` : `✅ <b>Good move — ${fmt(amt)}/month fits your budget.</b>`);
     L.push(finaiDebtAnswer(amt));
     const sc = [amt / 2, amt, amt * 2].map(x => { const r = finaiDebtPlan(x); return r && !r.av.incomplete && r.avSaved !== null ? `${fmt(x)}/mo → ${finaiYears(r.av.months)}, saves ${fmt(r.avSaved)}` : null; }).filter(Boolean);
     if (sc.length) L.push('What-if (avalanche): ' + sc.join(' · '));
@@ -11304,8 +11353,8 @@ function finaiOutlookAnswer(n) {
       rows.push(`<tr class="${free < 0 ? 'top' : ''}"><td>${finaiMonthsLabel(i + 1)}</td><td>${fmt(f.income)}</td><td>${fmt(out)}</td><td>${fmt(free)}</td><td>${fmt(cum)}</td><td>${loans.length ? fmt(tr.bal[i]) : '—'}</td></tr>`);
   }
   const goals = (finaiGoals || []).filter(g => !finaiGoalCalc(g).done), gm = goals.reduce((s, g) => s + (Number(g.monthly) || 0), 0);
-  const L = [`<b>Next ${n} month${n > 1 ? 's' : ''}</b> at your current income and habits: about <b>${fmt(cum)}</b> free cash in total (${fmt(Math.round(cum / n))}/month).`];
-  if (low.free < 0) L.push(`⚠️ ${finaiMonthsLabel(low.i + 1)} is the tightest month at ${fmt(low.free)} — cash runs short.`);
+  const L = [low.free < 0 ? `⚠️ <b>Cash gets tight in ${finaiMonthsLabel(low.i + 1)}.</b>` : `✅ <b>You stay in the green for the next ${n} month${n > 1 ? 's' : ''}.</b>`, `At your current income and habits you'd keep about <b>${finaiFig(fmt(cum), 'Where the free cash comes from', () => finaiCapRows(st))}</b> in total (${fmt(Math.round(cum / n))}/month).`];
+  if (low.free < 0) L.push(`${finaiMonthsLabel(low.i + 1)} is ${fmt(Math.abs(low.free))} short — delay a purchase or trim a category before then.`);
   if (loans.length) L.push(`Debt falls from ${fmt(debtNow)} to <b>${fmt(tr.bal[n - 1])}</b> on current EMIs.`);
   if (gm > 0) L.push(`Your goals take ${fmt(gm)}/month: ${goals.map(g => { const t = Number(g.target) || 0, v = Math.min(t, (Number(g.saved) || 0) + (Number(g.monthly) || 0) * n); return finaiEscapeHtml(g.name) + ' → ' + (t ? (v / t * 100).toFixed(0) + '%' : fmt(v)); }).join(', ')}.${cum < gm * n ? ' <b>Your free cash doesn\'t cover all of them.</b>' : ''}`);
   return L.join('<br>') + `<table class="finai-debt-table" style="margin-top:8px"><thead><tr><th>Month</th><th>In</th><th>Out</th><th>Free</th><th>Cumulative</th><th>Debt</th></tr></thead><tbody>${rows.join('')}</tbody></table><div class="finai-strat-note">Assumes steady income and spending; one-off bills aren't included.</div>`;
@@ -11314,12 +11363,12 @@ function finaiOutlookAnswer(n) {
 // Find ₹X: rank every saving lever the engines know about, easiest first, until the target is met
 function finaiFindSavings(target) {
   const a = finaiBuildAnalysis(), mv = [], used = new Set(), sub = finaiSubIntel(), lowNames = new Set(sub.low.map(i => finaiNorm(i.name)));
-  finaiDetectSpikes().forEach(s => { used.add(String(s.cat).toLowerCase()); mv.push({ ease: 2, monthly: s.excess, label: `Bring ${finaiEscapeHtml(s.cat)} back to its ${fmt(s.avg)} average` }); });
+  finaiDetectSpikes().forEach(s => { used.add(String(s.cat).toLowerCase()); mv.push({ ease: 2, cat: s.cat, monthly: s.excess, label: `Bring ${finaiEscapeHtml(s.cat)} back to its ${fmt(s.avg)} average` }); });
   sub.low.forEach(i => mv.push({ ease: 1, monthly: i.monthly, label: `Cancel ${finaiEscapeHtml(i.name)} (${i.reasons[0]})` }));
   sub.dups.forEach(d => { if (!d.names.some(n => lowNames.has(finaiNorm(n)))) mv.push({ ease: 1, monthly: d.saving / 12, label: `Keep just one of ${d.names.map(finaiEscapeHtml).join(' / ')}` }); });
-  (a.budgetOverruns || []).forEach(b => { const k = String(b.cat).toLowerCase(); if (!used.has(k)) { used.add(k); mv.push({ ease: 2, monthly: b.overBy, label: `Keep ${finaiEscapeHtml(b.cat)} within budget` }); } });
+  (a.budgetOverruns || []).forEach(b => { const k = String(b.cat).toLowerCase(); if (!used.has(k)) { used.add(k); mv.push({ ease: 2, cat: b.cat, monthly: b.overBy, label: `Keep ${finaiEscapeHtml(b.cat)} within budget` }); } });
   const t = a.topDiscretionaryCat;
-  if (t && !used.has(String(t[0]).toLowerCase())) mv.push({ ease: 3, monthly: t[1] * 0.15, label: `Trim ${finaiEscapeHtml(t[0])} by 15%` });
+  if (t && !used.has(String(t[0]).toLowerCase())) mv.push({ ease: 3, cat: t[0], monthly: t[1] * 0.15, label: `Trim ${finaiEscapeHtml(t[0])} by 15%` });
   const all = mv.filter(m => m.monthly >= 100).sort((x, y) => x.ease - y.ease || y.monthly - x.monthly);
   const picks = []; let got = 0;
   for (const m of all) { if (got >= target) break; picks.push(m); got += m.monthly; }
@@ -11328,8 +11377,8 @@ function finaiFindSavings(target) {
 function finaiSavingsAnswer(target) {
   const r = finaiFindSavings(target), tag = ['', 'easy', 'moderate', 'needs discipline'];
   if (!r.picks.length) return `I can't see ${fmt(target)}/month of obvious savings right now — no spikes, low-use subscriptions or budget overruns. Log a few more months of spending and I'll look again.`;
-  const L = [r.short <= 0 ? `Here's how to free <b>${fmt(target)}/month</b> (${fmt(target * 12)}/year):` : `I can find <b>${fmt(Math.round(r.got))}/month</b> — ${fmt(Math.round(r.short))} short of ${fmt(target)}:`];
-  r.picks.forEach((m, i) => L.push(`${i + 1}. ${m.label} → <b>${fmt(Math.round(m.monthly))}/mo</b> <em>(${tag[m.ease]})</em>`));
+  const L = [r.short <= 0 ? `✅ <b>Yes, ${fmt(target)}/month is doable.</b> Easiest moves first:` : `⚠️ <b>I can get you ${fmt(Math.round(r.got))}/month</b> — ${fmt(Math.round(r.short))} short of ${fmt(target)}. Here's what I found:`];
+  r.picks.forEach((m, i) => L.push(`${i + 1}. ${m.label} → <b>${m.cat ? finaiFig(fmt(Math.round(m.monthly)) + '/mo', m.cat.replace(/<[^>]+>/g, '') + ' — this month', () => finaiTxnRows(String(m.cat).toLowerCase(), finaiLocalMonthKey(new Date()))) : fmt(Math.round(m.monthly)) + '/mo'}</b> <em>(${tag[m.ease]})</em>`));
   L.push(`Total: <b>${fmt(Math.round(r.got))}/month</b> = ${fmt(Math.round(r.got * 12))}/year.${r.short > 0 ? ' To close the gap you\'d need to lift income or cut a fixed cost.' : ''} I assumed ${fmt(target)} is per month.`);
   return L.join('<br>');
 }
@@ -11340,19 +11389,198 @@ function finaiRunIntent(it, q) {
   if (it.intent === 'extra') return finaiExtraAnswer(it.amount, it.lump, q);
   return finaiSavingsAnswer(it.amount);
 }
+// ══════════════════════════════════════════════════════════════════════════
+// FIN AI — CONTEXT MEMORY, "SHOULD I / CAN I MANAGE" JUDGEMENT, SCORED ROUTER
+// ══════════════════════════════════════════════════════════════════════════
+let finaiCtx = { amount: null, category: null, monthly: false, intent: null, derived: false };
+const FINAI_JUDGE_RE = /\b(should i|shall i|can i manage|will i (?:be able|manage)|able to manage|manage (?:that|it|this)|is it (?:ok|okay|fine|wise|safe|worth)|too much|so much|am i spending too|worth it|reasonable|safe to|can i handle|be okay|afford (?:that|it|this))\b/;
+function finaiCatFromQ(q) {
+  const cats = [...new Set((db || []).map(r => (r.sub || '').toLowerCase()).filter(c => c.length >= 3))];
+  const s = ' ' + q.toLowerCase().replace(/[^a-z0-9 ]/g, ' ') + ' ';
+  const hit = cats.find(c => s.includes(' ' + c + ' ') || (c.endsWith('s') && s.includes(' ' + c.slice(0, -1) + ' ')));
+  if (hit) return hit;
+  const tk = finaiTokenize(q).filter(t => t.length >= 4 && !/^(much|spend|should|money|spent|month|manage|afford|extra|savings|about)$/.test(t));
+  return cats.find(c => c.length >= 4 && tk.some(t => finaiFuzzyToken(t, c))) || null;
+}
+function finaiCatAvg3(cat) {
+  const t = new Date(), keys = [1, 2, 3].map(i => finaiLocalMonthKey(new Date(t.getFullYear(), t.getMonth() - i, 1)));
+  const rows = (db || []).filter(r => r.type === 'Expense'); if (!rows.length) return null;
+  const first = rows.map(r => finaiMonthKey(r.date)).filter(Boolean).sort()[0], n = keys.filter(k => k >= first).length;
+  if (n < 2) return null;
+  const sum = rows.filter(r => (r.sub || '').toLowerCase() === cat && keys.includes(finaiMonthKey(r.date))).reduce((s, r) => s + Number(r.amount || 0), 0);
+  return sum / n;
+}
+function finaiFreeSeries(st, n, once, monthly) {
+  const f = st.forecast, loans = finaiDebtLoans(), tr = finaiDebtTrack(loans, n), fixed = Math.max(0, f.commitments - f.emis);
+  let cum = 0, min = Infinity, mi = 0;
+  for (let i = 0; i < n; i++) {
+    const free = f.income - (fixed + (loans.length ? tr.pay[i] : f.emis) + f.investments + f.variable) - (i === 0 ? once : 0) - monthly;
+    cum += free; if (free < min) { min = free; mi = i; }
+  }
+  return { min, mi, cum };
+}
+// ══════════════════════════════════════════════════════════════════════════
+// FIN AI — "WHY" PANEL (tap a ₹ figure to see what's behind it) + COACHING
+// ══════════════════════════════════════════════════════════════════════════
+const finaiWhyStore = {}; let finaiWhySeq = 0;
+function finaiFig(text, title, rowsFn) {
+  const id = 'w' + (++finaiWhySeq); finaiWhyStore[id] = { title, rowsFn };
+  delete finaiWhyStore['w' + (finaiWhySeq - 60)];
+  if (typeof document !== 'undefined' && !document.getElementById('finai-why-css')) {
+    const st = document.createElement('style'); st.id = 'finai-why-css';
+    st.textContent = '.finai-fig{color:#38bdf8;font-weight:700;text-decoration:underline dotted;text-underline-offset:3px;cursor:pointer}';
+    document.head.appendChild(st);
+  }
+  return `<a href="#" class="finai-fig" onclick="finaiShowWhy('${id}');return false">${text}</a>`;
+}
+function finaiShowWhy(id) {
+  const e = finaiWhyStore[id]; if (!e) return;
+  let m = document.getElementById('finai-why-modal');
+  if (!m) {
+    m = document.createElement('div'); m.id = 'finai-why-modal';
+    m.style.cssText = 'position:fixed;inset:0;z-index:100000;background:rgba(2,6,23,.7);display:flex;align-items:center;justify-content:center;padding:16px';
+    m.onclick = ev => { if (ev.target === m) m.style.display = 'none'; };
+    document.body.appendChild(m);
+  }
+  let body; try { body = e.rowsFn(); } catch (err) { body = 'Could not load the details.'; }
+  m.innerHTML = `<div style="background:#0f172a;color:#e2e8f0;border:1px solid rgba(56,189,248,.35);border-radius:14px;max-width:480px;width:100%;max-height:80vh;overflow:auto;padding:16px;font-size:.85rem">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px"><b style="font-size:.95rem">${finaiEscapeHtml(e.title)}</b><button onclick="document.getElementById('finai-why-modal').style.display='none'" style="background:none;border:0;color:#94a3b8;font-size:1.2rem;cursor:pointer">✕</button></div>${body}</div>`;
+  m.style.display = 'flex';
+}
+function finaiTxnRows(cat, key) {
+  const rows = (db || []).filter(r => r.type === 'Expense' && (r.sub || '').toLowerCase() === cat && finaiMonthKey(r.date) === key).sort((x, y) => Number(y.amount) - Number(x.amount));
+  if (!rows.length) return 'No transactions in this category this month.';
+  const tot = rows.reduce((s, r) => s + Number(r.amount || 0), 0);
+  return `<table class="finai-debt-table"><thead><tr><th>Date</th><th>Payee</th><th>Amount</th></tr></thead><tbody>${rows.slice(0, 15).map(r => `<tr><td>${finaiEscapeHtml(r.date || '')}</td><td>${finaiEscapeHtml(r.name || r.sub || '')}</td><td>${fmt(Number(r.amount))}</td></tr>`).join('')}</tbody></table>${rows.length > 15 ? `<div style="margin-top:6px;color:#94a3b8">+ ${rows.length - 15} smaller transactions</div>` : ''}<div style="margin-top:8px"><b>Total: ${fmt(tot)}</b> across ${rows.length} transaction${rows.length > 1 ? 's' : ''}</div>`;
+}
+function finaiAvgRows(cat) {
+  const t = new Date(), keys = [1, 2, 3].map(i => finaiLocalMonthKey(new Date(t.getFullYear(), t.getMonth() - i, 1)));
+  const per = keys.map(k => [k, (db || []).filter(r => r.type === 'Expense' && (r.sub || '').toLowerCase() === cat && finaiMonthKey(r.date) === k).reduce((s, r) => s + Number(r.amount || 0), 0)]);
+  const avg = finaiCatAvg3(cat);
+  return `<table class="finai-debt-table"><thead><tr><th>Month</th><th>Spent</th></tr></thead><tbody>${per.map(p => `<tr><td>${p[0]}</td><td>${fmt(p[1])}</td></tr>`).join('')}</tbody></table><div style="margin-top:8px"><b>Average: ${avg === null ? 'not enough history' : fmt(avg)}/month</b> (months with data only)</div>`;
+}
+function finaiCapRows(st) {
+  const f = st.forecast, w = finaiWhatIf(0, st), r = (l, v, s) => `<tr><td>${l}</td><td style="text-align:right">${s || ''}${fmt(v)}</td></tr>`;
+  return `<table class="finai-debt-table"><tbody>${r('Expected income (30 days)', f.income, '+')}${r('EMIs', f.emis, '−')}${r('Insurance', f.insurance || 0, '−')}${r('Subscriptions', f.subscriptions || 0, '−')}${r('Other recurring', f.recurringExpenses || 0, '−')}${r('Investments', f.investments, '−')}${r('Everyday spending (typical)', f.variable, '−')}<tr><td><b>Free cash</b></td><td style="text-align:right"><b>${fmt(f.freeAfterSpending)}</b></td></tr>${r('Safety buffer (10% of income)', w.buffer, '−')}<tr><td><b>Safe to spare</b></td><td style="text-align:right"><b>${fmt(w.capacity)}</b></td></tr></tbody></table>`;
+}
+function finaiGoalRows() {
+  const g = (finaiGoals || []).filter(x => !finaiGoalCalc(x).done);
+  return g.length ? `<table class="finai-debt-table"><thead><tr><th>Goal</th><th>Per month</th></tr></thead><tbody>${g.map(x => `<tr><td>${finaiEscapeHtml(x.name)}</td><td>${fmt(Number(x.monthly) || 0)}</td></tr>`).join('')}</tbody></table>` : 'No active goals.';
+}
+// Coaching that matches the situation: offset, delay, move a date, pay debt first
+function finaiCoach(o) {
+  const out = [], low = finaiSubIntel().low.slice().sort((x, y) => y.monthly - x.monthly)[0];
+  const step = o.cap > 0 ? (Math.floor(o.cap / 500) * 500 || o.cap) : 0;
+  if (o.lvl === 0) return [`Go ahead and leave your ${fmt(o.buffer)} buffer untouched.`];
+  if (o.derived && o.avg !== null && o.amt > o.avg) out.push(`Ease ${finaiEscapeHtml(o.cat)} back toward ${fmt(o.avg)} — that frees ${fmt(o.amt - o.avg)}/month.`);
+  else if (!o.monthly && step) out.push(`Delay it: put ${fmt(step)}/month aside and buy in about ${Math.max(1, Math.ceil(o.test / step))} month(s).`);
+  if (low) out.push(`Cancel ${finaiEscapeHtml(low.name)} (${fmt(low.monthly)}/mo, ${low.reasons[0]}) to make room.`);
+  const top = finaiDebtLoans().sort((x, y) => y.rate - x.rate)[0];
+  if (top && top.rate >= 24) out.push(`Pay down ${finaiEscapeHtml(top.name)} (${top.rate}%) first — it costs more than most purchases.`);
+  const g = (finaiGoals || []).filter(x => !finaiGoalCalc(x).done && Number(x.monthly) > 0 && x.targetDate).sort((x, y) => y.monthly - x.monthly)[0];
+  if (g) out.push(`Or move "${finaiEscapeHtml(g.name)}" target date back a few months to ease its ${fmt(Number(g.monthly))}/month.`);
+  return out.slice(0, 2);
+}
+// o: { amount, category, monthly, derived }  derived = amount is the category's current spend
+function finaiJudge(o) {
+  const st = finaiBuildState(), a = finaiBuildAnalysis(), f = st.forecast, cat = o.category, R = [];
+  const amt = o.amount, w0 = finaiWhatIf(amt, st);
+  if (!w0.hasData) return 'I need some income or bill data before I can judge this. Add your income (mark salary as recurring) and EMIs, then ask again.';
+  const avg = cat ? finaiCatAvg3(cat) : null, cn = cat ? finaiEscapeHtml(cat) : '', Cn = cn.charAt(0).toUpperCase() + cn.slice(1);
+  const spendFig = cat ? finaiFig(fmt(amt), cat + ' — this month', () => finaiTxnRows(cat, a.thisMonth)) : fmt(amt);
+  const avgFig = v => finaiFig(fmt(v), cat + ' — last 3 months', () => finaiAvgRows(cat));
+  let test = amt, monthly = !!o.monthly, lvl = 0;
+  if (o.derived) {
+    monthly = true;
+    if (avg !== null) { test = Math.max(0, amt - avg); R.push([amt > avg * 1.4 ? 3 : 1, `${Cn} is at ${spendFig} vs ${avgFig(avg)} in a normal month (${amt >= avg ? '+' : ''}${((amt - avg) / Math.max(avg, 1) * 100).toFixed(0)}%).`]); if (amt > avg * 1.4) lvl = 1; }
+    else { const sh = f.income > 0 ? amt / f.income * 100 : 0; lvl = sh < 10 ? 0 : sh < 20 ? 1 : 2; R.push([2, `${Cn} is ${sh.toFixed(0)}% of your monthly income (no history yet to compare).`]); }
+  } else if (avg !== null) {
+    const tot = (finaiCategorySpendForMonth(cat, a.thisMonth) || 0) + amt;
+    if (tot > avg * 1.4) lvl = 1;
+    R.push([tot > avg * 1.4 ? 3 : 1, `That takes ${cn} to ${fmt(tot)} this month vs ${avgFig(avg)} in a normal month.`]);
+  }
+  const w = finaiWhatIf(test, st), cap = w.capacity;
+  lvl = Math.max(lvl, test <= cap * 0.5 ? 0 : test <= cap ? 1 : 2);
+  const ser = finaiFreeSeries(st, 3, monthly ? 0 : test, monthly ? test : 0);
+  if (ser.min < 0) { lvl = 2; R.push([4, `Afterwards ${finaiMonthsLabel(ser.mi + 1)} would end ${fmt(Math.abs(ser.min))} short.`]); }
+  const top = finaiDebtLoans().sort((x, y) => y.rate - x.rate)[0];
+  if (top && top.rate >= 15 && test > 0) R.push([lvl >= 1 ? 3 : 1, `The same money on ${finaiEscapeHtml(top.name)} (${top.rate}%) would save about ${fmt(Math.min(test, top.bal) * top.rate / 100)} a year in interest.`]);
+  const gm = (finaiGoals || []).filter(g => !finaiGoalCalc(g).done).reduce((s, g) => s + (Number(g.monthly) || 0), 0);
+  if (gm > 0 && test > gm) R.push([2, `That's ${(test / gm).toFixed(1)} months of ${finaiFig('goal contributions', 'Your goal contributions', finaiGoalRows)} (${fmt(gm)}/month).`]);
+  const subj = o.derived ? `your ${cn} spend of ${spendFig}` : `${fmt(amt)}${cat ? ' on ' + cn : ''}`;
+  const pct = cap > 0 ? Math.round(test / cap * 100) : null;
+  const head = lvl === 0 ? `✅ <b>Yes — ${subj} is comfortable.</b>`
+    : lvl === 1 ? `⚠️ <b>Doable, but tight</b> — ${subj} ${pct !== null && test > 0 ? `uses ${pct}% of what you can safely spare` : 'squeezes your cash'}.`
+    : `🛑 <b>I'd hold off</b> — ${subj} ${ser.min < 0 ? `would leave ${finaiMonthsLabel(ser.mi + 1)} short` : 'is more than you can safely spare right now'}.`;
+  const because = `Because you have about ${finaiFig(fmt(w.free), 'Free cash — next 30 days', () => finaiCapRows(st))} free after EMIs, bills and everyday spending, and I keep ${fmt(w.buffer)} aside as a buffer.`;
+  const why = R.sort((x, y) => y[0] - x[0]).slice(0, lvl === 0 ? 1 : 2).map(r => '• ' + r[1]);
+  const coach = finaiCoach({ lvl, test, cap, buffer: w.buffer, monthly, derived: o.derived, cat, avg, amt });
+  return [head, because].concat(why, coach.length ? ['<b>Try:</b><br>→ ' + coach.join('<br>→ ')] : []).join('<br>');
+}
+
+// ── Scored intents → "did you mean" when the router isn't sure ──────────────
+const FINAI_INTENTS = [
+  ['judge', ['should', 'manage', 'much', 'worth', 'okay', 'handle', 'reasonable'], 'Should I spend 20k on a phone'],
+  ['outlook', ['month', 'months', 'year', 'ahead', 'look', 'future', 'quarter'], 'What will six months look like'],
+  ['extra', ['pay', 'extra', 'prepay', 'loan', 'debt', 'emi'], 'Pay 10k extra'],
+  ['savings', ['save', 'savings', 'find', 'cut', 'reduce', 'trim'], 'Find 5k of savings'],
+  ['afford', ['afford', 'buy', 'purchase', 'spare'], 'Can I afford 20k'],
+  ['forecast', ['forecast', 'upcoming', 'due', 'cash', 'bills'], 'What is my 30 day forecast'],
+  ['spend', ['spend', 'spent', 'spending', 'expense', 'category', 'food'], 'This month spend']
+];
+function finaiChipAsk(t) { const l = document.getElementById('liteai-ask-input'); return l && l.offsetParent !== null ? liteaiAskChip(t) : finaiAskChip(t); }
+function finaiDidYouMean(q) {
+  const tk = finaiTokenize(q);
+  const sc = FINAI_INTENTS.map(([id, kws, ex]) => [kws.filter(k => tk.some(t => finaiFuzzyToken(t, k))).length, ex]).sort((x, y) => y[0] - x[0]);
+  const picks = sc.slice(0, 3).map(s => s[1]);
+  return `I'm not sure what you mean. Did you mean one of these?<br>${picks.map(p => `<a href="#" class="finai-chip" style="display:inline-block;margin:4px 4px 0 0" onclick="finaiChipAsk('${p}');return false">${p}</a>`).join('')}`;
+}
+function finaiRemember(o) { finaiCtx = Object.assign({}, finaiCtx, o); }
+
 function finaiAnswerQuestion(q) {
-  let it = null;
   try {
-    it = finaiDetectIntent(q);
-    if (!it && finaiSlots.intent && q.trim().split(/\s+/).length <= 6 && /^(and|what about|how about|or|then|make it|try)\b/i.test(q.trim())) {
-      const amt = finaiAmt(q), per = finaiPeriodMonths(q);
-      if (finaiSlots.intent === 'outlook' && per) it = { intent: 'outlook', months: per };
-      else if (finaiSlots.intent !== 'outlook' && amt !== null) it = Object.assign({}, finaiSlots, { amount: amt });
+    const s = q.toLowerCase(), amtQ = finaiAmt(q), mult = (s.match(/\b(double|twice|triple|half|halve)\b/) || [])[1];
+    const factor = { double: 2, twice: 2, triple: 3, half: 0.5, halve: 0.5 }[mult];
+    // 1. "what if it's double / half" → re-run the last subject with a scaled amount
+    if (factor && amtQ === null && finaiCtx.amount) {
+      const amount = finaiCtx.amount * factor, intent = finaiCtx.intent || 'judge';
+      finaiRemember({ amount });
+      finaiChatState = { lastMetric: 'intent', lastCategory: finaiCtx.category };
+      if (intent === 'extra') return finaiExtraAnswer(amount, finaiSlots.lump, q);
+      if (intent === 'savings') return finaiSavingsAnswer(amount);
+      return finaiJudge({ amount, category: finaiCtx.category, monthly: finaiCtx.monthly, derived: finaiCtx.derived });
     }
-    if (it) return finaiRunIntent(it, q);
-  } catch (e) { console.error('FIN AI intent failed:', e); }
-  const r = finaiAnswerQuestionBase(q);
-  return /^I can currently answer/.test(r) ? r + ' You can also try "pay 10k extra", "what will six months look like" or "find 5k of savings".' : r;
+    const det = finaiDetectIntent(q), isJ = FINAI_JUDGE_RE.test(s);
+    // 2. specific intents (outlook / pay extra / find savings)
+    if (det && !(isJ && det.intent === 'savings')) {
+      const out = finaiRunIntent(det, q);
+      finaiRemember({ intent: det.intent, amount: det.amount != null ? det.amount : finaiCtx.amount, derived: false, category: null, monthly: det.intent !== 'outlook' ? det.intent === 'extra' && !det.lump : false });
+      return out;
+    }
+    // 3. "should I / can I manage / too much" judgement with context resolution
+    if (isJ || (/\bafford\b/.test(s) && amtQ === null)) {
+      const a = finaiBuildAnalysis(), cat = finaiCatFromQ(q);
+      if (amtQ !== null) { finaiRemember({ intent: 'judge', derived: false, amount: amtQ, category: cat, monthly: /\b(month|monthly|every|per)\b/.test(s) }); finaiChatState = { lastMetric: 'intent', lastCategory: cat }; return finaiJudge({ amount: amtQ, category: cat, monthly: finaiCtx.monthly }); }
+      if (cat) { const sp = finaiCategorySpendForMonth(cat, a.thisMonth); if (sp > 0) { finaiRemember({ intent: 'judge', derived: true, amount: sp, category: cat, monthly: true }); finaiChatState = { lastMetric: 'category', lastCategory: cat }; return finaiJudge({ amount: sp, category: cat, derived: true }); } }
+      if (finaiCtx.amount) { finaiChatState = { lastMetric: 'intent', lastCategory: finaiCtx.category }; finaiRemember({ intent: 'judge' }); return finaiJudge({ amount: finaiCtx.amount, category: finaiCtx.category, monthly: finaiCtx.monthly, derived: finaiCtx.derived }); }
+      const t = a.topCatEntry;
+      if (t) return `I need something to judge — do you mean your biggest category this month, <b>${finaiEscapeHtml(t[0])}</b> (${fmt(t[1])})?<br><a href="#" class="finai-chip" style="display:inline-block;margin-top:4px" onclick="finaiChipAsk('Should I keep spending on ${finaiEscapeHtml(t[0]).replace(/'/g, '')}');return false">Yes, judge ${finaiEscapeHtml(t[0])}</a><br>Or give me an amount or category, e.g. "should I spend 20k on a phone?"`;
+      return 'Tell me an amount or a category, e.g. "should I spend 20k on a phone?" or "is my dining spend too much?"';
+    }
+    // 4. slot follow-ups ("and 20k?", "what about 3 months?")
+    if (finaiSlots.intent && q.trim().split(/\s+/).length <= 6 && /^(and|what about|how about|or|then|make it|try)\b/i.test(q.trim())) {
+      const per = finaiPeriodMonths(q);
+      let it = null;
+      if (finaiSlots.intent === 'outlook' && per) it = { intent: 'outlook', months: per };
+      else if (finaiSlots.intent !== 'outlook' && amtQ !== null) it = Object.assign({}, finaiSlots, { amount: amtQ });
+      if (it) { finaiRemember({ amount: it.amount != null ? it.amount : finaiCtx.amount }); return finaiRunIntent(it, q); }
+    }
+  } catch (e) { console.error('FIN AI router failed:', e); }
+  const r = finaiAnswerQuestionBase(q), amt = finaiAmt(q);
+  if (/^I can currently answer/.test(r)) return finaiDidYouMean(q);
+  if (amt !== null && finaiPeriodMonths(q) === null) finaiRemember({ amount: amt, intent: /afford|buy|purchase/i.test(q) ? 'judge' : finaiCtx.intent, category: finaiChatState.lastCategory || null, monthly: false });
+  else if (finaiChatState.lastCategory) finaiRemember({ category: finaiChatState.lastCategory });
+  return r;
 }
 
 function finaiAsk() {
