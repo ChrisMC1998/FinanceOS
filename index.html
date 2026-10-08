@@ -3652,6 +3652,85 @@ const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
 });
 let cloudSession = null; // current Supabase session, or null if signed out/offline-local-only
 
+// ── Per-user data ownership / theme / preferences ───────────────────────────
+// activeDataUid = the Supabase user whose data is currently loaded in memory.
+// Nothing is ever pushed to (or pulled from) the cloud unless the signed-in
+// session, the in-memory data and the on-device owner stamp ALL match.
+let activeDataUid = null;
+let cloudDataReady = false;      // true only after this sign-in's cloud↔local load finished
+function dataOwnerOk() {
+  return !!(cloudSession && cloudSession.user && activeDataUid &&
+            activeDataUid === cloudSession.user.id &&
+            localStorage.getItem('fos_last_cloud_uid') === activeDataUid);
+}
+
+// Theme: stored per user (local key + Supabase user_metadata so it follows the
+// account across devices). It only changes when the user changes it.
+function persistTheme(mode) {
+  mode = (mode === 'light') ? 'light' : 'dark';
+  try {
+    localStorage.setItem('fos_theme', mode);                 // device fallback (login screen)
+    localStorage.setItem('fos_set_app-theme', String(mode === 'dark'));
+    if (cloudSession && cloudSession.user) {
+      localStorage.setItem('fos_theme_u_' + cloudSession.user.id, mode);
+      sb.auth.updateUser({ data: { fos_theme: mode } }).catch(function () {});
+    }
+  } catch (e) {}
+}
+function applyThemeMode(mode, silent) {
+  var light = (mode === 'light');
+  var was = document.body.classList.contains('light-mode');
+  document.body.classList.toggle('light-mode', light);
+  var icon = document.getElementById('theme-icon'), label = document.getElementById('theme-label');
+  if (icon) icon.className = light ? 'fas fa-moon' : 'fas fa-sun';
+  if (label) label.textContent = light ? 'Dark' : 'Light';
+  var tog = document.getElementById('tog-app-theme');
+  if (tog) tog.checked = !light;
+  if (!silent && was !== light && typeof updateChartsForTheme === 'function') {
+    try { updateChartsForTheme(); } catch (e) {}
+  }
+}
+document.addEventListener('DOMContentLoaded', function () {
+  applyThemeMode(document.body.classList.contains('light-mode') ? 'light' : 'dark', true);
+});
+
+// Per-user UI preferences (currency, toggles, tracking mode…) are stashed per
+// account on logout / account switch, so one person's settings never leak to the next.
+const USER_PREF_KEYS = ['fos_currency','fos_number_system','fos_time','fos_date','fos_shortcuts','fos_custom_tags',
+  'fos_finance_sidebar_collapsed','fos_portfolio_sidebar_collapsed','financeOS_roughboard_v1','fos_tracking_mode',
+  'fos_biometric_cred_id','fos_biometric_enabled','fos_pc_lock_enabled','fos_pc_lock_hash','fos_pc_lock_salt'];
+function collectPrefs() {
+  var o = {};
+  USER_PREF_KEYS.forEach(function (k) { var v = localStorage.getItem(k); if (v !== null) o[k] = v; });
+  for (var i = 0; i < localStorage.length; i++) {
+    var k = localStorage.key(i);
+    if (k && k.indexOf('fos_set_') === 0) o[k] = localStorage.getItem(k);
+  }
+  return o;
+}
+function clearPrefs() { Object.keys(collectPrefs()).forEach(function (k) { localStorage.removeItem(k); }); }
+function stashPrefs(uid) { if (uid) { try { localStorage.setItem('fos_prefs_u_' + uid, JSON.stringify(collectPrefs())); } catch (e) {} } }
+function restorePrefs(uid) {
+  try {
+    var o = JSON.parse(localStorage.getItem('fos_prefs_u_' + uid) || '{}');
+    Object.keys(o).forEach(function (k) { localStorage.setItem(k, o[k]); });
+  } catch (e) {}
+}
+// Shared by Logout and "Sign out instead" on the lock screen.
+function finishLocalLogout(uid) {
+  stashPrefs(uid);
+  cloudSession = null; activeDataUid = null;
+  localStorage.removeItem('fos_current_user');
+  localStorage.removeItem('fos_last_cloud_uid');
+  wipeLocalFinancialData();
+  clearPrefs();
+}
+// Another tab signed out / switched account → reload this one so stale in-memory
+// data from the previous account can never be saved or synced under the new one.
+window.addEventListener('storage', function (e) {
+  if (e.key === 'fos_last_cloud_uid' && activeDataUid && e.newValue !== activeDataUid) location.reload();
+});
+
 // ── Simulated user store (localStorage-backed) ──────────────────────────────
 // LEGACY: kept only so untouched Settings-panel code (change name, security Q,
 // etc.) keeps functioning until Stage 2 rewires those to Supabase too.
@@ -3821,26 +3900,61 @@ async function tryAutoPasskeyLogin() {
 // and kicks off first-login cloud/local data reconciliation.
 async function onCloudSignedIn(session) {
   cloudSession = session;
+  activeDataUid = null;            // block all sync until ownership is settled below
+  const uid = session.user.id;
+  const meta = session.user.user_metadata || {};
 
-  // Ownership guard: if this browser's leftover local data belongs to a
-  // DIFFERENT Supabase user than the one now signed in, wipe it before doing
-  // anything else. This is what stops one person's data from ever being
-  // shown to, or synced under, a different account on a shared device.
+  // Ownership guard: leftover local data from a DIFFERENT account is wiped (and that
+  // account's UI preferences are stashed) BEFORE anything else happens.
   const lastUid = localStorage.getItem('fos_last_cloud_uid');
-  if (lastUid && lastUid !== session.user.id) {
+  let unclaimedLocal = false;
+  if (lastUid && lastUid !== uid) {
+    stashPrefs(lastUid);
     wipeLocalFinancialData();
+    clearPrefs();
+  } else if (!lastUid && typeof localDataIsEmpty === 'function' && !localDataIsEmpty()) {
+    unclaimedLocal = true;         // data with no known owner — never auto-upload it
   }
-  localStorage.setItem('fos_last_cloud_uid', session.user.id);
+  if (lastUid !== uid) restorePrefs(uid);
+  localStorage.setItem('fos_last_cloud_uid', uid);
+  activeDataUid = uid;
 
-  const name = session.user.user_metadata?.name || session.user.email.split('@')[0];
+  // Theme: this account's own choice (cloud → this device's per-user copy → first-time
+  // fallback to the device theme). Never inherited from a different account.
+  let mode = meta.fos_theme;
+  if (mode !== 'light' && mode !== 'dark') mode = localStorage.getItem('fos_theme_u_' + uid);
+  // One-time carry-over for accounts that existed before per-user themes (first sign-in after this update only).
+  if (mode !== 'light' && mode !== 'dark' && localStorage.getItem('fos_theme_migrated') !== '1') mode = localStorage.getItem('fos_theme');
+  localStorage.setItem('fos_theme_migrated', '1');
+  if (mode !== 'light' && mode !== 'dark') mode = 'dark';
+  localStorage.setItem('fos_theme_u_' + uid, mode);
+  localStorage.setItem('fos_theme', mode);
+  localStorage.setItem('fos_set_app-theme', String(mode === 'dark'));
+  applyThemeMode(mode);
+  if (meta.fos_theme !== mode) sb.auth.updateUser({ data: { fos_theme: mode } }).catch(function () {});
+
+  try {   // keep only THIS account's legacy profile record on the device
+    const _em = String(session.user.email || '').toLowerCase();
+    const _us = JSON.parse(localStorage.getItem('fos_users') || '[]').filter(u => String(u.identifier || '').toLowerCase() === _em);
+    localStorage.setItem('fos_users', JSON.stringify(_us));
+  } catch (e) {}
+  const name = meta.name || session.user.email.split('@')[0];
   localStorage.setItem('fos_current_user', JSON.stringify({
-    name, identifier: session.user.email, cloudUserId: session.user.id
+    name, identifier: session.user.email, cloudUserId: uid
   }));
   if (typeof applyCloudDeviceLockFlags === 'function') applyCloudDeviceLockFlags(session.user.user_metadata);
   applyLoggedInUser(name);
   setCloudStatus('connected');
   if (typeof reconcileCloudAndLocalData === 'function') {
-    await reconcileCloudAndLocalData(session.user.id);
+    try {
+      await reconcileCloudAndLocalData(uid, unclaimedLocal);
+      cloudDataReady = true;
+    } catch (err) {
+      console.error('Initial cloud load failed:', err);
+      setCloudStatus('error');     // stay un-synced rather than risk overwriting the cloud with a half-loaded copy
+    }
+  } else {
+    cloudDataReady = true;
   }
 }
 
@@ -3954,7 +4068,7 @@ async function obFinish() {
   const { data, error } = await sb.auth.signUp({
     email: identifier,
     password,
-    options: { data: { name } }
+    options: { data: { name, fos_theme: obData.theme === 'light' ? 'light' : 'dark' } }
   });
 
   if (finishBtn) { finishBtn.disabled = false; finishBtn.textContent = 'Enter Dashboard →'; }
@@ -4389,7 +4503,7 @@ sb.auth.onAuthStateChange((event, session) => {
     setCloudStatus('offline');
     return;
   }
-  if (session) cloudSession = session;
+  if (session) cloudSession = session;   // pushes stay blocked by dataOwnerOk() until onCloudSignedIn settles ownership
 });
 
 if (document.readyState === 'loading') {
@@ -4884,7 +4998,9 @@ document.addEventListener('DOMContentLoaded', renderPrivacyAboutTab);
 // someone outside their own dashboard permanently.
 async function appLockSignOutInstead() {
   if (!confirm('Sign out of FinanceOS on this device?')) return;
+  const _outUid = cloudSession && cloudSession.user ? cloudSession.user.id : activeDataUid;
   try { await sb.auth.signOut(); } catch (err) { console.error(err); }
+  finishLocalLogout(_outUid);
   window.location.reload();
 }
 
@@ -4968,6 +5084,14 @@ function passAppLockGate() {
 </script>
 
 <body>
+<script>
+/* Apply this user's saved theme immediately on load so a refresh never resets it */
+(function(){try{
+  var u=localStorage.getItem('fos_last_cloud_uid');
+  var t=(u&&localStorage.getItem('fos_theme_u_'+u))||localStorage.getItem('fos_theme');
+  if(t==='light') document.body.classList.add('light-mode');
+}catch(e){}})();
+</script>
 
 <!-- MOBILE HEADER (visible on phones/tablets) -->
 <div class="mobile-header">
@@ -8890,7 +9014,7 @@ function wipeLocalFinancialData() {
   ['fos_db_v3','fos_port_v3','fos_credit_v1','fos_insurance_v1','fos_notes_v1','fos_subscriptions_v1',
    'fos_budgets','financeOS_ccCards','fos_notifications','fos_game_stats',
    'fos_dashboard_layout_v4','fos_onboarding_goal','fos_last_active_view','fos_finai_goals_v1',
-   'fos_last_nw_milestone','fos_last_portfolio_update'
+   'fos_last_nw_milestone','fos_last_portfolio_update','fos_finai_score_history','fos_notif_dismissed'
   ].forEach(k => localStorage.removeItem(k));
 }
 
@@ -8903,11 +9027,9 @@ async function handleLogout() {
     }
   }
   if (!confirm('Log out of FinanceOS?')) return;
+  const _outUid = cloudSession && cloudSession.user ? cloudSession.user.id : activeDataUid;
   await sb.auth.signOut();
-  cloudSession = null;
-  localStorage.removeItem('fos_current_user');
-  localStorage.removeItem('fos_last_cloud_uid');
-  wipeLocalFinancialData();
+  finishLocalLogout(_outUid);
   // Full reload guarantees a completely clean slate — no leftover in-memory
   // state can survive into whoever logs in next on this device.
   window.location.reload();
@@ -9217,7 +9339,7 @@ async function pullBudgetsFromCloud(uid) {
 }
 
 async function pushAllToCloud() {
-  if (!cloudSession) return;
+  if (!dataOwnerOk()) return;
   const uid = cloudSession.user.id;
   setCloudStatus('syncing');
   for (const { key, table } of CLOUD_TABLES) await pushTableToCloud(key, table, uid);
@@ -9225,7 +9347,7 @@ async function pushAllToCloud() {
 }
 
 async function pullAllFromCloud() {
-  if (!cloudSession) return;
+  if (!dataOwnerOk()) return;
   const uid = cloudSession.user.id;
   setCloudStatus('syncing');
   for (const { key, table } of CLOUD_TABLES) await pullTableFromCloud(key, table, uid);
@@ -9237,7 +9359,8 @@ async function pullAllFromCloud() {
 // local state always goes up, and two pushes never overlap/race each other.
 let _syncPromise = null, _syncAgain = false;
 function syncNow(opts) {
-  if (!cloudSession) return Promise.resolve();
+  if (!dataOwnerOk()) return Promise.resolve();
+  if (!cloudDataReady && !(opts && opts.initial)) return Promise.resolve();   // never push before the first load finished
   // Data Tracking Mode: Manual JSON never pushes automatically.
   if (!isCloudTrackingOn() && !(opts && opts.force)) return Promise.resolve();
   if (_syncPromise) { _syncAgain = true; return _syncPromise; }
@@ -9288,7 +9411,7 @@ async function cloudHasAnyData(uid) {
 // The only time local data gets uploaded is the very first time an account
 // has never synced anything yet (a brand-new account) — that happens once,
 // silently, so a fresh signup isn't just wiped to empty.
-async function reconcileCloudAndLocalData(uid) {
+async function reconcileCloudAndLocalData(uid, unclaimedLocal) {
   // Manual JSON mode: never pull over (or push from) local data on sign-in.
   if (!isCloudTrackingOn()) { setCloudStatus('connected'); return; }
   ensureRecordIds();
@@ -9297,7 +9420,11 @@ async function reconcileCloudAndLocalData(uid) {
   if (hasCloud) {
     await pullAllFromCloud();
   } else {
-    await syncNow();
+    if (unclaimedLocal && !localDataIsEmpty() &&
+        !confirm('This device has finance data that is not linked to any account.\n\nOK = import it into this account\nCancel = discard it (it will NOT be uploaded)')) {
+      wipeLocalFinancialData();
+    }
+    await syncNow({ initial: true });
   }
   setCloudStatus('connected');
   if (typeof processRecurring === 'function') processRecurring();
@@ -9306,6 +9433,8 @@ async function reconcileCloudAndLocalData(uid) {
 
 async function doAutoSave() {
   if (!pendingSave) return;
+  // Another tab switched/signed out of the account → this tab's memory is stale: don't write it anywhere.
+  if (activeDataUid && localStorage.getItem('fos_last_cloud_uid') !== activeDataUid) return;
   
   // 1. Always save to localStorage as a fallback
   localStorage.setItem('fos_db_v3',     JSON.stringify(db));
@@ -20516,7 +20645,7 @@ function updateChartsForTheme() {
 // 2. Topbar Button (SILENT - No Popup)
 function toggleTheme() {
   const isLight = document.body.classList.toggle('light-mode');
-  localStorage.setItem('fos_theme', isLight ? 'light' : 'dark');
+  persistTheme(isLight ? 'light' : 'dark');
   
   const icon = document.getElementById('theme-icon');
   const label = document.getElementById('theme-label');
@@ -20537,10 +20666,10 @@ function handleThemeToggle(checkbox) {
   
   if (isDark) {
     document.body.classList.remove('light-mode');
-    localStorage.setItem('fos_theme', 'dark'); 
+    persistTheme('dark'); 
   } else {
     document.body.classList.add('light-mode');
-    localStorage.setItem('fos_theme', 'light'); 
+    persistTheme('light'); 
   }
   
   const topbarIcon = document.getElementById('theme-icon');
@@ -21232,7 +21361,7 @@ async function confirmRestore() {
 
   // UI preferences
   if (pendingRestoreData.theme) {
-    localStorage.setItem('fos_theme', pendingRestoreData.theme);
+    persistTheme(pendingRestoreData.theme);
   }
   if (pendingRestoreData.financesSidebarCollapsed) {
     localStorage.setItem('fos_finance_sidebar_collapsed', pendingRestoreData.financesSidebarCollapsed);
@@ -21269,10 +21398,10 @@ async function confirmRestore() {
   }
 
   // Login accounts / session
-  if (pendingRestoreData.users) {
+  if (pendingRestoreData.users && !cloudSession) {
     localStorage.setItem('fos_users', JSON.stringify(pendingRestoreData.users));
   }
-  if (pendingRestoreData.currentUser) {
+  if (pendingRestoreData.currentUser && !cloudSession) {
     localStorage.setItem('fos_current_user', JSON.stringify(pendingRestoreData.currentUser));
   }
 
@@ -25062,10 +25191,10 @@ function handleThemeToggle(checkbox) {
   // 1. Physically switch the theme colors on the entire dashboard
   if (isDark) {
     document.body.classList.remove('light-mode');
-    localStorage.setItem('fos_theme', 'dark'); // Save global theme state
+    persistTheme('dark'); // Save global theme state
   } else {
     document.body.classList.add('light-mode');
-    localStorage.setItem('fos_theme', 'light'); // Save global theme state
+    persistTheme('light'); // Save global theme state
   }
   
   // 2. Synchronize the button on the top navigation bar so they match
@@ -25145,10 +25274,10 @@ function handleThemeToggle(checkbox) {
   // Physically switch the theme colors on the entire dashboard
   if (isDark) {
     document.body.classList.remove('light-mode');
-    localStorage.setItem('fos_theme', 'dark'); 
+    persistTheme('dark'); 
   } else {
     document.body.classList.add('light-mode');
-    localStorage.setItem('fos_theme', 'light'); 
+    persistTheme('light'); 
   }
   
   // Synchronize the button on the top navigation bar so they match
