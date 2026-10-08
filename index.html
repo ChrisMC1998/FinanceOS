@@ -3245,6 +3245,87 @@ body.light-mode select option {
     gap:16px !important; padding:4px 2px 2px !important;
   }
 }
+
+/* ══ LIGHT MODE — one consistent container outline for FinanceOS + PortfolioOS ══
+   Panels, KPI/stat cards, chart cards, settings/credit-card/AI/notes cards,
+   modals and form fields all get the same solid slate outline and a soft
+   shadow so nothing floats on the page. Dark mode is not affected. */
+body.light-mode { --panel-border:#cbd5e1; --panel-shadow:0 1px 3px rgba(15,23,42,.08), 0 1px 2px rgba(15,23,42,.04); }
+body.light-mode .glass-panel,
+body.light-mode .kpi-card,
+body.light-mode .nw-card,
+body.light-mode .spark-card,
+body.light-mode .port-kpi-card,
+body.light-mode .credit-kpi-card,
+body.light-mode .emi-card,
+body.light-mode .modal-box,
+body.light-mode .export-modal-box,
+body.light-mode .backup-modal-box,
+body.light-mode .settings-modal-box,
+body.light-mode .set-card,
+body.light-mode .set-sidebar,
+body.light-mode .game-card,
+body.light-mode .insight-kpi-card,
+body.light-mode .insight-rec-card,
+body.light-mode .cca-panel,
+body.light-mode .cca-sum-card,
+body.light-mode .cca-strategy-card,
+body.light-mode .cca-filter-row,
+body.light-mode .cc-panel-box,
+body.light-mode .cc-insight-row,
+body.light-mode .cc-active-detail,
+body.light-mode .cc-setup-panel,
+body.light-mode .finai-panel,
+body.light-mode .finai-score-card,
+body.light-mode .finai-mini-stat,
+body.light-mode .finai-strat,
+body.light-mode .note-card,
+body.light-mode .notes-list-pane,
+body.light-mode .notes-editor-pane,
+body.light-mode .backup-option-card,
+body.light-mode .backup-stat,
+body.light-mode .alert-rule-card,
+body.light-mode .budget-row-v2,
+body.light-mode .liteai-insight-item,
+body.light-mode .liteai-mini-score,
+body.light-mode .mobile-liteai-sheet,
+body.light-mode .login-box,
+body.light-mode .applock-box,
+body.light-mode .onboard-option {
+  border:1px solid var(--panel-border) !important; box-shadow:var(--panel-shadow) !important;
+}
+body.light-mode .finai-card,
+body.light-mode .cca-attn-item,
+body.light-mode .budget-alert-item,
+body.light-mode .cc-stat-chip,
+body.light-mode .inventory-pill,
+body.light-mode .cca-reco-box,
+body.light-mode .cca-status-pill { box-shadow:0 1px 2px rgba(15,23,42,.06) !important; }
+body.light-mode .input-field,
+body.light-mode .filter-select,
+body.light-mode .set-input,
+body.light-mode .set-search,
+body.light-mode .search-box,
+body.light-mode .budget-search-box,
+body.light-mode .btn-secondary,
+body.light-mode .export-btn,
+body.light-mode .filter-mode-toggle,
+body.light-mode .type-seg,
+body.light-mode .toggle-row,
+body.light-mode .set-chip-group,
+body.light-mode .alert-builder-select,
+body.light-mode .alert-builder-input,
+body.light-mode .export-check-row,
+body.light-mode .login-input,
+body.light-mode .cc-input,
+body.light-mode .shortcut-btn,
+body.light-mode .trk-opt,
+body.light-mode .port-filter-box,
+body.light-mode .notes-search-box { border-color:var(--panel-border) !important; }
+body.light-mode .tradingview-widget-container { box-shadow:0 0 0 1px var(--panel-border); border-radius:12px; overflow:hidden; }
+body.light-mode .set-card, body.light-mode .glass-panel, body.light-mode .modal-box { background-color:#ffffff; }
+body.light-mode .modal-box, body.light-mode .export-modal-box, body.light-mode .backup-modal-box, body.light-mode .settings-modal-box { box-shadow:0 12px 40px rgba(15,23,42,.18) !important; }
+body.light-mode .glass-panel:hover, body.light-mode .kpi-card:hover, body.light-mode .port-kpi-card:hover, body.light-mode .credit-kpi-card:hover, body.light-mode .spark-card:hover { border-color:#94a3b8 !important; }
 </style>
 
 <div id="app-lock-overlay" class="hidden">
