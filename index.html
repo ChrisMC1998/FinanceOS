@@ -3082,6 +3082,36 @@ body:not(.light-mode) .sidebar .export-btn { background: rgba(255,255,255,0.04);
   body:not(.light-mode) .sidebar .nav-item:hover, body:not(.light-mode) .port-sidebar .port-nav-item:hover { transform: none; }
 }
 </style>
+<style id="fos-light-auth">
+/* Light theme for splash / sign-in / sign-up / forgot / onboarding / app-lock (dark theme untouched) */
+body.light-mode #app-splash{background:radial-gradient(circle at 50% 30%,rgba(0,117,255,.08),transparent 55%),linear-gradient(160deg,#ffffff 0%,#f4f7f9 100%)}
+body.light-mode .splash-title{color:#0f172a}
+body.light-mode .splash-sub{color:#475569}
+body.light-mode .splash-bar-track{background:#e2e8f0}
+body.light-mode .splash-logo-ring{background:linear-gradient(135deg,rgba(0,117,255,.12),rgba(0,117,255,.02));border-color:rgba(0,117,255,.3)}
+body.light-mode .splash-logo-ring i{filter:none}
+body.light-mode #login-overlay,body.light-mode #app-lock-overlay{background:linear-gradient(135deg,#f4f7f9 0%,#e8eef3 100%)}
+body.light-mode .login-box,body.light-mode .applock-box{background:#ffffff;border-color:#e2e8f0;box-shadow:0 24px 60px rgba(15,23,42,.12)}
+body.light-mode .login-sub,body.light-mode .back-link,body.light-mode .otp-resend,body.light-mode .onboard-sub,body.light-mode .onboard-option-desc{color:#475569}
+body.light-mode .login-label{color:#334155}
+body.light-mode .login-input,body.light-mode .otp-inputs input{background:#f8fafc;border-color:#cbd5e1;color:#0f172a;caret-color:#0f172a}
+body.light-mode .login-input::placeholder{color:#94a3b8}
+body.light-mode .login-input:focus,body.light-mode .otp-inputs input:focus{border-color:#0075ff;background:#fff}
+body.light-mode .login-pass-toggle{color:#64748b}
+body.light-mode .login-pass-toggle:hover,body.light-mode .back-link:hover{color:#0f172a}
+body.light-mode .login-pass-wrap input:-webkit-autofill,body.light-mode .login-pass-wrap input:-webkit-autofill:hover,body.light-mode .login-pass-wrap input:-webkit-autofill:focus{-webkit-text-fill-color:#0f172a;-webkit-box-shadow:0 0 0 40px #f8fafc inset;caret-color:#0f172a}
+body.light-mode .login-error{background:#fef2f2;border-color:#fecaca;color:#b91c1c}
+body.light-mode .success-msg{color:#047857}
+body.light-mode .onboard-progress-seg{background:#e2e8f0}
+body.light-mode .onboard-option{background:#f8fafc;border-color:#e2e8f0}
+body.light-mode .onboard-option:hover{background:rgba(0,117,255,.06);border-color:rgba(0,117,255,.35)}
+body.light-mode .onboard-option.selected{background:rgba(0,117,255,.10);border-color:#0075ff}
+body.light-mode .onboard-option-title,body.light-mode .onboard-summary-text b{color:#0f172a}
+body.light-mode .onboard-option-check{border-color:#cbd5e1}
+body.light-mode .onboard-btn-back{border-color:#cbd5e1;color:#334155}
+body.light-mode .onboard-btn-back:hover{background:#f1f5f9;color:#0f172a}
+body.light-mode .onboard-summary-text{color:#334155}
+</style>
 </head>
 <!-- ═══════════════════════════════════════════════════════
      LOGIN OVERLAY — shown before the dashboard loads
@@ -6356,13 +6386,8 @@ function passAppLockGate() {
 
 <div class="glass-panel draggable-section tv-mobile-hide" id="tv-panel" style="margin-bottom: 1.3rem; padding-bottom: 0;">
         <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 1rem;">
-          <div class="panel-title" style="margin-bottom:0; display:flex; align-items:center; gap:8px; cursor:pointer;" onclick="document.getElementById('symbol-selector').style.display='flex'">
-            <i class="fas fa-chart-line" style="color:#38bdf8;"></i> <span id="current-symbol" style="font-size: 0.85rem;">USD/JPY</span> <i class="fas fa-caret-down" style="font-size:0.7rem; opacity:0.6;"></i>
-          </div>
-          <!-- Symbol Selector Hidden UI -->
-          <div id="symbol-selector" style="display:none; position:absolute; right:20px; z-index:100; background:#07091a; padding:10px; border-radius:8px; border:1px solid #0075ff;">
-             <input type="text" id="new-symbol-inp" placeholder="Enter symbol (e.g. BTCUSD)" style="background:#1e293b; color:white; border:none; padding:5px;">
-             <button onclick="updateChartSymbol()" style="background:#0075ff; color:white; border:none; padding:5px 10px; cursor:pointer;">Go</button>
+          <div class="panel-title" style="margin-bottom:0; display:flex; align-items:center; gap:8px;">
+            <i class="fas fa-chart-line" style="color:#38bdf8;" aria-hidden="true"></i> <span id="current-symbol" aria-live="polite" style="font-size: 0.85rem;">USD/JPY</span>
           </div>
           <div style="font-size:0.65rem; color:var(--text-muted); display:flex; align-items:center; gap:6px;">
             <div class="live-dot"></div> TradingView Live Feed
@@ -22641,8 +22666,7 @@ function selectMarketCard(assetId) {
 
   const tvSymbol = assetMap[assetId];
   if (tvSymbol) {
-    document.getElementById('new-symbol-inp').value = tvSymbol;
-    updateChartSymbol(); 
+    updateChartSymbol(tvSymbol);
   }
 }
 
@@ -23331,7 +23355,8 @@ function highlightTransaction(id) {
 // ── DYNAMIC TRADINGVIEW ENGINE ──
 function renderTradingViewChart(symbol = null) {
   const isLight = document.body.classList.contains('light-mode');
-  const currentSym = symbol || document.getElementById('current-symbol').textContent || "FX:USDJPY";
+  const currentSym = symbol || window._tvSym || 'FX:USDJPY';
+  window._tvSym = currentSym;
 
   const container = document.getElementById('tv_chart_main');
   if (!container) return;
@@ -23356,15 +23381,35 @@ function renderTradingViewChart(symbol = null) {
   });
 }
 
-function updateChartSymbol() {
-  const sym = document.getElementById('new-symbol-inp').value.toUpperCase();
-  if(!sym) return;
-  
-  document.getElementById('current-symbol').textContent = sym;
-  document.getElementById('symbol-selector').style.display = 'none';
-
+// Header is display-only: it mirrors whichever symbol the chart is showing.
+function tvDisplayName(sym) {
+  var s = String(sym || '').split(':').pop().trim().toUpperCase();
+  return /^[A-Z]{6}$/.test(s) ? s.slice(0,3) + '/' + s.slice(3) : s;
+}
+function setTvHeader(sym) {
+  var el = document.getElementById('current-symbol');
+  if (el && sym) el.textContent = tvDisplayName(sym);
+}
+// Programmatic change (e.g. clicking a market card) — reloads the chart and updates the header.
+function updateChartSymbol(sym) {
+  sym = String(sym || '').trim().toUpperCase();
+  if (!sym) return;
+  setTvHeader(sym);
   renderTradingViewChart(sym);
 }
+// Best-effort: pick up symbol changes made inside TradingView's own selector via its iframe messages.
+window.addEventListener('message', function (e) {
+  try {
+    if (!/tradingview\.com$/.test(new URL(e.origin).hostname)) return;
+    var d = typeof e.data === 'string' ? JSON.parse(e.data) : e.data;
+    if (!d || typeof d !== 'object') return;
+    var tag = String(d.name || d.type || d.event || '').toLowerCase();
+    if (tag.indexOf('symbol') === -1) return;
+    var p = d.data || d.payload || d.params || d;
+    var s = p.pro_name || p.symbol || p.short_name || p.name;
+    if (typeof s === 'string' && s) { window._tvSym = s; setTvHeader(s); }
+  } catch (err) { /* ignore unrelated messages */ }
+});
 
 // ── AUTO-BACKUP REMINDER ──
 (function initBackupReminder() {
