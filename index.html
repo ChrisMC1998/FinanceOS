@@ -3502,6 +3502,409 @@ body.light-mode .set-card, body.light-mode .glass-panel, body.light-mode .modal-
 body.light-mode .modal-box, body.light-mode .export-modal-box, body.light-mode .backup-modal-box, body.light-mode .settings-modal-box { box-shadow:0 12px 40px rgba(15,23,42,.18) !important; }
 body.light-mode .glass-panel:hover, body.light-mode .kpi-card:hover, body.light-mode .port-kpi-card:hover, body.light-mode .credit-kpi-card:hover, body.light-mode .spark-card:hover { border-color:#94a3b8 !important; }
 </style>
+<style id="fos-teal-theme">
+/* ══════════════════════════════════════════════════════════════════════
+   BLACK + SUBTLE TEAL — DARK MODE ONLY
+   Every rule below is scoped to `body:not(.light-mode)`, the app's existing
+   dark-mode switch (light mode = body.light-mode). Light-mode values are never
+   touched. Loaded last so it overrides the earlier navy/blue/violet rules.
+   Semantic colours (success / warning / danger / asset-class series) are kept.
+══════════════════════════════════════════════════════════════════════ */
+
+/* ── 1. Design tokens (dark only) ─────────────────────────────────── */
+body:not(.light-mode) {
+  --t-bg:            #050708;
+  --t-surface:       #0B1012;
+  --t-surface-2:     #101719;
+  --t-glass:         rgba(15,25,27,0.78);
+  --t-glass-hover:   rgba(18,31,34,0.90);
+  --t-border:        rgba(180,220,218,0.10);
+  --t-border-strong: rgba(180,220,218,0.18);
+  --t-accent:        #20CDB5;
+  --t-accent-hover:  #43E0CC;
+  --t-accent-muted:  #167F75;
+  --t-accent-rgb:    32,205,181;
+  --t-on-accent:     #031512;
+  --t-text:          #F4F8F8;
+  --t-text-2:        #A5B3B4;
+  --t-text-3:        #849495;
+  --t-ring:          0 0 0 3px rgba(32,205,181,0.22);
+  --t-card-bg:       linear-gradient(160deg, rgba(16,23,25,0.96) 0%, rgba(11,16,18,0.96) 100%);
+  --t-card-shadow:   inset 0 1px 0 rgba(180,220,218,0.045), 0 6px 22px rgba(0,0,0,0.38);
+  --t-inset-bg:      rgba(180,220,218,0.035);
+
+  /* Re-point the app's existing variables so every var(--accent) etc. follows */
+  --accent:          #20CDB5;
+  --accent-soft:     rgba(32,205,181,0.14);
+  --glass-border:    rgba(180,220,218,0.09);
+  --text-main:       #F4F8F8;
+  --text-mid:        #A5B3B4;
+  --text-muted:      #849495;
+  --fos-accent-1-rgb: 32,205,181;     /* FinanceOS nav accent  */
+  --fos-accent-2-rgb: 32,205,181;     /* PortfolioOS nav accent */
+  --fos-glass-bg:           rgba(15,25,27,0.78);
+  --fos-glass-bg-hover:     rgba(18,31,34,0.90);
+  --fos-glass-border:       rgba(180,220,218,0.10);
+  --fos-glass-border-hover: rgba(32,205,181,0.30);
+  --fos-nav-text:           #A5B3B4;
+  --scale-text-shadow-assets: 0 0 12px rgba(52,211,153,0.4);
+}
+
+/* ── 2. Page background ───────────────────────────────────────────── */
+body:not(.light-mode) {
+  background:
+    radial-gradient(circle at 12% 0%,  rgba(32,205,181,0.07), transparent 42%),
+    radial-gradient(circle at 88% 100%, rgba(22,127,117,0.06), transparent 42%),
+    linear-gradient(135deg, #070a0b 0%, #050708 55%, #030505 100%);
+  color: var(--t-text);
+}
+@media (max-width:900px) {
+  html:not(:has(body.light-mode)) {
+    background-color:#050708;
+    background-image:
+      radial-gradient(circle at 15% 0%, rgba(32,205,181,0.07), transparent 40%),
+      radial-gradient(circle at 85% 100%, rgba(22,127,117,0.06), transparent 40%),
+      linear-gradient(135deg, #070a0b 0%, #030505 100%);
+  }
+  body:not(.light-mode) .fos-atmosphere::before {
+    background:linear-gradient(to bottom, rgba(5,7,8,0) 0%, rgba(5,7,8,0.35) 30%,
+      rgba(4,6,7,0.78) 62%, rgba(3,5,5,0.96) 84%, #020303 100%);
+  }
+  body:not(.light-mode) .fos-atmosphere::after {
+    background:
+      radial-gradient(ellipse 55% 70% at 28% 100%, rgba(32,205,181,0.13), transparent 70%),
+      radial-gradient(ellipse 45% 60% at 74% 100%, rgba(22,127,117,0.09), transparent 70%);
+  }
+}
+
+/* ── 3. Floating glass navigation (FinanceOS + PortfolioOS) ───────── */
+@media (min-width: 901px) {
+  body:not(.light-mode) .sidebar,
+  body:not(.light-mode) .port-sidebar {
+    background:
+      linear-gradient(115deg, transparent 18%, rgba(var(--t-accent-rgb), calc(var(--fos-spec) * 0.085)) 42%, transparent 62%),
+      linear-gradient(180deg, rgba(67,224,204,0.050) 0%, rgba(32,205,181,0.012) 38%, rgba(32,205,181,0) 100%),
+      var(--fos-glass-bg);
+    -webkit-backdrop-filter: blur(18px) saturate(140%);
+            backdrop-filter: blur(18px) saturate(140%);
+    border: 1px solid var(--t-border);
+    box-shadow:
+      inset 0 1px 0 rgba(67,224,204,0.13),
+      inset 0 -1px 0 rgba(0,0,0,0.40),
+      0 12px 34px rgba(0,0,0,0.50),
+      0 2px 6px rgba(0,0,0,0.32);
+  }
+  body:not(.light-mode) .sidebar:hover,
+  body:not(.light-mode) .port-sidebar:hover {
+    --fos-spec: 1;
+    transform: translateY(-2px);
+    background-color: var(--t-glass-hover);
+    -webkit-backdrop-filter: blur(24px) saturate(150%);
+            backdrop-filter: blur(24px) saturate(150%);
+    border-color: rgba(var(--t-accent-rgb),0.28);
+    box-shadow:
+      inset 0 1px 0 rgba(67,224,204,0.22),
+      inset 0 -1px 0 rgba(0,0,0,0.40),
+      0 20px 48px rgba(0,0,0,0.60),
+      0 4px 12px rgba(0,0,0,0.38),
+      0 0 0 1px rgba(var(--t-accent-rgb),0.05);
+  }
+  body:not(.light-mode) .port-sidebar { border-color: var(--t-border); }
+  body:not(.light-mode) .port-sidebar:hover { border-color: rgba(var(--t-accent-rgb),0.28); }
+}
+body:not(.light-mode) .port-sidebar::before {
+  background: linear-gradient(90deg, transparent, rgba(var(--t-accent-rgb),0.75), transparent);
+  opacity: .7;
+}
+body:not(.light-mode) .port-sidebar-toggle {
+  background: var(--t-surface); border: 1px solid var(--t-border-strong); color: var(--t-text-2);
+}
+body:not(.light-mode) .sidebar-toggle:hover, body:not(.light-mode) .port-sidebar-toggle:hover { color: var(--t-accent-hover); border-color: rgba(var(--t-accent-rgb),0.4); }
+
+/* Nav items: glass hover tile vs. persistent teal active indicator */
+body:not(.light-mode) .sidebar .nav-item:hover,
+body:not(.light-mode) .port-sidebar .port-nav-item:hover {
+  background: linear-gradient(180deg, rgba(180,220,218,0.10), rgba(180,220,218,0.045));
+  border: 1px solid rgba(180,220,218,0.13);
+  box-shadow: inset 0 1px 0 rgba(180,220,218,0.14), 0 6px 16px rgba(0,0,0,0.35);
+  color: var(--t-text);
+}
+body:not(.light-mode) .sidebar .nav-item.active,
+body:not(.light-mode) .sidebar .nav-item.active:hover,
+body:not(.light-mode) .port-sidebar .port-nav-item.active,
+body:not(.light-mode) .port-sidebar .port-nav-item.active:hover {
+  background: linear-gradient(135deg, rgba(var(--t-accent-rgb),0.16), rgba(var(--t-accent-rgb),0.04));
+  border: 1px solid rgba(var(--t-accent-rgb),0.26);
+  border-left: 2px solid var(--t-accent);
+  box-shadow: inset 0 1px 0 rgba(180,220,218,0.06), 0 0 14px rgba(var(--t-accent-rgb),0.10);
+  color: var(--t-text); font-weight: 600;
+}
+body:not(.light-mode) .sidebar .nav-item.active .nav-icon i,
+body:not(.light-mode) .port-sidebar .port-nav-item.active .nav-icon i { color: var(--t-accent-hover); }
+body:not(.light-mode) .sidebar .nav-section-label,
+body:not(.light-mode) .port-sidebar .nav-section-label { color: var(--t-text-3); }
+body:not(.light-mode) .sidebar .welcome-msg,
+body:not(.light-mode) .port-sidebar .port-brand-sub,
+body:not(.light-mode) .sidebar .autosave-indicator { color: var(--t-text-2); }
+body:not(.light-mode) .port-brand-title { color: var(--t-text); }
+body:not(.light-mode) .sidebar .export-btn { background: rgba(180,220,218,0.04); border-color: var(--t-border); }
+body:not(.light-mode) .sidebar .export-btn:hover { background: rgba(180,220,218,0.09); color: var(--t-text); }
+/* Keep the Logout button clearly red */
+body:not(.light-mode) .sidebar .export-btn[onclick*="handleLogout"] { color:#f87171; border-color: rgba(239,68,68,0.28); }
+body:not(.light-mode) .sidebar .export-btn[onclick*="handleLogout"]:hover { background: rgba(239,68,68,0.10); color:#fca5a5; }
+
+/* Portfolio sidebar controls */
+body:not(.light-mode) .port-filter-box { background: rgba(var(--t-accent-rgb),0.05); border-color: var(--t-border); }
+body:not(.light-mode) .port-filter-label { color: var(--t-accent); }
+body:not(.light-mode) .port-filter-select { background-color: rgba(180,220,218,0.05); border-color: var(--t-border-strong); color: var(--t-text); }
+body:not(.light-mode) .port-mode-toggle { background: rgba(180,220,218,0.04); border-color: var(--t-border); }
+body:not(.light-mode) .port-mode-btn.active,
+body:not(.light-mode) .adv-tab.active { background: var(--t-accent); color: var(--t-on-accent); }
+body:not(.light-mode) .btn-port-add { background: rgba(var(--t-accent-rgb),0.14); color: var(--t-accent-hover); }
+body:not(.light-mode) .btn-port-add:hover { background: rgba(var(--t-accent-rgb),0.26); color: var(--t-text); }
+
+/* Focus rings (keyboard) */
+body:not(.light-mode) :focus-visible { outline: 2px solid var(--t-accent-hover); outline-offset: 2px; }
+body:not(.light-mode) .sidebar .nav-item:focus-visible,
+body:not(.light-mode) .port-sidebar .port-nav-item:focus-visible,
+body:not(.light-mode) .sidebar .export-btn:focus-visible,
+body:not(.light-mode) .port-sidebar button:focus-visible,
+body:not(.light-mode) .sidebar-toggle:focus-visible,
+body:not(.light-mode) .port-sidebar-toggle:focus-visible { outline: 2px solid var(--t-accent-hover); outline-offset: 2px; }
+
+@supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
+  body:not(.light-mode) .sidebar, body:not(.light-mode) .port-sidebar { background-color: rgba(11,16,18,0.97); }
+  body:not(.light-mode) .sidebar:hover, body:not(.light-mode) .port-sidebar:hover { background-color: rgba(16,23,25,0.98); }
+  body:not(.light-mode) .topbar, body:not(.light-mode) .mobile-header { background: rgba(5,7,8,0.98); }
+}
+
+/* ── 4. Header / top bars / mobile nav ────────────────────────────── */
+body:not(.light-mode) .topbar {
+  background: rgba(5,7,8,0.72);
+  border-image: linear-gradient(90deg, rgba(var(--t-accent-rgb),0.20), rgba(180,220,218,0.03)) 1;
+}
+body:not(.light-mode) .mobile-header { background: rgba(5,7,8,0.96); border-bottom-color: var(--t-border); }
+body:not(.light-mode) .mobile-drawer { background: #080c0d; border-right-color: var(--t-border); }
+body:not(.light-mode) .mobile-liteai-sheet { background: var(--t-surface); border-top-color: var(--t-border-strong); }
+body:not(.light-mode) .drawer-item:hover { background: rgba(180,220,218,0.06); }
+body:not(.light-mode) .drawer-item.active,
+body:not(.light-mode) .drawer-item.port-active {
+  background: rgba(var(--t-accent-rgb),0.13); color: var(--t-text);
+  box-shadow: inset 2px 0 0 var(--t-accent);
+}
+body:not(.light-mode) .drawer-section-label[style*="7c6eb3"] { color: var(--t-text-3) !important; }
+body:not(.light-mode) .drawer-item[style*="c4b5fd"] { color: var(--t-accent-hover) !important; }
+body:not(.light-mode) .drawer-item i[style*="a78bfa"] { color: var(--t-accent) !important; }
+body:not(.light-mode) .hamburger:hover, body:not(.light-mode) .theme-toggle-btn:hover { background: rgba(180,220,218,0.08); color: var(--t-text); }
+
+/* ── 5. Cards, panels, metric tiles ───────────────────────────────── */
+body:not(.light-mode) .glass-panel,
+body:not(.light-mode) .kpi-card,
+body:not(.light-mode) .credit-kpi-card,
+body:not(.light-mode) .emi-card,
+body:not(.light-mode) .spark-card,
+body:not(.light-mode) .set-card,
+body:not(.light-mode) .game-card,
+body:not(.light-mode) .insight-kpi-card,
+body:not(.light-mode) .insight-rec-card,
+body:not(.light-mode) .cca-panel,
+body:not(.light-mode) .cc-panel-box,
+body:not(.light-mode) .cc-setup-panel,
+body:not(.light-mode) .note-card,
+body:not(.light-mode) .notes-list-pane,
+body:not(.light-mode) .notes-editor-pane,
+body:not(.light-mode) .backup-option-card,
+body:not(.light-mode) .alert-rule-card,
+body:not(.light-mode) .budget-row-v2 {
+  background: var(--t-card-bg);
+  border-color: var(--t-border);
+  box-shadow: var(--t-card-shadow);
+}
+body:not(.light-mode) .glass-panel:hover { border-color: var(--t-border-strong); }
+body:not(.light-mode) .kpi-card::before { background: linear-gradient(180deg, rgba(180,220,218,0.045), transparent 50%); }
+body:not(.light-mode) .kpi-card:hover,
+body:not(.light-mode) .game-card:hover,
+body:not(.light-mode) .alert-rule-card:hover {
+  border-color: rgba(var(--t-accent-rgb),0.28);
+  box-shadow: inset 0 1px 0 rgba(180,220,218,0.06), 0 12px 30px rgba(0,0,0,0.45);
+}
+/* Secondary / nested surfaces */
+body:not(.light-mode) .nw-card,
+body:not(.light-mode) .port-kpi-card,
+body:not(.light-mode) .nw-milestone,
+body:not(.light-mode) .cca-sum-card,
+body:not(.light-mode) .finai-panel,
+body:not(.light-mode) .finai-score-card,
+body:not(.light-mode) .finai-mini-stat,
+body:not(.light-mode) .finai-strat,
+body:not(.light-mode) .backup-stat,
+body:not(.light-mode) .liteai-mini-score,
+body:not(.light-mode) .liteai-insight-item:not(.severity-bad):not(.severity-warn),
+body:not(.light-mode) .cc-insight-row,
+body:not(.light-mode) .cc-active-detail,
+body:not(.light-mode) .cca-strategy-card,
+body:not(.light-mode) .cca-filter-row {
+  background: var(--t-inset-bg);
+  border-color: var(--t-border);
+}
+body:not(.light-mode) .finai-card { background: var(--t-inset-bg); border-top-color: var(--t-border); border-right-color: var(--t-border); border-bottom-color: var(--t-border); }
+body:not(.light-mode) .port-summary-row td { background: rgba(var(--t-accent-rgb),0.06); border-top-color: var(--t-border-strong); }
+body:not(.light-mode) .nw-milestone-label { color: var(--t-accent); }
+body:not(.light-mode) .calc-preview { background: rgba(var(--t-accent-rgb),0.07); border-color: rgba(var(--t-accent-rgb),0.16); color: var(--t-accent-hover); }
+body:not(.light-mode) .panel-title[style*="#a78bfa"] { color: var(--t-accent-hover) !important; }
+body:not(.light-mode) .modal-title[style*="#c4b5fd"] { color: var(--t-text) !important; }
+body:not(.light-mode) .progress-ring-bg { stroke: rgba(var(--t-accent-rgb),0.14); }
+body:not(.light-mode) .progress-ring-fill { stroke: var(--t-accent); }
+body:not(.light-mode) .game-card-icon { background: var(--game-icon-bg, rgba(var(--t-accent-rgb),0.10)); border-color: var(--game-icon-border, rgba(var(--t-accent-rgb),0.22)); }
+body:not(.light-mode) .alert-rule-icon { background: rgba(var(--t-accent-rgb),0.12); color: var(--t-accent); }
+body:not(.light-mode) .liteai-mini-score-num { color: var(--t-accent-hover); }
+
+/* ── 6. Modals, popovers, search, toasts ──────────────────────────── */
+body:not(.light-mode) .modal-overlay { background: rgba(2,4,4,0.80); }
+body:not(.light-mode) .modal-box,
+body:not(.light-mode) .export-modal-box,
+body:not(.light-mode) .backup-modal-box,
+body:not(.light-mode) .settings-modal-box,
+body:not(.light-mode) .login-box,
+body:not(.light-mode) .applock-box {
+  background: linear-gradient(160deg, #101719 0%, #0B1012 100%);
+  border: 1px solid var(--t-border-strong);
+  box-shadow: 0 28px 80px rgba(0,0,0,0.70), 0 0 0 1px rgba(var(--t-accent-rgb),0.04), inset 0 1px 0 rgba(180,220,218,0.06);
+}
+body:not(.light-mode) .modal-box.port-modal,
+body:not(.light-mode) .modal-box.budget-modal { border-color: var(--t-border-strong); }
+body:not(.light-mode) .set-sidebar { background: rgba(5,7,8,0.55); border-color: var(--t-border); }
+body:not(.light-mode) .set-nav-item:hover { background: rgba(180,220,218,0.06); }
+body:not(.light-mode) .set-nav-item.active { background: rgba(var(--t-accent-rgb),0.13); color: var(--t-accent-hover); }
+body:not(.light-mode) .search-box { background: var(--t-surface); border-color: rgba(var(--t-accent-rgb),0.30); box-shadow: 0 28px 80px rgba(0,0,0,0.65), 0 0 0 1px rgba(var(--t-accent-rgb),0.06); }
+body:not(.light-mode) .search-input-row i { color: var(--t-accent); }
+body:not(.light-mode) .search-result-item:hover,
+body:not(.light-mode) .search-result-item.active { background: rgba(var(--t-accent-rgb),0.09); }
+body:not(.light-mode) .search-results::-webkit-scrollbar-thumb { background: rgba(var(--t-accent-rgb),0.30); }
+body:not(.light-mode) #undo-toast,
+body:not(.light-mode) #settings-toast { background: rgba(11,16,18,0.96); border-color: rgba(var(--t-accent-rgb),0.30); }
+body:not(.light-mode) .undo-btn,
+body:not(.light-mode) .settings-undo-btn { background: rgba(var(--t-accent-rgb),0.12); border-color: var(--t-accent); color: var(--t-accent-hover); }
+body:not(.light-mode) .undo-btn:hover,
+body:not(.light-mode) .settings-undo-btn:hover { background: rgba(var(--t-accent-rgb),0.24); border-color: var(--t-accent-hover); color: var(--t-text); }
+body:not(.light-mode) #undo-progress,
+body:not(.light-mode) #settings-toast-progress { background: var(--t-accent); }
+body:not(.light-mode) .google-visualization-tooltip {
+  background: rgba(11,16,18,0.97) !important; border: 1px solid rgba(var(--t-accent-rgb),0.32) !important;
+}
+
+/* ── 7. Buttons ───────────────────────────────────────────────────── */
+body:not(.light-mode) .btn-add,
+body:not(.light-mode) .login-btn,
+body:not(.light-mode) .mob-port-add-btn {
+  background: var(--t-accent); color: var(--t-on-accent);
+  box-shadow: 0 4px 16px rgba(var(--t-accent-rgb),0.22), inset 0 1px 0 rgba(255,255,255,0.25);
+}
+body:not(.light-mode) .btn-add:hover,
+body:not(.light-mode) .login-btn:hover { background: var(--t-accent-hover); opacity: 1; box-shadow: 0 6px 20px rgba(var(--t-accent-rgb),0.30), inset 0 1px 0 rgba(255,255,255,0.3); }
+body:not(.light-mode) .btn-add:active,
+body:not(.light-mode) .login-btn:active { background: var(--t-accent-muted); transform: translateY(0); box-shadow: inset 0 2px 6px rgba(0,0,0,0.35); }
+body:not(.light-mode) .btn-add:disabled, body:not(.light-mode) .login-btn:disabled,
+body:not(.light-mode) .btn-add[disabled] { opacity: .45; cursor: not-allowed; transform: none; box-shadow: none; }
+body:not(.light-mode) .btn-add:focus-visible, body:not(.light-mode) .login-btn:focus-visible { outline: 2px solid #fff; outline-offset: 2px; box-shadow: var(--t-ring); }
+body:not(.light-mode) .btn-secondary, body:not(.light-mode) .export-btn { background: rgba(180,220,218,0.05); border-color: var(--t-border); color: var(--t-text-2); }
+body:not(.light-mode) .btn-secondary:hover, body:not(.light-mode) .export-btn:hover { background: rgba(180,220,218,0.10); color: var(--t-text); border-color: var(--t-border-strong); }
+body:not(.light-mode) .btn-secondary:active { background: rgba(180,220,218,0.06); }
+body:not(.light-mode) .btn-secondary:disabled { opacity: .45; cursor: not-allowed; }
+body:not(.light-mode) .login-logo span, body:not(.light-mode) .splash-title span, body:not(.light-mode) .login-forgot,
+body:not(.light-mode) .otp-resend span { color: var(--t-accent); }
+body:not(.light-mode) .shortcut-btn:hover { color: var(--t-accent-hover); background: rgba(var(--t-accent-rgb),0.10); }
+
+/* ── 8. Inputs, dropdowns, selectors ──────────────────────────────── */
+body:not(.light-mode) .input-field,
+body:not(.light-mode) .set-input,
+body:not(.light-mode) .filter-select,
+body:not(.light-mode) .login-input,
+body:not(.light-mode) .cc-input,
+body:not(.light-mode) .alert-builder-select,
+body:not(.light-mode) .alert-builder-input {
+  background-color: rgba(180,220,218,0.045);
+  border-color: var(--t-border);
+  color: var(--t-text);
+}
+body:not(.light-mode) .input-field:hover, body:not(.light-mode) .set-input:hover { border-color: var(--t-border-strong); }
+body:not(.light-mode) .input-field:focus, body:not(.light-mode) .set-input:focus,
+body:not(.light-mode) .filter-select:focus, body:not(.light-mode) .login-input:focus,
+body:not(.light-mode) .input-field.port-focus:focus, body:not(.light-mode) #txn-search-input:focus,
+body:not(.light-mode) .otp-inputs input:focus {
+  border-color: var(--t-accent); box-shadow: var(--t-ring); outline: none;
+}
+body:not(.light-mode) .filter-select:hover { border-color: rgba(var(--t-accent-rgb),0.45); }
+body:not(.light-mode) .input-field:disabled, body:not(.light-mode) .set-input:disabled { opacity: .5; cursor: not-allowed; }
+body:not(.light-mode) select option,
+body:not(.light-mode) .filter-select option,
+body:not(.light-mode) .input-field option,
+body:not(.light-mode) select.set-input option { background-color: var(--t-surface-2); color: var(--t-text); }
+body:not(.light-mode) .search-input-row input::placeholder, body:not(.light-mode) .input-field::placeholder, body:not(.light-mode) .set-input::placeholder { color: var(--t-text-3); }
+
+/* ── 9. Tabs, filters, chips, toggles ─────────────────────────────── */
+body:not(.light-mode) .filter-mode-toggle, body:not(.light-mode) .type-seg { background: rgba(180,220,218,0.05); border-color: var(--t-border); }
+body:not(.light-mode) .filter-mode-btn.active, body:not(.light-mode) .type-seg button.on { background: var(--t-accent); color: var(--t-on-accent); }
+body:not(.light-mode) .tag-chip, body:not(.light-mode) .inline-tag { background: rgba(var(--t-accent-rgb),0.12); border-color: rgba(var(--t-accent-rgb),0.28); color: var(--t-accent-hover); }
+body:not(.light-mode) .qa-chip, body:not(.light-mode) .tag-filter-chip { background: rgba(180,220,218,0.05); border-color: var(--t-border); }
+body:not(.light-mode) .qa-chip:hover, body:not(.light-mode) .tag-filter-chip:hover,
+body:not(.light-mode) .tag-filter-chip.active { background: rgba(var(--t-accent-rgb),0.13); border-color: rgba(var(--t-accent-rgb),0.40); color: var(--t-accent-hover); }
+body:not(.light-mode) .tag-suggestions { background: var(--t-surface-2); border-color: var(--t-border-strong); }
+body:not(.light-mode) .tag-suggestion-item:hover, body:not(.light-mode) .tag-suggestion-item.sel { background: rgba(var(--t-accent-rgb),0.10); }
+body:not(.light-mode) .trk-opt:hover { background: rgba(var(--t-accent-rgb),0.07); border-color: rgba(var(--t-accent-rgb),0.30); }
+body:not(.light-mode) .trk-opt.active { background: var(--accent-soft); border-color: var(--t-accent); box-shadow: 0 0 16px rgba(var(--t-accent-rgb),0.14); }
+body:not(.light-mode) .toggle-slider { background: rgba(180,220,218,0.10); border-color: rgba(180,220,218,0.22); }
+body:not(.light-mode) .toggle-switch input:checked + .toggle-slider { background: var(--t-accent); border-color: var(--t-accent); }
+body:not(.light-mode) .toggle-switch input:checked + .toggle-slider:before { background: var(--t-on-accent); }
+body:not(.light-mode) .toggle-switch input:focus-visible + .toggle-slider { box-shadow: var(--t-ring); }
+body:not(.light-mode) .txn-checkbox:hover { border-color: var(--t-accent); }
+body:not(.light-mode) .txn-checkbox:checked { background: var(--t-accent); border-color: var(--t-accent); }
+body:not(.light-mode) .budget-row-slider::-webkit-slider-thumb { background: var(--t-accent); box-shadow: 0 0 0 4px rgba(var(--t-accent-rgb),0.18); }
+body:not(.light-mode) .budget-row-slider::-moz-range-thumb { background: var(--t-accent); box-shadow: 0 0 0 4px rgba(var(--t-accent-rgb),0.18); }
+body:not(.light-mode) .budget-row-v2.has-limit { border-color: rgba(var(--t-accent-rgb),0.22); }
+body:not(.light-mode) .draggable-section.drag-over { outline-color: rgba(var(--t-accent-rgb),0.5); }
+body:not(.light-mode) .edit-icon { color: rgba(var(--t-accent-rgb),0.55); }
+body:not(.light-mode) .edit-icon:hover { color: var(--t-accent-hover); }
+body:not(.light-mode) .calc-op, body:not(.light-mode) .calc-sci { background: rgba(var(--t-accent-rgb),0.09); color: var(--t-accent-hover); border-color: rgba(var(--t-accent-rgb),0.18); }
+body:not(.light-mode) .calc-op:hover, body:not(.light-mode) .calc-sci:hover { background: rgba(var(--t-accent-rgb),0.18); }
+body:not(.light-mode) .sci-display-wrap { border-color: var(--t-border-strong); }
+
+/* ── 10. Tables & lists ───────────────────────────────────────────── */
+body:not(.light-mode) th { color: var(--t-text-2); border-bottom-color: var(--t-border); }
+body:not(.light-mode) th:hover { color: var(--t-text); }
+body:not(.light-mode) td { border-bottom-color: rgba(180,220,218,0.06); }
+body:not(.light-mode) tr:hover td { background: rgba(var(--t-accent-rgb),0.045); box-shadow: inset 3px 0 0 rgba(var(--t-accent-rgb),0.40); }
+body:not(.light-mode) .empty-state, body:not(.light-mode) .empty-chart-msg { color: var(--t-text-3); }
+
+/* ── 11. Scrollbars ───────────────────────────────────────────────── */
+body:not(.light-mode) * { scrollbar-color: rgba(180,220,218,0.20) transparent; }
+body:not(.light-mode) .scroll-area::-webkit-scrollbar-thumb { background: rgba(180,220,218,0.16); }
+body:not(.light-mode) .scroll-area::-webkit-scrollbar-thumb:hover { background: rgba(var(--t-accent-rgb),0.40); }
+body:not(.light-mode) .modal-box { scrollbar-color: rgba(180,220,218,0.20) transparent; }
+
+/* ── 12. Onboarding / splash / lock screens (dark only) ───────────── */
+body:not(.light-mode) #login-overlay, body:not(.light-mode) #app-lock-overlay { background: linear-gradient(135deg, #0a0e0f 0%, #030505 100%); }
+body:not(.light-mode) #app-splash { background: radial-gradient(circle at 50% 30%, rgba(var(--t-accent-rgb),0.09), transparent 55%), linear-gradient(160deg, #080b0c 0%, #000 100%); }
+body:not(.light-mode) .splash-logo-ring, body:not(.light-mode) .applock-icon, body:not(.light-mode) .onboard-final-icon { background: rgba(var(--t-accent-rgb),0.12); border-color: rgba(var(--t-accent-rgb),0.30); color: var(--t-accent); }
+body:not(.light-mode) .splash-logo-ring i { color: var(--t-accent); }
+body:not(.light-mode) .splash-bar-fill, body:not(.light-mode) .onboard-progress-seg.done,
+body:not(.light-mode) .onboard-progress-seg.active { background: var(--t-accent); }
+body:not(.light-mode) .onboard-option:hover { border-color: rgba(var(--t-accent-rgb),0.4); background: rgba(var(--t-accent-rgb),0.06); }
+body:not(.light-mode) .onboard-option.selected { background: rgba(var(--t-accent-rgb),0.13); border-color: var(--t-accent); }
+body:not(.light-mode) .onboard-option-icon { background: rgba(var(--t-accent-rgb),0.12); }
+body:not(.light-mode) .onboard-option.selected .onboard-option-check { background: var(--t-accent); color: var(--t-on-accent); }
+body:not(.light-mode) .onboard-summary-card { background: rgba(var(--t-accent-rgb),0.06); border-color: rgba(var(--t-accent-rgb),0.18); }
+
+/* ── 13. Reduced motion / touch ───────────────────────────────────── */
+@media (prefers-reduced-motion: reduce) {
+  body:not(.light-mode) .kpi-card, body:not(.light-mode) .glass-panel, body:not(.light-mode) .btn-add,
+  body:not(.light-mode) .login-btn { transition: none !important; }
+  body:not(.light-mode) .kpi-card:hover, body:not(.light-mode) .btn-add:hover, body:not(.light-mode) .login-btn:hover { transform: none; }
+}
+@media (hover: none) {
+  body:not(.light-mode) .kpi-card:hover { transform: none; }
+}
+</style>
 
 <div id="app-lock-overlay" class="hidden">
   <div class="applock-box">
@@ -3861,6 +4264,7 @@ function applyThemeMode(mode, silent) {
   if (label) label.textContent = light ? 'Dark' : 'Light';
   var tog = document.getElementById('tog-app-theme');
   if (tog) tog.checked = !light;
+  applyThemeColorMeta(); if (typeof applyChartThemeDefaults==='function') applyChartThemeDefaults();
   if (!silent && was !== light && typeof updateChartsForTheme === 'function') {
     try { updateChartsForTheme(); } catch (e) {}
   }
@@ -12337,7 +12741,7 @@ function renderDashboardImmediate() {
         plugins: {
           legend: { display: false },
           tooltip: {
-            backgroundColor: 'rgba(8,11,26,0.97)',
+            backgroundColor: fosTipBg(),
             titleFont: { family:'DM Sans', size:12, weight:'700' },
             bodyFont:  { family:'DM Mono', size:11 },
             callbacks: { label: ctx => `  ₹${Math.round(ctx.raw).toLocaleString('en-IN')}` }
@@ -13826,7 +14230,7 @@ function renderPortOverview() {
             }
           },
           tooltip: {
-            backgroundColor: 'rgba(8,11,26,0.97)',
+            backgroundColor: fosTipBg(),
             titleFont: { family: 'DM Sans', size: 12, weight: '700' },
             bodyFont:  { family: 'DM Mono', size: 11 },
             borderColor: 'rgba(167,139,250,0.4)',
@@ -14392,7 +14796,7 @@ function renderPortAnalytics() {
   if (!window.showMatrixTooltip) {
       let ttip = document.createElement('div');
       ttip.id = 'matrix-custom-tooltip';
-      ttip.style.cssText = 'position:fixed; background:rgba(8,11,26,0.97); border:1px solid rgba(167, 139, 250, 0.3); border-radius:12px; padding:14px; pointer-events:none; z-index:9999; display:none; box-shadow:0 8px 32px rgba(0,0,0,0.5); transition:opacity 0.15s ease;';
+      ttip.style.cssText = 'position:fixed; background:'+fosTipBg()+'; border:1px solid '+(document.body.classList.contains('light-mode')?'rgba(167, 139, 250, 0.3)':'rgba(32, 205, 181, 0.32)')+'; border-radius:12px; padding:14px; pointer-events:none; z-index:9999; display:none; box-shadow:0 8px 32px rgba(0,0,0,0.5); transition:opacity 0.15s ease;';
       document.body.appendChild(ttip);
 
       window.showMatrixTooltip = function(e, asset, date, inv, cur, pl, roi) {
@@ -14535,7 +14939,7 @@ function renderPortAnalytics() {
           }
         },
         tooltip: {
-          backgroundColor: 'rgba(8,11,26,0.97)',
+          backgroundColor: fosTipBg(),
           titleFont: { family:'DM Sans', size:12, weight:'700' },
           bodyFont:  { family:'DM Mono', size:11 },
           borderColor: 'rgba(52,211,153,0.35)',
@@ -14630,7 +15034,7 @@ function renderPortAnalytics() {
         plugins: {
           legend: { display: false },
           tooltip: {
-            backgroundColor: 'rgba(8,11,26,0.97)',
+            backgroundColor: fosTipBg(),
             titleFont: { family:'DM Sans', size:12, weight:'700' },
             bodyFont:  { family:'DM Mono', size:11 },
             callbacks: { label: ctx => `  ${ctx.raw} Asset${ctx.raw !== 1 ? 's' : ''}` }
@@ -15070,7 +15474,7 @@ function renderPortAnalytics() {
       plugins: {
         legend: { display: false },
         tooltip: {
-          backgroundColor: 'rgba(8,11,26,0.97)',
+          backgroundColor: fosTipBg(),
           titleFont: { family:'DM Sans', size:12, weight:'700' },
           bodyFont:  { family:'DM Mono', size:11 },
           borderColor: 'rgba(56,189,248,0.4)',
@@ -15352,7 +15756,7 @@ function renderAnalytics() {
             }
           },
           tooltip: {
-            backgroundColor: 'rgba(8,11,26,0.97)',
+            backgroundColor: fosTipBg(),
             titleFont: { family: 'DM Sans', size: 12, weight: '700' },
             bodyFont:  { family: 'DM Mono', size: 11 },
             borderColor: 'rgba(236,72,153,0.35)',
@@ -15631,7 +16035,7 @@ function renderAnalytics() {
             plugins: {
               legend: { display: false },
               tooltip: {
-                backgroundColor: 'rgba(8,11,26,0.97)',
+                backgroundColor: fosTipBg(),
                 titleFont: { family:'DM Sans', size:12, weight:'700' },
                 bodyFont:  { family:'DM Mono', size:11 },
                 callbacks: {
@@ -17057,6 +17461,7 @@ Chart.defaults.plugins.tooltip.cornerRadius = 12;
 Chart.defaults.plugins.tooltip.titleFont = {family:'DM Sans',size:12,weight:'700'};
 Chart.defaults.plugins.tooltip.bodyFont  = {family:'DM Mono',size:11};
 Chart.defaults.plugins.tooltip.caretSize = 6;
+applyChartThemeDefaults();
 Chart.defaults.elements.bar.borderRadius = 50;
 Chart.defaults.elements.bar.borderSkipped = 'bottom';
 Chart.defaults.elements.bar.borderWidth = 0;
@@ -17096,9 +17501,25 @@ function destroyChart(key) {
     delete charts[key];
   }
 }
-function chartTextColor() { return document.body.classList.contains('light-mode') ? '#0f172a' : '#e2e8f0'; }
-function chartGridColor() { return document.body.classList.contains('light-mode') ? 'rgba(0,0,0,0.06)' : 'rgba(255,255,255,0.04)'; }
-function donutBorderColor() { return document.body.classList.contains('light-mode') ? 'rgba(255,255,255,0.9)' : 'rgba(7,9,26,0.9)'; }
+function chartTextColor() { return document.body.classList.contains('light-mode') ? '#0f172a' : '#B7C4C5'; }
+function chartGridColor() { return document.body.classList.contains('light-mode') ? 'rgba(0,0,0,0.06)' : 'rgba(180,220,218,0.06)'; }
+function donutBorderColor() { return document.body.classList.contains('light-mode') ? 'rgba(255,255,255,0.9)' : 'rgba(5,7,8,0.9)'; }
+// Tooltip surface: original navy in light mode (unchanged), black+teal in dark mode
+function fosTipBg() { return document.body.classList.contains('light-mode') ? 'rgba(8,11,26,0.97)' : 'rgba(11,16,18,0.97)'; }
+// Chart.js global tooltip defaults per theme (light values are the originals)
+function applyChartThemeDefaults() {
+  if (typeof Chart === 'undefined') return;
+  const light = document.body.classList.contains('light-mode');
+  Chart.defaults.plugins.tooltip.backgroundColor = light ? 'rgba(8,11,26,0.97)' : 'rgba(11,16,18,0.97)';
+  Chart.defaults.plugins.tooltip.borderColor     = light ? 'rgba(0,117,255,0.45)' : 'rgba(32,205,181,0.35)';
+}
+// Keep the browser/status-bar colour in step with the dark palette (light keeps the original value)
+function applyThemeColorMeta() {
+  try {
+    const m = document.querySelector('meta[name="theme-color"]'); if (!m) return;
+    m.setAttribute('content', document.body.classList.contains('light-mode') ? '#07091a' : '#050708');
+  } catch (e) {}
+}
 
 // ── Shared donut/ring slice styling — gradient fill + dark border ──────────
 // Gives every doughnut chart in the dashboard (Finance OS + Portfolio + Credit)
@@ -17178,7 +17599,7 @@ function cOpts(legend) {
         }
       },
       tooltip: {
-        backgroundColor: isLight ? 'rgba(255, 255, 255, 0.95)' : 'rgba(8,11,26,0.97)',
+        backgroundColor: isLight ? 'rgba(255, 255, 255, 0.95)' : 'rgba(11,16,18,0.97)',
         titleColor: isLight ? '#0f172a' : '#ffffff',
         bodyColor: isLight ? '#475569' : '#e2e8f0',
         padding: 14,
@@ -17274,7 +17695,7 @@ function makeDonut(id, labels, data, colors) {
           }
         },
         tooltip: {
-          backgroundColor: 'rgba(8,11,26,0.97)',
+          backgroundColor: fosTipBg(),
           padding: 14,
           borderColor: 'rgba(0,117,255,0.45)',
           borderWidth: 1,
@@ -18441,7 +18862,7 @@ destroyChart('credit-bar');
         plugins: {
           legend: { display: false },
           tooltip: {
-            backgroundColor: 'rgba(8,11,26,0.97)',
+            backgroundColor: fosTipBg(),
             titleFont: { family:'DM Sans', size:12, weight:'700' },
             bodyFont:  { family:'DM Mono', size:11 },
             callbacks: { label: ctx => `  ₹${Math.round(ctx.raw).toLocaleString('en-IN')}` }
@@ -19799,7 +20220,7 @@ function renderDashCreditCharts() {
             plugins: {
               legend: { display: false },
               tooltip: {
-                backgroundColor: 'rgba(8,11,26,0.97)',
+                backgroundColor: fosTipBg(),
                 titleFont: { family:'DM Sans', size:12, weight:'700' },
                 bodyFont:  { family:'DM Mono', size:11 },
                 callbacks: { label: ctx => `  ₹${Math.round(ctx.raw).toLocaleString('en-IN')}` }
@@ -20777,6 +21198,7 @@ function mobNav(view, group) {
 // ── LIGHT MODE ─────────────────────────────────────────────────────────────
 // 1. The Heavy Chart Updater (Fixes the Lag)
 function updateChartsForTheme() {
+  applyChartThemeDefaults(); applyThemeColorMeta();
   // requestAnimationFrame defers the heavy chart math so the CSS colors change instantly (0ms latency)
   requestAnimationFrame(() => {
     const newTextColor = chartTextColor();
@@ -21046,7 +21468,7 @@ function renderWeeklyRadar() {
       },
       plugins: {
         legend:{ display:true, position:'top', labels:{color:chartTextColor(),font:{size:11,family:'DM Sans',weight:'600'},usePointStyle:true,padding:15} },
-        tooltip:{ backgroundColor:'rgba(8,11,26,0.97)',padding:12,borderColor:'rgba(244,114,182,0.3)',borderWidth:1,titleFont:{family:'DM Sans',size:12,weight:'600'},bodyFont:{family:'DM Mono',size:11},callbacks:{label:ctx=>' ₹'+Number(ctx.raw).toLocaleString('en-IN')} }
+        tooltip:{ backgroundColor:fosTipBg(),padding:12,borderColor:'rgba(244,114,182,0.3)',borderWidth:1,titleFont:{family:'DM Sans',size:12,weight:'600'},bodyFont:{family:'DM Mono',size:11},callbacks:{label:ctx=>' ₹'+Number(ctx.raw).toLocaleString('en-IN')} }
       },
       animation:{ duration:800, easing:'easeOutQuart' }
     }
@@ -21106,7 +21528,7 @@ function renderHealthRadar() {
       },
       plugins: {
         legend:{ display:true, position:'top', labels:{color:chartTextColor(),font:{size:11,family:'DM Sans',weight:'600'},usePointStyle:true,padding:15} },
-        tooltip:{ backgroundColor:'rgba(8,11,26,0.97)',padding:12,borderColor:'rgba(52,211,153,0.3)',borderWidth:1,titleFont:{family:'DM Sans',size:12,weight:'600'},bodyFont:{family:'DM Mono',size:11},callbacks:{label:ctx=>' '+ctx.raw.toFixed(0)+'/100'} }
+        tooltip:{ backgroundColor:fosTipBg(),padding:12,borderColor:'rgba(52,211,153,0.3)',borderWidth:1,titleFont:{family:'DM Sans',size:12,weight:'600'},bodyFont:{family:'DM Mono',size:11},callbacks:{label:ctx=>' '+ctx.raw.toFixed(0)+'/100'} }
       },
       animation:{ duration:800, easing:'easeOutQuart' }
     }
