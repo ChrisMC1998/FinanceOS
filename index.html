@@ -3905,6 +3905,145 @@ body:not(.light-mode) .onboard-summary-card { background: rgba(var(--t-accent-rg
   body:not(.light-mode) .kpi-card:hover { transform: none; }
 }
 </style>
+<style id="fos-floating-topbar">
+/* Floating, rounded header — same geometry as the FinanceOS / PortfolioOS rails (desktop/tablet).
+   Mobile keeps its own header/layout. */
+@media (min-width: 901px) {
+  .topbar {
+    margin: var(--fos-inset) var(--fos-inset) 0 var(--fos-gap);
+    border-radius: var(--fos-radius);
+    border-image: none;
+    border: 1px solid var(--glass-border);
+    padding: .8rem 1.4rem;
+    transition: transform .45s var(--fos-ease), box-shadow .45s var(--fos-ease), border-color .45s var(--fos-ease), background-color .45s var(--fos-ease);
+  }
+  .main > .scroll-area { padding-top: 1.1rem; }
+
+  /* Dark: teal glass, same lighting as the nav containers */
+  body:not(.light-mode) .topbar {
+    border-image: none;
+    border: 1px solid var(--t-border);
+    background:
+      linear-gradient(180deg, rgba(67,224,204,0.05) 0%, rgba(32,205,181,0.01) 60%, transparent 100%),
+      var(--t-glass);
+    -webkit-backdrop-filter: blur(18px) saturate(140%);
+            backdrop-filter: blur(18px) saturate(140%);
+    box-shadow: inset 0 1px 0 rgba(67,224,204,0.13), inset 0 -1px 0 rgba(0,0,0,0.40), 0 12px 34px rgba(0,0,0,0.50), 0 2px 6px rgba(0,0,0,0.32);
+  }
+  body:not(.light-mode) .topbar:hover {
+    transform: translateY(-2px);
+    background-color: var(--t-glass-hover);
+    border-color: rgba(var(--t-accent-rgb),0.28);
+    box-shadow: inset 0 1px 0 rgba(67,224,204,0.22), inset 0 -1px 0 rgba(0,0,0,0.40), 0 20px 48px rgba(0,0,0,0.60), 0 4px 12px rgba(0,0,0,0.38), 0 0 0 1px rgba(var(--t-accent-rgb),0.05);
+  }
+
+  /* Light: keep the white surface, just round + float it like the side rails */
+  body.light-mode .topbar {
+    border: 1px solid var(--glass-border) !important;
+    box-shadow: 0 8px 28px rgba(15,23,42,0.10) !important;
+  }
+}
+@media (hover: none), (prefers-reduced-motion: reduce) {
+  body:not(.light-mode) .topbar:hover { transform: none; }
+}
+@supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
+  body:not(.light-mode) .topbar { background: rgba(11,16,18,0.97); }
+}
+</style>
+<style id="fos-glide-hover">
+/* Sliding clear-glass hover: one pill per rail glides from option to option */
+.fos-glide { display:none; }
+@media (min-width: 901px) and (hover: hover) {
+  .fos-glide {
+    display:block; position:absolute; left:0; top:0; width:0; height:0; z-index:0;
+    border-radius:12px; pointer-events:none; opacity:0; overflow:hidden;
+    will-change: transform, width, height, opacity;
+    transition: transform .38s var(--fos-ease), width .38s var(--fos-ease), height .38s var(--fos-ease), opacity .22s ease;
+    -webkit-backdrop-filter: blur(10px) saturate(170%); backdrop-filter: blur(10px) saturate(170%);
+  }
+  .fos-glide.no-anim { transition: opacity .22s ease; }
+  .fos-glide.on { opacity:1; }
+  /* specular sheen across the top half */
+  .fos-glide::before { content:''; position:absolute; inset:0; border-radius:inherit;
+    background: linear-gradient(180deg, rgba(255,255,255,0.22) 0%, rgba(255,255,255,0.04) 48%, rgba(255,255,255,0) 100%); }
+
+  /* Dark: clear glass with a faint teal tint */
+  body:not(.light-mode) .fos-glide {
+    background: linear-gradient(180deg, rgba(190,235,230,0.13), rgba(190,235,230,0.05));
+    border: 1px solid rgba(190,235,230,0.20);
+    box-shadow: inset 0 1px 0 rgba(255,255,255,0.28), inset 0 -1px 0 rgba(32,205,181,0.10), 0 8px 20px rgba(0,0,0,0.32), 0 0 18px rgba(32,205,181,0.07);
+  }
+  /* Light: clear frosted glass on white */
+  body.light-mode .fos-glide {
+    background: linear-gradient(180deg, rgba(255,255,255,0.75), rgba(226,232,240,0.45));
+    border: 1px solid rgba(15,23,42,0.10);
+    box-shadow: inset 0 1px 0 rgba(255,255,255,0.95), 0 6px 16px rgba(15,23,42,0.10);
+  }
+  body.light-mode .fos-glide::before { background: linear-gradient(180deg, rgba(255,255,255,0.6), rgba(255,255,255,0) 60%); }
+
+  /* Items sit above the pill; the pill replaces the per-item hover tile */
+  .sidebar .nav-item, .port-sidebar .port-nav-item, .sidebar .export-btn { position:relative; z-index:1; }
+  body:not(.light-mode) .sidebar .nav-item:not(.active):hover,
+  body:not(.light-mode) .port-sidebar .port-nav-item:not(.active):hover,
+  body:not(.light-mode) .sidebar .export-btn:hover {
+    background: transparent; border-color: transparent; box-shadow: none; transform: none; color: var(--t-text);
+  }
+  body.light-mode .sidebar .nav-item:not(.active):hover,
+  body.light-mode .port-sidebar .port-nav-item:not(.active):hover,
+  body.light-mode .sidebar .export-btn:hover {
+    background: transparent !important; border-color: transparent !important; box-shadow: none !important; transform: none !important;
+  }
+}
+@media (prefers-reduced-motion: reduce) { .fos-glide { transition: opacity .15s ease !important; } }
+</style>
+<style id="fos-smoke-select">
+/* Smoky glass dropdown menu (dark mode, desktop). Replaces the OS-drawn <option> popup,
+   which can't be styled. The real <select> stays in the page and keeps its value/events. */
+.fos-smoke-menu {
+  position: fixed; z-index: 1000001; box-sizing: border-box; overflow: hidden;
+  border-radius: 16px; padding: 6px; display: flex; flex-direction: column;
+  background:
+    radial-gradient(120% 80% at 12% 0%, rgba(180,220,218,0.11), transparent 60%),
+    radial-gradient(90% 70% at 92% 100%, rgba(32,205,181,0.09), transparent 62%),
+    rgba(8,13,14,0.66);
+  -webkit-backdrop-filter: blur(24px) saturate(160%); backdrop-filter: blur(24px) saturate(160%);
+  border: 1px solid rgba(180,220,218,0.16);
+  box-shadow: inset 0 1px 0 rgba(180,220,218,0.16), 0 24px 60px rgba(0,0,0,0.60), 0 4px 14px rgba(0,0,0,0.40), 0 0 0 1px rgba(32,205,181,0.04);
+  transform-origin: top center;
+  animation: fosSmokeIn .26s cubic-bezier(0.22,1,0.36,1) both;
+}
+.fos-smoke-menu.up { transform-origin: bottom center; }
+.fos-smoke-menu.closing { animation: fosSmokeOut .14s ease-in both; }
+/* drifting smoke wisps behind the items */
+.fos-smoke-menu::before, .fos-smoke-menu::after {
+  content:''; position:absolute; pointer-events:none; border-radius:50%; filter: blur(22px); opacity:.55;
+}
+.fos-smoke-menu::before { width:70%; height:60%; left:-15%; top:-10%;
+  background: radial-gradient(circle, rgba(200,235,232,0.20), transparent 70%); animation: fosSmokeDriftA 11s ease-in-out infinite alternate; }
+.fos-smoke-menu::after { width:60%; height:55%; right:-12%; bottom:-12%;
+  background: radial-gradient(circle, rgba(32,205,181,0.20), transparent 70%); animation: fosSmokeDriftB 14s ease-in-out infinite alternate; }
+.fos-smoke-list { position:relative; z-index:1; overflow-y:auto; overscroll-behavior:contain; scrollbar-width:thin; scrollbar-color: rgba(180,220,218,0.25) transparent; animation: fosSmokeReveal .34s ease-out both; }
+.fos-smoke-list::-webkit-scrollbar { width:5px; } .fos-smoke-list::-webkit-scrollbar-thumb { background: rgba(180,220,218,0.22); border-radius:3px; }
+.fos-smoke-item {
+  display:flex; align-items:center; gap:8px; padding:8px 11px; border-radius:10px; cursor:pointer; user-select:none;
+  font: 500 0.82rem 'DM Sans', sans-serif; color:#C9D6D6; border:1px solid transparent;
+  transition: background .14s ease, color .14s ease, border-color .14s ease;
+}
+.fos-smoke-item.active { background: linear-gradient(180deg, rgba(190,235,230,0.13), rgba(190,235,230,0.05)); border-color: rgba(190,235,230,0.16); color:#F4F8F8; box-shadow: inset 0 1px 0 rgba(255,255,255,0.14); }
+.fos-smoke-item.selected { color:#43E0CC; font-weight:700; }
+.fos-smoke-item.selected::after { content:''; margin-left:auto; width:6px; height:6px; border-radius:50%; background:#20CDB5; box-shadow:0 0 8px rgba(32,205,181,0.7); }
+.fos-smoke-item.disabled { opacity:.4; cursor:not-allowed; }
+.fos-smoke-group { padding:8px 11px 4px; font: 700 0.62rem 'DM Sans', sans-serif; letter-spacing:1.4px; text-transform:uppercase; color:#849495; }
+@keyframes fosSmokeIn { from { opacity:0; transform: translateY(-6px) scale(.97); } to { opacity:1; transform:none; } }
+@keyframes fosSmokeOut { to { opacity:0; transform: translateY(-4px) scale(.98); } }
+@keyframes fosSmokeReveal { from { opacity:0; filter: blur(6px); } to { opacity:1; filter: blur(0); } }
+@keyframes fosSmokeDriftA { from { transform: translate(0,0) scale(1); } to { transform: translate(30%,18%) scale(1.25); } }
+@keyframes fosSmokeDriftB { from { transform: translate(0,0) scale(1.1); } to { transform: translate(-28%,-16%) scale(.9); } }
+@supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) { .fos-smoke-menu { background: rgba(10,16,17,0.97); } }
+@media (prefers-reduced-motion: reduce) {
+  .fos-smoke-menu, .fos-smoke-list, .fos-smoke-menu::before, .fos-smoke-menu::after { animation: none !important; }
+}
+</style>
 
 <div id="app-lock-overlay" class="hidden">
   <div class="applock-box">
@@ -27508,6 +27647,118 @@ function renderSubscriptions() {
       if (t && t.matches && t.matches('.nav-item, .port-nav-item')) { e.preventDefault(); t.click(); }
     });
   });
+})();
+</script>
+<script>
+/* Sliding glass hover for #finance-sidebar and #portfolio-sidebar (pure visual; no handlers touched) */
+(function(){
+  var SEL = '.nav-item, .port-nav-item, .export-btn';
+  function setup(sb){
+    if(!sb || sb.__glide) return; sb.__glide = true;
+    var g = document.createElement('div'); g.className = 'fos-glide no-anim'; g.setAttribute('aria-hidden','true');
+    sb.appendChild(g);
+    function move(el){
+      if(!window.matchMedia('(min-width:901px) and (hover:hover)').matches) return;
+      var a = sb.getBoundingClientRect(), b = el.getBoundingClientRect();
+      if(!b.width || !b.height) return;
+      var x = b.left - a.left + sb.scrollLeft - sb.clientLeft, y = b.top - a.top + sb.scrollTop - sb.clientTop;
+      var first = !g.classList.contains('on');
+      if(first){ g.classList.add('no-anim'); }
+      g.style.width = b.width+'px'; g.style.height = b.height+'px';
+      g.style.transform = 'translate('+x+'px,'+y+'px)';
+      if(first){ void g.offsetWidth; g.classList.remove('no-anim'); }
+      g.classList.add('on');
+    }
+    function hide(){ g.classList.remove('on'); g.classList.add('no-anim'); }
+    sb.addEventListener('mouseover', function(e){ var t = e.target.closest && e.target.closest(SEL); if(t && sb.contains(t)) move(t); });
+    sb.addEventListener('focusin',  function(e){ var t = e.target.closest && e.target.closest(SEL); if(t) move(t); });
+    sb.addEventListener('mouseleave', hide);
+    sb.addEventListener('focusout', function(){ setTimeout(function(){ if(!sb.contains(document.activeElement) && !sb.matches(':hover')) hide(); },0); });
+    sb.addEventListener('scroll', hide, {passive:true});
+  }
+  function init(){ setup(document.getElementById('finance-sidebar')); setup(document.getElementById('portfolio-sidebar')); }
+  if(document.readyState==='loading') document.addEventListener('DOMContentLoaded', init); else init();
+})();
+</script>
+<script>
+/* Smoky glass dropdowns — dark mode + mouse/pen only. The native <select> is untouched:
+   we just replace its OS popup, then set .value and fire the normal input/change events. */
+(function(){
+  var menu=null, list=null, cur=null, items=[], act=-1, typed='', typedT=0;
+  function darkDesktop(){ return !document.body.classList.contains('light-mode') && window.matchMedia('(hover:hover) and (pointer:fine)').matches; }
+  function eligible(sel){ return sel && sel.tagName==='SELECT' && !sel.multiple && !(sel.size>1) && !sel.disabled; }
+  function close(imm){
+    if(!menu) return; var m=menu, sel=cur; menu=list=cur=null; items=[]; act=-1;
+    document.removeEventListener('mousedown',onDocDown,true); document.removeEventListener('keydown',onKey,true);
+    window.removeEventListener('resize',closeNow); document.removeEventListener('scroll',onScroll,true);
+    if(imm){ m.remove(); } else { m.classList.add('closing'); setTimeout(function(){ m.remove(); },140); }
+    if(sel){ try{ sel.focus({preventScroll:true}); }catch(e){} }
+  }
+  function closeNow(){ close(true); }
+  function onDocDown(e){ if(menu && !menu.contains(e.target)){ if(cur && (e.target===cur||cur.contains(e.target))){ e.preventDefault(); e.stopPropagation(); } close(); } }
+  function onScroll(e){ if(menu && !menu.contains(e.target)) close(true); }
+  function setActive(i,scroll){
+    if(!items.length) return; if(act>=0&&items[act]) items[act].el.classList.remove('active');
+    act=i; var it=items[act]; it.el.classList.add('active');
+    if(scroll!==false){ var t=it.el.offsetTop, b=t+it.el.offsetHeight; if(t<list.scrollTop) list.scrollTop=t-4; else if(b>list.scrollTop+list.clientHeight) list.scrollTop=b-list.clientHeight+4; }
+  }
+  function step(d){ var n=items.length,i=act; for(var k=0;k<n;k++){ i=(i+d+n)%n; if(!items[i].opt.disabled) return setActive(i); } }
+  function choose(i){
+    var it=items[i]; if(!it||it.opt.disabled||!cur) return; var sel=cur;
+    var changed = sel.selectedIndex!==it.opt.index; sel.selectedIndex=it.opt.index; close();
+    if(changed){ sel.dispatchEvent(new Event('input',{bubbles:true})); sel.dispatchEvent(new Event('change',{bubbles:true})); }
+  }
+  function onKey(e){
+    if(!menu) return; var k=e.key;
+    if(k==='Escape'){ e.preventDefault(); e.stopPropagation(); close(); }
+    else if(k==='ArrowDown'){ e.preventDefault(); step(1); } else if(k==='ArrowUp'){ e.preventDefault(); step(-1); }
+    else if(k==='Home'){ e.preventDefault(); setActive(0); } else if(k==='End'){ e.preventDefault(); setActive(items.length-1); }
+    else if(k==='Enter'||k===' '){ e.preventDefault(); e.stopPropagation(); choose(act); }
+    else if(k==='Tab'){ close(true); }
+    else if(k.length===1 && !e.ctrlKey && !e.metaKey){
+      clearTimeout(typedT); typed+=k.toLowerCase(); typedT=setTimeout(function(){typed='';},600);
+      for(var i=0;i<items.length;i++){ if(items[i].opt.text.trim().toLowerCase().indexOf(typed)===0){ setActive(i); break; } }
+    }
+  }
+  function open(sel){
+    if(menu){ var same=(cur===sel); close(true); if(same) return; }
+    cur=sel; menu=document.createElement('div'); menu.className='fos-smoke-menu'; menu.setAttribute('role','listbox');
+    list=document.createElement('div'); list.className='fos-smoke-list'; menu.appendChild(list); items=[];
+    function addOpt(o){
+      var el=document.createElement('div'); el.className='fos-smoke-item'+(o.selected?' selected':'')+(o.disabled?' disabled':'');
+      el.setAttribute('role','option'); el.textContent=o.text; list.appendChild(el);
+      var idx=items.push({opt:o,el:el})-1;
+      el.addEventListener('mouseenter',function(){ if(!o.disabled) setActive(idx,false); });
+      el.addEventListener('mousedown',function(ev){ ev.preventDefault(); });
+      el.addEventListener('click',function(){ choose(idx); });
+    }
+    Array.prototype.forEach.call(sel.children,function(c){
+      if(c.tagName==='OPTGROUP'){ var g=document.createElement('div'); g.className='fos-smoke-group'; g.textContent=c.label; list.appendChild(g); Array.prototype.forEach.call(c.children,addOpt); }
+      else if(c.tagName==='OPTION') addOpt(c);
+    });
+    if(!items.length){ menu=list=cur=null; return; }
+    document.body.appendChild(menu);
+    var r=sel.getBoundingClientRect(), vw=window.innerWidth, vh=window.innerHeight, gap=6;
+    menu.style.minWidth=Math.max(r.width,120)+'px';
+    var natural=Math.min(list.scrollHeight+14, 320), below=vh-r.bottom-gap-8, above=r.top-gap-8;
+    var up = below<Math.min(natural,180) && above>below, h=Math.min(natural, up?above:below);
+    list.style.maxHeight=(h-12)+'px'; menu.classList.toggle('up',up);
+    var left=Math.min(Math.max(8,r.left), vw-menu.offsetWidth-8);
+    menu.style.left=left+'px'; menu.style[up?'bottom':'top']=(up? (vh-r.top+gap) : (r.bottom+gap))+'px';
+    var si=Math.max(0,sel.selectedIndex); var ai=items.findIndex(function(x){return x.opt.index===si;}); setActive(ai<0?0:ai);
+    list.scrollTop=Math.max(0, items[act].el.offsetTop-list.clientHeight/2+items[act].el.offsetHeight/2);
+    document.addEventListener('mousedown',onDocDown,true); document.addEventListener('keydown',onKey,true);
+    window.addEventListener('resize',closeNow); document.addEventListener('scroll',onScroll,true);
+  }
+  document.addEventListener('mousedown',function(e){
+    if(e.button!==0||!darkDesktop()) return; var sel=e.target.closest&&e.target.closest('select');
+    if(!eligible(sel)||(menu&&menu.contains(e.target))) return;
+    e.preventDefault(); try{ sel.focus({preventScroll:true}); }catch(_){} open(sel);
+  },true);
+  document.addEventListener('keydown',function(e){
+    if(menu||!darkDesktop()) return; var sel=e.target; if(!eligible(sel)) return;
+    if(e.key==='Enter'||e.key===' '||e.key==='F4'||(e.altKey&&(e.key==='ArrowDown'||e.key==='ArrowUp'))){ e.preventDefault(); open(sel); }
+  },true);
 })();
 </script>
 </body>
