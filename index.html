@@ -2907,6 +2907,181 @@ body.light-mode .settings-undo-btn:hover { color: white; }
 
 </style>
 
+<style id="fos-floating-glass">
+/* ══════════════════════════════════════════════════════════════════
+   FLOATING GLASS NAVIGATION — scoped to #finance-sidebar / #portfolio-sidebar
+   Central tokens (change accents here only). Accent 3 is reserved.
+══════════════════════════════════════════════════════════════════ */
+@property --fos-spec { syntax: '<number>'; inherits: false; initial-value: 0; }
+:root {
+  --fos-accent-1-rgb: 0,117,255;     /* FinanceOS  (matches --accent) */
+  --fos-accent-2-rgb: 167,139,250;   /* PortfolioOS (matches existing violet) */
+  --fos-accent-3-rgb: 52,211,153;    /* reserved for future use */
+  --fos-gap: 10px;
+  --fos-inset: 12px;
+  --fos-radius: 22px;
+  --fos-glass-bg: rgba(26,26,32,0.62);
+  --fos-glass-bg-hover: rgba(34,34,42,0.74);
+  --fos-glass-border: rgba(255,255,255,0.09);
+  --fos-glass-border-hover: rgba(255,255,255,0.17);
+  --fos-nav-text: #c3ccdb;
+  --fos-ease: cubic-bezier(0.22,1,0.36,1);
+}
+
+/* Slightly stronger tonal separation for the near-black app background (dark mode only) */
+body:not(.light-mode) {
+  background:
+    radial-gradient(circle at 12% 0%, rgba(var(--fos-accent-1-rgb),0.10), transparent 42%),
+    radial-gradient(circle at 88% 100%, rgba(var(--fos-accent-2-rgb),0.08), transparent 42%),
+    linear-gradient(135deg, #0c0c10 0%, #020203 100%);
+}
+
+/* ── Shared floating panel (desktop / tablet only; mobile keeps its own drawer) ── */
+@media (min-width: 901px) {
+  .sidebar, .port-sidebar {
+    margin-top: var(--fos-inset);
+    margin-bottom: var(--fos-inset);
+    height: calc(100% - (var(--fos-inset) * 2));
+    border-radius: var(--fos-radius);
+    border: 1px solid var(--fos-glass-border);
+    overflow-x: hidden; overflow-y: auto;
+    overscroll-behavior: contain;
+    scrollbar-width: none;
+    transition: width .3s ease, padding .3s ease, transform .45s var(--fos-ease),
+                box-shadow .45s var(--fos-ease), border-color .45s var(--fos-ease),
+                background-color .45s var(--fos-ease), backdrop-filter .45s var(--fos-ease),
+                -webkit-backdrop-filter .45s var(--fos-ease), --fos-spec .6s var(--fos-ease);
+  }
+  .sidebar::-webkit-scrollbar, .port-sidebar::-webkit-scrollbar { display: none; }
+  .sidebar      { margin-left: var(--fos-inset); margin-right: 0; }
+  .port-sidebar { margin-left: var(--fos-gap);  margin-right: var(--fos-inset); }
+
+  body:not(.light-mode) .sidebar,
+  body:not(.light-mode) .port-sidebar {
+    background:
+      linear-gradient(115deg, transparent 18%, rgba(255,255,255,calc(var(--fos-spec) * 0.075)) 42%, transparent 62%),
+      linear-gradient(180deg, rgba(255,255,255,0.045) 0%, rgba(255,255,255,0.012) 38%, rgba(255,255,255,0) 100%),
+      var(--fos-glass-bg);
+    -webkit-backdrop-filter: blur(18px) saturate(140%);
+            backdrop-filter: blur(18px) saturate(140%);
+    border: 1px solid var(--fos-glass-border);
+    box-shadow:
+      inset 0 1px 0 rgba(255,255,255,0.10),
+      inset 0 -1px 0 rgba(0,0,0,0.35),
+      0 10px 30px rgba(0,0,0,0.45),
+      0 2px 6px rgba(0,0,0,0.30);
+  }
+  /* Distinct silhouettes: finance leans to a taller, softer rail; portfolio gets a faint violet rim */
+  .sidebar      { border-radius: 24px 20px 20px 24px; }
+  .port-sidebar { border-radius: 20px 24px 24px 20px; }
+  body:not(.light-mode) .port-sidebar { border-color: rgba(var(--fos-accent-2-rgb),0.16); }
+
+  /* Container hover — gentle float */
+  body:not(.light-mode) .sidebar:hover,
+  body:not(.light-mode) .port-sidebar:hover {
+    --fos-spec: 1;
+    transform: translateY(-2px);
+    background-color: var(--fos-glass-bg-hover);
+    -webkit-backdrop-filter: blur(24px) saturate(150%);
+            backdrop-filter: blur(24px) saturate(150%);
+    border-color: var(--fos-glass-border-hover);
+    box-shadow:
+      inset 0 1px 0 rgba(255,255,255,0.16),
+      inset 0 -1px 0 rgba(0,0,0,0.35),
+      0 18px 44px rgba(0,0,0,0.55),
+      0 4px 10px rgba(0,0,0,0.35);
+  }
+  body:not(.light-mode) .port-sidebar:hover { border-color: rgba(var(--fos-accent-2-rgb),0.28); }
+
+  /* Light mode keeps its white sidebars; only the floating geometry is applied */
+  body.light-mode .sidebar, body.light-mode .port-sidebar {
+    border: 1px solid var(--glass-border) !important;
+    box-shadow: 0 8px 28px rgba(15,23,42,0.10);
+  }
+
+  /* The pre-existing top accent line must follow the rounded shape */
+  .port-sidebar::before { border-radius: 20px 24px 0 0; opacity: .8; }
+
+  /* Collapse toggles move inside the panel (the panel now clips its overflow) */
+  .sidebar-toggle, .port-sidebar-toggle { right: 10px; top: 1.1rem; }
+  .sidebar.collapsed .sidebar-toggle,
+  .port-sidebar.collapsed .port-sidebar-toggle { right: 50%; margin-right: -15px; }
+  .sidebar.collapsed .brand-section,
+  .port-sidebar.collapsed .port-brand { margin-top: 2.4rem; }
+}
+
+/* ── Nav items: individual floating glass tiles ── */
+body:not(.light-mode) .sidebar .nav-item,
+body:not(.light-mode) .port-sidebar .port-nav-item {
+  color: var(--fos-nav-text);
+  border: 1px solid transparent;
+  transition: background-color .3s var(--fos-ease), border-color .3s var(--fos-ease), box-shadow .3s var(--fos-ease),
+              transform .3s var(--fos-ease), color .2s ease;
+  outline: none;
+}
+body:not(.light-mode) .sidebar .nav-item:hover,
+body:not(.light-mode) .port-sidebar .port-nav-item:hover {
+  background: linear-gradient(180deg, rgba(255,255,255,0.11), rgba(255,255,255,0.05));
+  border: 1px solid rgba(255,255,255,0.13);
+  box-shadow: inset 0 1px 0 rgba(255,255,255,0.18), 0 6px 16px rgba(0,0,0,0.35);
+  color: #fff;
+  transform: translateY(-1px);
+}
+/* Active: persistent, restrained, and distinct from hover — and it keeps its identity while hovered */
+body:not(.light-mode) .sidebar .nav-item.active,
+body:not(.light-mode) .sidebar .nav-item.active:hover {
+  background: linear-gradient(135deg, rgba(var(--fos-accent-1-rgb),0.20), rgba(var(--fos-accent-1-rgb),0.06));
+  border: 1px solid rgba(var(--fos-accent-1-rgb),0.30);
+  border-left: 2px solid rgb(var(--fos-accent-1-rgb));
+  box-shadow: inset 0 1px 0 rgba(255,255,255,0.08), 0 0 18px rgba(var(--fos-accent-1-rgb),0.14);
+  color: #fff; font-weight: 600;
+}
+body:not(.light-mode) .port-sidebar .port-nav-item.active,
+body:not(.light-mode) .port-sidebar .port-nav-item.active:hover {
+  background: linear-gradient(135deg, rgba(var(--fos-accent-2-rgb),0.20), rgba(var(--fos-accent-2-rgb),0.06));
+  border: 1px solid rgba(var(--fos-accent-2-rgb),0.30);
+  border-left: 2px solid rgb(var(--fos-accent-2-rgb));
+  box-shadow: inset 0 1px 0 rgba(255,255,255,0.08), 0 0 18px rgba(var(--fos-accent-2-rgb),0.14);
+  color: #fff; font-weight: 600;
+}
+body:not(.light-mode) .sidebar .nav-item.active:hover,
+body:not(.light-mode) .port-sidebar .port-nav-item.active:hover { transform: none; }
+
+/* Brighter secondary text inside the glass panels */
+body:not(.light-mode) .sidebar .nav-section-label,
+body:not(.light-mode) .port-sidebar .nav-section-label { color: #9aa6ba; }
+body:not(.light-mode) .sidebar .welcome-msg,
+body:not(.light-mode) .port-sidebar .port-brand-sub,
+body:not(.light-mode) .sidebar .autosave-indicator { color: #a9b4c6; }
+body:not(.light-mode) .sidebar .export-btn { background: rgba(255,255,255,0.04); }
+
+/* Keyboard focus (nav items are made focusable by the script below) */
+.sidebar .nav-item:focus-visible, .port-sidebar .port-nav-item:focus-visible,
+.sidebar .export-btn:focus-visible, .port-sidebar button:focus-visible,
+.sidebar-toggle:focus-visible, .port-sidebar-toggle:focus-visible {
+  outline: 2px solid rgba(255,255,255,0.85);
+  outline-offset: 2px;
+}
+
+/* Fallback when backdrop-filter is unsupported: near-opaque charcoal */
+@supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
+  body:not(.light-mode) .sidebar, body:not(.light-mode) .port-sidebar { background-color: rgba(22,22,28,0.97); }
+  body:not(.light-mode) .sidebar:hover, body:not(.light-mode) .port-sidebar:hover { background-color: rgba(28,28,36,0.98); }
+}
+
+/* Touch devices: no hover elevation */
+@media (hover: none) {
+  body:not(.light-mode) .sidebar:hover, body:not(.light-mode) .port-sidebar:hover { transform: none; --fos-spec: 0; }
+  body:not(.light-mode) .sidebar .nav-item:hover, body:not(.light-mode) .port-sidebar .port-nav-item:hover { transform: none; }
+}
+
+/* Reduced motion */
+@media (prefers-reduced-motion: reduce) {
+  .sidebar, .port-sidebar, .sidebar .nav-item, .port-sidebar .port-nav-item { transition: none !important; }
+  body:not(.light-mode) .sidebar:hover, body:not(.light-mode) .port-sidebar:hover,
+  body:not(.light-mode) .sidebar .nav-item:hover, body:not(.light-mode) .port-sidebar .port-nav-item:hover { transform: none; }
+}
+</style>
 </head>
 <!-- ═══════════════════════════════════════════════════════
      LOGIN OVERLAY — shown before the dashboard loads
@@ -26891,5 +27066,27 @@ function renderSubscriptions() {
   <div id="settings-toast-progress"></div>
 </div>
 
+<script id="fos-nav-a11y">
+/* Keyboard access for sidebar items (no change to existing click handlers) */
+(function () {
+  var sel = '#finance-sidebar .nav-item, #portfolio-sidebar .port-nav-item';
+  function prep(root) {
+    root.querySelectorAll(sel).forEach(function (el) {
+      if (!el.hasAttribute('tabindex')) el.setAttribute('tabindex', '0');
+      if (!el.hasAttribute('role')) el.setAttribute('role', 'button');
+    });
+  }
+  prep(document);
+  ['finance-sidebar', 'portfolio-sidebar'].forEach(function (id) {
+    var sb = document.getElementById(id);
+    if (!sb) return;
+    sb.addEventListener('keydown', function (e) {
+      if (e.key !== 'Enter' && e.key !== ' ') return;
+      var t = e.target;
+      if (t && t.matches && t.matches('.nav-item, .port-nav-item')) { e.preventDefault(); t.click(); }
+    });
+  });
+})();
+</script>
 </body>
 </html>
