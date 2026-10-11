@@ -4041,6 +4041,39 @@ body.light-mode .port-sidebar .nav-section-label, body.light-mode .port-nav-sect
 .fos-mark-login { display:block; margin: 0 auto 0.75rem; width:60px; height:60px; filter: drop-shadow(0 6px 18px rgba(var(--brand-rgb),0.35)); }
 .brand-title .fos-mark { filter: drop-shadow(0 2px 8px rgba(var(--brand-rgb),0.35)); }
 .sidebar.collapsed .brand-title .fos-mark { width:28px; height:28px; }
+/* ── Light-mode outlines (auto-generated from white-alpha borders) ── */
+body.light-mode .collapsed-icon-btn:hover{border-color:#d5dde8}
+body.light-mode .nav-item:hover{border-color:#d5dde8}
+body.light-mode .ins-addon-amt{border-color:#d5dde8}
+body.light-mode .cca-bd-total{border-top-color:#d5dde8}
+body.light-mode .cca-table th{border-bottom-color:#d5dde8}
+body.light-mode .cca-table td{border-bottom-color:#d5dde8}
+body.light-mode .cca-attn-item{border-color:#d5dde8}
+body.light-mode .cca-overall-note{border-top-color:#d5dde8}
+body.light-mode .port-nav-item:hover{border-color:#d5dde8}
+body.light-mode .insight-kpi-card:hover{border-color:#d5dde8}
+body.light-mode .budget-row-clear{border-color:#d5dde8}
+body.light-mode #txn-search-input{border-color:#d5dde8}
+body.light-mode #btn-clear-selection{border-color:#d5dde8}
+body.light-mode .txn-checkbox{border-color:#d5dde8}
+body.light-mode .calc-btn{border-color:#d5dde8}
+/* Inline-styled white-alpha borders (notification cards, etc.) are invisible on white — give them a real outline in light mode */
+body.light-mode [style*="solid rgba(255,255,255,0.0"],body.light-mode [style*="solid rgba(255, 255, 255, 0.0"],body.light-mode [style*="solid rgba(255,255,255,0.1"],body.light-mode [style*="solid rgba(255, 255, 255, 0.1"] { border-color:#d5dde8 !important; }
+body.light-mode #notif-list-container > div { background:#f8fafc !important; border-color:#cbd5e1 !important; }
+body.light-mode .calc-btn:not(.calc-op):not(.calc-fn):not(.calc-eq):not(.calc-sci) { background:#ffffff; border-color:#cbd5e1; }
+body.light-mode .calc-btn:not(.calc-op):not(.calc-fn):not(.calc-eq):not(.calc-sci):hover { background:#f1f5f9; }
+body.light-mode .calc-fn { border-color:#cbd5e1; }
+
+/* ── Stronger light-mode container outlines (beats later rules) ── */
+html body.light-mode :is(.glass-panel,.kpi-card,.port-kpi-card,.credit-kpi-card,.spark-card,.set-card,.modal-box,.insight-kpi-card,.calc-display-wrap,.sci-display-wrap,.cca-attn-item,.emi-card) { border-color:#aebccb !important; }
+html body.light-mode .glass-panel { border-style:solid !important; border-width:1px !important; box-shadow:0 1px 3px rgba(15,23,42,0.08), 0 0 0 1px rgba(174,188,203,0.25) !important; }
+html body.light-mode #notif-list-container > div { background:#f8fafc !important; border:1px solid #aebccb !important; }
+html body.light-mode .calc-btn:not(.calc-op):not(.calc-sci):not(.calc-eq) { border:1px solid #aebccb !important; }
+html body.light-mode :is(.calc-op,.calc-sci,.calc-eq) { border:1px solid rgba(var(--brand-rgb),0.45) !important; }
+html body.light-mode [style*="solid rgba(255,255,255,0.0"],html body.light-mode [style*="solid rgba(255, 255, 255, 0.0"],html body.light-mode [style*="solid rgba(255,255,255,0.1"],html body.light-mode [style*="solid rgba(255, 255, 255, 0.1"] { border-color:#aebccb !important; }
+/* Fin AI icon */
+.fos-ai { display:inline-block; vertical-align:-4px; flex-shrink:0; filter:drop-shadow(0 0 5px rgba(var(--brand-rgb),0.50)); }
+.nav-item .nav-icon .fos-ai { vertical-align:middle; width:23px; height:23px; margin:-3px; overflow:visible; }
 </style>
 <style id="fos-floating-topbar">
 /* Floating, rounded header — same geometry as the FinanceOS / PortfolioOS rails (desktop/tablet).
@@ -6016,7 +6049,7 @@ function passAppLockGate() {
 </script>
 
 <body>
-<svg width="0" height="0" style="position:absolute" aria-hidden="true" focusable="false"><defs><linearGradient id="fg" gradientUnits="userSpaceOnUse" x1="14" y1="54" x2="52" y2="12"><stop offset="0" stop-color="#0F9F86"/><stop offset=".55" stop-color="#20CDB5"/><stop offset="1" stop-color="#7DF0DE"/></linearGradient><linearGradient id="ft" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#0F1A1C"/><stop offset="1" stop-color="#040607"/></linearGradient><linearGradient id="fr" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#43E0CC" stop-opacity=".9"/><stop offset=".5" stop-color="#20CDB5" stop-opacity=".12"/><stop offset="1" stop-color="#20CDB5" stop-opacity=".5"/></linearGradient><radialGradient id="fo" cx=".8" cy=".12" r=".7"><stop offset="0" stop-color="#20CDB5" stop-opacity=".32"/><stop offset="1" stop-color="#20CDB5" stop-opacity="0"/></radialGradient><symbol id="fos-logo" viewBox="0 0 64 64"><rect width="64" height="64" rx="18" fill="url(#ft)"/><rect width="64" height="64" rx="18" fill="url(#fo)"/><rect x=".75" y=".75" width="62.5" height="62.5" rx="17.3" fill="none" stroke="url(#fr)" stroke-width="1.5"/><g fill="none" stroke="url(#fg)" stroke-linecap="round" stroke-linejoin="round" stroke-width="6.2"><path d="M20 50V28Q20 20 28 20H46"/><path d="M20 35H38"/></g><g fill="none" stroke="#43E0CC" stroke-linecap="round" stroke-linejoin="round" stroke-width="3.4"><path d="M37 55L50 42"/><path d="M41.5 42H50V50.5"/></g></symbol></defs></svg>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true" focusable="false"><defs><linearGradient id="fg" gradientUnits="userSpaceOnUse" x1="14" y1="54" x2="52" y2="12"><stop offset="0" stop-color="#0F9F86"/><stop offset=".55" stop-color="#20CDB5"/><stop offset="1" stop-color="#7DF0DE"/></linearGradient><linearGradient id="ft" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#0F1A1C"/><stop offset="1" stop-color="#040607"/></linearGradient><linearGradient id="fr" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#43E0CC" stop-opacity=".9"/><stop offset=".5" stop-color="#20CDB5" stop-opacity=".12"/><stop offset="1" stop-color="#20CDB5" stop-opacity=".5"/></linearGradient><radialGradient id="fo" cx=".8" cy=".12" r=".7"><stop offset="0" stop-color="#20CDB5" stop-opacity=".32"/><stop offset="1" stop-color="#20CDB5" stop-opacity="0"/></radialGradient><linearGradient id="fai-g" gradientUnits="userSpaceOnUse" x1="3" y1="21" x2="21" y2="3"><stop offset="0" style="stop-color:var(--brand-deep)"/><stop offset=".55" style="stop-color:var(--brand)"/><stop offset="1" style="stop-color:var(--brand-hover)"/></linearGradient><symbol id="fos-ai" viewBox="0 0 24 24"><ellipse cx="12" cy="12" rx="10.6" ry="4.1" transform="rotate(-32 12 12)" fill="none" stroke="url(#fai-g)" stroke-width="1" opacity=".75"/><path d="M11.5 3.5C12.2 8.4 14.6 10.9 19.5 11.6C14.6 12.3 12.2 14.8 11.5 19.7C10.8 14.8 8.4 12.3 3.5 11.6C8.4 10.9 10.8 8.4 11.5 3.5Z" fill="url(#fai-g)" transform="translate(.5 .4)"/><path d="M19.2 2.6C19.4 4.1 20 4.7 21.5 4.9C20 5.1 19.4 5.7 19.2 7.2C19 5.7 18.4 5.1 16.9 4.9C18.4 4.7 19 4.1 19.2 2.6Z" style="fill:var(--brand-hover)"/><circle cx="4.1" cy="18.3" r="1.25" style="fill:var(--brand-hover)"/></symbol><symbol id="fos-logo" viewBox="0 0 64 64"><rect width="64" height="64" rx="18" fill="url(#ft)"/><rect width="64" height="64" rx="18" fill="url(#fo)"/><rect x=".75" y=".75" width="62.5" height="62.5" rx="17.3" fill="none" stroke="url(#fr)" stroke-width="1.5"/><g fill="none" stroke="url(#fg)" stroke-linecap="round" stroke-linejoin="round" stroke-width="6.2"><path d="M20 50V28Q20 20 28 20H46"/><path d="M20 35H38"/></g><g fill="none" stroke="#43E0CC" stroke-linecap="round" stroke-linejoin="round" stroke-width="3.4"><path d="M37 55L50 42"/><path d="M41.5 42H50V50.5"/></g></symbol></defs></svg>
 <script>
 /* Apply this user's saved theme immediately on load so a refresh never resets it */
 (function(){try{
@@ -6050,7 +6083,7 @@ function passAppLockGate() {
   <div class="drawer-item active" id="mob-dashboard" onclick="mobNav('dashboard','finance')"><i class="fas fa-chart-pie" style="color:var(--accent);width:16px;text-align:center"></i> Dashboard</div>
   <div class="drawer-item" onclick="openModal();closeMobileDrawer()" style="color:var(--c-inc)"><i class="fas fa-plus-circle" style="width:16px;text-align:center"></i> Add Entry</div>
   <div class="drawer-item" id="mob-transactions" onclick="mobNav('transactions','finance')"><i class="fas fa-list" style="width:16px;text-align:center"></i> Transactions</div>
-  <div class="drawer-item" id="mob-ai" onclick="openMobileLiteAI();closeMobileDrawer()"><i class="fas fa-robot" style="color:#38bdf8;width:16px;text-align:center"></i> Ask AI</div>
+  <div class="drawer-item" id="mob-ai" onclick="openMobileLiteAI();closeMobileDrawer()"><svg class="fos-ai" viewBox="0 0 24 24" width="17" height="17" aria-hidden="true" style="width:16px"><use href="#fos-ai"/></svg> Ask AI</div>
 
   <div class="drawer-section-label">Finance</div>
   <div class="drawer-item" id="mob-loans" onclick="mobNav('loans','finance')"><i class="fas fa-landmark" style="width:16px;text-align:center"></i> Loans & EMI</div>
@@ -6100,7 +6133,7 @@ function passAppLockGate() {
 <div class="mobile-menu-overlay" id="mobile-liteai-overlay" onclick="closeMobileLiteAI()"></div>
 <div class="mobile-liteai-sheet" id="mobile-liteai-sheet">
   <div class="liteai-sheet-head">
-    <div style="display:flex;align-items:center;gap:8px;font-weight:700;"><i class="fas fa-robot" style="color:#38bdf8"></i> Ask AI</div>
+    <div style="display:flex;align-items:center;gap:8px;font-weight:700;"><svg class="fos-ai" viewBox="0 0 24 24" width="17" height="17" aria-hidden="true"><use href="#fos-ai"/></svg> Ask AI</div>
     <button onclick="closeMobileLiteAI()" aria-label="Close">✕</button>
   </div>
   <div class="liteai-mini-score">
@@ -6217,7 +6250,7 @@ function passAppLockGate() {
     <span class="nav-label">Notes</span>
   </div>
   <div class="nav-item" id="fin-nav-finai" onclick="switchView('finai',this,'finance')">
-    <div class="nav-icon"><i class="fas fa-robot" style="color:#38bdf8"></i></div>
+    <div class="nav-icon"><svg class="fos-ai" viewBox="0 0 24 24" width="19" height="19" aria-hidden="true"><use href="#fos-ai"/></svg></div>
     <span class="nav-label">Fin AI</span>
   </div>
 
@@ -7887,7 +7920,7 @@ function passAppLockGate() {
         <div class="finai-insights-grid" id="finai-insights-grid"></div>
 
         <div class="finai-empty" id="finai-empty" style="display:none">
-          <i class="fas fa-robot" style="font-size:2.2rem;opacity:0.2;display:block;margin-bottom:10px"></i>
+          <svg class="fos-ai" viewBox="0 0 24 24" width="46" height="46" aria-hidden="true" style="display:block;margin:0 auto 10px;opacity:0.45"><use href="#fos-ai"/></svg>
           Not enough data yet. Add a few transactions and I'll start giving you real suggestions.
         </div>
 
@@ -9393,7 +9426,7 @@ function passAppLockGate() {
             <div><div class="set-lbl readable-white" style="font-size:0.78rem">Notes</div><div class="set-desc" style="margin-top:2px">Keep notes next to your finances.</div></div>
           </div>
           <div style="display:flex; gap:10px; align-items:flex-start; padding:9px 10px; border:1px solid var(--glass-border); border-radius:10px; background:rgba(255,255,255,0.02);">
-            <i class="fas fa-robot" style="color:#38bdf8; width:18px; text-align:center; margin-top:2px;"></i>
+            <svg class="fos-ai" viewBox="0 0 24 24" width="18" height="18" aria-hidden="true" style="margin-top:2px"><use href="#fos-ai"/></svg>
             <div><div class="set-lbl readable-white" style="font-size:0.78rem">Fin AI</div><div class="set-desc" style="margin-top:2px">Financial health score and insights from your own data.</div></div>
           </div>
           <div style="display:flex; gap:10px; align-items:flex-start; padding:9px 10px; border:1px solid var(--glass-border); border-radius:10px; background:rgba(255,255,255,0.02);">
@@ -12767,7 +12800,7 @@ function finaiRenderHistory(containerId) {
   box.innerHTML = finaiChatHistory.map(h => `
     <div class="finai-qa-pair">
       <div class="finai-qa-q"><i class="fas fa-user"></i> ${finaiEscapeHtml(h.q)}</div>
-      <div class="finai-qa-a"><i class="fas fa-robot" style="color:#38bdf8"></i> ${h.a}</div>
+      <div class="finai-qa-a"><svg class="fos-ai" viewBox="0 0 24 24" width="15" height="15" aria-hidden="true"><use href="#fos-ai"/></svg> ${h.a}</div>
     </div>`).join('');
   box.scrollTop = box.scrollHeight;
 }
