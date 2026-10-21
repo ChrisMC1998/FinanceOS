@@ -669,6 +669,48 @@ body.light-mode .finai-goal-form { border-color:#e2e8f0; }
 .finai-goal-grid .finai-ask-input { min-width:0; width:100%; box-sizing:border-box; padding:8px 10px; font-size:0.8rem; }
 .finai-goal-grid .full { grid-column:1 / -1; }
 .finai-goal-form-row { display:flex; gap:8px; align-items:center; }
+
+/* ── Fin AI purchase advisor ── */
+.finai-pv { flex:1; min-width:0; display:flex; flex-direction:column; gap:9px; font-size:0.8rem; color:var(--text-main); line-height:1.5; }
+.finai-pv-head { display:flex; flex-direction:column; gap:6px; padding:10px 12px; border-radius:12px; border:1px solid rgba(var(--brand-2-rgb),0.3); border-left-width:4px; background:rgba(var(--brand-2-rgb),0.07); }
+.finai-pv-head.sev-good { border-color:rgba(52,211,153,0.35); background:rgba(52,211,153,0.08); }
+.finai-pv-head.sev-warn { border-color:rgba(251,191,36,0.4); background:rgba(251,191,36,0.08); }
+.finai-pv-head.sev-bad { border-color:rgba(239,68,68,0.4); background:rgba(239,68,68,0.08); }
+.finai-pv-pill { align-self:flex-start; font-size:0.68rem; font-weight:800; letter-spacing:0.05em; padding:3px 9px; border-radius:20px; background:rgba(var(--brand-2-rgb),0.18); color:var(--brand-2); }
+.finai-pv-head.sev-good .finai-pv-pill { background:rgba(52,211,153,0.2); color:#34d399; }
+.finai-pv-head.sev-warn .finai-pv-pill { background:rgba(251,191,36,0.2); color:#d99a06; }
+.finai-pv-head.sev-bad .finai-pv-pill { background:rgba(239,68,68,0.2); color:#ef4444; }
+.finai-pv-title { font-weight:700; font-size:0.86rem; }
+.finai-pv-focus { font-size:0.74rem; color:var(--text-muted); font-style:italic; }
+.finai-pv-metrics { display:grid; grid-template-columns:repeat(4,1fr); gap:6px; }
+@media (max-width:640px) { .finai-pv-metrics { grid-template-columns:1fr 1fr; } }
+.finai-pv-m { display:flex; flex-direction:column; gap:2px; padding:7px 9px; border-radius:10px; background:rgba(255,255,255,0.03); border:1px solid rgba(255,255,255,0.07); min-width:0; }
+.finai-pv-m span { font-size:0.62rem; text-transform:uppercase; letter-spacing:0.04em; color:var(--text-muted); }
+.finai-pv-m b { font-family:'DM Mono',monospace; font-size:0.82rem; overflow-wrap:anywhere; }
+.finai-pv-m.ok b { color:#34d399; } .finai-pv-m.bad b { color:#ef4444; }
+.finai-pv-sec h4 { margin:0 0 3px; font-size:0.72rem; font-weight:800; text-transform:uppercase; letter-spacing:0.04em; color:var(--brand-2); }
+.finai-pv-sec h4 em { font-style:normal; font-weight:600; text-transform:none; color:var(--text-muted); margin-left:4px; }
+.finai-pv-sec p { margin:0; } .finai-pv-sec ul, .finai-pv-sec ol { margin:0; padding-left:1.1rem; } .finai-pv-sec li { margin-bottom:3px; }
+.finai-pv-sec.risk p { color:#ef4444; font-weight:600; }
+.finai-pv-sec.conf { color:var(--text-muted); font-size:0.74rem; }
+.finai-pv-tbl { width:100%; border-collapse:collapse; font-size:0.76rem; }
+.finai-pv-tbl td { padding:4px 2px; border-top:1px solid rgba(255,255,255,0.06); vertical-align:top; }
+.finai-pv-tbl td:last-child { text-align:right; font-family:'DM Mono',monospace; white-space:nowrap; }
+.finai-pv-tbl em { font-style:normal; font-size:0.6rem; padding:1px 6px; border-radius:10px; background:rgba(255,255,255,0.06); color:var(--text-muted); margin-left:3px; }
+.finai-pv-note, .finai-pv-foot { font-size:0.68rem; color:var(--text-muted); line-height:1.45; }
+.finai-pv-foot { border-top:1px dashed rgba(255,255,255,0.1); padding-top:6px; }
+.finai-pvform { display:flex; flex-direction:column; gap:8px; padding:10px; border-radius:12px; border:1px dashed rgba(var(--brand-2-rgb),0.3); margin-top:6px; }
+.finai-pvform select.finai-ask-input { min-width:0; width:100%; box-sizing:border-box; padding:8px 10px; font-size:0.8rem; }
+.finai-ask-answer.has-pv { max-height:min(70vh,560px); }
+body.light-mode .finai-pv-head { background:#f0fdfa; }
+body.light-mode .finai-pv-head.sev-good { background:#ecfdf5; } body.light-mode .finai-pv-head.sev-warn { background:#fffbeb; } body.light-mode .finai-pv-head.sev-bad { background:#fef2f2; }
+body.light-mode .finai-pv-pill { color:#0f766e; } body.light-mode .finai-pv-head.sev-good .finai-pv-pill { color:#047857; } body.light-mode .finai-pv-head.sev-warn .finai-pv-pill { color:#b45309; } body.light-mode .finai-pv-head.sev-bad .finai-pv-pill { color:#b91c1c; }
+body.light-mode .finai-pv-m { background:#fff; border-color:#e2e8f0; }
+body.light-mode .finai-pv-m.ok b { color:#047857; } body.light-mode .finai-pv-m.bad b, body.light-mode .finai-pv-sec.risk p { color:#b91c1c; }
+body.light-mode .finai-pv-sec h4 { color:#0f766e; }
+body.light-mode .finai-pv-tbl td, body.light-mode .finai-pv-foot { border-color:#e2e8f0; }
+body.light-mode .finai-pv-tbl em { background:#f1f5f9; }
+body.light-mode .finai-chip { background:rgba(var(--brand-2-rgb),0.12); border-color:rgba(15,118,110,0.3); color:#0f766e; }
 .liteai-insight-item.severity-bad { border-color:rgba(239,68,68,0.35); background:rgba(239,68,68,0.06); }
 .liteai-insight-item.severity-bad i { color:#ef4444; }
 .liteai-insight-item.severity-warn { border-color:rgba(251,191,36,0.35); background:rgba(251,191,36,0.06); }
@@ -6150,6 +6192,8 @@ function passAppLockGate() {
     <button class="finai-chip" onclick="liteaiAskChip('Where can I cut back?')">Cut back?</button>
     <button class="finai-chip" onclick="liteaiAskChip('Debt status')">Debt status</button>
   </div>
+  <div class="finai-chip-row" id="liteai-pv-chips"></div>
+  <div id="liteai-scenario-host"></div>
   <div class="finai-ask-row" style="margin-top:4px;">
     <input type="text" id="liteai-ask-input" class="finai-ask-input" placeholder="Ask e.g. 'hw much did i spend on food'" onkeydown="if(event.key==='Enter')liteaiAsk()">
     <button class="btn-add" style="background:rgba(56,189,248,0.85)" onclick="liteaiAsk()"><i class="fas fa-paper-plane"></i></button>
@@ -7935,6 +7979,8 @@ function passAppLockGate() {
           <button class="finai-chip" onclick="finaiAskChip('Find 5k of savings')">Find ₹5k savings</button>
           <button class="finai-chip" onclick="finaiAskChip('Pay 10k extra')">Pay ₹10k extra</button>
         </div>
+        <div class="finai-chip-row" id="finai-pv-chips"></div>
+        <div id="finai-scenario-host"></div>
         <div class="finai-ask-row">
           <input type="text" id="finai-ask-input" class="finai-ask-input" placeholder="Ask about your finances… e.g. 'how much did I spend on food this month?'" onkeydown="if(event.key==='Enter')finaiAsk()">
           <button class="btn-add" style="background:rgba(56,189,248,0.85)" onclick="finaiAsk()"><i class="fas fa-paper-plane"></i> Ask</button>
@@ -9982,6 +10028,7 @@ function scheduleSave() {
 function wipeLocalFinancialData() {
   db = []; portDb = []; creditDb = []; insuranceDb = []; notesDb = []; subscriptionsDb = []; finaiGoals = [];
   budgets = {}; ccCards = []; notifications = []; gameStats = {};
+  try { finaiResetConversation(); } catch (e) {}
   ['fos_db_v3','fos_port_v3','fos_credit_v1','fos_insurance_v1','fos_notes_v1','fos_subscriptions_v1',
    'fos_budgets','financeOS_ccCards','fos_notifications','fos_game_stats',
    'fos_dashboard_layout_v4','fos_onboarding_goal','fos_last_active_view','fos_finai_goals_v1',
@@ -12139,6 +12186,7 @@ function renderFinAI() {
   const empty = document.getElementById('finai-empty');
   if (!grid) return;
   finaiRenderHistory('finai-ask-answer');
+  try { finaiRenderSuggestions(); } catch (e) {}
   finaiRenderPhase1();
 
   if (!a.hasData) {
@@ -12570,6 +12618,487 @@ function finaiRunIntent(it, q) {
   if (it.intent === 'extra') return finaiExtraAnswer(it.amount, it.lump, q);
   return finaiSavingsAnswer(it.amount);
 }
+
+// ══════════════════════════════════════════════════════════════════════════
+// FIN AI — PURCHASE DECISION ADVISOR (deterministic + read-only)
+// Context builder → calculation layer → evaluator → renderer. Everything is
+// derived from the signed-in user's in-memory records (same arrays the
+// dashboard uses). Nothing here writes to db/creditDb/goals, and nothing is
+// sent anywhere. No AI model is called: this app has no AI backend.
+// ══════════════════════════════════════════════════════════════════════════
+const FINAI_PV = { STALE_DAYS: 45, BUFFER_PCT: 0.10, DTI_CAUTION: 40, DTI_SEVERE: 50, CARD_CAUTION: 30, CARD_SEVERE: 50, HI_RATE: 15, WAIT_MAX: 6, FOLLOW_TURNS: 4 };
+let finaiPurchaseCtx = null;   // { p, sig, turn }
+let finaiQSeq = 0;
+
+function finaiResetConversation() {
+  try { finaiChatHistory = []; } catch (e) {}
+  try { finaiCtx = { amount: null, category: null, monthly: false, intent: null, derived: false }; } catch (e) {}
+  try { finaiSlots = { intent: null }; finaiChatState = { lastMetric: null, lastCategory: null }; } catch (e) {}
+  try { finaiPurchaseCtx = null; finaiStateCache = null; finaiQSeq = 0; } catch (e) {}
+}
+function finaiPvMoney(n) { n = Math.round(Number(n) || 0); return n < 0 ? '−' + fmt(-n) : fmt(n); }
+function finaiPvDate(iso) { const d = finaiParseISO(iso); return d ? d.toLocaleDateString('en-IN', { day: 'numeric', month: 'short' }) : iso; }
+function finaiPvEmi(P, ratePct, n) {
+  if (!(P > 0) || !(n > 0)) return 0;
+  const r = (Number(ratePct) || 0) / 1200;
+  return Math.ceil(r === 0 ? P / n : P * r * Math.pow(1 + r, n) / (Math.pow(1 + r, n) - 1));
+}
+function finaiPvPrincipal(emi, ratePct, n) {
+  const r = (Number(ratePct) || 0) / 1200;
+  return r === 0 ? emi * n : emi * (1 - Math.pow(1 + r, -n)) / r;
+}
+function finaiDataSig() {
+  const s = (a, k) => (a || []).reduce((t, r) => t + (Number(r && r[k]) || 0), 0);
+  return [(db || []).length, Math.round(s(db, 'amount')), (creditDb || []).length, Math.round(s(creditDb, 'outstandingBalance')), Math.round(s(creditDb, 'monthlyEmi')),
+    (subscriptionsDb || []).length, (insuranceDb || []).length, (finaiGoals || []).length, Math.round(s(finaiGoals, 'saved')), Math.round(s(finaiGoals, 'monthly')),
+    JSON.stringify(budgets || {}), Math.round(s(ccCards, 'used'))].join('|');
+}
+
+// ── 1. Financial context builder (aggregates only — no raw transactions) ──
+function finaiAdvisorContext() {
+  const a = finaiBuildAnalysis(), st = finaiBuildState(a), f = st.forecast;
+  const todayD = new Date(); todayD.setHours(0, 0, 0, 0);
+  let lastD = null; const seen = {}; let dup = 0;
+  (db || []).forEach(r => {
+    const d = finaiParseISO(r.date); if (d && (!lastD || d > lastD)) lastD = d;
+    const k = [r.type, r.date, finaiNorm(r.name), Number(r.amount)].join('|'); if (seen[k]) dup++; else seen[k] = 1;
+  });
+  const daysSince = lastD ? Math.max(0, Math.round((todayD - lastD) / 86400000)) : null;
+  const free = Math.round(f.freeAfterSpending), buffer = Math.round(f.income * FINAI_PV.BUFFER_PCT);
+  const capacity = free - buffer;
+  const goals = (finaiGoals || []).map(g => Object.assign({ name: g.name || 'Goal' }, finaiGoalCalc(g))).filter(g => !g.done);
+  const gm = goals.reduce((s, g) => s + g.monthly, 0);
+  const ef = goals.find(g => /emergency|rainy|contingen|safety net|reserve/i.test(g.name)) || null;
+  const efDone = (finaiGoals || []).map(g => Object.assign({ name: g.name || '' }, finaiGoalCalc(g))).find(g => g.done && /emergency|rainy|contingen|safety net|reserve/i.test(g.name)) || null;
+  const loans = finaiDebtLoans(), top = loans.slice().sort((x, y) => y.rate - x.rate)[0] || null;
+  const dq = { blocking: null, flags: [] };
+  if (!a.hasData) dq.blocking = 'nodata';
+  else if (f.income <= 0) dq.blocking = 'noincome';
+  else if (daysSince !== null && daysSince > FINAI_PV.STALE_DAYS) dq.blocking = 'stale';
+  return {
+    a, st, f, asOf: st.asOf, windowEnd: st.windowEnd, income: Math.round(f.income), incomeAssumed: f.incomeAssumed,
+    commitments: Math.round(f.commitments), emiMonthly: Math.round(f.emis), variable: Math.round(f.variable), investments: Math.round(f.investments),
+    free, buffer, capacity, gm, spendable: Math.max(0, capacity - gm), goals, ef, efDone,
+    loans, topLoan: top, hiLoans: loans.filter(l => l.rate >= FINAI_PV.HI_RATE).sort((x, y) => y.rate - x.rate),
+    cards: st.cards, portfolio: Math.round(a.portCurrent || 0), avgMonthlyExpense: Math.round(a.avgMonthlyExpense || 0),
+    daysSince, dup, spanDays: st.spending.basedOnDays, undated: st.undated.length, dq, sig: finaiDataSig(),
+    nextDue: st.dues.filter(d => d.kind !== 'income')[0] || null
+  };
+}
+
+// ── 2. Natural-language purchase parser (hypothetical figures only) ───────
+const FINAI_PV_PRODUCTS = ['iphone', 'phone', 'mobile', 'smartphone', 'laptop', 'macbook', 'tablet', 'ipad', 'tv', 'television', 'fridge', 'refrigerator', 'washing machine', 'ac', 'air conditioner', 'bike', 'scooter', 'car', 'sofa', 'furniture', 'watch', 'camera', 'headphones', 'earbuds', 'console', 'vacation', 'trip', 'holiday', 'course', 'wedding', 'ring', 'jewellery'];
+function finaiPvNums(q) {
+  const out = [], re = /(₹|rs\.?|inr)?\s*(\d[\d,]*(?:\.\d+)?)\s*(thousand|lakhs?|lacs?|crores?|cr|k|l)?(?![a-z0-9])/gi; let m;
+  while ((m = re.exec(q))) {
+    const raw = parseFloat(m[2].replace(/,/g, '')); if (isNaN(raw)) continue;
+    const u = (m[3] || '').toLowerCase(); let v = raw;
+    if (u === 'k' || u === 'thousand') v *= 1e3; else if (u[0] === 'l') v *= 1e5; else if (u[0] === 'c') v *= 1e7;
+    const end = m.index + m[0].length, before = q.slice(Math.max(0, m.index - 26), m.index).toLowerCase(), after = q.slice(end, end + 26).toLowerCase();
+    out.push({ v, raw, cur: !!m[1] || !!u, before, after });
+  }
+  return out;
+}
+function finaiParsePurchase(q) {
+  const s = q.toLowerCase(), p = {};
+  finaiPvNums(q).forEach(n => {
+    const A = n.after, B = n.before;
+    if (/^\s*(%|percent|per ?cent)/.test(A)) { p.rate = n.raw; return; }
+    const d = A.match(/^\s*(months?|mos?|years?|yrs?|weeks?)\b/);
+    if (d) { const mo = /^y/.test(d[1]) ? n.raw * 12 : /^w/.test(d[1]) ? n.raw / 4.345 : n.raw; if (/(wait|later|after|from now|in\s*$|another|ahead)/.test(B + ' ' + A) && !/(emi|instal|tenure|loan)/.test(A.slice(d[0].length, d[0].length + 8))) p.whenMonths = mo; else p.tenure = Math.round(mo); return; }
+    if (!n.cur && n.v < 500 && !/(down|emi)\s*$/.test(B)) return;
+    if (/(down ?payment( of| is)?|advance|upfront|initial( payment)?)\s*$/.test(B) || /^\s*(down|upfront|advance|as down)/.test(A)) p.down = n.v;
+    else if (/\bemi( of| is| around| about)?\s*$/.test(B) || /^\s*(\/\s*month|\/mo\b|per month|a month|monthly|pm\b)/.test(A) || (/^\s*(monthly\s+)?(emi|instal+ments?)\b/.test(A) && !/\b(on|in|via|using|with|through|by)\s*$/.test(B))) { if (p.emi == null) p.emi = n.v; }
+    else if (p.price == null) p.price = n.v;
+  });
+  const w = s.match(/\b(one|two|three|four|five|six|seven|eight|nine|ten|eleven|twelve)\s*(month|year)s?\b/);
+  if (w) { const mo = FINAI_NUMW[w[1]] * (w[2] === 'year' ? 12 : 1); if (/(wait|later|after|from now|in\s+\w+\s+month)/.test(s) && !/(emi|instal|tenure)/.test(s.slice(s.indexOf(w[0]) + w[0].length, s.indexOf(w[0]) + w[0].length + 8))) p.whenMonths = mo; else p.tenure = mo; }
+  if (/\bnext month\b/.test(s) && p.whenMonths == null) p.whenMonths = 1;
+  if (/\b(no[- ]cost|zero[- ]interest|0 ?% )/.test(s)) p.rate = 0;
+  if (/\bemi\b|instal+ments?|\bfinanc(e|ed|ing)\b|\bloan\b/.test(s) && !/credit card/.test(s.replace(/emi/g, ''))) p.method = 'emi';
+  else if (/credit card|\bcard\b/.test(s)) p.method = /\bemi\b/.test(s) ? 'emi' : 'card';
+  else if (/\b(cash|upi|debit|savings account|bank transfer|outright|full payment|one go|lump ?sum)\b/.test(s)) p.method = 'cash';
+  if (p.method === 'emi' && p.emi == null && p.price == null) { /* nothing */ }
+  let prod = FINAI_PV_PRODUCTS.find(x => new RegExp('\\b' + x + '\\b').test(s));
+  if (!prod) { const g = s.match(/\b(?:buy|buying|purchase|purchasing|get|getting|order|upgrade to)\s+(?:a|an|the|this|that|my|some|new)?\s*([a-z][a-z\- ]{2,24}?)(?=\s+(?:for|on|with|using|via|right|now|today|this|next|in|at|if|or)\b|[?.,]|$)/); if (g && !/^(it|this|that|something|one)$/.test(g[1])) prod = g[1].trim(); }
+  if (prod) p.product = prod.slice(0, 30);
+  if (/\b(medical|hospital|medicine|surgery|rent|school|fees|repair|urgent|essential|must have|need to)\b/.test(s)) p.essential = true;
+  else if (/\b(want|treat|luxury|upgrade|gift|vacation|trip|holiday|splurge)\b/.test(s)) p.essential = false;
+  if (/\b(cheaper|cheap|lower[- ]priced|budget (?:version|one))\b/.test(s)) p.cheaper = true;
+  if (/\b(now|today|right away|this month)\b/.test(s) && p.whenMonths == null) p.whenMonths = 0;
+  return p;
+}
+
+// ── 3. Evaluator (validated calculation layer; no model arithmetic) ───────
+function finaiPvEvaluate(p0, ctx, focus) {
+  ctx = ctx || finaiAdvisorContext();
+  const p = Object.assign({ method: null, down: 0, whenMonths: 0 }, p0), f = ctx.f, R = {};
+  const N = Math.max(0, Math.round(p.whenMonths || 0));
+  const out = { p, ctx, focus: focus || null, assumptions: [], missing: [], impact: [], plan: [], flags: {} };
+  if (ctx.dq.blocking || (p.price == null && p.emi == null)) { out.verdict = 'INSUFFICIENT DATA'; out.sev = 'info'; out.num = {}; return finaiPvInsufficient(out); }
+  let price = p.price, emi = p.emi, tenure = p.tenure || null, rate = p.rate, down = p.down || 0, emiFloor = false, implied = false;
+  const method = p.method || (emi != null && price == null ? 'emi' : null);
+  if (method === 'emi') {
+    if (emi == null && price != null && tenure) { emi = finaiPvEmi(Math.max(0, price - down), rate == null ? 0 : rate, tenure); emiFloor = rate == null; }
+    if (price == null && emi != null && tenure) { price = emi * tenure; implied = true; }
+    if (emi == null) out.missing.push('EMI tenure and interest rate');
+    else if (!tenure && price == null) out.missing.push('how long the EMI runs');
+    if (emi != null && rate == null && !emiFloor) out.missing.push('interest rate (total cost not computed)');
+    if (emiFloor) out.missing.push('interest rate (the EMI shown is the 0%-interest minimum)');
+  }
+  const upfront = method === 'emi' ? down : (price || 0), newEmi = method === 'emi' && emi ? emi : 0;
+  if (!p.method) out.assumptions.push('No payment method given, so I assumed you pay the full amount from spare cash.');
+  if (p.essential == null) out.assumptions.push('Treated as a discretionary purchase — say so if it is essential.');
+  const financed = method === 'emi' && price != null ? Math.max(0, price - down) : 0;
+  const free = ctx.free, buffer = ctx.buffer, capacity = ctx.capacity, spendable = ctx.spendable, income = ctx.income;
+  const leftAfter = free - upfront, shortfall = Math.max(0, upfront - free);
+  const ser = finaiFreeSeries(ctx.st, Math.min(12, tenure || 6), N === 0 ? upfront : 0, newEmi);
+  const dti0 = income > 0 ? ctx.emiMonthly / income * 100 : 0, dti1 = income > 0 ? (ctx.emiMonthly + newEmi) / income * 100 : 0;
+  const cu = ctx.cards;
+  const cardAfter = method === 'card' && cu.totalLimit > 0 ? (cu.totalUsed + price) / cu.totalLimit * 100 : null;
+  const monthsToSave = capacity > 0 ? Math.ceil(upfront / capacity) : null;
+  const roomEmi = Math.max(0, capacity), emiOver = newEmi > 0 && newEmi > Math.max(0, spendable);
+  const hi = ctx.hiLoans[0] || null, disc = p.essential !== true;
+  const gmCut = ctx.gm > 0 ? Math.min(ctx.gm, Math.max(0, upfront - spendable) + (N === 0 ? 0 : 0)) : 0;
+  const goalOneOff = ctx.gm > 0 && N === 0 && upfront > spendable && upfront <= Math.max(capacity, 0) ? upfront - spendable : 0;
+  const emiCut = ctx.gm > 0 && newEmi > spendable ? Math.min(ctx.gm, newEmi - spendable) : 0;
+  Object.assign(R, { price, upfront, emi: newEmi, tenure, rate, down, free, buffer, capacity, spendable, leftAfter, shortfall, dti0, dti1, cardAfter, monthsToSave, roomEmi, serMin: ser.min, serMi: ser.mi });
+  out.num = R;
+  const fl = out.flags;
+  fl.baselineNeg = free < 0; fl.shortfall = N === 0 && shortfall > 0; fl.bufferBreach = N === 0 && shortfall === 0 && upfront > Math.max(0, capacity);
+  fl.emiBreak = newEmi > 0 && ser.min < 0; fl.dtiSevere = newEmi > 0 && dti1 > FINAI_PV.DTI_SEVERE; fl.dtiCaution = newEmi > 0 && dti1 > FINAI_PV.DTI_CAUTION;
+  fl.cardSevere = cardAfter !== null && cardAfter > FINAI_PV.CARD_SEVERE; fl.cardCaution = cardAfter !== null && cardAfter > FINAI_PV.CARD_CAUTION;
+  fl.hiDebt = !!hi && disc && (upfront > 0 || newEmi > 0) && (upfront + newEmi * 3) > 0.25 * Math.max(capacity, 1);
+  fl.goals = (goalOneOff > 0 || emiCut > 0) && ctx.gm > 0;
+  const waitReady = N > 0 ? upfront <= Math.max(0, capacity) * N : null;
+  // verdict — ordered, transparent rules
+  let v, why;
+  const severe = fl.baselineNeg || fl.emiBreak || fl.dtiSevere || fl.cardSevere || (fl.shortfall && capacity <= 0);
+  if (method === 'emi' && emi == null && !upfront && price == null) { v = 'INSUFFICIENT DATA'; why = 'missing'; }
+  else if (method === 'emi' && !tenure && !newEmi && financed > 0 && spendable <= 0) { v = 'AVOID FOR NOW'; why = 'emiRoom'; }
+  else if (severe) { v = p.essential === true ? 'BUY WITH CONDITIONS' : 'AVOID FOR NOW'; why = 'severe'; }
+  else if (N > 0) { v = (waitReady || (monthsToSave !== null && monthsToSave <= FINAI_PV.WAIT_MAX)) ? 'WAIT AND SAVE' : 'AVOID FOR NOW'; why = 'wait'; }
+  else if (fl.shortfall || fl.bufferBreach) {
+    if (p.essential === true) { v = 'BUY WITH CONDITIONS'; why = 'essentialGap'; }
+    else if (monthsToSave !== null && monthsToSave <= FINAI_PV.WAIT_MAX) { v = capacity >= 0.5 * upfront && monthsToSave > 3 ? 'CHOOSE A CHEAPER OPTION' : 'WAIT AND SAVE'; why = 'gap'; }
+    else if (capacity >= 0.4 * upfront) { v = 'CHOOSE A CHEAPER OPTION'; why = 'gap'; }
+    else { v = 'AVOID FOR NOW'; why = 'gap'; }
+  } else if (fl.goals || fl.dtiCaution || fl.cardCaution || fl.hiDebt || (method === 'emi' && (out.missing.length || emiFloor))) { v = 'BUY WITH CONDITIONS'; why = 'conditions'; }
+  else { v = 'BUY NOW'; why = 'fits'; }
+  out.verdict = v; out.why = why;
+  out.sev = { 'BUY NOW': 'good', 'BUY WITH CONDITIONS': 'warn', 'WAIT AND SAVE': 'warn', 'CHOOSE A CHEAPER OPTION': 'warn', 'AVOID FOR NOW': 'bad', 'INSUFFICIENT DATA': 'info' }[v];
+  const label = (p.product ? p.product : 'this purchase');
+  const what = method === 'emi' ? (newEmi ? `a ${finaiPvMoney(newEmi)}/month EMI${tenure ? ' for ' + tenure + ' months' : ''}` : `an EMI purchase`) : finaiPvMoney(price);
+  // headline
+  const H = {
+    'BUY NOW': `${what} for ${label} fits inside your spare cash without touching essentials or goals.`,
+    'BUY WITH CONDITIONS': `${what} is reasonable only if the conditions below are met.`,
+    'WAIT AND SAVE': N > 0 ? `Waiting ${N} month${N > 1 ? 's' : ''} ${waitReady ? 'is enough' : 'is not quite enough'} — ${waitReady ? 'set money aside and buy then.' : 'you would need ' + (monthsToSave || '?') + ' months of saving.'}` : `Not comfortable today — a short saving plan makes ${what} affordable.`,
+    'CHOOSE A CHEAPER OPTION': `${what} is above what you can safely spare; a cheaper option fits better.`,
+    'AVOID FOR NOW': `${what} would put your cash flow${fl.emiBreak || fl.dtiSevere ? ' or EMI load' : ''} at real risk right now.`
+  };
+  out.headline = H[v] || '';
+  const minTenure = method === 'emi' && !tenure && !newEmi && financed > 0 && spendable > 0 ? Math.ceil(financed / spendable) : null;
+  if (minTenure && v === 'BUY WITH CONDITIONS') out.headline = `Preliminary: financing ${finaiPvMoney(financed)} fits your safe EMI room (${finaiPvMoney(spendable)}/month) only if it runs at least ${minTenure} months, before interest. Tell me the tenure and rate for a firm answer.`;
+  if (why === 'emiRoom') out.headline = `You have no safe spare cash for a new EMI right now, so financing ${finaiPvMoney(financed)} is not advisable yet.`;
+  // impact
+  const I = out.impact;
+  if (N === 0 && upfront > 0) I.push(`<b>Cash flow:</b> ${upfront > free ? `would leave you <b>${finaiPvMoney(shortfall)} short</b> over the next 30 days` : `leaves ${finaiPvMoney(leftAfter)} of free cash (your safety buffer is ${finaiPvMoney(buffer)})`}.`);
+  if (newEmi > 0) I.push(`<b>New EMI ${finaiPvMoney(newEmi)}/month:</b> your EMI load goes from ${dti0.toFixed(0)}% to <b>${dti1.toFixed(0)}%</b> of income${ser.min < 0 ? `, and ${finaiMonthsLabel(ser.mi + 1)} would run ${finaiPvMoney(-ser.min)} short` : `; worst monthly free cash afterwards ≈ ${finaiPvMoney(ser.min)}`}.${emiFloor ? ' (0%-interest minimum.)' : ''}`);
+  if (method === 'emi' && emi && tenure && rate != null) { const tot = emi * tenure, intr = tot - Math.max(0, (price || 0) - down); I.push(`<b>Total EMI cost:</b> ${finaiPvMoney(tot)} (interest/fees ≈ ${finaiPvMoney(Math.max(0, intr))}).`); }
+  if (cardAfter !== null) I.push(`<b>Credit card:</b> utilization goes from ${(cu.totalUsed / cu.totalLimit * 100).toFixed(0)}% to <b>${cardAfter.toFixed(0)}%</b>. This assumes you pay the full bill by its due date; carried balances cost interest (check your card's rate).`);
+  else if (method === 'card') I.push('<b>Credit card:</b> no card limit is recorded, so I can’t estimate utilization. Assumes the full bill is paid on time.');
+  if (ctx.hiLoans.length && (upfront > 0 || newEmi > 0)) { const h = ctx.hiLoans[0], yr = Math.min(Math.max(upfront, 1), h.bal) * h.rate / 100; I.push(`<b>Debt:</b> ${finaiEscapeHtml(h.name)} costs ${h.rate}% a year. The same ${finaiPvMoney(Math.min(upfront || newEmi * 3, h.bal))} on it would save about <b>${finaiPvMoney(yr)}/year</b> — roughly ${finaiPvMoney(yr / 4)} over a 3-month wait.`); }
+  else if (ctx.loans.length) I.push(`<b>Debt:</b> your highest-rate loan is ${finaiEscapeHtml(ctx.topLoan.name)} at ${ctx.topLoan.rate}% — not in the high-interest range, so it does not change this verdict.`);
+  if (ctx.ef) { const after = Math.max(0, ctx.ef.saved - Math.max(0, upfront - Math.max(0, capacity))); I.push(`<b>Emergency fund:</b> goal “${finaiEscapeHtml(ctx.ef.name)}” is at ${finaiPvMoney(ctx.ef.saved)} of ${finaiPvMoney(ctx.ef.target)}. ${upfront > Math.max(0, capacity) ? `Funding the gap from it would drop it to ${finaiPvMoney(after)}.` : 'This purchase fits without drawing on it.'}`); }
+  else I.push('<b>Emergency fund:</b> no emergency-fund goal or cash reserve is recorded, so I can’t check whether this dips below a target. <a href="#" onclick="finaiGoalQuick();return false" style="color:var(--brand-2);font-weight:700">Set one up</a> (nothing is created until you save it).');
+  if (ctx.gm > 0 && (goalOneOff > 0 || emiCut > 0)) {
+    const L = ctx.goals.filter(g => g.monthly > 0).slice(0, 3).map(g => {
+      const cut = goalOneOff > 0 ? goalOneOff * (g.monthly / ctx.gm) : emiCut * (g.monthly / ctx.gm);
+      if (emiCut > 0) { const nm = g.monthly - cut; return nm <= 0 ? `${finaiEscapeHtml(g.name)} would stall` : `${finaiEscapeHtml(g.name)} slips from ${g.months} to ${Math.ceil(g.rem / nm)} months`; }
+      return `${finaiEscapeHtml(g.name)} slips about ${(cut / g.monthly).toFixed(1)} month`;
+    });
+    I.push(`<b>Goals:</b> ${emiCut > 0 ? 'if the EMI is paid from goal contributions' : 'if the overflow comes out of this month’s contributions'} — ${L.join('; ')}. Your goals take ${finaiPvMoney(ctx.gm)}/month and I haven’t changed any.`);
+  } else if (ctx.goals.length) I.push(`<b>Goals:</b> ${ctx.gm > 0 ? 'contributions of ' + finaiPvMoney(ctx.gm) + '/month stay intact' : 'none of your goals have a monthly contribution set, so I can’t estimate a delay'}.`);
+  else I.push('<b>Goals:</b> none recorded, so nothing to compare. Add one and I’ll include it.');
+  if (ctx.portfolio > 0) I.push(`<b>Investments:</b> your ${finaiPvMoney(ctx.portfolio)} portfolio is market-linked, so I did not count it as spendable cash.`);
+  // main risk
+  out.risk = fl.shortfall ? `Cash runs out: ${finaiPvMoney(shortfall)} short over the next 30 days, assuming the income and bills I can see are complete and you have no other funds.`
+    : fl.baselineNeg ? `Your next 30 days are already ${finaiPvMoney(-free)} negative before this purchase.`
+    : fl.emiBreak ? `The new EMI makes ${finaiMonthsLabel(ser.mi + 1)} negative (${finaiPvMoney(ser.min)}).`
+    : fl.dtiSevere || fl.dtiCaution ? `EMIs would take ${dti1.toFixed(0)}% of income, above the ${fl.dtiSevere ? FINAI_PV.DTI_SEVERE : FINAI_PV.DTI_CAUTION}% rule of thumb, leaving little room for surprises.`
+    : fl.cardSevere || fl.cardCaution ? `Card utilization of ${cardAfter.toFixed(0)}% is high and a missed full payment would start costly interest.`
+    : fl.hiDebt ? `You would spend money that is currently costing you ${ctx.hiLoans[0].rate}% a year on debt.`
+    : fl.bufferBreach ? `It eats into your ${finaiPvMoney(buffer)} safety buffer, so one unexpected bill could cause a shortfall.`
+    : fl.goals ? 'It slows your savings goals.' : 'An unexpected expense this month; keep your buffer untouched.';
+  // alternatives + plan
+  const cheaperCap = Math.floor(Math.max(0, spendable) / 500) * 500;
+  const perMonth = N > 0 ? Math.ceil(upfront / N / 100) * 100 : (monthsToSave ? Math.ceil(upfront / monthsToSave / 100) * 100 : null);
+  const mLabel = n => finaiMonthsLabel(n);
+  const alt = [];
+  if (upfront > spendable) {
+    if (monthsToSave && capacity > 0) alt.push(`Save ${finaiPvMoney(perMonth)}/month and buy in about ${N > 0 ? N : monthsToSave} month${(N || monthsToSave) > 1 ? 's' : ''} (${mLabel(N > 0 ? N : monthsToSave)}).`);
+    if (cheaperCap > 0) alt.push(`Pick an option up to ${finaiPvMoney(cheaperCap)} — that fits today without touching goals or buffer.`);
+  }
+  if (method === 'emi' && emi && emiOver && tenure) { const maxLoan = finaiPvPrincipal(Math.max(0, spendable), rate == null ? 0 : rate, tenure), dn = Math.ceil(Math.max(0, (price || 0) - maxLoan) / 500) * 500; if (spendable > 0 && price) alt.push(`Raise the down payment to about ${finaiPvMoney(dn)} so the EMI fits ${finaiPvMoney(spendable)}/month.`); }
+  if (method === 'emi' && !tenure) alt.push(`Your safe EMI room is about ${finaiPvMoney(Math.max(0, spendable))}/month${price ? ` — financing ${finaiPvMoney(Math.max(0, price - down))} at 0% would need at least ${spendable > 0 ? Math.ceil(Math.max(0, price - down) / spendable) : '∞'} months` : ''}.`);
+  if (!alt.length) alt.push(v === 'BUY NOW' ? 'No better alternative needed; you can buy at today’s price. Prices can change, so compare before paying.' : 'Delay the purchase until free cash improves, or look for a lower price.');
+  out.alt = alt;
+  const P = out.plan;
+  if (v === 'BUY NOW') { P.push(`Pay from spare cash and keep your ${finaiPvMoney(buffer)} buffer untouched.`); if (ctx.nextDue) P.push(`Make sure ${finaiPvMoney(ctx.nextDue.amount)} for ${finaiEscapeHtml(ctx.nextDue.label)} (${finaiWhen(ctx.nextDue).replace(/^Today/, 'today').replace(/^Tomorrow/, 'tomorrow')}) stays covered.`); P.push('Log it as an expense after you buy — I haven’t recorded anything.'); }
+  else if (v === 'BUY WITH CONDITIONS') {
+    if (fl.goals) P.push(`Decide how to cover the goal impact: reduce the price, move a goal date, or save ${finaiPvMoney(Math.ceil((goalOneOff || emiCut) / 100) * 100)} extra elsewhere.`);
+    if (fl.hiDebt) P.push(`Consider clearing part of ${finaiEscapeHtml(ctx.hiLoans[0].name)} first; buy only if you still keep the ${finaiPvMoney(buffer)} buffer.`);
+    if (fl.dtiCaution || fl.cardCaution) P.push(fl.cardCaution ? 'Pay the card bill in full on the due date.' : 'Do not add another EMI until existing ones fall.');
+    if (out.missing.length) P.push('Confirm: ' + out.missing.join(', ') + '.');
+    if (p.essential === true && (fl.shortfall || fl.bufferBreach)) P.push('Because it is essential, cover the gap first from the least costly source — not a high-interest loan.');
+    if (!P.length) P.push('Keep the conditions above in place before paying.');
+  } else if (v === 'WAIT AND SAVE') { P.push(`Set aside ${finaiPvMoney(perMonth)}/month from the start of next cycle.`, `Target purchase window: ${mLabel(N > 0 ? N : monthsToSave)} (assumes your free cash stays about ${finaiPvMoney(capacity)}/month — not guaranteed).`, 'Re-check after your next income arrives.'); }
+  else if (v === 'CHOOSE A CHEAPER OPTION') P.push(`Shop within ${finaiPvMoney(cheaperCap)}; ask me “check a ₹${Math.max(cheaperCap, 1000).toLocaleString('en-IN')} one” to confirm.`, 'Or save toward the original price first.');
+  else if (v === 'AVOID FOR NOW') { P.push(fl.baselineNeg ? `First close the ${finaiPvMoney(-free)} gap in the next 30 days (trim spending or delay a bill).` : 'Rebuild spare cash before committing.', 'Ask “what should I prioritize?” for a ranked list.'); }
+  // confidence
+  const lows = [];
+  if (ctx.incomeAssumed) lows.push('income is estimated from your 3-month average, not a recurring entry');
+  if (ctx.daysSince !== null && ctx.daysSince > 30) lows.push(`your latest record is ${ctx.daysSince} days old`);
+  if (ctx.spanDays < 45) lows.push('less than 45 days of spending history');
+  if (ctx.dup > 0) lows.push(`${ctx.dup} possible duplicate transaction${ctx.dup > 1 ? 's' : ''}`);
+  if (ctx.undated) lows.push(`${ctx.undated} EMI(s) with no due day`);
+  out.conf = { level: lows.length ? 'Low' : 'Medium', notes: lows.concat(['no bank or cash balance is tracked in FinanceOS, so I use your income and bills forecast rather than a balance']).concat(ctx.cards.totalUsed > 0 ? [`current card spend of ${finaiPvMoney(ctx.cards.totalUsed)} is not in the 30-day forecast`] : []).concat(out.missing.map(m => 'missing: ' + m)) };
+  return out;
+}
+function finaiPvInsufficient(out) {
+  const ctx = out.ctx, b = ctx.dq.blocking, p = out.p;
+  out.headline = b === 'nodata' ? 'You have no transactions yet, so I can’t judge affordability.'
+    : b === 'noincome' ? 'I can’t see any income, so I can’t tell what you can safely spend.'
+    : b === 'stale' ? `Your latest record is ${ctx.daysSince} days old, so my numbers may be out of date.`
+    : 'I need the price (or the monthly EMI) to check this.';
+  out.ask = b === 'nodata' || b === 'noincome' ? 'Add your income (mark salary “recurring”) and main bills, or tell me your monthly take-home and fixed bills.'
+    : b === 'stale' ? 'Add your recent income and expenses, then ask again.' : 'What is the price, and are you paying cash, by card, or on EMI?';
+  out.risk = 'Without current income and bills, any “yes” could be wrong.';
+  out.alt = []; out.plan = [out.ask];
+  out.conf = { level: 'Low', notes: ['not enough current data to calculate'] };
+  return out;
+}
+
+// ── 4. Renderer ────────────────────────────────────────────────────────────
+function finaiPvRender(r) {
+  const c = r.ctx, n = r.num || {}, e = finaiEscapeHtml;
+  const win = `${finaiPvDate(c.asOf)} – ${finaiPvDate(c.windowEnd)}`;
+  const M = (l, v, cls) => `<div class="finai-pv-m ${cls || ''}"><span>${l}</span><b>${v}</b></div>`;
+  let html = `<div class="finai-pv"><div class="finai-pv-head sev-${r.sev}"><span class="finai-pv-pill">${r.verdict}</span><div class="finai-pv-title">${r.headline}</div></div>`;
+  if (r.focus) html += `<div class="finai-pv-focus">${r.focus}</div>`;
+  if (r.verdict === 'INSUFFICIENT DATA') {
+    return html + `<div class="finai-pv-sec"><h4>What I need</h4><p>${e(r.ask)}</p></div><div class="finai-pv-foot">Hypothetical — nothing was added to your records. Decision support, not financial advice.</div></div>`;
+  }
+  const p = r.p, method = p.method === 'emi' || (p.emi != null && p.price == null) ? 'EMI' : p.method === 'card' ? 'Credit card' : 'Cash / UPI / debit';
+  html += `<div class="finai-pv-metrics">${M('Purchase', n.price != null ? finaiPvMoney(n.price) : '—')}${M('Payment', method + (n.emi ? ' · ' + finaiPvMoney(n.emi) + '/mo' : ''))}${M('Safe to spend', finaiPvMoney(Math.max(0, n.spendable)), 'ok')}${M(n.leftAfter < 0 ? 'Shortfall' : 'Left after', finaiPvMoney(n.leftAfter), n.leftAfter < 0 ? 'bad' : '')}</div>`;
+  const row = (l, v, tag) => `<tr><td>${l}${tag ? ` <em>${tag}</em>` : ''}</td><td>${v}</td></tr>`;
+  const freeFig = finaiFig(finaiPvMoney(n.free), 'Free cash — next 30 days', () => finaiCapRows(c.st));
+  html += `<div class="finai-pv-sec"><h4>Current position <em>${win}</em></h4><table class="finai-pv-tbl"><tbody>
+    ${row('Expected income', finaiPvMoney(c.income), c.incomeAssumed ? 'estimated' : 'recorded')}
+    ${row('Bills, EMIs & investments', '−' + finaiPvMoney(c.commitments + c.investments), 'recorded')}
+    ${row('Typical day-to-day spending', '−' + finaiPvMoney(c.variable), 'estimated')}
+    ${row('<b>Free cash</b>', `<b>${freeFig}</b>`)}
+    ${row('Safety buffer (10% of income)', '−' + finaiPvMoney(c.buffer), 'assumption')}
+    ${c.gm > 0 ? row('Goal contributions planned', '−' + finaiPvMoney(c.gm), 'recorded') : ''}
+    ${row('<b>Safe to spend</b>', '<b>' + finaiPvMoney(Math.max(0, c.spendable)) + '</b>')}</tbody></table></div>`;
+  html += `<div class="finai-pv-sec"><h4>Affordability calculation</h4><table class="finai-pv-tbl"><tbody>
+    ${row('Cash needed now', finaiPvMoney(n.upfront))}
+    ${row('Free cash − purchase', finaiPvMoney(n.leftAfter))}
+    ${n.emi ? row('Debt load after new EMI', n.dti1.toFixed(0) + '% of income (now ' + n.dti0.toFixed(0) + '%)') : ''}
+    ${n.monthsToSave ? row('Months to save at safe pace', String(n.monthsToSave)) : ''}</tbody></table>
+    <div class="finai-pv-note">Free cash = income − bills − EMIs − investments − typical spending, for the 30 days shown. If these figures are complete and you have no other funds, the calculation holds.</div></div>`;
+  html += `<div class="finai-pv-sec"><h4>Impact</h4><ul>${r.impact.map(x => `<li>${x}</li>`).join('')}</ul></div>`;
+  html += `<div class="finai-pv-sec risk"><h4>Main risk</h4><p>${r.risk}</p></div>`;
+  html += `<div class="finai-pv-sec"><h4>Better alternative</h4><ul>${r.alt.map(x => `<li>${x}</li>`).join('')}</ul></div>`;
+  html += `<div class="finai-pv-sec"><h4>Action plan</h4><ol>${r.plan.map(x => `<li>${x}</li>`).join('')}</ol></div>`;
+  html += `<div class="finai-pv-sec conf"><h4>Confidence: ${r.conf.level}</h4><ul>${r.conf.notes.map(x => `<li>${e(x.charAt(0).toUpperCase() + x.slice(1))}</li>`).join('')}${r.assumptions.map(x => `<li>${e(x)}</li>`).join('')}</ul></div>`;
+  return html + `<div class="finai-pv-foot">Hypothetical — nothing was added to your records. Decision support, not financial advice or a guarantee.</div></div>`;
+}
+
+function finaiPvRun(p, focus, note) {
+  const ctx = finaiAdvisorContext(), r = finaiPvEvaluate(p, ctx, focus);
+  finaiPurchaseCtx = { p: r.p, sig: ctx.sig, turn: finaiQSeq };
+  finaiChatState = { lastMetric: 'intent', lastCategory: null };
+  return (note ? `<div class="finai-pv-focus">${note}</div>` : '') + finaiPvRender(r);
+}
+
+// ── 5. Other advisor answers ──────────────────────────────────────────────
+function finaiSafeSpendAnswer() {
+  const c = finaiAdvisorContext();
+  if (c.dq.blocking) return finaiPvRender(finaiPvInsufficient({ p: {}, ctx: c, flags: {}, plan: [], impact: [], assumptions: [], missing: [], verdict: 'INSUFFICIENT DATA', sev: 'info', num: {} }));
+  const fig = finaiFig(finaiPvMoney(c.free), 'Free cash — next 30 days', () => finaiCapRows(c.st));
+  return `<div class="finai-pv"><div class="finai-pv-head sev-${c.spendable > 0 ? 'good' : 'bad'}"><span class="finai-pv-pill">SAFE TO SPEND</span><div class="finai-pv-title">About <b>${finaiPvMoney(Math.max(0, c.spendable))}</b> as a one-off, over the next 30 days (${finaiPvDate(c.asOf)} – ${finaiPvDate(c.windowEnd)}).</div></div>
+  <div class="finai-pv-sec"><table class="finai-pv-tbl"><tbody><tr><td>Free cash after bills, EMIs & typical spending</td><td>${fig}</td></tr><tr><td>Safety buffer kept aside</td><td>−${finaiPvMoney(c.buffer)}</td></tr>${c.gm > 0 ? `<tr><td>Goal contributions protected</td><td>−${finaiPvMoney(c.gm)}</td></tr>` : ''}<tr><td><b>Safe to spend</b></td><td><b>${finaiPvMoney(Math.max(0, c.spendable))}</b></td></tr></tbody></table>
+  <div class="finai-pv-note">${c.free > 0 ? `Absolute ceiling before cash goes negative: ${finaiPvMoney(c.free)} (uses your buffer).` : `Your next 30 days are ${finaiPvMoney(-c.free)} short already — avoid new spending.`} This is a forecast, not a bank balance${c.incomeAssumed ? '; income is estimated from your average' : ''}.</div></div>
+  <div class="finai-pv-foot">Ask “can I afford ₹40,000 phone?” to test a specific purchase. Nothing was recorded.</div></div>`;
+}
+function finaiEmiRoomAnswer() {
+  const c = finaiAdvisorContext();
+  if (c.dq.blocking) return 'I need current income and bill records before I can size a new EMI. Add your income (mark salary recurring) and existing EMIs, then ask again.';
+  const dtiMax = Math.max(0, c.income * FINAI_PV.DTI_CAUTION / 100 - c.emiMonthly), room = Math.max(0, Math.min(c.spendable, dtiMax));
+  return `<b>A new EMI up to about ${finaiPvMoney(room)}/month looks safe.</b><br>Your current EMIs: ${finaiPvMoney(c.emiMonthly)}/month (${c.income > 0 ? (c.emiMonthly / c.income * 100).toFixed(0) : 0}% of income). Spare cash after buffer${c.gm > 0 ? ' and goals' : ''}: ${finaiPvMoney(Math.max(0, c.spendable))}/month. Keeping total EMIs under ${FINAI_PV.DTI_CAUTION}% of income allows ${finaiPvMoney(dtiMax)} more.<br>Tell me the item price, tenure and interest, e.g. “can I afford a ₹40,000 phone on 12 month EMI at 14%”, for a full check. Nothing was recorded.`;
+}
+function finaiPriorityAnswer() {
+  const c = finaiAdvisorContext(), L = [], a = c.a;
+  if (c.dq.blocking === 'nodata' || c.dq.blocking === 'noincome') return 'I can’t rank priorities without income and bills. Add your income (mark salary recurring) and EMIs first.';
+  if (c.free < 0) L.push([1, `Close a ${finaiPvMoney(-c.free)} gap in the next 30 days`, 'Delay a bill, trim variable spending, or pause investments before anything else.']);
+  const soon = c.st.dues.filter(d => d.kind !== 'income' && d.daysUntil <= 7);
+  if (soon.length) L.push([2, `Cover ${finaiPvMoney(soon.reduce((s, d) => s + d.amount, 0))} due within 7 days`, soon.slice(0, 3).map(d => finaiEscapeHtml(d.label)).join(', ')]);
+  const hi = c.loans.filter(l => l.rate >= 24).concat(c.loans.filter(l => l.rate >= FINAI_PV.HI_RATE && l.rate < 24)).slice(0, 2);
+  hi.forEach(l => L.push([3, `Pay down ${finaiEscapeHtml(l.name)} (${l.rate}% interest, ${finaiPvMoney(l.bal)} left)`, `Costs about ${finaiPvMoney(l.bal * l.rate / 100)}/year. Check prepayment charges first.`]));
+  a.highUtilCards.slice(0, 1).forEach(k => L.push([3, `Bring ${finaiEscapeHtml(k.nickname || k.bankName || 'card')} utilization down from ${k.pct.toFixed(0)}%`, `Pay ${finaiPvMoney(Math.max(0, k.used - k.limit * 0.3))} to get under 30%.`]));
+  if (c.ef) L.push([4, `Build “${finaiEscapeHtml(c.ef.name)}” (${c.ef.pct.toFixed(0)}% done)`, `${finaiPvMoney(c.ef.rem)} to go.`]);
+  else if (!c.efDone) L.push([4, 'Start an emergency-fund goal', `A common guideline is 3–6 months of expenses${c.avgMonthlyExpense ? ' (≈ ' + finaiPvMoney(c.avgMonthlyExpense * 3) + '–' + finaiPvMoney(c.avgMonthlyExpense * 6) + ')' : ''}. <a href="#" onclick="finaiGoalQuick();return false" style="color:var(--brand-2);font-weight:700">Open the goal form</a>`]);
+  if (!a.hasHealthCover) L.push([5, 'No active health cover recorded', 'A medical emergency can wipe out savings; check the Insurance section.']);
+  if (a.expiringPolicies.length) L.push([5, `${a.expiringPolicies.length} policy renewal(s) due within 30 days`, 'Renew to avoid a lapse.']);
+  c.goals.filter(g => g.need !== null && !g.onTrack).slice(0, 2).forEach(g => L.push([6, `Goal “${finaiEscapeHtml(g.name)}” is behind`, `Needs ${finaiPvMoney(g.need)}/month for its date; you plan ${finaiPvMoney(g.monthly)}.`]));
+  const low = finaiSubIntel().low.slice().sort((x, y) => y.monthly - x.monthly)[0];
+  if (low) L.push([7, `Review ${finaiEscapeHtml(low.name)} (${finaiPvMoney(low.monthly)}/month)`, low.reasons[0]]);
+  if (!L.length) return '✅ <b>Nothing urgent.</b> No cash gap, overdue-style bills, costly debt or goal shortfalls stand out. Keep your buffer and continue your goals.';
+  const names = ['', 'Cash gap', 'Near-term bills', 'Costly debt', 'Emergency reserve', 'Protection', 'Goals', 'Optimise'];
+  L.sort((x, y) => x[0] - y[0]);
+  return `<b>Your priorities, in order</b><ol style="margin:6px 0 4px 1.1rem;padding:0">${L.slice(0, 6).map(x => `<li style="margin-bottom:5px"><b>${x[1]}</b> <em style="opacity:.7;font-size:.72rem">(${names[x[0]]})</em><br>${x[2]}</li>`).join('')}</ol><div class="finai-strat-note">Ranked by urgency, then rupee impact. This is a flexible framework, not a rule — rates, penalties and your own goals can change the order. I changed nothing.</div>`;
+}
+function finaiPressureAnswer() {
+  const c = finaiAdvisorContext(), f = c.f;
+  if (c.dq.blocking === 'nodata' || c.dq.blocking === 'noincome') return 'I need your income and bills to see what is pressing on your finances.';
+  const items = [['EMIs', f.emis], ['Insurance', f.insurance], ['Subscriptions', f.subscriptions], ['Other recurring bills', f.recurringExpenses], ['Investments', f.investments], ['Everyday spending', f.variable]].filter(x => x[1] > 0).sort((x, y) => y[1] - x[1]);
+  const pct = v => c.income > 0 ? (v / c.income * 100).toFixed(0) + '%' : '—';
+  const L = [f.freeAfterSpending < 0 ? `🛑 <b>Outgoings exceed expected income by ${finaiPvMoney(-f.freeAfterSpending)}</b> over the next 30 days.` : `Outgoings leave about <b>${finaiPvMoney(f.freeAfterSpending)}</b> free over the next 30 days.`, 'Biggest pressures: ' + items.slice(0, 3).map(x => `${x[0]} ${finaiPvMoney(x[1])} (${pct(x[1])} of income)`).join(', ') + '.'];
+  if (c.a.budgetOverruns.length) L.push(`Over budget: ${c.a.budgetOverruns.slice(0, 2).map(b => finaiEscapeHtml(b.cat) + ' by ' + finaiPvMoney(b.overBy)).join(', ')}.`);
+  if (c.a.spikes.length) L.push(`Unusual this month: ${c.a.spikes.slice(0, 2).map(s => finaiEscapeHtml(s.cat) + ' +' + s.pct.toFixed(0) + '% vs your average').join(', ')}.`);
+  if (c.hiLoans.length) L.push(`High-interest debt: ${finaiEscapeHtml(c.hiLoans[0].name)} at ${c.hiLoans[0].rate}%.`);
+  if (c.incomeAssumed) L.push('Income here is estimated from your average — mark salary as recurring for a firmer picture.');
+  return L.join('<br>');
+}
+function finaiSaveMoreAnswer() {
+  const c = finaiAdvisorContext(), t = c.income > 0 ? Math.min(25000, Math.max(2000, Math.round(c.income * 0.1 / 500) * 500)) : 5000;
+  return `You didn’t give a target, so I looked for ${finaiPvMoney(t)}/month${c.income > 0 ? ' (about 10% of income)' : ''}.<br>` + finaiSavingsAnswer(t);
+}
+function finaiRepayVsSaveAnswer() {
+  const c = finaiAdvisorContext();
+  if (!c.loans.length) return 'You have no active debt on record, so there’s nothing to repay first — put spare money toward your emergency fund and goals. I changed nothing.';
+  const top = c.topLoan, x = Math.max(500, Math.floor(Math.max(0, c.spendable) / 500) * 500), plan = finaiDebtPlan(x), L = [];
+  L.push(top.rate >= FINAI_PV.HI_RATE ? `<b>Repay first.</b> ${finaiEscapeHtml(top.name)} costs ${top.rate}% a year, which savings or investments can’t reliably beat.` : `<b>Balance both.</b> Your highest rate is ${top.rate}%, which is not extreme — a starter emergency fund matters as much as prepaying.`);
+  if (plan && plan.avSaved !== null && !plan.av.incomplete) L.push(`Adding ${finaiPvMoney(x)}/month to debt (your safe spare) clears it ${plan.avMonthsSaved} months sooner and saves about ${finaiPvMoney(plan.avSaved)} interest.`);
+  L.push(c.ef || c.efDone ? 'Keep your emergency-fund contribution going while you do this.' : 'Keep a starter cushion (at least your safety buffer) before sending everything to debt; no emergency fund is recorded.');
+  L.push('Check prepayment charges on term loans, and don’t sell investments to repay without weighing tax and timing.');
+  return L.join('<br>');
+}
+function finaiPvDebtVsPurchase(p) {
+  const c = finaiAdvisorContext(), amt = p.price || p.down || 0;
+  if (!c.loans.length) return 'You have no active debt on record, so the purchase is judged on cash flow alone.';
+  const t = c.topLoan, yr = Math.min(amt || t.bal, t.bal) * t.rate / 100;
+  return `<b>${t.rate >= FINAI_PV.HI_RATE ? 'Debt first, unless the purchase is essential.' : 'Debt is cheap enough that this is a close call.'}</b><br>${amt ? finaiPvMoney(Math.min(amt, t.bal)) : 'Paying'} on ${finaiEscapeHtml(t.name)} (${t.rate}%) saves about ${finaiPvMoney(yr)}/year in interest — a guaranteed saving versus a purchase that returns none. Check prepayment charges first. Ask “can I afford ₹${(amt || 40000).toLocaleString('en-IN')}” for the full cash-flow check.`;
+}
+
+// ── 6. Router ──────────────────────────────────────────────────────────────
+function finaiPurchaseRoute(q) {
+  finaiQSeq++;
+  const s = q.toLowerCase().trim(), words = s.split(/\s+/).length;
+  try {
+    if (/\b(max(imum)?|how much)\b.*\bsafe(ly)?\b.*\bspend|\bsafe(ly)? (to )?spend\b|\bhow much can i (safely )?spend\b/.test(s)) return finaiSafeSpendAnswer();
+    if ((/\bprioriti[sz]e\b|what should i do (first|next)|what (do i do|to do) (first|next)|where should i start|what next\b/.test(s)) && !(/\b(debt|loan|card|emi)s?\b/.test(s) && !/financ|money|first instead/.test(s))) return finaiPriorityAnswer();
+    if (/\bpressure\b|what.s (hurting|draining|eating)|where is my money going|why am i (short|broke)/.test(s)) return finaiPressureAnswer();
+    if (/\bhow (can|do) i save more\b|\bsave more next month\b/.test(s) && finaiAmt(q) === null) return finaiSaveMoreAnswer();
+    const fresh = finaiPurchaseCtx && (finaiQSeq - finaiPurchaseCtx.turn) <= FINAI_PV.FOLLOW_TURNS;
+    const hasPurch = /\b(purchase|buy|this|it)\b/.test(s);
+    if (/\b(repay|pay (off|down)|clear)\b.*\b(debt|loan|card)\b.*\b(or|vs|versus|first)\b|\b(repay|pay off) .*or.*\b(save|invest)/.test(s) || /\b(save|invest)\b.*\bor\b.*\b(repay|pay off)/.test(s)) {
+      if (/\b(purchase|buy)\b/.test(s)) return fresh ? finaiPvDebtVsPurchase(finaiPurchaseCtx.p) : 'Tell me the price first, e.g. “can I afford ₹40,000 laptop”, and I’ll compare it with paying down debt.';
+      return finaiRepayVsSaveAnswer();
+    }
+    const p = finaiParsePurchase(q), hasNum = p.price != null || p.emi != null;
+    if (!hasNum && /\b(add|new|take|taking)\b.*\bemi\b/.test(s)) return finaiEmiRoomAnswer();
+    const catHit = finaiCatFromQ(q);
+    const newVerb = /\b(afford|buy|buying|purchase|purchasing|upgrade|replace|order|splurge|treat myself)\b|\bget (a|an|the|this|that)\b|\b(add|take|start|take on|taking)\b.*\b(new )?(emi|loan|instal+ments?)\b|\bnew emi\b|\bspend\b.*\bon\b/.test(s)
+      && !(/\bspend\b.*\bon\b/.test(s) && catHit && !/\b(afford|buy|purchase)\b/.test(s));
+    const excluded = /\b(pay|prepay)\b.*\b(extra|more|towards?)\b|\bfind\b.*\bsavings?\b/.test(s);
+    if (newVerb && !excluded) {
+      if (!hasNum && !fresh) {
+        if (/\b(add|new|take)\b.*\bemi\b|\bemi\b/.test(s)) return finaiEmiRoomAnswer();
+        return `What’s the price? e.g. “can I afford a ₹40,000 phone?” Add “on EMI”, “by credit card” or a down payment if relevant, or <a href="#" onclick="finaiOpenScenario();return false" style="color:var(--brand-2);font-weight:700">fill in the purchase form</a>.`;
+      }
+      if (hasNum) { const prev = fresh && p.price == null ? finaiPurchaseCtx.p : {}; return finaiPvRun(Object.assign({}, prev, p)); }
+    }
+    if (fresh && words <= 16) {
+      const prev = finaiPurchaseCtx.p, mod = p, factor = { double: 2, twice: 2, triple: 3, half: 0.5, halve: 0.5 }[(s.match(/\b(double|twice|triple|half|halve)\b/) || [])[1]];
+      const ref = /\b(it|this|that|these)\b|\b(what if|what about|how about|instead|make it)\b/.test(s);
+      const follow = !finaiDetectIntent(q) && ((ref && /\b(emi|instal+ments?|credit card|card|wait|later|cheaper|cheap|down ?payment|emergency|goals?|still reach|if i buy|without touching|afford|buy|safe|essential|months?)\b/.test(s)) || factor || (hasNum && /\b(what if|what about|how about|instead|make it)\b/.test(s)) || /\b(wait \w+ months?|on emi)\b/.test(s));
+      if (follow) {
+        const next = Object.assign({}, prev), note = [];
+        Object.keys(mod).forEach(k => { if (k !== 'cheaper') next[k] = mod[k]; });
+        if (factor) { ['price', 'emi', 'down'].forEach(k => { if (next[k] != null) next[k] = next[k] * factor; }); }
+        if (/\bemi\b|instal/.test(s) && !mod.method) next.method = 'emi';
+        if (/\b(credit card|card)\b/.test(s) && !/emi/.test(s)) next.method = 'card';
+        if (/\bnow\b|\bimmediately\b/.test(s) && mod.whenMonths == null) next.whenMonths = 0;
+        let focus = null;
+        if (/\bgoal/.test(s)) focus = 'Focus: your goals — see the Impact section.';
+        else if (/emergency/.test(s)) focus = 'Focus: can this be paid without touching an emergency fund?';
+        else if (mod.whenMonths > 0) focus = `Scenario: buy in ${Math.round(mod.whenMonths)} month(s).`;
+        if (mod.cheaper && mod.price == null) {
+          const c = finaiAdvisorContext(), cap = Math.floor(Math.max(0, c.spendable) / 500) * 500;
+          if (cap <= 0) return 'There’s no safe spare cash right now, so even a cheaper version needs saving first. Ask “how much can I safely spend?” to see the numbers.';
+          next.price = Math.min(cap, next.price != null ? next.price : cap); focus = `Cheaper-version check at ${finaiPvMoney(next.price)}, the most your safe spending allows.`; next.method = next.method === 'emi' ? 'emi' : next.method;
+        }
+        if (/\b(pay|repay)\b.*\b(loan|debt)\b/.test(s)) return finaiPvDebtVsPurchase(next);
+        if (finaiPurchaseCtx.sig !== finaiDataSig()) note.push('Your records changed since the last answer, so these figures are refreshed.');
+        return finaiPvRun(next, focus, note.join(' '));
+      }
+    }
+  } catch (e) { console.error('Purchase advisor failed:', e); }
+  return null;
+}
+
+// ── 7. UI: structured purchase scenario + contextual suggestions ──────────
+function finaiScenarioFormHtml(x) {
+  return `<div class="finai-pvform" id="${x}-scenario" style="display:none">
+    <div class="finai-goal-grid">
+      <input id="${x}-sc-item" class="finai-ask-input full" type="text" maxlength="30" placeholder="What are you buying? (optional)">
+      <input id="${x}-sc-price" class="finai-ask-input" type="number" min="0" inputmode="decimal" placeholder="Price">
+      <select id="${x}-sc-method" class="finai-ask-input" onchange="finaiScenarioMethod('${x}')"><option value="cash">Cash / UPI / debit</option><option value="card">Credit card</option><option value="emi">EMI</option></select>
+      <div id="${x}-sc-emi" class="finai-goal-grid full" style="display:none">
+        <input id="${x}-sc-down" class="finai-ask-input" type="number" min="0" inputmode="decimal" placeholder="Down payment">
+        <input id="${x}-sc-monthly" class="finai-ask-input" type="number" min="0" inputmode="decimal" placeholder="Monthly EMI (if known)">
+        <input id="${x}-sc-tenure" class="finai-ask-input" type="number" min="1" inputmode="numeric" placeholder="Tenure (months)">
+        <input id="${x}-sc-rate" class="finai-ask-input" type="number" min="0" step="0.1" inputmode="decimal" placeholder="Interest % (if known)">
+      </div>
+      <select id="${x}-sc-when" class="finai-ask-input full"><option value="0">Buy now</option><option value="1">In 1 month</option><option value="2">In 2 months</option><option value="3">In 3 months</option><option value="6">In 6 months</option></select>
+    </div>
+    <div class="finai-goal-form-row"><button class="btn-add" style="background:rgba(56,189,248,0.85)" onclick="finaiScenarioSubmit('${x}')"><i class="fas fa-scale-balanced"></i> Check affordability</button><span id="${x}-sc-err" class="finai-strat-note" style="color:#ef4444"></span></div>
+    <div class="finai-strat-note">Hypothetical only — nothing is saved to your records.</div></div>`;
+}
+function finaiOpenScenario() {
+  const x = (document.getElementById('liteai-ask-input') && document.getElementById('liteai-ask-input').offsetParent !== null) ? 'liteai' : 'finai';
+  const f = document.getElementById(x + '-scenario'); if (f) { f.style.display = 'block'; const i = document.getElementById(x + '-sc-price'); if (i) i.focus(); }
+}
+function finaiToggleScenario(x) { const f = document.getElementById(x + '-scenario'); if (f) f.style.display = f.style.display === 'none' ? 'block' : 'none'; }
+function finaiScenarioMethod(x) { const m = document.getElementById(x + '-sc-method'), b = document.getElementById(x + '-sc-emi'); if (m && b) b.style.display = m.value === 'emi' ? 'grid' : 'none'; }
+function finaiScenarioSubmit(x) {
+  const g = id => { const el = document.getElementById(x + '-sc-' + id); return el ? el.value : ''; }, num = id => { const v = parseFloat(g(id)); return isNaN(v) || v < 0 ? null : v; };
+  const err = document.getElementById(x + '-sc-err'), method = g('method'), p = { method, whenMonths: parseInt(g('when'), 10) || 0 };
+  if (num('price') !== null) p.price = num('price');
+  const item = g('item').trim(); if (item) p.product = item;
+  if (method === 'emi') { if (num('down') !== null) p.down = num('down'); if (num('monthly') !== null) p.emi = num('monthly'); if (num('tenure')) p.tenure = Math.round(num('tenure')); if (num('rate') !== null) p.rate = num('rate'); }
+  if (p.price == null && p.emi == null) { if (err) err.textContent = 'Enter a price or a monthly EMI.'; return; }
+  if (err) err.textContent = '';
+  finaiQSeq++;
+  const q = `Purchase scenario: ${item || 'item'} · ${p.price != null ? fmt(p.price) : fmt(p.emi) + '/mo'} · ${method === 'emi' ? 'EMI' : method === 'card' ? 'credit card' : 'cash'}${p.whenMonths ? ' · in ' + p.whenMonths + ' mo' : ''}`;
+  let ans; try { ans = finaiPvRun(p); } catch (e) { console.error(e); ans = 'Sorry — I couldn’t evaluate that scenario.'; }
+  const box = x + '-ask-answer'; finaiPushHistory(q, ans); finaiRenderHistory(box); finaiRenderSuggestions();
+}
+const FINAI_PV_DEFAULT_CHIPS = ['Can I afford this purchase?', 'How much can I safely spend this month?', 'What should I prioritize financially?', 'What is putting pressure on my finances?', 'How can I save more next month?', 'Should I repay debt or save first?', 'What happens if I add a new EMI?', 'Am I on track with my goals?'];
+const FINAI_PV_FOLLOW_CHIPS = ['What if I buy it on EMI?', 'What if I wait 3 months?', 'Can I afford this without touching my emergency fund?', 'If I buy this now, will I still reach my goals?', 'Should I buy the cheaper version instead?', 'What should I do first instead?'];
+function finaiRenderSuggestions() {
+  const fresh = finaiPurchaseCtx && (finaiQSeq - finaiPurchaseCtx.turn) <= FINAI_PV.FOLLOW_TURNS;
+  const list = fresh ? FINAI_PV_FOLLOW_CHIPS : FINAI_PV_DEFAULT_CHIPS;
+  [['finai', 'finaiAskChip'], ['liteai', 'liteaiAskChip']].forEach(([x, fn]) => {
+    const host = document.getElementById(x + '-pv-chips'); if (!host) return;
+    host.innerHTML = list.map(t => `<button class="finai-chip" onclick="${fn}('${t.replace(/'/g, "\\'")}')">${finaiEscapeHtml(t)}</button>`).join('') + `<button class="finai-chip" onclick="finaiToggleScenario('${x}')"><i class="fas fa-sliders"></i> Purchase scenario</button>`;
+    const sc = document.getElementById(x + '-scenario-host'); if (sc && !sc.firstChild) { sc.innerHTML = finaiScenarioFormHtml(x); }
+  });
+}
+
 // ══════════════════════════════════════════════════════════════════════════
 // FIN AI — CONTEXT MEMORY, "SHOULD I / CAN I MANAGE" JUDGEMENT, SCORED ROUTER
 // ══════════════════════════════════════════════════════════════════════════
@@ -12720,6 +13249,8 @@ function finaiRemember(o) { finaiCtx = Object.assign({}, finaiCtx, o); }
 
 function finaiAnswerQuestion(q) {
   try {
+    const pvOut = finaiPurchaseRoute(q);
+    if (pvOut !== null) return pvOut;
     const s = q.toLowerCase(), amtQ = finaiAmt(q), mult = (s.match(/\b(double|twice|triple|half|halve)\b/) || [])[1];
     const factor = { double: 2, twice: 2, triple: 3, half: 0.5, halve: 0.5 }[mult];
     // 1. "what if it's double / half" → re-run the last subject with a scaled amount
@@ -12773,6 +13304,7 @@ function finaiAsk() {
   const answer = finaiAnswerQuestion(q);
   finaiPushHistory(q, answer);
   finaiRenderHistory('finai-ask-answer');
+  try { finaiRenderSuggestions(); } catch (e) {}
   input.value = '';
 }
 // Quick-chip suggestions — fill the question and ask immediately.
@@ -12802,7 +13334,10 @@ function finaiRenderHistory(containerId) {
       <div class="finai-qa-q"><i class="fas fa-user"></i> ${finaiEscapeHtml(h.q)}</div>
       <div class="finai-qa-a"><svg class="fos-ai" viewBox="0 0 24 24" width="15" height="15" aria-hidden="true"><use href="#fos-ai"/></svg> ${h.a}</div>
     </div>`).join('');
-  box.scrollTop = box.scrollHeight;
+  const pairs = box.querySelectorAll('.finai-qa-pair'), lastPair = pairs[pairs.length - 1];
+  const pv = !!(lastPair && lastPair.querySelector('.finai-pv'));
+  box.classList.toggle('has-pv', pv);
+  box.scrollTop = pv && lastPair ? lastPair.offsetTop - box.offsetTop : box.scrollHeight;
 }
 // Which insights to lead with when the person opens Lite AI — urgency first
 // (a due EMI or budget overrun beats a generic "healthy savings" note), then
@@ -12824,6 +13359,7 @@ function openMobileLiteAI() {
   const fab = document.querySelector('.mobile-fab');
   if (fab) fab.style.setProperty('display', 'none', 'important');
   finaiRenderHistory('liteai-ask-answer');
+  try { finaiRenderSuggestions(); } catch (e) {}
   try {
     const a = finaiBuildAnalysis();
     const scoreData = finaiComputeScore(a);
@@ -12863,6 +13399,7 @@ function liteaiAsk() {
   const answer = finaiAnswerQuestion(q);
   finaiPushHistory(q, answer);
   finaiRenderHistory('liteai-ask-answer');
+  try { finaiRenderSuggestions(); } catch (e) {}
   input.value = '';
 }
 // Quick-chip suggestions on the mobile sheet — fill the question and ask immediately.
