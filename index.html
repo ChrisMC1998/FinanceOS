@@ -27721,7 +27721,142 @@ function openAdvancedExportModal() {
   document.getElementById('advanced-export-modal').style.display = 'flex';
 }
 
+// ── Advanced export: shared helpers ─────────────────────────────────────────
+let _advExportBusy = false;   // blocks re-entrant exports (double clicks, rapid repeats)
+
+const _advSleep = (ms) => new Promise(r => setTimeout(r, ms));
+
+// Wait n paint frames. The timer fallback means a background tab (where rAF is
+// paused) can never hang the export.
+function _advFrames(n) {
+  n = n || 2;
+  return new Promise(resolve => {
+    let left = n, done = false;
+    const finish = () => { if (!done) { done = true; resolve(); } };
+    const step = () => { if (--left <= 0) finish(); else requestAnimationFrame(step); };
+    requestAnimationFrame(step);
+    setTimeout(finish, 150 * n);
+  });
+}
+
+// Find the live Chart.js instance that owns a canvas id. The `charts` registry
+// is keyed by short names ('networth', 'trend', …), NOT canvas ids, so we ask
+// Chart.js itself first and fall back to scanning the registry.
+function _advFindChart(canvasId) {
+  const canvas = document.getElementById(canvasId);
+  let inst = null;
+  if (canvas && typeof Chart !== 'undefined' && typeof Chart.getChart === 'function') inst = Chart.getChart(canvas) || null;
+  if (!inst) inst = Object.values(charts).find(c => c && c.canvas && c.canvas.id === canvasId) || null;
+  return (inst && inst.canvas && inst.ctx) ? inst : null;
+}
+
+// Destroy any existing instance on this canvas so the export always captures a
+// freshly rendered chart (never stale data / a stale theme). The app's own render
+// functions do exactly this (destroyChart) before they rebuild.
+function _advDropChart(canvasId) {
+  Object.keys(charts).forEach(k => {
+    const c = charts[k];
+    if (c && c.canvas && c.canvas.id === canvasId) destroyChart(k);
+  });
+  try {
+    const canvas = document.getElementById(canvasId);
+    const stray = (canvas && typeof Chart.getChart === 'function') ? Chart.getChart(canvas) : null;
+    if (stray) stray.destroy();
+  } catch (e) { /* nothing to drop */ }
+}
+
+// Flatten a chart canvas onto white (Chart.js canvases are transparent) and
+// detect blank output. Temporary canvases are released immediately.
+function _advFlatten(src) {
+  const out = document.createElement('canvas');
+  out.width = src.width; out.height = src.height;
+  const g = out.getContext('2d');
+  g.fillStyle = '#ffffff'; g.fillRect(0, 0, out.width, out.height);
+  g.drawImage(src, 0, 0);
+  const t = document.createElement('canvas'); t.width = 48; t.height = 24;
+  const tg = t.getContext('2d');
+  tg.drawImage(out, 0, 0, 48, 24);
+  const px = tg.getImageData(0, 0, 48, 24).data;
+  let ink = 0;
+  for (let i = 0; i < px.length; i += 4) if (px[i] < 244 || px[i + 1] < 244 || px[i + 2] < 244) ink++;
+  const res = { url: out.toDataURL('image/png'), w: out.width, h: out.height, blank: ink < 4 };
+  out.width = out.height = 0; t.width = t.height = 0;
+  return res;
+}
+
+// Capture one chart at a fixed, page-oriented size (independent of the window /
+// dashboard layout) and put the chart back exactly as it was. Fully synchronous,
+// so no ResizeObserver callback can interleave and undo the export size.
+function _advCaptureChart(canvasId) {
+  const inst = _advFindChart(canvasId);
+  if (!inst) return { ok: false, reason: 'nodata', detail: 'chart was not created (no data for this view)' };
+  const type = (inst.config && inst.config.type) || 'bar';
+  const radial = ['doughnut', 'pie', 'polarArea', 'radar'].indexOf(type) !== -1;
+  const horizontal = type === 'bar' && inst.options && inst.options.indexAxis === 'y';
+  const W = radial ? 480 : 660;
+  const H = radial ? 400 : (horizontal ? 340 : 300);
+  const prevDpr = inst.options.devicePixelRatio;
+  try {
+    inst.stop();                         // cancel any in-flight animation
+    inst.options.devicePixelRatio = 3;   // ~600 dpi on A4 — crisp text when printed
+    inst.resize(W, H);
+    inst.update('none');                 // snap every element to its final state
+    inst.draw();                         // synchronous paint (render() can defer to next frame)
+    if (!inst.canvas.width || !inst.canvas.height) throw new Error('canvas has zero size');
+    const flat = _advFlatten(inst.canvas);
+    if (flat.blank) return { ok: false, reason: 'nodata', detail: 'chart rendered blank' };
+    return { ok: true, img: flat.url, w: flat.w, h: flat.h, type: type, radial: radial };
+  } catch (e) {
+    return { ok: false, reason: 'error', detail: (e && e.message) || String(e) };
+  } finally {
+    // Restore the instance (also frees the 3x backing store)
+    try { inst.options.devicePixelRatio = prevDpr; inst.resize(); inst.update('none'); } catch (e) { /* ignore */ }
+  }
+}
+
+// Render each module's view (briefly active, so canvases are measurable), wait for
+// the charts to exist, capture them, then restore which views were visible.
+async function _advCaptureGroups(groups, results, failures, onProgress) {
+  const prevActive = Array.from(document.querySelectorAll('.view-section.active'));
+  const scrollArea = document.querySelector('.scroll-area');
+  const scrollTop = scrollArea ? scrollArea.scrollTop : 0;
+  try {
+    for (let gi = 0; gi < groups.length; gi++) {
+      const g = groups[gi];
+      if (onProgress) onProgress(g.name, gi + 1, groups.length);
+      const target = document.getElementById(g.viewId);
+      if (!target) {
+        g.ids.forEach(id => results.set(id, { ok: false, reason: 'error', detail: 'view container ' + g.viewId + ' not found' }));
+        failures.push(g.name + ': view container missing');
+        continue;
+      }
+      document.querySelectorAll('.view-section.active').forEach(el => el.classList.remove('active'));
+      target.classList.add('active');
+      g.ids.forEach(_advDropChart);
+      let renderErr = null;
+      try { g.prepare(); } catch (e) { renderErr = e; console.error('[Advanced export] render failed for ' + g.name, e); }
+      await _advFrames(2);
+      const t0 = Date.now();
+      while (!renderErr && Date.now() - t0 < 900 && g.ids.some(id => !_advFindChart(id))) await _advSleep(60);
+      await _advSleep(60);
+      g.ids.forEach(id => {
+        const r = renderErr
+          ? { ok: false, reason: 'error', detail: 'render failed: ' + (renderErr.message || renderErr) }
+          : _advCaptureChart(id);
+        results.set(id, r);
+      });
+      target.classList.remove('active');
+    }
+  } finally {
+    document.querySelectorAll('.view-section.active').forEach(el => el.classList.remove('active'));
+    prevActive.forEach(el => el.classList.add('active'));
+    if (scrollArea) scrollArea.scrollTop = scrollTop;
+  }
+}
+
 async function generateAdvancedPDF(btnElement) {
+  if (_advExportBusy) return;   // an export is already running
+
   const wantsAnalytics = document.getElementById('rep-analytics').checked;
   const wantsNetWorth  = document.getElementById('rep-networth').checked;
   const wantsPortfolio = document.getElementById('rep-portfolio').checked;
@@ -27731,401 +27866,480 @@ async function generateAdvancedPDF(btnElement) {
     alert("Please select at least one module to export.");
     return;
   }
+  if (!window.jspdf || !window.jspdf.jsPDF) {
+    alert("The PDF library did not load. Check your internet connection and try again.");
+    return;
+  }
 
+  _advExportBusy = true;
   const originalHtml = btnElement.innerHTML;
-  btnElement.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Generating PDF...';
   btnElement.disabled = true;
+  const setBtn = (txt) => { btnElement.innerHTML = '<i class="fas fa-spinner fa-spin"></i> ' + txt; };
+  setBtn('Preparing report...');
 
-  const { jsPDF } = window.jspdf;
-  const doc = new jsPDF('p', 'mm', 'a4');
-  const pageW = doc.internal.pageSize.width;
-  const pageH = doc.internal.pageSize.height;
-  const margin = 14;
-  let y = 0;
+  const failures = [];                 // human-readable list of anything that could not be rendered
+  const chartResults = new Map();      // canvasId -> capture result
+  let stage = 'preparing';
+  let success = false;
 
-  // ── Rupee symbol fix ──
-  const cleanText = (t) => String(t || '').replace(/₹/g, 'Rs.');
+  try {
+    // ── 1. CAPTURE PHASE ────────────────────────────────────────────────
+    // Charts are rendered in light mode (the PDF page is white) and captured
+    // BEFORE the document is built, so every selected module (incl. Net Worth)
+    // has its charts ready. Theme/defaults are always restored in `finally`.
+    const groups = [];
+    if (wantsNetWorth) groups.push({
+      name: 'Net Worth', viewId: 'view-networth',
+      ids: ['chart-networth', 'chart-nw-delta', 'chart-nw-breakdown', 'chart-retention', 'chart-leverage'],
+      prepare: () => { renderNetWorth(); }
+    });
+    if (wantsAnalytics) groups.push({
+      name: 'Analytics', viewId: 'view-analytics',
+      ids: ['chart-trend', 'chart-scatter', 'chart-weekday', 'chart-exp-bif'],
+      prepare: () => { buildFilterDropdowns(); renderAnalytics(); }
+    });
+    if (wantsPortfolio) {
+      groups.push({
+        name: 'Portfolio Overview', viewId: 'view-port-overview',
+        ids: ['port-value-bar', 'port-composition', 'port-roi-chart', 'port-gain-chart'],
+        prepare: () => { buildPortDropdowns(); renderPortOverview(); }
+      });
+      groups.push({
+        name: 'Portfolio Analytics', viewId: 'view-port-analytics',
+        ids: ['chart-port-roi', 'chart-port-gains', 'chart-port-exposure'],
+        prepare: () => { renderPortAnalytics(); }
+      });
+    }
 
-  function checkPage(need) {
-    if (y + need > pageH - 15) { doc.addPage(); y = 15; }
-  }
+    if (groups.length) {
+      stage = 'rendering charts';
+      await _advFrames(2);   // let a just-switched theme finish its own deferred chart repaint first
+      const wasLight = document.body.classList.contains('light-mode');
+      let qualityApplied = false;
+      try {
+        if (!wasLight) document.body.classList.add('light-mode');
+        applyPdfChartQuality(); qualityApplied = true;
+        await _advCaptureGroups(groups, chartResults, failures, (name, i, n) => setBtn('Rendering charts (' + i + '/' + n + ')...'));
+      } finally {
+        if (qualityApplied) restorePdfChartQuality();
+        if (!wasLight) document.body.classList.remove('light-mode');
+        // Repaint the visible view in the user's real theme/size (the app's own theme refresher)
+        try { if (typeof updateChartsForTheme === 'function') updateChartsForTheme(); } catch (e) { /* ignore */ }
+      }
+    }
 
-  function sectionTitle(title, r, g, b) {
-    checkPage(16);
-    doc.setFillColor(r, g, b);
-    doc.rect(margin, y, pageW - margin * 2, 9, 'F');
-    doc.setTextColor(255, 255, 255);
-    doc.setFontSize(11);
-    doc.setFont('helvetica', 'bold');
-    doc.text(cleanText(title), margin + 3, y + 6.2);
-    doc.setTextColor(0, 0, 0);
-    y += 13;
-  }
+    // ── 2. DOCUMENT PHASE ───────────────────────────────────────────────
+    stage = 'building PDF';
+    setBtn('Building PDF...');
+    const { jsPDF } = window.jspdf;
+    const doc = new jsPDF('p', 'mm', 'a4');
+    if (typeof doc.autoTable !== 'function') throw new Error('PDF table plugin (autoTable) is not loaded');
+    const pageW = doc.internal.pageSize.width;
+    const pageH = doc.internal.pageSize.height;
+    const margin = 14;
+    const contentW = pageW - margin * 2;
+    const topY = 15;
+    const bottomLimit = pageH - 16;     // keeps content clear of the 10mm footer band
+    let y = 0;
 
-  function kpiRow(items) {
-    // items = [{label, value, color}]
-    checkPage(20);
-    const colW = (pageW - margin * 2) / items.length;
-    items.forEach((item, i) => {
-      const x = margin + i * colW;
-      doc.setFillColor(248, 250, 252);
-      doc.setDrawColor(226, 232, 240);
-      doc.roundedRect(x, y, colW - 2, 16, 2, 2, 'FD');
-      doc.setFontSize(7);
-      doc.setFont('helvetica', 'normal');
-      doc.setTextColor(100, 116, 139);
-      doc.text(cleanText(item.label).toUpperCase(), x + 3, y + 5);
+    // ── Text / number helpers ──
+    // jsPDF's built-in fonts have no rupee sign, arrows, ≥/≤ or emoji — map or strip them
+    const cleanText = (t) => {
+      if (t === null || t === undefined) return '';
+      return String(t)
+        .replace(/₹/g, 'Rs.').replace(/≥/g, '>=').replace(/≤/g, '<=').replace(/[→⇒]/g, '->')
+        .replace(/[\u{1F000}-\u{1FFFF}\u{2190}-\u{21FF}\u{2600}-\u{27BF}\u{FE0F}\u{200D}]/gu, '')
+        .replace(/[ \t]{2,}/g, ' ').trim();
+    };
+    const wrapLong = (s) => s.replace(/(\S{26})(?=\S)/g, '$1 ');   // lets unbroken tokens wrap inside a cell
+    const rs = (n) => {
+      n = Number(n);
+      if (!isFinite(n)) return '—';
+      const r = Math.round(n);
+      return (r < 0 ? '-' : '') + 'Rs.' + Math.abs(r).toLocaleString('en-IN');
+    };
+    const rsSigned = (n) => {
+      n = Number(n);
+      if (!isFinite(n)) return '—';
+      const r = Math.round(n);
+      return (r > 0 ? '+' : r < 0 ? '-' : '') + 'Rs.' + Math.abs(r).toLocaleString('en-IN');
+    };
+    const pct = (n, d) => { n = Number(n); return isFinite(n) ? n.toFixed(d === undefined ? 1 : d) + '%' : '—'; };
+    const pctTrim = (n) => { n = Number(n); return isFinite(n) ? String(+n.toFixed(2)) + '%' : '—'; };
+
+    // ── Layout helpers ──
+    function checkPage(need) {
+      if (y + need > bottomLimit) { doc.addPage(); y = topY; }
+    }
+
+    function sectionTitle(title, r, g, b) {
+      checkPage(40);   // never strand a section bar at the bottom of a page
+      doc.setFillColor(r, g, b);
+      doc.rect(margin, y, contentW, 9, 'F');
+      doc.setTextColor(255, 255, 255);
       doc.setFontSize(11);
       doc.setFont('helvetica', 'bold');
-      const col = item.color || [15, 23, 42];
-      doc.setTextColor(col[0], col[1], col[2]);
-      doc.text(cleanText(item.value), x + 3, y + 12.5);
-    });
-    y += 20;
-  }
-
-  function tableSection(head, rows, colStyles) {
-    if (!rows || !rows.length) return;
-    checkPage(20);
-    doc.autoTable({
-      startY: y,
-      head: [head.map(h => cleanText(h))],
-      body: rows.map(r => r.map(c => cleanText(c))),
-      theme: 'grid',
-      headStyles: { fillColor: [99, 102, 241], textColor: 255, fontSize: 8, fontStyle: 'bold', cellPadding: 3 },
-      bodyStyles: { fontSize: 7.5, cellPadding: 3, textColor: [30, 41, 59] },
-      alternateRowStyles: { fillColor: [248, 250, 252] },
-      columnStyles: colStyles || {},
-      margin: { left: margin, right: margin },
-      didParseCell: (data) => {
-        if (data.cell && Array.isArray(data.cell.text)) {
-          data.cell.text = data.cell.text.map(t => cleanText(t));
-        }
-      }
-    });
-    y = doc.lastAutoTable.finalY + 8;
-  }
-
-  function captureChart(canvasId) {
-  try {
-    // Try Chart.js instance first (highest quality, uses devicePixelRatio)
-    const chartInstance = charts[canvasId] || Object.values(charts).find(c => c?.canvas?.id === canvasId);
-    if (chartInstance) {
-      // Force a high-res render before capture
-      chartInstance.resize();
-      chartInstance.update('none');
-      return chartInstance.toBase64Image('image/png', 1.0);
+      doc.text(cleanText(title), margin + 3, y + 6.2);
+      doc.setTextColor(0, 0, 0);
+      y += 13;
     }
-    // Fallback: raw canvas with 3x upscale for sharpness
-    const canvas = document.getElementById(canvasId);
-    if (!canvas || canvas.width === 0) return null;
-    const scale = 3;
-    const offscreen = document.createElement('canvas');
-    offscreen.width  = canvas.width  * scale;
-    offscreen.height = canvas.height * scale;
-    const ctx = offscreen.getContext('2d');
-    ctx.scale(scale, scale);
-    ctx.drawImage(canvas, 0, 0);
-    return offscreen.toDataURL('image/png', 1.0);
-  } catch(e) { return null; }
-}
 
-  function addChartImage(canvasId, label, heightMm) {
-    const imgH = heightMm || 75; // default 75mm — large and readable
-    const img = captureChart(canvasId);
-    checkPage(imgH + 12);
-    // Chart label header
-    doc.setFontSize(8);
-    doc.setFont('helvetica', 'bold');
-    doc.setTextColor(100, 116, 139);
-    doc.text(cleanText(label.toUpperCase()), margin, y + 4);
-    y += 7;
-    if (img) {
-      try {
-        const imgW = pageW - margin * 2;
-        doc.addImage(img, 'PNG', margin, y, imgW, imgH, undefined, 'FAST');
-        // Thin border around chart
+    // Start a section on the current page when there is room, otherwise a new page
+    function startSection(title, r, g, b) {
+      if (y > pageH - 110) { doc.addPage(); y = topY; } else if (y > topY) { y += 3; }
+      sectionTitle(title, r, g, b);
+    }
+
+    function subHeading(text, rgb, keepWith) {
+      checkPage(keepWith || 34);   // heading + table header + first rows stay together
+      doc.setFontSize(9); doc.setFont('helvetica', 'bold');
+      doc.setTextColor(rgb[0], rgb[1], rgb[2]);
+      doc.text(cleanText(text), margin, y + 3);
+      doc.setTextColor(0, 0, 0);
+      y += 7;
+    }
+
+    function emptyState(msg, h) {
+      h = h || 16;
+      checkPage(h + 4);
+      doc.setFillColor(248, 250, 252);
+      doc.setDrawColor(203, 213, 225);
+      doc.setLineWidth(0.3);
+      doc.setLineDashPattern([1.2, 1.2], 0);
+      doc.roundedRect(margin, y, contentW, h, 2, 2, 'FD');
+      doc.setLineDashPattern([], 0);
+      doc.setFontSize(8.5); doc.setFont('helvetica', 'normal'); doc.setTextColor(100, 116, 139);
+      const lines = doc.splitTextToSize(cleanText(msg), contentW - 12);
+      const lh = 4;
+      let ty = y + h / 2 - ((lines.length - 1) * lh) / 2 + 1;
+      lines.forEach(l => { doc.text(l, pageW / 2, ty, { align: 'center' }); ty += lh; });
+      doc.setTextColor(0, 0, 0);
+      y += h + 6;
+    }
+
+    function kpiRow(items) {
+      checkPage(24);
+      const gap = 2;
+      const colW = (contentW - gap * (items.length - 1)) / items.length;
+      items.forEach((item, i) => {
+        const x = margin + i * (colW + gap);
+        doc.setFillColor(248, 250, 252);
         doc.setDrawColor(226, 232, 240);
         doc.setLineWidth(0.3);
-        doc.rect(margin, y, imgW, imgH);
-        y += imgH + 8;
-      } catch(e) {
-        doc.setFontSize(8);
-        doc.setTextColor(148, 163, 184);
-        doc.text('[Chart render failed: ' + label + ']', margin, y + 5);
-        y += 14;
+        doc.roundedRect(x, y, colW, 16, 2, 2, 'FD');
+        doc.setFontSize(7); doc.setFont('helvetica', 'normal'); doc.setTextColor(100, 116, 139);
+        doc.text(cleanText(item.label).toUpperCase(), x + 3, y + 5);
+        doc.setFont('helvetica', 'bold');
+        const val = cleanText(item.value);
+        let fs = 11;
+        doc.setFontSize(fs);
+        while (fs > 7 && doc.getTextWidth(val) > colW - 6) { fs -= 0.5; doc.setFontSize(fs); }   // never overflow the card
+        const col = item.color || [15, 23, 42];
+        doc.setTextColor(col[0], col[1], col[2]);
+        doc.text(val, x + 3, y + 12.5);
+      });
+      doc.setTextColor(0, 0, 0);
+      y += 20;
+    }
+
+    // tableSection(head, rows, colStyles, opts)
+    //   colStyles: existing autoTable columnStyles ({idx:{halign:'right'}} marks numeric columns)
+    //   opts: { widths:[mm…], emptyMessage, signedCols:[idx] (+green / -red), totalRow:true }
+    function tableSection(head, rows, colStyles, opts) {
+      opts = opts || {};
+      if (!rows || !rows.length) { emptyState(opts.emptyMessage || 'No records available for this section.'); return; }
+      checkPage(26);   // header + at least two rows must fit, otherwise start on a fresh page
+      const styles = {};
+      Object.keys(colStyles || {}).forEach(k => { styles[k] = Object.assign({}, colStyles[k]); });
+      const numeric = new Set(Object.keys(styles).filter(k => styles[k].halign === 'right').map(Number));
+      (opts.widths || []).forEach((w, i) => { styles[i] = Object.assign({}, styles[i], { cellWidth: w }); });
+      const signed = new Set(opts.signedCols || []);
+      const totalIdx = opts.totalRow ? rows.length - 1 : -1;
+      doc.autoTable({
+        startY: y,
+        head: [head.map(h => wrapLong(cleanText(h)))],
+        body: rows.map(r => r.map(c => wrapLong(cleanText(c)))),
+        theme: 'grid',
+        tableWidth: contentW,
+        styles: {
+          font: 'helvetica', fontSize: 7.5, textColor: [30, 41, 59], valign: 'middle', overflow: 'linebreak',
+          cellPadding: { top: 2.4, bottom: 2.4, left: 2.6, right: 2.6 }, lineColor: [226, 232, 240], lineWidth: 0.2
+        },
+        headStyles: { fillColor: [99, 102, 241], textColor: 255, fontSize: 8, fontStyle: 'bold', halign: 'left' },
+        alternateRowStyles: { fillColor: [248, 250, 252] },
+        columnStyles: styles,
+        margin: { left: margin, right: margin, top: topY + 2, bottom: 18 },
+        showHead: 'everyPage',        // repeat the header on every page the table spans
+        rowPageBreak: 'avoid',        // never split one row across two pages
+        didParseCell: (d) => {
+          const ci = d.column.index;
+          if (numeric.has(ci)) d.cell.styles.halign = 'right';   // numeric headers align with their values
+          if (d.section !== 'body') return;
+          const txt = (Array.isArray(d.cell.text) ? d.cell.text.join('') : String(d.cell.text || '')).trim();
+          if (numeric.has(ci) && txt.charAt(0) === '-') d.cell.styles.textColor = [220, 38, 38];
+          if (signed.has(ci) && txt.charAt(0) === '+') d.cell.styles.textColor = [5, 150, 105];
+          if (d.row.index === totalIdx) { d.cell.styles.fontStyle = 'bold'; d.cell.styles.fillColor = [238, 242, 255]; }
+        }
+      });
+      y = doc.lastAutoTable.finalY + 8;
+    }
+
+    // captureChart() now reads the pre-captured result (captured above, while the
+    // chart's view was active and the chart fully drawn).
+    function captureChart(canvasId) { return chartResults.get(canvasId) || { ok: false, reason: 'nodata', detail: 'chart was not rendered' }; }
+
+    // addChartImage(canvasId, title, maxHeightMm): title + image kept together,
+    // size follows the chart's real aspect ratio (never stretched).
+    function addChartImage(canvasId, label, maxH) {
+      const res = captureChart(canvasId);
+      const cap = maxH || 90;
+      if (res.ok) {
+        const maxW = res.radial ? 112 : contentW;
+        let w = Math.min(contentW, maxW);
+        let h = w * res.h / res.w;
+        if (h > cap) { h = cap; w = h * res.w / res.h; }
+        checkPage(h + 14);
+        doc.setFontSize(8.5); doc.setFont('helvetica', 'bold'); doc.setTextColor(51, 65, 85);
+        doc.text(cleanText(label), margin, y + 4);
+        doc.setTextColor(0, 0, 0);
+        y += 7;
+        const x = margin + (contentW - w) / 2;
+        try {
+          doc.addImage(res.img, 'PNG', x, y, w, h, undefined, 'FAST');
+          doc.setDrawColor(226, 232, 240); doc.setLineWidth(0.3);
+          doc.rect(x, y, w, h);
+          y += h + 8;
+          return;
+        } catch (e) {
+          console.error('[Advanced export] addImage failed for ' + canvasId, e);
+          failures.push('Chart "' + label + '": could not be embedded in the PDF');
+        }
+      } else if (res.reason === 'error') {
+        failures.push('Chart "' + label + '": ' + res.detail);
       }
-    } else {
-      doc.setFillColor(248, 250, 252);
-      doc.setDrawColor(226, 232, 240);
-      doc.rect(margin, y, pageW - margin*2, imgH, 'FD');
-      doc.setFontSize(9);
-      doc.setTextColor(148, 163, 184);
-      doc.text('Navigate to the ' + label + ' view first, then re-export', margin + (pageW-margin*2)/2, y + imgH/2, { align: 'center' });
-      y += imgH + 8;
+      // Fallback box (no data / capture failed) — never silently omitted
+      checkPage(36);
+      doc.setFontSize(8.5); doc.setFont('helvetica', 'bold'); doc.setTextColor(51, 65, 85);
+      doc.text(cleanText(label), margin, y + 4);
+      doc.setTextColor(0, 0, 0);
+      y += 7;
+      emptyState(res.ok || res.reason === 'error'
+        ? 'This chart could not be rendered for the report.'
+        : 'No data available for this chart yet.', 18);
+      doc.setFont('helvetica', 'normal');
     }
-    doc.setTextColor(0, 0, 0);
+
+    // Run one report section; a failure in it is reported but never kills the rest
+    function runSection(name, fn) {
+      stage = 'building ' + name + ' section';
+      try { fn(); }
+      catch (e) {
+        console.error('[Advanced export] section failed: ' + name, e);
+        failures.push(name + ' section: ' + ((e && e.message) || e));
+        try { emptyState('The "' + name + '" section could not be generated completely.', 16); } catch (e2) { /* ignore */ }
+      }
+    }
+
+    // ══════════════════════════════════════════
+    // COVER BANNER + EXECUTIVE SUMMARY
+    // ══════════════════════════════════════════
+    doc.setFillColor(0, 117, 255);
+    doc.rect(0, 0, pageW, 55, 'F');
+    doc.setFillColor(167, 139, 250);
+    doc.rect(0, 50, pageW, 4, 'F');
+    doc.setTextColor(255, 255, 255);
+    doc.setFontSize(26);
+    doc.setFont('helvetica', 'bold');
+    doc.text('FinanceOS', margin, 22);
+    doc.setFontSize(14);
     doc.setFont('helvetica', 'normal');
-  }
+    doc.text('Advanced Financial Report', margin, 32);
+    doc.setFontSize(9);
+    doc.setTextColor(200, 220, 255);
+    const now = new Date();
+    doc.text('Generated: ' + now.toLocaleDateString('en-IN', { day: '2-digit', month: 'long', year: 'numeric' }) + '  |  ' + now.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' }), margin, 43);
+    doc.setTextColor(0, 0, 0);
+    y = 66;
 
-  // ══════════════════════════════════════════
-  // COVER PAGE
-  // ══════════════════════════════════════════
-  doc.setFillColor(0, 117, 255);
-  doc.rect(0, 0, pageW, 55, 'F');
-  doc.setFillColor(167, 139, 250);
-  doc.rect(0, 50, pageW, 4, 'F');
-  doc.setTextColor(255, 255, 255);
-  doc.setFontSize(26);
-  doc.setFont('helvetica', 'bold');
-  doc.text('FinanceOS', margin, 22);
-  doc.setFontSize(14);
-  doc.setFont('helvetica', 'normal');
-  doc.text('Advanced Financial Report', margin, 32);
-  doc.setFontSize(9);
-  doc.setTextColor(200, 220, 255);
-  const now = new Date();
-  doc.text('Generated: ' + now.toLocaleDateString('en-IN', { day:'2-digit', month:'long', year:'numeric' }) + '  |  ' + now.toLocaleTimeString('en-IN', { hour:'2-digit', minute:'2-digit' }), margin, 43);
-  doc.setTextColor(0, 0, 0);
-  y = 68;
+    const totalInc  = sumType('Income', db);
+    const totalExp  = sumType('Expense', db);
+    const totalInv  = sumType('Investment', db);
+    const totalLoan = sumType('Loan', db);
+    const netBal    = totalInc - totalExp;
+    const savRateN  = totalInc > 0 ? (netBal / totalInc) * 100 : 0;
 
-  // Executive Summary box
-  const data = getFilteredData();
-  const totalInc  = sumType('Income', db);
-  const totalExp  = sumType('Expense', db);
-  const totalInv  = sumType('Investment', db);
-  const totalLoan = sumType('Loan', db);
-  const netBal    = totalInc - totalExp;
-  const savRate   = totalInc > 0 ? ((netBal / totalInc) * 100).toFixed(1) : '0';
-
-  doc.setFillColor(240, 249, 255);
-  doc.setDrawColor(0, 117, 255);
-  doc.roundedRect(margin, y, pageW - margin*2, 28, 3, 3, 'FD');
-  doc.setFontSize(8);
-  doc.setFont('helvetica', 'bold');
-  doc.setTextColor(0, 117, 255);
-  doc.text('EXECUTIVE SUMMARY', margin + 4, y + 6);
-  doc.setTextColor(15, 23, 42);
-  doc.setFont('helvetica', 'normal');
-  doc.setFontSize(8.5);
-  const summaryLine1 = `Income: Rs.${Math.round(totalInc).toLocaleString('en-IN')}   Expenses: Rs.${Math.round(totalExp).toLocaleString('en-IN')}   Net Balance: Rs.${Math.round(netBal).toLocaleString('en-IN')}   Savings Rate: ${savRate}%`;
-  const summaryLine2 = `Investments: Rs.${Math.round(totalInv).toLocaleString('en-IN')}   Loan Outflow: Rs.${Math.round(totalLoan).toLocaleString('en-IN')}   Total Transactions: ${db.length}   Active Credits: ${creditDb.filter(c=>c.status==='Active').length}`;
-  doc.text(summaryLine1, margin + 4, y + 14);
-  doc.text(summaryLine2, margin + 4, y + 21);
-  y += 35;
-
-  // ══════════════════════════════════════════
-  // NET WORTH SECTION
-  // ══════════════════════════════════════════
-  if (wantsNetWorth) {
-    doc.addPage(); y = 15;
-    sectionTitle('NET WORTH TRACKER', 52, 211, 153);
-
-    const assets = Math.max(0, totalInc - totalExp - totalInv + totalLoan) + totalInv;
+    doc.setFontSize(8); doc.setFont('helvetica', 'bold'); doc.setTextColor(0, 117, 255);
+    doc.text('EXECUTIVE SUMMARY', margin, y); y += 3.5;
     kpiRow([
-      { label: 'Total Assets',     value: 'Rs.' + Math.round(assets).toLocaleString('en-IN'),   color: [16,185,129] },
-      { label: 'Total Liabilities',value: 'Rs.' + Math.round(totalLoan).toLocaleString('en-IN'), color: [239,68,68] },
-      { label: 'Net Worth',        value: 'Rs.' + Math.round(totalInc - totalExp).toLocaleString('en-IN'), color: (totalInc-totalExp)>=0?[16,185,129]:[239,68,68] },
-      { label: 'Portfolio Value',  value: 'Rs.' + Math.round(portAggStats(getPortFiltered()).totalVal).toLocaleString('en-IN'), color: [167,139,250] }
+      { label: 'Income',       value: rs(totalInc),  color: [16, 185, 129] },
+      { label: 'Expenses',     value: rs(totalExp),  color: [244, 114, 182] },
+      { label: 'Net Balance',  value: rs(netBal),    color: netBal >= 0 ? [16, 185, 129] : [239, 68, 68] },
+      { label: 'Savings Rate', value: pct(savRateN), color: savRateN >= 20 ? [16, 185, 129] : [239, 68, 68] }
+    ]);
+    kpiRow([
+      { label: 'Investments',        value: rs(totalInv),  color: [251, 191, 36] },
+      { label: 'Loan Outflow',       value: rs(totalLoan), color: [239, 68, 68] },
+      { label: 'Total Transactions', value: String(db.length) },
+      { label: 'Active Credits',     value: String(creditDb.filter(c => c.status === 'Active').length) }
     ]);
 
-    // ── CHART PAGE 1 ──
-    addChartImage('chart-networth',   'Net Worth Trajectory Over Time', 80);
-    addChartImage('chart-nw-delta',   'Monthly Net Worth Change (Rhythm)', 72);
+    // ══════════════════════════════════════════
+    // NET WORTH SECTION
+    // ══════════════════════════════════════════
+    if (wantsNetWorth) runSection('Net Worth', () => {
+      startSection('NET WORTH TRACKER', 52, 211, 153);
 
-    // ── CHART PAGE 2 ──
-    doc.addPage(); y = 15;
-    sectionTitle('NET WORTH — ENERGY & LEVERAGE', 52, 211, 153);
-    addChartImage('chart-nw-breakdown', 'Financial Energy Meter (Assets vs Liabilities)', 80);
-    addChartImage('chart-retention',    'Capital Retention Rate (Savings %)', 72);
-    addChartImage('chart-leverage',     'System Leverage — Debt to Asset Ratio', 68);
-  }
-
-  // ══════════════════════════════════════════
-  // ANALYTICS SECTION
-
-  // ══════════════════════════════════════════
-  // PRE-RENDER ALL REQUIRED CHARTS OFFSCREEN
-  // ══════════════════════════════════════════
-  const originalView = activeView;
-
-  // Force light mode + boost chart quality so charts render bold and crisp on white PDF
-  const wasLightMode = document.body.classList.contains('light-mode');
-  if (!wasLightMode) document.body.classList.add('light-mode');
-  applyPdfChartQuality();
-
-  if (wantsAnalytics) {
-    // Temporarily activate analytics view to build charts
-    document.getElementById('view-analytics').classList.add('active');
-    buildFilterDropdowns();
-    renderAnalytics();
-    await new Promise(r => setTimeout(r, 800));
-    document.getElementById('view-analytics').classList.remove('active');
-  }
-  if (wantsNetWorth) {
-    document.getElementById('view-networth').classList.add('active');
-    renderNetWorth();
-    await new Promise(r => setTimeout(r, 800));
-    document.getElementById('view-networth').classList.remove('active');
-  }
-  if (wantsPortfolio) {
-    document.getElementById('view-port-overview').classList.add('active');
-    buildPortDropdowns();
-    renderPortOverview();
-    await new Promise(r => setTimeout(r, 800));
-    document.getElementById('view-port-overview').classList.remove('active');
-    document.getElementById('view-port-analytics').classList.add('active');
-    renderPortAnalytics();
-    await new Promise(r => setTimeout(r, 800));
-    document.getElementById('view-port-analytics').classList.remove('active');
-  }
-
-// Restore original view
-  document.getElementById('view-' + originalView)?.classList.add('active');
-
-  // Restore original theme now that all charts have been captured in light mode
-  restorePdfChartQuality();
-  if (!wasLightMode) document.body.classList.remove('light-mode');
-  
-if (wantsAnalytics) {
-    doc.addPage(); y = 15;
-    sectionTitle('ANALYTICS & SPENDING INTELLIGENCE', 99, 102, 241);
-
-    const filteredData = getFilteredData();
-    const fInc  = sumType('Income', filteredData);
-    const fExp  = sumType('Expense', filteredData);
-    const fLoan = sumType('Loan', filteredData);
-    const fInv  = sumType('Investment', filteredData);
-    const fSav  = fInc > 0 ? ((fInc - fExp) / fInc * 100).toFixed(1) : '0';
-
-    kpiRow([
-      { label: 'Total Income',   value: 'Rs.' + Math.round(fInc).toLocaleString('en-IN'),  color:[16,185,129] },
-      { label: 'Total Expenses', value: 'Rs.' + Math.round(fExp).toLocaleString('en-IN'),  color:[244,114,182] },
-      { label: 'Savings Rate',   value: fSav + '%', color:parseFloat(fSav)>=20?[16,185,129]:[239,68,68] },
-      { label: 'Investments',    value: 'Rs.' + Math.round(fInv).toLocaleString('en-IN'),  color:[251,191,36] }
-    ]);
-
-    // ── CHART PAGE 1: Trend + Daily ──
-    addChartImage('chart-trend',   'Income vs Outflow Trend (Last 6 Months)', 80);
-    addChartImage('chart-scatter', 'Daily Spending Pattern by Day of Month',  72);
-
-    // ── CHART PAGE 2: Weekday + Expense composition ──
-    doc.addPage(); y = 15;
-    sectionTitle('ANALYTICS — SPENDING PATTERNS', 99, 102, 241);
-    addChartImage('chart-weekday', 'Spending Rhythm by Day of Week', 75);
-    addChartImage('chart-exp-bif', 'Financial Health Vector (5-Dimension Radar)', 80);
-
-    // ── Expense category summary — compact, top 8 only ──
-    const expByCat = groupData('Expense', filteredData);
-    const expRows = Object.entries(expByCat)
-      .sort((a,b) => b[1]-a[1])
-      .slice(0, 8)
-      .map(([cat, amt]) => [
-        cat,
-        'Rs.' + Math.round(amt).toLocaleString('en-IN'),
-        fExp > 0 ? (amt/fExp*100).toFixed(1)+'%' : '0%'
+      const assets = Math.max(0, totalInc - totalExp - totalInv + totalLoan) + totalInv;
+      const nwVal = totalInc - totalExp;
+      kpiRow([
+        { label: 'Total Assets',      value: rs(assets),    color: [16, 185, 129] },
+        { label: 'Total Liabilities', value: rs(totalLoan), color: [239, 68, 68] },
+        { label: 'Net Worth',         value: rs(nwVal),     color: nwVal >= 0 ? [16, 185, 129] : [239, 68, 68] },
+        { label: 'Portfolio Value',   value: rs(portAggStats(getPortFiltered()).totalVal), color: [167, 139, 250] }
       ]);
-    if (expRows.length) {
-      checkPage(15);
-      doc.setFontSize(9); doc.setFont('helvetica','bold'); doc.setTextColor(99,102,241);
-      doc.text('Top Expense Categories', margin, y); y += 5;
-      tableSection(['Category','Amount','% of Total'], expRows,
-        { 1:{halign:'right'}, 2:{halign:'right',fontStyle:'bold'} });
-    }
-  }
 
-  // ══════════════════════════════════════════
-  // PORTFOLIO SECTION
-  // ══════════════════════════════════════════
-  if (wantsPortfolio) {
-    doc.addPage(); y = 15;
-    sectionTitle('PORTFOLIO ANALYSIS', 167, 139, 250);
+      if (!db.length) {
+        emptyState('No transactions recorded yet, so there is no net worth history to chart. Add income, expense or investment entries to populate this section.', 20);
+        return;
+      }
+      addChartImage('chart-networth', 'Net Worth Trajectory Over Time (Amounts in Rs.)', 85);
+      addChartImage('chart-nw-delta', 'Monthly Net Worth Change (Rhythm)', 80);
+      subHeading('Net Worth - Energy & Leverage', [16, 150, 110], 100);
+      addChartImage('chart-nw-breakdown', 'Financial Energy Meter (Assets vs Liabilities)', 95);
+      addChartImage('chart-retention', 'Capital Retention Rate (Savings %)', 80);
+      addChartImage('chart-leverage', 'System Leverage - Debt to Asset Ratio', 80);
+    });
 
-    const pd = getPortFiltered();
-    const ps = portAggStats(pd);
-    kpiRow([
-      { label: 'Total Invested',  value: 'Rs.' + Math.round(ps.totalInv).toLocaleString('en-IN'),  color:[167,139,250] },
-      { label: 'Current Value',   value: 'Rs.' + Math.round(ps.totalVal).toLocaleString('en-IN'),  color:[16,185,129] },
-      { label: 'Total Gain/Loss', value: 'Rs.' + Math.round(ps.totalGain).toLocaleString('en-IN'), color:ps.totalGain>=0?[16,185,129]:[239,68,68] },
-      { label: 'Avg ROI',         value: ps.avgRoi.toFixed(1)+'%', color:ps.avgRoi>=0?[16,185,129]:[239,68,68] }
-    ]);
+    // ══════════════════════════════════════════
+    // ANALYTICS SECTION
+    // ══════════════════════════════════════════
+    if (wantsAnalytics) runSection('Analytics', () => {
+      startSection('ANALYTICS & SPENDING INTELLIGENCE', 99, 102, 241);
 
-    // ── CHART PAGE 1 ──
-    addChartImage('port-value-bar',   'Asset Value Breakdown (Polar Area)', 80);
-    addChartImage('port-composition', 'Portfolio Health Radar — 5 Dimensions', 75);
+      const filteredData = getFilteredData();
+      const fInc  = sumType('Income', filteredData);
+      const fExp  = sumType('Expense', filteredData);
+      const fInv  = sumType('Investment', filteredData);
+      const fSavN = fInc > 0 ? ((fInc - fExp) / fInc * 100) : 0;
 
-    // ── CHART PAGE 2 ──
-    doc.addPage(); y = 15;
-    sectionTitle('PORTFOLIO — ROI & GAINS', 167, 139, 250);
-    addChartImage('port-roi-chart',  'ROI % by Asset Type (Horizontal Bar)', 72);
-    addChartImage('port-gain-chart', 'Invested vs Current Value by Asset',    72);
-
-    // ── CHART PAGE 3 ──
-    doc.addPage(); y = 15;
-    sectionTitle('PORTFOLIO — ADVANCED DIAGNOSTICS', 167, 139, 250);
-    addChartImage('chart-port-roi',      'Sector ROI Velocity (Polar)',          72);
-    addChartImage('chart-port-gains',    'Capital Gains Engine (Stacked Bar)',   72);
-    addChartImage('chart-port-exposure', 'Systemic Exposure — Actual vs Ideal',  68);
-
-    // ── Holdings table — compact, top 15 by value ──
-    const holdRows = pd
-      .map(e => { const c = portCalc(e); return { ...e, ...c }; })
-      .sort((a,b) => b.currentValue - a.currentValue)
-      .slice(0, 15)
-      .map(e => [
-        assetTypeLabel(e.assetType),
-        e.subType||'—',
-        'Rs.' + Math.round(e.totalInvestment).toLocaleString('en-IN'),
-        'Rs.' + Math.round(e.currentValue).toLocaleString('en-IN'),
-        e.roi.toFixed(1)+'%',
-        (e.gainLoss>=0?'+':'') + 'Rs.' + Math.round(e.gainLoss).toLocaleString('en-IN')
+      kpiRow([
+        { label: 'Total Income',   value: rs(fInc),  color: [16, 185, 129] },
+        { label: 'Total Expenses', value: rs(fExp),  color: [244, 114, 182] },
+        { label: 'Savings Rate',   value: pct(fSavN), color: fSavN >= 20 ? [16, 185, 129] : [239, 68, 68] },
+        { label: 'Investments',    value: rs(fInv),  color: [251, 191, 36] }
       ]);
-    if (holdRows.length) {
-      checkPage(15);
-      doc.setFontSize(9); doc.setFont('helvetica','bold'); doc.setTextColor(167,139,250);
-      doc.text('Top Holdings by Value (max 15)', margin, y); y += 5;
-      tableSection(['Asset','Sub-Type','Invested','Curr. Value','ROI%','Gain/Loss'], holdRows,
-        { 2:{halign:'right'}, 3:{halign:'right'}, 4:{halign:'right'}, 5:{halign:'right',fontStyle:'bold'} });
-    }
-  }
 
-  // ══════════════════════════════════════════
-  // CREDIT TRACKER SECTION (always included)
-  // ══════════════════════════════════════════
-  if (creditDb.length) {
-    doc.addPage(); y = 15;
-    sectionTitle('CREDIT TRACKER', 249, 115, 22);
+      if (!filteredData.length) {
+        emptyState('No analytics records match the current filters. Add transactions (or clear the month/year filter) to see spending charts and category tables here.', 20);
+        return;
+      }
 
-    const totalPrincipal   = creditDb.reduce((s,c)=>s+Number(c.principalAmount),0);
-    const totalOutstanding = creditDb.reduce((s,c)=>s+Number(c.outstandingBalance),0);
-    const totalEmi         = creditDb.filter(c=>c.status==='Active').reduce((s,c)=>s+Number(c.monthlyEmi),0);
-    const avgRate          = creditDb.length ? (creditDb.reduce((s,c)=>s+Number(c.interestRate),0)/creditDb.length) : 0;
+      // Trend title reflects the real range / filter instead of a hard-coded "6 months"
+      const tm = document.getElementById('trend-month'), ty = document.getElementById('trend-year'), tr = document.getElementById('trend-range');
+      const filtered = (tm && tm.value !== 'all') || (ty && ty.value !== 'all');
+      const rangeN = tr ? parseInt(tr.value) : NaN;
+      const trendTitle = 'Income vs Outflow Trend (' + (filtered ? 'Filtered Period' : (isFinite(rangeN) ? 'Last ' + rangeN + ' Months' : 'Recent Months')) + ', Rs.)';
 
-    kpiRow([
-      { label: 'Total Principal',    value: 'Rs.' + Math.round(totalPrincipal).toLocaleString('en-IN'),   color:[249,115,22] },
-      { label: 'Outstanding Balance',value: 'Rs.' + Math.round(totalOutstanding).toLocaleString('en-IN'), color:[239,68,68] },
-      { label: 'Monthly EMI Total',  value: 'Rs.' + Math.round(totalEmi).toLocaleString('en-IN'),         color:[251,191,36] },
-      { label: 'Avg Interest Rate',  value: avgRate.toFixed(1)+'%',                                         color:[167,139,250] }
-    ]);
+      addChartImage('chart-trend', trendTitle, 85);
+      addChartImage('chart-scatter', 'Daily Spending Pattern by Day of Month', 80);
+      addChartImage('chart-weekday', 'Spending Rhythm by Day of Week', 80);
+      addChartImage('chart-exp-bif', 'Financial Health Vector (5-Dimension Radar)', 95);
 
-    const creditRows = creditDb.map(c => [
-      c.lenderName, c.type,
-      'Rs.' + Math.round(c.principalAmount).toLocaleString('en-IN'),
-      'Rs.' + Math.round(c.outstandingBalance).toLocaleString('en-IN'),
-      c.interestRate+'%',
-      'Rs.' + Math.round(c.monthlyEmi).toLocaleString('en-IN'),
-      c.dueDate||'—', c.status
-    ]);
-    tableSection(['Lender','Type','Principal','Outstanding','Rate','EMI','Due','Status'], creditRows,
-      { 2:{halign:'right'}, 3:{halign:'right'}, 4:{halign:'right'}, 5:{halign:'right'} });
-  }
+      const expByCat = groupData('Expense', filteredData);
+      const expRows = Object.entries(expByCat)
+        .sort((a, b) => b[1] - a[1])
+        .slice(0, 8)
+        .map(([cat, amt]) => [cat, rs(amt), fExp > 0 ? pct(amt / fExp * 100) : '0.0%']);
+      subHeading('Top Expense Categories', [99, 102, 241], 38);
+      tableSection(['Category', 'Amount', '% of Total'], expRows,
+        { 1: { halign: 'right' }, 2: { halign: 'right', fontStyle: 'bold' } },
+        { widths: [102, 46, 34], emptyMessage: 'No expense categories recorded for this period.' });
+    });
 
-  // ══════════════════════════════════════════
-  // AI INSIGHTS SECTION
-  // ══════════════════════════════════════════
-  if (wantsAI) {
-    doc.addPage(); y = 15;
-    sectionTitle('AI FINANCIAL INSIGHTS & RECOMMENDATIONS', 16, 185, 129);
+    // ══════════════════════════════════════════
+    // PORTFOLIO SECTION
+    // ══════════════════════════════════════════
+    if (wantsPortfolio) runSection('Portfolio', () => {
+      startSection('PORTFOLIO ANALYSIS', 167, 139, 250);
+
+      const pd = getPortFiltered();
+      const ps = portAggStats(pd);
+      kpiRow([
+        { label: 'Total Invested',  value: rs(ps.totalInv),  color: [167, 139, 250] },
+        { label: 'Current Value',   value: rs(ps.totalVal),  color: [16, 185, 129] },
+        { label: 'Total Gain/Loss', value: rsSigned(ps.totalGain), color: ps.totalGain >= 0 ? [16, 185, 129] : [239, 68, 68] },
+        { label: 'Avg ROI',         value: pct(ps.avgRoi),   color: ps.avgRoi >= 0 ? [16, 185, 129] : [239, 68, 68] }
+      ]);
+
+      if (!pd.length) {
+        emptyState('No portfolio holdings recorded yet. Add assets in the Portfolio module to see allocation charts, ROI diagnostics and the holdings table here.', 20);
+        return;
+      }
+
+      addChartImage('port-value-bar', 'Asset Value Breakdown (Polar Area)', 95);
+      addChartImage('port-composition', 'Portfolio Health Radar - 5 Dimensions', 95);
+      subHeading('Portfolio - ROI & Gains', [139, 92, 246], 100);
+      addChartImage('port-roi-chart', 'ROI % by Asset Type (Horizontal Bar)', 85);
+      addChartImage('port-gain-chart', 'Invested vs Current Value by Asset (Rs.)', 85);
+      subHeading('Portfolio - Advanced Diagnostics', [139, 92, 246], 100);
+      addChartImage('chart-port-roi', 'Sector ROI Velocity (Polar)', 95);
+      addChartImage('chart-port-gains', 'Capital Gains Engine (Stacked Bar)', 85);
+      addChartImage('chart-port-exposure', 'Systemic Exposure - Actual vs Ideal', 85);
+
+      const holdRows = pd
+        .map(e => { const c = portCalc(e); return { ...e, ...c }; })
+        .sort((a, b) => b.currentValue - a.currentValue)
+        .slice(0, 15)
+        .map(e => [
+          assetTypeLabel(e.assetType),
+          e.subType || '—',
+          rs(e.totalInvestment),
+          rs(e.currentValue),
+          pct(e.roi),
+          rsSigned(e.gainLoss)
+        ]);
+      subHeading('Top Holdings by Value (max 15)', [139, 92, 246], 38);
+      tableSection(['Asset', 'Sub-Type', 'Invested', 'Curr. Value', 'ROI %', 'Gain/Loss'], holdRows,
+        { 2: { halign: 'right' }, 3: { halign: 'right' }, 4: { halign: 'right' }, 5: { halign: 'right', fontStyle: 'bold' } },
+        { widths: [32, 42, 26, 28, 18, 36], signedCols: [5], emptyMessage: 'No holdings to list.' });
+    });
+
+    // ══════════════════════════════════════════
+    // CREDIT TRACKER (liabilities — shown with the Net Worth module)
+    // ══════════════════════════════════════════
+    if (wantsNetWorth && creditDb.length) runSection('Credit Tracker', () => {
+      startSection('CREDIT TRACKER', 249, 115, 22);
+
+      const totalPrincipal   = creditDb.reduce((s, c) => s + Number(c.principalAmount), 0);
+      const totalOutstanding = creditDb.reduce((s, c) => s + Number(c.outstandingBalance), 0);
+      const totalEmi         = creditDb.filter(c => c.status === 'Active').reduce((s, c) => s + Number(c.monthlyEmi), 0);
+      const avgRate          = creditDb.length ? (creditDb.reduce((s, c) => s + Number(c.interestRate), 0) / creditDb.length) : 0;
+
+      kpiRow([
+        { label: 'Total Principal',     value: rs(totalPrincipal),   color: [249, 115, 22] },
+        { label: 'Outstanding Balance', value: rs(totalOutstanding), color: [239, 68, 68] },
+        { label: 'Monthly EMI Total',   value: rs(totalEmi),         color: [251, 191, 36] },
+        { label: 'Avg Interest Rate',   value: pct(avgRate),         color: [167, 139, 250] }
+      ]);
+
+      const creditRows = creditDb.map(c => [
+        c.lenderName, c.type,
+        rs(c.principalAmount),
+        rs(c.outstandingBalance),
+        pctTrim(c.interestRate),
+        rs(c.monthlyEmi),
+        c.dueDate || '—', c.status
+      ]);
+      tableSection(['Lender', 'Type', 'Principal', 'Outstanding', 'Rate', 'EMI', 'Due', 'Status'], creditRows,
+        { 2: { halign: 'right' }, 3: { halign: 'right' }, 4: { halign: 'right' }, 5: { halign: 'right' } },
+        { widths: [34, 22, 24, 26, 14, 22, 20, 20], emptyMessage: 'No credit accounts recorded.' });
+    });
+
+    // ══════════════════════════════════════════
+    // AI INSIGHTS SECTION
+    // ══════════════════════════════════════════
+    if (wantsAI) runSection('AI Insights', () => {
+      startSection('AI FINANCIAL INSIGHTS & RECOMMENDATIONS', 16, 185, 129);
 
     const fData = getFilteredData();
     const fI = sumType('Income', fData), fE = sumType('Expense', fData);
@@ -28144,18 +28358,23 @@ if (wantsAnalytics) {
     );
     const scoreLabel = score>=75?'Excellent':score>=60?'Good':score>=40?'Fair':'Needs Work';
 
-    // Score bar
-    checkPage(25);
-    doc.setFillColor(240,249,255);
-    doc.setDrawColor(16,185,129);
-    doc.roundedRect(margin, y, pageW-margin*2, 20, 3, 3, 'FD');
-    doc.setFontSize(9); doc.setFont('helvetica','bold'); doc.setTextColor(16,185,129);
-    doc.text('Financial Health Score', margin+4, y+7);
-    doc.setFontSize(16); doc.setTextColor(15,23,42);
-    doc.text(score+'/100 — '+scoreLabel, margin+4, y+16);
-    y += 26;
 
-    // Key metrics table
+      // Score card with a progress bar
+      checkPage(28);
+      doc.setFillColor(240, 249, 255);
+      doc.setDrawColor(16, 185, 129);
+      doc.setLineWidth(0.3);
+      doc.roundedRect(margin, y, contentW, 22, 3, 3, 'FD');
+      doc.setFontSize(9); doc.setFont('helvetica', 'bold'); doc.setTextColor(16, 185, 129);
+      doc.text('Financial Health Score', margin + 4, y + 7);
+      doc.setFontSize(16); doc.setTextColor(15, 23, 42);
+      doc.text(score + '/100 - ' + scoreLabel, margin + 4, y + 16);
+      const barX = margin + contentW - 64, barW = 56;
+      doc.setFillColor(226, 232, 240); doc.roundedRect(barX, y + 10, barW, 4, 2, 2, 'F');
+      doc.setFillColor(16, 185, 129);
+      doc.roundedRect(barX, y + 10, Math.max(2, barW * Math.min(100, Math.max(0, score)) / 100), 4, 2, 2, 'F');
+      y += 28;
+
     const metricsRows = [
       ['Savings Rate', sRate+'%', parseFloat(sRate)>=20?'Excellent':parseFloat(sRate)>=10?'Good':parseFloat(sRate)>=0?'Fair':'Critical'],
       ['Debt-to-Income', dRate+'%', parseFloat(dRate)<=30?'Healthy':parseFloat(dRate)<=50?'Moderate':parseFloat(dRate)<=80?'High':'Critical'],
@@ -28164,14 +28383,13 @@ if (wantsAnalytics) {
       ['Total Transactions', db.length+'', db.length>=50?'Active':'Building'],
       ['Active Loans', creditDb.filter(c=>c.status==='Active').length+'', 'Track EMIs carefully'],
     ];
-    tableSection(['Metric','Your Value','Status'], metricsRows, {});
 
-    // Insights from DOM
-    checkPage(15);
-    doc.setFontSize(9); doc.setFont('helvetica','bold'); doc.setTextColor(16,185,129);
-    doc.text('AI-Generated Recommendations', margin, y); y += 6;
+      subHeading('Key Metrics', [16, 150, 110], 38);
+      tableSection(['Metric', 'Your Value', 'Status'], metricsRows,
+        { 1: { halign: 'right' } }, { widths: [74, 44, 64] });
 
-    // Generate insights directly from data instead of reading DOM
+      subHeading('AI-Generated Recommendations', [16, 150, 110], 30);
+
     const insightData = [];
     const fData2 = getFilteredData();
     const fI2 = sumType('Income', fData2), fE2 = sumType('Expense', fData2);
@@ -28200,46 +28418,70 @@ if (wantsAnalytics) {
     const topCat2 = Object.entries(expByCat2).sort((a,b)=>b[1]-a[1])[0];
     if (topCat2 && fE2 > 0 && (topCat2[1]/fE2*100) > 40) insightData.push({ icon:'🔍', title:`"${topCat2[0]}" = ${(topCat2[1]/fE2*100).toFixed(0)}% of Spend`, desc:'High concentration in one category. Set a hard monthly cap to redistribute spending.' });
 
-    if (insightData.length) {
-      insightData.slice(0,6).forEach(ins => {
-        checkPage(22);
-        doc.setFillColor(248,250,252);
-        doc.setDrawColor(16,185,129);
-        doc.roundedRect(margin, y, pageW-margin*2, 18, 2, 2, 'FD');
-        doc.setFontSize(8.5); doc.setFont('helvetica','bold'); doc.setTextColor(15,23,42);
-        doc.text(cleanText(ins.icon + ' ' + ins.title), margin+3, y+6);
-        doc.setFontSize(7.5); doc.setFont('helvetica','normal'); doc.setTextColor(71,85,105);
-        const wrapped = doc.splitTextToSize(cleanText(ins.desc), pageW-margin*2-6);
-        doc.text(wrapped.slice(0,2), margin+3, y+12);
-        y += 22;
-      });
-    } else {
-      doc.setFontSize(8); doc.setTextColor(100,116,139);
-      doc.text('Add transactions and portfolio data to generate AI insights.', margin, y); y += 10;
+      const toneOf = (icon) => ({ '🚨': [239, 68, 68], '🎯': [239, 68, 68], '🔥': [239, 68, 68],
+        '⚡': [245, 158, 11], '💳': [245, 158, 11], '📈': [245, 158, 11], '🎲': [245, 158, 11], '🔍': [245, 158, 11],
+        '💰': [16, 185, 129], '🏆': [16, 185, 129] }[icon] || [59, 130, 246]);
+
+      if (insightData.length) {
+        insightData.slice(0, 6).forEach(ins => {
+          doc.setFontSize(7.5); doc.setFont('helvetica', 'normal');
+          const lines = doc.splitTextToSize(cleanText(ins.desc), contentW - 12);
+          const cardH = 10 + lines.length * 3.6;
+          checkPage(cardH + 4);
+          const tone = toneOf(ins.icon);
+          doc.setFillColor(248, 250, 252); doc.setDrawColor(226, 232, 240); doc.setLineWidth(0.3);
+          doc.roundedRect(margin, y, contentW, cardH, 2, 2, 'FD');
+          doc.setFillColor(tone[0], tone[1], tone[2]);
+          doc.rect(margin, y + 1, 1.6, cardH - 2, 'F');      // accent bar replaces emoji (not renderable in PDF fonts)
+          doc.setFontSize(8.5); doc.setFont('helvetica', 'bold'); doc.setTextColor(15, 23, 42);
+          doc.text(cleanText(ins.title), margin + 5, y + 6);
+          doc.setFontSize(7.5); doc.setFont('helvetica', 'normal'); doc.setTextColor(71, 85, 105);
+          doc.text(lines, margin + 5, y + 11);
+          y += cardH + 4;
+        });
+        doc.setTextColor(0, 0, 0);
+      } else {
+        emptyState('Add transactions and portfolio data to generate AI insights.', 14);
+      }
+    });
+
+    // ══════════════════════════════════════════
+    // FOOTER ON ALL PAGES
+    // ══════════════════════════════════════════
+    const totalPages = doc.internal.getNumberOfPages();
+    for (let i = 1; i <= totalPages; i++) {
+      doc.setPage(i);
+      doc.setFillColor(248, 250, 252);
+      doc.rect(0, pageH - 10, pageW, 10, 'F');
+      doc.setFontSize(7); doc.setTextColor(148, 163, 184);
+      doc.setFont('helvetica', 'normal');
+      doc.text('FinanceOS - Private & Confidential', margin, pageH - 3.5);
+      doc.text('Advanced Financial Report', pageW / 2, pageH - 3.5, { align: 'center' });
+      doc.text('Page ' + i + ' of ' + totalPages, pageW - margin, pageH - 3.5, { align: 'right' });
+    }
+
+    // Save — only after the whole document exists
+    stage = 'saving the PDF';
+    doc.save('FinanceOS_Advanced_Report_' + localISO() + '.pdf');
+    success = true;
+  } catch (err) {
+    console.error('[Advanced export] failed while ' + stage, err);
+    alert('Could not generate the report (' + stage + '): ' + ((err && err.message) || err) + '\n\nNo file was downloaded. Please try again.');
+  } finally {
+    chartResults.clear();                 // release captured image data
+    _advExportBusy = false;
+    btnElement.innerHTML = originalHtml;  // always restore the button
+    btnElement.disabled = false;
+  }
+
+  if (success) {
+    document.getElementById('advanced-export-modal').style.display = 'none';
+    if (failures.length) {
+      const msg = 'Report saved, but ' + failures.length + ' item(s) had problems: ' + failures.slice(0, 3).join('; ') + (failures.length > 3 ? '…' : '');
+      console.warn('[Advanced export] ' + msg, failures);
+      if (typeof showSettingsToast === 'function') showSettingsToast(msg); else alert(msg);
     }
   }
-
-  // ══════════════════════════════════════════
-  // FOOTER ON ALL PAGES
-  // ══════════════════════════════════════════
-  const totalPages = doc.internal.getNumberOfPages();
-  for (let i = 1; i <= totalPages; i++) {
-    doc.setPage(i);
-    doc.setFillColor(248, 250, 252);
-    doc.rect(0, pageH - 10, pageW, 10, 'F');
-    doc.setFontSize(7); doc.setTextColor(148, 163, 184);
-    doc.setFont('helvetica','normal');
-    doc.text('FinanceOS — Private & Confidential', margin, pageH - 3);
-    doc.text('Page ' + i + ' of ' + totalPages, pageW - margin, pageH - 3, { align:'right' });
-  }
-
-  // Save
-  const dateStr = localISO();
-  doc.save('FinanceOS_Advanced_Report_' + dateStr + '.pdf');
-
-  btnElement.innerHTML = originalHtml;
-  btnElement.disabled = false;
-  document.getElementById('advanced-export-modal').style.display = 'none';
 }
 
 function playNotificationSound() {
