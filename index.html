@@ -10887,9 +10887,9 @@ function finaiClassifyExpense(txn) {
 
 function finaiBuildAnalysis() {
   const today = new Date();
-  const thisMonth = today.toISOString().slice(0, 7);
+  const thisMonth = localMonthKey(today);
   const prevMonthDate = new Date(today.getFullYear(), today.getMonth() - 1, 1);
-  const prevMonth = prevMonthDate.toISOString().slice(0, 7);
+  const prevMonth = localMonthKey(prevMonthDate);
 
   const allTxns = db || [];
   const incomeAll = allTxns.filter(r => r.type === 'Income');
@@ -10971,9 +10971,9 @@ function finaiBuildAnalysis() {
   const activePort = (portDb || []).filter(p => p.status !== 'sold');
   let portInvested = 0, portCurrent = 0;
   activePort.forEach(p => {
-    const qty = Number(p.quantity || 0);
-    portInvested += qty * Number(p.purchasePrice || 0);
-    portCurrent += qty * Number(p.currentPrice || p.purchasePrice || 0);
+    const pc = portCalc(p);   // same rule as the Portfolio pages (non-quantity assets use the total, not qty x price)
+    portInvested += pc.totalInvestment;
+    portCurrent += pc.currentValue;
   });
   const portPL = portCurrent - portInvested;
   const portPLPct = portInvested > 0 ? (portPL / portInvested) * 100 : null;
@@ -11141,7 +11141,7 @@ function finaiComputeScore(a) {
   // Persist score history so future visits can show a real trend
   try {
     let hist = JSON.parse(localStorage.getItem('fos_finai_score_history') || '[]');
-    const today = new Date().toISOString().slice(0, 10);
+    const today = localISO();
     if (!hist.length || hist[hist.length - 1].date !== today) {
       hist.push({ date: today, score });
       if (hist.length > 60) hist = hist.slice(-60);
@@ -14169,15 +14169,34 @@ function liteaiAskChip(text) {
 // Debounce dashboard rendering to prevent multiple rapid calls
 let dashboardRenderTimeout = null;
 
+// ── SHARED CALCULATION RULES (single source of truth) ─────────────────────
+// Amount coercion: blank / text / NaN amounts count as 0 so one bad record can
+// never turn every total into NaN.
+function _amt(v) { const n = Number(v); return isFinite(n) ? n : 0; }
+// Local-calendar month key ('YYYY-MM'). toISOString() converts to UTC, which in
+// India (UTC+5:30) returns the PREVIOUS month/day for the first 5.5 hours of a month/day.
+function localMonthKey(d) { d = d || new Date(); return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0'); }
+// Budgets are MONTHLY limits on Expense rows. Compare like with like:
+// spent = Expense rows for the category; limit = monthly limit x months spanned by the data in scope.
+function budgetSpent(data, cat) {
+  return (data || []).filter(x => x && x.type === 'Expense' && (x.sub === cat || x.name === cat)).reduce((a, b) => a + _amt(b.amount), 0);
+}
+function budgetMonthsInScope(data) {
+  const keys = (data || []).map(r => String((r && r.date) || '').slice(0, 7)).filter(k => /^\d{4}-\d{2}$/.test(k)).sort();
+  if (!keys.length) return 1;
+  const a = keys[0].split('-').map(Number), b = keys[keys.length - 1].split('-').map(Number);
+  return Math.max(1, (b[0] - a[0]) * 12 + (b[1] - a[1]) + 1);
+}
+
 function sumType(type, data) {
-  return (data || []).filter(r => r.type === type).reduce((a, b) => a + Number(b.amount), 0);
+  return (data || []).filter(r => r && r.type === type).reduce((a, b) => a + _amt(b.amount), 0);
 }
 
 function groupData(type, data) {
   const g = {};
-  (data || []).filter(r => r.type === type).forEach(r => {
+  (data || []).filter(r => r && r.type === type).forEach(r => {
     const key = r.sub || 'General';
-    g[key] = (g[key] || 0) + Number(r.amount);
+    g[key] = (g[key] || 0) + _amt(r.amount);
   });
   return g;
 }
@@ -14769,8 +14788,9 @@ function checkAlerts() {
   });
 
   // ── 2. Budget Over-limit Alerts ──────────────────────────────────────
-  if (isNotifEnabled('budget-limits')) Object.entries(budgets).forEach(([cat, limit]) => {
-    const spent = data.filter(x => x.sub === cat || x.name === cat).reduce((a,b) => a + b.amount, 0);
+  if (isNotifEnabled('budget-limits')) Object.entries(budgets).forEach(([cat, monthlyLimit]) => {
+    const limit = monthlyLimit * budgetMonthsInScope(data);
+    const spent = budgetSpent(data, cat);
     const pct   = limit > 0 ? (spent / limit) * 100 : (spent > 0 ? 100 : 0);
     if (pct >= 100) {
       addNotification(
@@ -14887,7 +14907,7 @@ function checkAlerts() {
 
   // ── 6b. Unusual Spending Pattern (50%+ spike vs historical average) ───
   if (isNotifEnabled('unusual-spend')) {
-    const thisMonthKey = new Date().toISOString().slice(0, 7);
+    const thisMonthKey = localMonthKey();
     const expenseTxns = db.filter(r => r.type === 'Expense');
     const catThisMonth = {};
     const catHistorical = {}; // { cat: { total, monthsSeen: Set } }
@@ -14950,7 +14970,7 @@ function checkAlerts() {
   }
 
   // ── 8. No Income Logged This Month ───────────────────────────────────
-  const thisMonth = new Date().toISOString().slice(0, 7);
+  const thisMonth = localMonthKey();
   const incomeThisMonth = db.filter(r => r.type === 'Income' && r.date.startsWith(thisMonth));
   if (incomeThisMonth.length === 0) {
     addNotification(
@@ -14998,14 +15018,13 @@ function checkAlerts() {
   }
 
   // ── 10. Net Worth Month-over-Month Drop ───────────────────────────────
-  const prevMonth = new Date();
-  prevMonth.setMonth(prevMonth.getMonth() - 1);
-  const prevMonthStr = prevMonth.toISOString().slice(0, 7);
+  const _nowNW = new Date();   // first-of-month Date: setMonth(-1) on the 31st would overflow into the wrong month
+  const prevMonthStr = localMonthKey(new Date(_nowNW.getFullYear(), _nowNW.getMonth() - 1, 1));
 
   const calcNW = (monthStr) => {
     const items = db.filter(r => r.date.startsWith(monthStr));
-    return items.filter(r => r.type === 'Income').reduce((a,b) => a + b.amount, 0)
-         - items.filter(r => r.type === 'Expense').reduce((a,b) => a + b.amount, 0);
+    return items.filter(r => r.type === 'Income').reduce((a,b) => a + _amt(b.amount), 0)
+         - items.filter(r => r.type === 'Expense').reduce((a,b) => a + _amt(b.amount), 0);
   };
   const nwThis = calcNW(thisMonth);
   const nwPrev = calcNW(prevMonthStr);
@@ -15039,8 +15058,9 @@ function renderBudgetAlerts(data) {
   let html = '<div style="margin-bottom:1.3rem"><div class="panel-title">Budget Status</div><div class="budget-status-grid">';
   cats.forEach(cat => {
     const monthlyLimit = budgets[cat];
-    const limit = monthlyLimit * multiplier;
-    const spent = (data || getFilteredData()).filter(x => x.sub === cat || x.name === cat).reduce((a,b) => a+b.amount, 0);
+    const _scope = data || getFilteredData();
+    const limit = monthlyLimit * budgetMonthsInScope(_scope);
+    const spent = budgetSpent(_scope, cat);
     const pct = limit > 0 ? Math.min(Math.round((spent/limit)*100), 100) : (spent > 0 ? 100 : 0);
     const over = spent > limit, warn = pct >= 80 && !over;
     const color = over ? '#ef4444' : warn ? '#f59e0b' : '#34d399';
@@ -15068,8 +15088,8 @@ function updateBudgetBadge() {
   
   let overCount = 0, warnCount = 0;
   Object.entries(budgets).forEach(([cat, monthlyLimit]) => {
-    const limit = monthlyLimit * multiplier;
-    const spent = data.filter(x => x.sub === cat || x.name === cat).reduce((a,b) => a+b.amount, 0);
+    const limit = monthlyLimit * budgetMonthsInScope(data);
+    const spent = budgetSpent(data, cat);
     const pct = limit > 0 ? (spent / limit) * 100 : (spent > 0 ? 100 : 0);
     if (spent > limit) overCount++;
     else if (pct >= 80) warnCount++;
@@ -15104,12 +15124,12 @@ function renderEmiStrip() {
     const dueDay = parseInt(dueMatch[0]);
 
     // Days until next due
-    let daysUntil = dueDay - todayDay;
-    if (daysUntil < 0) {
-      // Already passed this month — next occurrence next month
-      const daysInMonth = new Date(today.getFullYear(), today.getMonth() + 1, 0).getDate();
-      daysUntil = daysInMonth - todayDay + dueDay;
-    }
+    // Next due date, clamped to the month length (due day 31 -> 30 Apr / 28 Feb)
+    const _mid = new Date(today.getFullYear(), today.getMonth(), todayDay);
+    const _dimOf = (y, m) => new Date(y, m + 1, 0).getDate();
+    let _due = new Date(today.getFullYear(), today.getMonth(), Math.min(dueDay, _dimOf(today.getFullYear(), today.getMonth())));
+    if (_due < _mid) _due = new Date(today.getFullYear(), today.getMonth() + 1, Math.min(dueDay, _dimOf(today.getFullYear(), today.getMonth() + 1)));
+    const daysUntil = Math.round((_due - _mid) / 86400000);
 
     if (daysUntil <= 7) {
       upcoming.push({ name: loan.lenderName, emi: loan.monthlyEmi, dueDay, daysUntil, type: loan.type });
@@ -18289,9 +18309,10 @@ function analyticsGenerateInsights(data) {
 
   // ── BUDGET ANALYSIS ────────────────────────────────────────────────────
   let overBudgetCats = [], nearBudgetCats = [];
-  Object.entries(budgets).forEach(([cat, limit]) => {
-    const spent = data.filter(x => x.sub===cat||x.name===cat).reduce((a,b)=>a+b.amount,0);
-    const pct = (spent/limit)*100;
+  Object.entries(budgets).forEach(([cat, monthlyLimit]) => {
+    const limit = monthlyLimit * budgetMonthsInScope(data);
+    const spent = budgetSpent(data, cat);
+    const pct = limit > 0 ? (spent/limit)*100 : (spent > 0 ? 100 : 0);
     if (pct >= 100) overBudgetCats.push({ cat, spent, limit, pct });
     else if (pct >= 80) nearBudgetCats.push({ cat, spent, limit, pct });
   });
@@ -18511,9 +18532,8 @@ function renderNetWorth() {
 
   // Apply range filter
   if (nwRange > 0) {
-    const cutoff = new Date();
-    cutoff.setMonth(cutoff.getMonth() - nwRange);
-    const cutStr = cutoff.toISOString().slice(0,7);
+    const _n0 = new Date();
+    const cutStr = localMonthKey(new Date(_n0.getFullYear(), _n0.getMonth() - nwRange, 1));
     sortedM = sortedM.filter(m => m >= cutStr);
   }
 
@@ -18523,10 +18543,10 @@ function renderNetWorth() {
   const allM = [...new Set(db.map(d => d.date.slice(0,7)))].sort();
   allM.filter(m => !sortedM.includes(m)).forEach(ym => {
     const items = db.filter(d => d.date.slice(0,7) === ym);
-    cumInc += items.filter(d => d.type==='Income').reduce((a,b)=>a+b.amount,0);
-    cumExp += items.filter(d => d.type==='Expense').reduce((a,b)=>a+b.amount,0);
-    cumInv += items.filter(d => d.type==='Investment').reduce((a,b)=>a+b.amount,0);
-    cumLoan += items.filter(d => d.type==='Loan').reduce((a,b)=>a+b.amount,0);
+    cumInc += items.filter(d => d.type==='Income').reduce((a,b)=>a+_amt(b.amount),0);
+    cumExp += items.filter(d => d.type==='Expense').reduce((a,b)=>a+_amt(b.amount),0);
+    cumInv += items.filter(d => d.type==='Investment').reduce((a,b)=>a+_amt(b.amount),0);
+    cumLoan += items.filter(d => d.type==='Loan').reduce((a,b)=>a+_amt(b.amount),0);
   });
 
   const nwL=[], nwD=[], incD=[], aD=[], lD=[], deltaD=[];
@@ -18536,10 +18556,10 @@ function renderNetWorth() {
     const [y,m] = ym.split('-').map(Number);
     const items = db.filter(d => d.date.slice(0,7) === ym);
     
-    cumInc += items.filter(d => d.type==='Income').reduce((a,b)=>a+b.amount,0);
-    cumExp += items.filter(d => d.type==='Expense').reduce((a,b)=>a+b.amount,0);
-    cumInv += items.filter(d => d.type==='Investment').reduce((a,b)=>a+b.amount,0);
-    cumLoan += items.filter(d => d.type==='Loan').reduce((a,b)=>a+b.amount,0);
+    cumInc += items.filter(d => d.type==='Income').reduce((a,b)=>a+_amt(b.amount),0);
+    cumExp += items.filter(d => d.type==='Expense').reduce((a,b)=>a+_amt(b.amount),0);
+    cumInv += items.filter(d => d.type==='Investment').reduce((a,b)=>a+_amt(b.amount),0);
+    cumLoan += items.filter(d => d.type==='Loan').reduce((a,b)=>a+_amt(b.amount),0);
     
     // MATHEMATICAL FIX: True Net Worth = Total Income - Total Expense.
     // Moving cash to an investment or taking a loan doesn't change bottom-line net worth.
@@ -18566,8 +18586,8 @@ function renderNetWorth() {
   
   sortedM.forEach((ym, i) => {
     const items = db.filter(d => d.date.slice(0,7) === ym);
-    const monthInc = items.filter(d => d.type==='Income').reduce((a,b)=>a+b.amount,0);
-    const monthExp = items.filter(d => d.type==='Expense').reduce((a,b)=>a+b.amount,0);
+    const monthInc = items.filter(d => d.type==='Income').reduce((a,b)=>a+_amt(b.amount),0);
+    const monthExp = items.filter(d => d.type==='Expense').reduce((a,b)=>a+_amt(b.amount),0);
     
     // Capital Retention Rate
     let retention = monthInc > 0 ? ((monthInc - monthExp) / monthInc) * 100 : 0;
@@ -18595,7 +18615,7 @@ function renderNetWorth() {
   // Milestones
   const milestoneEl = document.getElementById('nw-milestones');
   const curNW  = nwD[nwD.length-1] || 0;
-  const peakNW = Math.max(...nwD);
+  const peakNW = nwD.length ? Math.max(...nwD) : 0;
   const targets = [500000,1000000,2500000,5000000,10000000];
   const nextTarget = targets.find(t => t > curNW) || null;
   const milestones = [
@@ -19155,14 +19175,19 @@ function fmtDate(dateStr) {
 
 // ── UTILS ──────────────────────────────────────────────────────────────────
 function fmt(n, decimals = 0) {
-  const rounded = decimals === 0 ? Math.round(n) : Number(n).toFixed(decimals);
-  
+  let v = Number(n);
+  if (!isFinite(v)) v = 0;                       // NaN / Infinity / undefined never print as "NaN"
+  let rounded = decimals === 0 ? Math.round(v) : Number(v.toFixed(decimals));
+  if (rounded === 0) rounded = 0;                // normalise -0 so "-0" never shows
+
   // Load settings dynamically
   const currency = localStorage.getItem('fos_currency') || '₹';
   const numberSystem = localStorage.getItem('fos_number_system') || 'indian';
   
   const locale = numberSystem === 'indian' ? 'en-IN' : 'en-US';
-  return currency + Number(rounded).toLocaleString(locale);
+  return currency + (decimals > 0
+    ? rounded.toLocaleString(locale, { minimumFractionDigits: decimals, maximumFractionDigits: decimals })
+    : rounded.toLocaleString(locale));
 }
 
 // ══════════════════════════════════════════════════════════════════════════
@@ -23232,8 +23257,9 @@ function renderHealthRadar() {
   if (Object.keys(budgets).length > 0) {
     const data = getFilteredData();
     let overCount = 0;
-    Object.entries(budgets).forEach(([cat, limit]) => {
-      const spent = data.filter(x => x.sub === cat || x.name === cat).reduce((a, b) => a + b.amount, 0);
+    Object.entries(budgets).forEach(([cat, monthlyLimit]) => {
+      const limit = monthlyLimit * budgetMonthsInScope(data);
+      const spent = budgetSpent(data, cat);
       if (spent > limit) overCount++;
     });
     budgetScore = Math.max(100 - (overCount / Object.keys(budgets).length) * 100, 0);
@@ -23321,7 +23347,7 @@ function updateGameStats() {
 
   const today = localISO();
   if (gameStats.lastActivity !== today) {
-    const yesterday = new Date(Date.now()-86400000).toISOString().split('T')[0];
+    const yesterday = (() => { const y = new Date(); y.setDate(y.getDate() - 1); return localISO(y); })();
     if (gameStats.lastActivity===yesterday) gameStats.trackingDays++;
     else gameStats.trackingDays = gameStats.lastActivity ? 1 : 1;
     gameStats.lastActivity = today;
@@ -23338,7 +23364,7 @@ function updateGameStats() {
     const monthData = db.filter(item => item.date && item.date.slice(0,4)===curY && item.date.slice(5,7)===curM);
     let allUnder = true;
     Object.entries(budgets).forEach(([cat,limit])=>{
-      const spent = monthData.filter(x=>x.sub===cat||x.name===cat).reduce((a,b)=>a+Number(b.amount),0);
+      const spent = budgetSpent(monthData, cat);
       if (spent > limit) allUnder = false;
     });
     // Previously the streak only ever grew (or was wiped entirely when all data was deleted) —
