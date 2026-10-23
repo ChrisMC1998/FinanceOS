@@ -12264,12 +12264,8 @@ function finaiLevenshtein(a, b) {
   return prev[bl];
 }
 function finaiFuzzyToken(token, keyword) {
-  if (!token || !keyword) return false;
-  if (token === keyword) return true;
-  if (token.length < 2) return false;
-  if (keyword.length >= 4 && token.length >= 3 && (keyword.includes(token) || token.includes(keyword))) return true;
-  const maxDist = keyword.length <= 4 ? 1 : keyword.length <= 7 ? 2 : 3;
-  return finaiLevenshtein(token, keyword) <= maxDist;
+  // Length-aware, first-letter-anchored, no substring matching (see finaiSafeFuzzy).
+  return finaiSafeFuzzy(token, keyword);
 }
 function finaiTokenize(q) {
   return (q || '').toLowerCase().replace(/[^a-z0-9\s]/g, ' ').split(/\s+/).filter(Boolean);
@@ -12278,18 +12274,9 @@ function finaiMatchesAny(tokens, keywords) {
   return keywords.some(kw => tokens.some(t => finaiFuzzyToken(t, kw)));
 }
 function finaiFuzzyCategoryMatch(tokens) {
-  const cats = Object.keys(Object.assign({}, ...db.map(r => ({ [(r.sub || '').toLowerCase()]: true }))));
-  let best = null, bestDist = Infinity;
-  cats.forEach(cat => {
-    if (!cat) return;
-    tokens.forEach(t => {
-      if (cat.includes(t) || t.includes(cat)) { if (bestDist > 0) { best = cat; bestDist = 0; } return; }
-      const d = finaiLevenshtein(t, cat);
-      const thresh = cat.length <= 5 ? 1 : 2;
-      if (d <= thresh && d < bestDist) { best = cat; bestDist = d; }
-    });
-  });
-  return best;
+  const r = finaiResolveCategory((tokens || []).join(' '));
+  finaiLastCatAmbig = r.ambiguous ? r.candidates : (!r.cat && r.probable ? [r.probable] : []);
+  return r.cat;
 }
 
 // Remembers what the last question was "about" (metric + category) for the
@@ -12440,6 +12427,9 @@ function finaiAnswerQuestionBase(q) {
   if (finaiMatchesAny(tokens, ['necessary', 'essential', 'discretionary', 'unnecessary', 'wants', 'needs', 'decision'])) {
     finaiChatState = { lastMetric: null, lastCategory: null };
     return `This month: ${fmt(Math.round(a.essentialThisMonth))} went to essentials (rent, EMIs, groceries, bills, medical) and ${fmt(Math.round(a.discretionaryThisMonth))} went to discretionary wants${a.topDiscretionaryCat ? ` — mostly "${a.topDiscretionaryCat[0]}" at ${fmt(Math.round(a.topDiscretionaryCat[1]))}` : ''}. ${a.discretionaryPctOfIncome !== null ? `That's ${a.discretionaryPctOfIncome.toFixed(0)}% of your income on wants.` : ''} ${a.investingWhileHighInterestDebt ? 'Also worth noting: you invested this month while still carrying high-interest debt — paying that off first would be the stronger move.' : ''}`;
+  }
+  if (!catMatch && finaiLastCatAmbig.length && finaiMatchesAny(tokens, ['spend', 'spent', 'spending', 'expense', 'expenses', 'cost', 'much'])) {
+    return finaiNluClarify({ msg: finaiLastCatAmbig.length > 1 ? 'Which category do you mean?' : 'I’m not sure which category you mean. Is it “' + finaiLastCatAmbig[0] + '”?', options: finaiLastCatAmbig.map(c => ({ label: c, q: 'how much did i spend on ' + c + ' this month' })) });
   }
   if (catMatch) {
     finaiChatState = { lastMetric: 'category', lastCategory: catMatch };
@@ -12634,7 +12624,7 @@ function finaiResetConversation() {
   try { finaiChatHistory = []; } catch (e) {}
   try { finaiCtx = { amount: null, category: null, monthly: false, intent: null, derived: false }; } catch (e) {}
   try { finaiSlots = { intent: null }; finaiChatState = { lastMetric: null, lastCategory: null }; } catch (e) {}
-  try { finaiPurchaseCtx = null; finaiStateCache = null; finaiQSeq = 0; } catch (e) {}
+  try { finaiPurchaseCtx = null; finaiStateCache = null; finaiQSeq = 0; finaiConv = finaiConvFresh(); finaiLastCatAmbig = []; } catch (e) {}
 }
 function finaiPvMoney(n) { n = Math.round(Number(n) || 0); return n < 0 ? '−' + fmt(-n) : fmt(n); }
 function finaiPvDate(iso) { const d = finaiParseISO(iso); return d ? d.toLocaleDateString('en-IN', { day: 'numeric', month: 'short' }) : iso; }
@@ -12673,8 +12663,8 @@ function finaiAdvisorContext() {
   const loans = finaiDebtLoans(), top = loans.slice().sort((x, y) => y.rate - x.rate)[0] || null;
   const dq = { blocking: null, flags: [] };
   if (!a.hasData) dq.blocking = 'nodata';
-  else if (f.income <= 0) dq.blocking = 'noincome';
   else if (daysSince !== null && daysSince > FINAI_PV.STALE_DAYS) dq.blocking = 'stale';
+  else if (f.income <= 0) dq.blocking = 'noincome';
   return {
     a, st, f, asOf: st.asOf, windowEnd: st.windowEnd, income: Math.round(f.income), incomeAssumed: f.incomeAssumed,
     commitments: Math.round(f.commitments), emiMonthly: Math.round(f.emis), variable: Math.round(f.variable), investments: Math.round(f.investments),
@@ -12718,11 +12708,14 @@ function finaiParsePurchase(q) {
   if (/\bemi\b|instal+ments?|\bfinanc(e|ed|ing)\b|\bloan\b/.test(s) && !/credit card/.test(s.replace(/emi/g, ''))) p.method = 'emi';
   else if (/credit card|\bcard\b/.test(s)) p.method = /\bemi\b/.test(s) ? 'emi' : 'card';
   else if (/\b(cash|upi|debit|savings account|bank transfer|outright|full payment|one go|lump ?sum)\b/.test(s)) p.method = 'cash';
-  if (p.method === 'emi' && p.emi == null && p.price == null) { /* nothing */ }
+  const ng = finaiNluNegations(s);
+  if (ng.has('emi') || ng.has('loan')) { p.noEmi = true; if (p.method === 'emi') p.method = (/credit card|\bcard\b/.test(s) && !ng.has('credit_card')) ? 'card' : 'cash'; }
+  if (ng.has('credit_card') && p.method === 'card') p.method = 'cash';
+  if (ng.has('cash') && p.method === 'cash') p.method = null;
   let prod = FINAI_PV_PRODUCTS.find(x => new RegExp('\\b' + x + '\\b').test(s));
   if (!prod) { const g = s.match(/\b(?:buy|buying|purchase|purchasing|get|getting|order|upgrade to)\s+(?:a|an|the|this|that|my|some|new)?\s*([a-z][a-z\- ]{2,24}?)(?=\s+(?:for|on|with|using|via|right|now|today|this|next|in|at|if|or)\b|[?.,]|$)/); if (g && !/^(it|this|that|something|one)$/.test(g[1])) prod = g[1].trim(); }
   if (prod) p.product = prod.slice(0, 30);
-  if (/\b(medical|hospital|medicine|surgery|rent|school|fees|repair|urgent|essential|must have|need to)\b/.test(s)) p.essential = true;
+  if (/\b(medical|hospital|medicine|surgery|rent|school|fees|repair|urgent|essential|must have|need to)\b/.test(s) || /\bfor (my |the )?(work|job|office|business|studies|college)\b/.test(s)) p.essential = true;
   else if (/\b(want|treat|luxury|upgrade|gift|vacation|trip|holiday|splurge)\b/.test(s)) p.essential = false;
   if (/\b(cheaper|cheap|lower[- ]priced|budget (?:version|one))\b/.test(s)) p.cheaper = true;
   if (/\b(now|today|right away|this month)\b/.test(s) && p.whenMonths == null) p.whenMonths = 0;
@@ -12787,7 +12780,7 @@ function finaiPvEvaluate(p0, ctx, focus) {
   else { v = 'BUY NOW'; why = 'fits'; }
   out.verdict = v; out.why = why;
   out.sev = { 'BUY NOW': 'good', 'BUY WITH CONDITIONS': 'warn', 'WAIT AND SAVE': 'warn', 'CHOOSE A CHEAPER OPTION': 'warn', 'AVOID FOR NOW': 'bad', 'INSUFFICIENT DATA': 'info' }[v];
-  const label = (p.product ? p.product : 'this purchase');
+  const label = finaiEscapeHtml(p.product ? p.product : 'this purchase');
   const what = method === 'emi' ? (newEmi ? `a ${finaiPvMoney(newEmi)}/month EMI${tenure ? ' for ' + tenure + ' months' : ''}` : `an EMI purchase`) : finaiPvMoney(price);
   // headline
   const H = {
@@ -12917,6 +12910,7 @@ function finaiPvRender(r) {
 }
 
 function finaiPvRun(p, focus, note) {
+  const cf = typeof finaiPvConflicts === 'function' ? finaiPvConflicts(p) : null; if (cf) return finaiNluClarify(cf);
   const ctx = finaiAdvisorContext(), r = finaiPvEvaluate(p, ctx, focus);
   finaiPurchaseCtx = { p: r.p, sig: ctx.sig, turn: finaiQSeq };
   finaiChatState = { lastMetric: 'intent', lastCategory: null };
@@ -12995,7 +12989,7 @@ function finaiPvDebtVsPurchase(p) {
 
 // ── 6. Router ──────────────────────────────────────────────────────────────
 function finaiPurchaseRoute(q) {
-  finaiQSeq++;
+  if (finaiNluSeqCounted) finaiNluSeqCounted = false; else finaiQSeq++;
   const s = q.toLowerCase().trim(), words = s.split(/\s+/).length;
   try {
     if (/\b(max(imum)?|how much)\b.*\bsafe(ly)?\b.*\bspend|\bsafe(ly)? (to )?spend\b|\bhow much can i (safely )?spend\b/.test(s)) return finaiSafeSpendAnswer();
@@ -13105,12 +13099,8 @@ function finaiRenderSuggestions() {
 let finaiCtx = { amount: null, category: null, monthly: false, intent: null, derived: false };
 const FINAI_JUDGE_RE = /\b(should i|shall i|can i manage|will i (?:be able|manage)|able to manage|manage (?:that|it|this)|is it (?:ok|okay|fine|wise|safe|worth)|too much|so much|am i spending too|worth it|reasonable|safe to|can i handle|be okay|afford (?:that|it|this))\b/;
 function finaiCatFromQ(q) {
-  const cats = [...new Set((db || []).map(r => (r.sub || '').toLowerCase()).filter(c => c.length >= 3))];
-  const s = ' ' + q.toLowerCase().replace(/[^a-z0-9 ]/g, ' ') + ' ';
-  const hit = cats.find(c => s.includes(' ' + c + ' ') || (c.endsWith('s') && s.includes(' ' + c.slice(0, -1) + ' ')));
-  if (hit) return hit;
-  const tk = finaiTokenize(q).filter(t => t.length >= 4 && !/^(much|spend|should|money|spent|month|manage|afford|extra|savings|about)$/.test(t));
-  return cats.find(c => c.length >= 4 && tk.some(t => finaiFuzzyToken(t, c))) || null;
+  const r = finaiResolveCategory(finaiNluNormalize(q).text);
+  return r.cat;
 }
 function finaiCatAvg3(cat) {
   const t = new Date(), keys = [1, 2, 3].map(i => finaiLocalMonthKey(new Date(t.getFullYear(), t.getMonth() - i, 1)));
@@ -13247,7 +13237,773 @@ function finaiDidYouMean(q) {
 }
 function finaiRemember(o) { finaiCtx = Object.assign({}, finaiCtx, o); }
 
+// ══════════════════════════════════════════════════════════════════════════
+// FIN AI — ANSWER QUALITY (Phase 4)
+// Month-aware answers (partial month vs full months, total vs monthly,
+// balance vs EMI, cash vs investments), explanations, forecast assumptions,
+// honest missing-data handling and contradiction checks. All figures come from
+// the signed-in user's records via existing analysis functions; nothing here
+// guesses arithmetic and nothing writes to records.
+// ══════════════════════════════════════════════════════════════════════════
+function finaiMonthStats() {
+  const t = new Date(), pad = n => String(n).padStart(2, '0'), cur = t.getFullYear() + '-' + pad(t.getMonth() + 1), byM = {};
+  (db || []).forEach(r => { if (!r || !/^\d{4}-\d{2}/.test(String(r.date || ''))) return; const k = String(r.date).slice(0, 7), x = byM[k] || (byM[k] = { inc: 0, exp: 0 }), v = Number(r.amount) || 0; if (r.type === 'Income') x.inc += v; else if (r.type === 'Expense') x.exp += v; });
+  const full = Object.keys(byM).filter(k => k < cur).sort(), n = full.length, lastKey = full[n - 1] || null, sum = f => full.reduce((s, k) => s + byM[k][f], 0), all = Object.keys(byM);
+  return { cur: byM[cur] || { inc: 0, exp: 0 }, day: t.getDate(), fullKeys: full, n, last: lastKey ? byM[lastKey] : null, avgInc: n ? sum('inc') / n : null, avgExp: n ? sum('exp') / n : null, totalInc: all.reduce((s, k) => s + byM[k].inc, 0), totalExp: all.reduce((s, k) => s + byM[k].exp, 0), months: all.length };
+}
+const finaiQNote = t => `<span class="finai-pv-note">${t}</span>`;
+const finaiQRate = (inc, exp) => inc > 0 ? Math.round((inc - exp) / inc * 100) : null;
+const finaiQNoData = what => `I don't have any ${what} recorded yet, so I can't answer that — and I won't assume a figure. Add ${what === 'income' ? 'your salary or other income as an Income transaction (mark salary “recurring”)' : 'your transactions'} and ask again.`;
+
+function finaiIncomeAnswer() {
+  const m = finaiMonthStats(); if (!m.totalInc) return finaiQNoData('income');
+  const L = [];
+  if (m.n) L.push(`Your income is about <b>${fmt(Math.round(m.avgInc))} a month</b> (average of your last ${m.n} full month${m.n > 1 ? 's' : ''}).`);
+  else L.push(`Only this month has income recorded so far, so I can't give a monthly average yet.`);
+  L.push(`This month so far (day ${m.day}): ${m.cur.inc > 0 ? fmt(m.cur.inc) : 'nothing logged yet'}${m.last ? `; last full month: ${fmt(m.last.inc)}` : ''}.`);
+  L.push(`All recorded income to date: ${fmt(m.totalInc)} across ${m.months} month${m.months > 1 ? 's' : ''}.`);
+  finaiChatState = { lastMetric: 'income', lastCategory: null };
+  return L.join('<br>');
+}
+function finaiSpendAnswer() {
+  const m = finaiMonthStats(); if (!m.totalExp) return 'No expenses are recorded yet, so there is nothing to total. Add your spending as Expense transactions and ask again.';
+  const t = new Date(), pad = n => String(n).padStart(2, '0'), pre = t.getFullYear() + '-' + pad(t.getMonth() + 1), cat = {};
+  (db || []).forEach(r => { if (r.type === 'Expense' && String(r.date || '').startsWith(pre)) { const k = r.sub || 'Other'; cat[k] = (cat[k] || 0) + (Number(r.amount) || 0); } });
+  const top = Object.entries(cat).sort((x, y) => y[1] - x[1])[0], L = [];
+  L.push(`You've spent <b>${fmt(m.cur.exp)}</b> so far this month (day ${m.day})${top ? `; the biggest category is “${finaiEscapeHtml(top[0])}” at ${fmt(top[1])}` : ''}.`);
+  if (m.n) L.push(`A typical full month is about ${fmt(Math.round(m.avgExp))}${m.last ? ` (last full month: ${fmt(m.last.exp)})` : ''}. This month is not finished, so don't compare the totals directly.`);
+  L.push(`All recorded spending to date: ${fmt(m.totalExp)}.`);
+  finaiChatState = { lastMetric: 'spend', lastCategory: null };
+  return L.join('<br>');
+}
+function finaiSavingsRateAnswer() {
+  const m = finaiMonthStats(); if (!m.totalInc) return finaiQNoData('income');
+  const L = [], sr = (x) => { const r = finaiQRate(x.inc, x.exp); return r === null ? null : r < 0 ? `spending ${fmt(x.exp - x.inc)} more than you earned (${r}%)` : `saving ${r}% (${fmt(x.inc - x.exp)} of ${fmt(x.inc)})`; };
+  if (m.last) L.push(`Last full month you were ${sr(m.last)}.`);
+  L.push(m.cur.inc > 0 ? `So far this month you're ${sr(m.cur)} — partial, because bills and income can still land.` : `No income is logged this month yet, so this month's savings rate can't be computed.`);
+  if (m.n > 1) { const r = finaiQRate(m.avgInc, m.avgExp); if (r !== null) L.push(`Your average over ${m.n} full months is ${r}%.`); }
+  finaiChatState = { lastMetric: 'save', lastCategory: null };
+  return L.join('<br>');
+}
+function finaiDebtAnswer() {
+  const c = finaiAdvisorContext(), loans = c.loans.slice().sort((x, y) => y.bal - x.bal), L = [];
+  finaiChatState = { lastMetric: 'debt', lastCategory: null };
+  if (!loans.length && !(c.cards && c.cards.totalUsed > 0)) return 'No active loans or credit-card balances are recorded, so I see no debt. If you do have some, add it under Credit/Loans so I can include it.';
+  const bal = loans.reduce((s, l) => s + l.bal, 0), emi = loans.reduce((s, l) => s + l.emi, 0), base = c.income > 0 ? c.income : 0;
+  if (loans.length) L.push(`You owe <b>${fmt(bal)}</b> in total across ${loans.length} active loan${loans.length > 1 ? 's' : ''}, and pay <b>${fmt(emi)} a month</b> in EMIs${base ? ` (${(emi / base * 100).toFixed(0)}% of your expected monthly income)` : ''}. Balance and EMI are different things — the balance is what is left to repay.`);
+  loans.slice(0, 3).forEach(l => L.push(`• ${finaiEscapeHtml(l.name)}: ${fmt(l.bal)} left, ${fmt(l.emi)}/month${l.rate > 0 ? ', ' + l.rate + '% interest' : ', interest rate not recorded'}`));
+  const norate = loans.filter(l => !(l.rate > 0)).length; if (norate) L.push(finaiQNote(`${norate} loan${norate > 1 ? 's have' : ' has'} no interest rate recorded, so I can't rank payoff order or cost for ${norate > 1 ? 'them' : 'it'}.`));
+  if (c.cards && c.cards.totalUsed > 0) L.push(`Credit cards: ${fmt(c.cards.totalUsed)} currently used${c.cards.totalLimit > 0 ? ' of ' + fmt(c.cards.totalLimit) + ' (' + (c.cards.totalUsed / c.cards.totalLimit * 100).toFixed(0) + '%)' : ''} — tracked separately from the loans above.`);
+  return L.join('<br>');
+}
+function finaiBalanceAnswer() {
+  const c = finaiAdvisorContext(), m = finaiMonthStats(), L = [];
+  L.push(`<b>FinanceOS doesn't store a bank or cash balance, so I can't tell how much cash you hold.</b> I won't guess one.`);
+  if (m.totalInc || m.totalExp) L.push(`What I can see: recorded income minus spending so far this month is ${finaiPvMoney(m.cur.inc - m.cur.exp)} — that is a flow, not your balance.`);
+  if (!c.dq.blocking) L.push(`Forecast free cash over the next 30 days: about ${finaiPvMoney(c.free)} after bills, EMIs and typical spending.`);
+  if (c.portfolio > 0) L.push(`Investments: ${fmt(c.portfolio)} at current prices — market-linked, so I don't count it as spendable cash.`);
+  if (c.ef) L.push(`Emergency-fund goal “${finaiEscapeHtml(c.ef.name)}”: ${fmt(c.ef.saved)} saved of ${fmt(c.ef.target)}.`);
+  L.push(finaiQNote('Ask “how much can I safely spend?” for a spending figure based on your forecast.'));
+  return L.join('<br>');
+}
+
+// ── Explanations (detailed on request) ────────────────────────────────────
+function finaiExplainAnswer(metric) {
+  const m = finaiMonthStats(), c = finaiAdvisorContext(), L = [];
+  if (metric === 'savings') {
+    if (!m.totalInc) return finaiQNoData('income');
+    L.push(`<b>How your savings rate is worked out:</b> (income − spending) ÷ income, using only recorded transactions.`);
+    L.push(`This month so far: income ${fmt(m.cur.inc)}, spending ${fmt(m.cur.exp)} → ${finaiQRate(m.cur.inc, m.cur.exp) === null ? 'no income yet, so no rate' : finaiQRate(m.cur.inc, m.cur.exp) + '%'}.`);
+    if (m.last) L.push(`Last full month: income ${fmt(m.last.inc)}, spending ${fmt(m.last.exp)} → ${finaiQRate(m.last.inc, m.last.exp)}%.`);
+    L.push(finaiQNote('It can look unusually high or low early in a month, before salary or big bills are logged. Investments and loan repayments are not counted as spending here.'));
+    return L.join('<br>');
+  }
+  if (metric === 'spend') {
+    if (!m.totalExp) return 'No expenses are recorded yet, so there is nothing to explain.';
+    const a = finaiBuildAnalysis(), t = new Date(), pad = n => String(n).padStart(2, '0'), pre = t.getFullYear() + '-' + pad(t.getMonth() + 1), cat = {};
+    (db || []).forEach(r => { if (r.type === 'Expense' && String(r.date || '').startsWith(pre)) { const k = r.sub || 'Other'; cat[k] = (cat[k] || 0) + (Number(r.amount) || 0); } });
+    const rows = Object.entries(cat).sort((x, y) => y[1] - x[1]).slice(0, 4);
+    L.push(`<b>Where this month's ${fmt(m.cur.exp)} went (day ${m.day}):</b> ${rows.map(([k, v]) => finaiEscapeHtml(k) + ' ' + fmt(v) + ' (' + (v / Math.max(1, m.cur.exp) * 100).toFixed(0) + '%)').join(', ')}.`);
+    if (m.n) { const d = m.cur.exp - m.avgExp; L.push(Math.abs(d) <= m.avgExp * 0.02 ? `A typical full month is ${fmt(Math.round(m.avgExp))}, so you're right in line with it, with the month not over.` : `A typical full month is ${fmt(Math.round(m.avgExp))}, so you're ${d > 0 ? fmt(Math.round(d)) + ' above' : fmt(Math.round(-d)) + ' below'} it with the month not over.`); }
+    const sp = a.spikes.slice(0, 2); if (sp.length) L.push(`Unusual vs your own history: ${sp.map(s => finaiEscapeHtml(s.cat) + ' +' + s.pct.toFixed(0) + '%').join(', ')}.`); else L.push('No category stands out against your own history.');
+    L.push(finaiQNote('Fixed bills like rent count in full as soon as they are logged, which can make a month look high early on.'));
+    return L.join('<br>');
+  }
+  if (metric === 'income') {
+    if (!m.totalInc) return finaiQNoData('income');
+    L.push(`<b>Income</b> is what you logged as Income transactions: ${fmt(m.cur.inc)} so far this month${m.avgInc ? ', ' + fmt(Math.round(m.avgInc)) + ' on average per full month' : ''}.`);
+    L.push(`For forecasts I use ${c.incomeAssumed ? 'an estimate from your recent average, because no income is marked recurring' : 'your recurring income entries'}: ${fmt(c.income)} over 30 days.`);
+    return L.join('<br>');
+  }
+  if (metric === 'debt') return finaiDebtAnswer() + '<br>' + finaiQNote('Balance = what remains to repay. EMI = the monthly instalment. Interest is the cost of carrying the balance.');
+  if (metric === 'forecast') {
+    if (c.dq.blocking) return finaiForecastBlocked(c);
+    L.push(`<b>Free cash = income − bills − EMIs − investments − typical spending</b>, for ${finaiPvDate(c.asOf)} – ${finaiPvDate(c.windowEnd)}.`);
+    L.push(`${fmt(c.income)} − ${fmt(c.commitments)} − ${fmt(c.investments)} − ${fmt(c.variable)} = <b>${finaiPvMoney(c.free)}</b>.`);
+    L.push(finaiAssumptionsNote(c)); return L.join('<br>');
+  }
+  return null;
+}
+
+// ── Forecast guards and assumptions ───────────────────────────────────────
+function finaiForecastBlocked(c) {
+  const b = c.dq.blocking;
+  if (b === 'nodata') return 'I have no transactions to project from yet. Add your income and regular bills, then ask again.';
+  if (b === 'noincome') return 'I can’t see any income, so a projection would just show your bills as a loss — which would be misleading. Add your income (mark salary “recurring”), then ask again. I won’t assume a salary.';
+  return `Your latest record is ${c.daysSince} days old, so a projection could be badly out of date. Add your recent income and expenses, then ask again.`;
+}
+function finaiAssumptionsNote(c) {
+  const A = [`income ${fmt(c.income)}/month (${c.incomeAssumed ? 'estimated from your average' : 'from recurring entries'})`, `everyday spending ${fmt(c.variable)}/month${c.spanDays ? ' (from ' + c.spanDays + ' days of history)' : ''}`, 'only your current EMIs', 'no new purchases'];
+  const X = []; if (c.cards && c.cards.totalUsed > 0) X.push(`card spend of ${fmt(c.cards.totalUsed)} is not modelled`); if (c.undated) X.push(`${c.undated} EMI(s) have no due day`);
+  return finaiQNote(`Assumes ${A.join(', ')}.${X.length ? ' Not included: ' + X.join('; ') + '.' : ''} This is a projection, not a guarantee.`);
+}
+function finaiForecastWithNote(out) {
+  const c = finaiAdvisorContext(); if (c.dq.blocking) return finaiForecastBlocked(c);
+  return out + '<br>' + finaiAssumptionsNote(c);
+}
+
+// ── Purchase input sanity checks (clarify before a confident verdict) ─────
+function finaiPvConflicts(p) {
+  const M = x => fmt(Math.round(x)), opt = (label, q) => ({ label, q });
+  if ((p.price != null && !(p.price > 0)) || (p.emi != null && !(p.emi > 0))) return { msg: 'That amount is zero or negative — what is the real price or EMI?', options: [] };
+  if (p.method === 'emi' && p.price != null && p.down != null && p.down >= p.price) return { msg: `A down payment of ${M(p.down)} covers the whole ${M(p.price)} price, so nothing would be financed. Did you mean a smaller down payment, or paying in cash?`, options: [opt('Pay in cash', 'can i afford ' + M(p.price) + ' cash'), opt('Smaller down payment', 'can i afford ' + M(p.price) + ' on emi with ' + M(Math.round(p.price * 0.2)) + ' down')] };
+  if (p.tenure != null && (p.tenure < 1 || p.tenure > 120)) return { msg: `A ${p.tenure}-month EMI term looks unusual. Could you confirm the tenure in months (typically 3–60)?`, options: [] };
+  if (p.rate != null && (p.rate < 0 || p.rate > 60)) return { msg: `An interest rate of ${p.rate}% a year looks off. What rate were you offered?`, options: [] };
+  if (p.method === 'emi' && p.price != null && p.emi != null && p.tenure) {
+    const fin = Math.max(0, p.price - (p.down || 0)), tot = p.emi * p.tenure;
+    if (tot < fin * 0.98) return { msg: `These don't add up: ${M(p.emi)} × ${p.tenure} months is ${M(tot)}, which is less than the ${M(fin)} being financed. Which figure is wrong?`, options: [opt('Ignore the EMI amount', 'can i afford ' + M(p.price) + ' on ' + p.tenure + ' month emi'), opt('Ignore the tenure', 'can i afford ' + M(p.price) + ' with ' + M(p.emi) + ' emi')] };
+    if (tot > fin * 2) return { msg: `${M(p.emi)} × ${p.tenure} months is ${M(tot)} for a ${M(fin)} purchase — more than double. Is the EMI, tenure or price right?`, options: [opt('Ignore the EMI amount', 'can i afford ' + M(p.price) + ' on ' + p.tenure + ' month emi'), opt('Ignore the tenure', 'can i afford ' + M(p.price) + ' with ' + M(p.emi) + ' emi')] };
+  }
+  if (p.whenMonths != null && p.whenMonths > 60) return { msg: `${Math.round(p.whenMonths)} months is a long way out. Did you mean a shorter wait?`, options: [] };
+  return null;
+}
+
+// ══════════════════════════════════════════════════════════════════════════
+// FIN AI — NATURAL-LANGUAGE UNDERSTANDING LAYER (Phase 2)
+// normalise → parse amounts / period / negations / category → one intent
+// representation (IR) → ONE routing table → the existing handlers.
+// Rule-based and offline. It never does financial arithmetic itself and never
+// writes to records. No language model is involved.
+// ══════════════════════════════════════════════════════════════════════════
+let finaiLastCatAmbig = [];
+let finaiNluSeqCounted = false;
+const FINAI_NLU_SLANG = { hw: 'how', mch: 'much', mach: 'much', mnch: 'much', spnd: 'spend', spnt: 'spent', spndng: 'spending', fud: 'food', fod: 'food', mnth: 'month', mnths: 'months', mth: 'month', mths: 'months', nxt: 'next', abt: 'about', aford: 'afford', affrd: 'afford', afrd: 'afford', afoord: 'afford', u: 'you', ur: 'your', r: 'are', rn: 'now', tho: 'though', thru: 'through', nvm: 'nevermind', wat: 'what', wht: 'what', whts: 'whats', wats: 'whats', cud: 'could', shud: 'should', wud: 'would', dnt: 'dont', cnt: 'cant', cn: 'can', hv: 'have', thx: 'thanks', ty: 'thanks', dis: 'this', dat: 'that', dese: 'these', dose: 'those', wid: 'with', wen: 'when', bcoz: 'because', coz: 'because', bcz: 'because', sal: 'salary', sallary: 'salary', salry: 'salary', abtt: 'about', pmt: 'payment', yr: 'year', yrs: 'years', wk: 'week', wks: 'weeks', xpense: 'expense', xpenses: 'expenses', cuz: 'because' };
+const FINAI_NLU_FILLER = new Set(['bro', 'bruh', 'dude', 'yaar', 'bhai', 'bhaiya', 'sir', 'lol', 'lmao', 'lmfao', 'haha', 'hehe', 'pls', 'plz', 'plss', 'please', 'kindly', 'um', 'umm', 'uh', 'hmm', 'hm', 'btw', 'basically', 'actually', 'kya', 'hai', 'hain', 'toh', 'na', 'ji', 'yar', 'bud', 'buddy', 'man']);
+const FINAI_NLU_HINGLISH = [[/\bis mahine\b/g, 'this month'], [/\bpichle mahine\b/g, 'last month'], [/\bpichhle mahine\b/g, 'last month'], [/\bagle mahine\b/g, 'next month'], [/\bkitna kharcha\b/g, 'how much spend'], [/\bkitna kharch\b/g, 'how much spend'], [/\bkitna\b/g, 'how much'], [/\b(?:mera|meri|mere)\b/g, 'my'], [/\bkharcha\b|\bkharch\b/g, 'spend'], [/\bbachat\b/g, 'savings'], [/\b(?:karza|karz|udhaar|udhar)\b/g, 'loan'], [/\b(?:paise|paisa)\b/g, 'money'], [/\b(?:mahina|mahine)\b/g, 'month'], [/\bnahi\b|\bnhi\b/g, 'nahi']];
+const FINAI_NLU_VOCAB = ['afford', 'spend', 'spent', 'spending', 'expense', 'expenses', 'month', 'months', 'income', 'salary', 'savings', 'saving', 'forecast', 'compare', 'purchase', 'groceries', 'medical', 'maintenance', 'balance', 'outstanding', 'interest', 'monthly', 'every', 'extra', 'towards', 'prepay', 'investment', 'portfolio', 'subscription', 'subscriptions', 'upcoming', 'budget', 'goals', 'emergency', 'loan', 'loans', 'credit', 'because', 'financially', 'instalment', 'installment', 'payment', 'laptop', 'phone', 'wedding', 'insurance', 'vacation', 'restaurant', 'transport', 'electricity', 'utilities', 'shopping', 'entertainment', 'education', 'something', 'anything', 'everything'];
+const FINAI_NLU_STOP = new Set(['the', 'and', 'for', 'you', 'how', 'much', 'did', 'what', 'this', 'that', 'with', 'about', 'have', 'from', 'your', 'are', 'can', 'any', 'all', 'was', 'were', 'will', 'would', 'should', 'could', 'last', 'next', 'month', 'spend', 'spent', 'spending', 'money', 'total', 'show', 'tell', 'give', 'make', 'same', 'thing', 'then', 'than', 'more', 'less', 'there', 'their', 'them', 'they', 'got', 'get', 'left', 'now', 'today', 'bad', 'good', 'out', 'too', 'just', 'like', 'want', 'need', 'cheaper', 'monthly', 'once', 'every', 'extra', 'loan', 'loans', 'emi', 'debt', 'afford', 'buy', 'income', 'salary', 'savings', 'save', 'goals', 'goal', 'forecast', 'compare', 'week', 'year', 'day', 'days']);
+const FINAI_NLU_GENERIC = new Set(['bills', 'bill', 'home', 'other', 'others', 'general', 'misc', 'miscellaneous', 'card', 'cards', 'payment', 'payments', 'expenses', 'expense', 'charges', 'personal', 'monthly', 'fees', 'fee', 'services', 'service']);
+
+// ── Safer fuzzy matching (replaces the old substring + edit-distance rule) ─
+function finaiStemWord(w) {
+  w = String(w || '').toLowerCase();
+  if (w.length > 4 && /ies$/.test(w)) return w.slice(0, -3) + 'y';
+  if (w.length > 4 && /(ches|shes|sses|xes)$/.test(w)) return w.slice(0, -2);
+  if (w.length > 3 && /s$/.test(w) && !/ss$/.test(w)) return w.slice(0, -1);
+  if (w.length > 5 && /ing$/.test(w)) return w.slice(0, -3);
+  return w;
+}
+function finaiSafeFuzzy(tok, kw) {
+  tok = String(tok || '').toLowerCase(); kw = String(kw || '').toLowerCase();
+  if (!tok || !kw) return false;
+  if (tok === kw) return true;
+  const a = finaiStemWord(tok), b = finaiStemWord(kw);
+  if (a === b) return true;
+  if (b.length < 5 || a.length < 4) return false;            // short words: exact (or plural) only
+  if (a[0] !== b[0] && !(a[0] === b[1] && a[1] === b[0])) return false;   // same first letter (or a swapped pair)
+  const max = b.length <= 5 ? 1 : 2;
+  if (Math.abs(a.length - b.length) > max) return false;
+  if (b.length >= 6 && a.length >= 4 && b.startsWith(a) && a.length >= Math.ceil(b.length * 0.7)) return true;   // truncation: "subscr…", "invest"
+  return finaiLevenshtein(a, b) <= max;
+}
+
+// ── A. Normalisation ──────────────────────────────────────────────────────
+function finaiNluNormalize(q) {
+  const notes = []; let s = String(q == null ? '' : q).toLowerCase().replace(/[’‘`´]/g, "'");
+  s = s.replace(/\b(\w+)'(t|s|re|ve|ll|d|m)\b/g, (m, a, b) => b === 't' ? a + 't' : a);
+  s = s.replace(/([a-z])\1{2,}/g, '$1');
+  s = s.replace(/\brs\.?\s*(?=\d)/g, '₹').replace(/\binr\s*(?=\d)/g, '₹').replace(/\brupees?\s*(?=\d)/g, '₹');
+  s = s.replace(/(\d[\d,]*(?:\.\d+)?\s*(?:k|lakhs?|lacs?|l|cr|crores?|thousand)?)\s*(?:rs\.?|rupees?|inr|\/-)(?![a-z])/g, '₹$1');
+  s = s.replace(/(\d)\s+(k|l|lakhs?|lacs?|cr|crores?|thousand)\b/g, '$1$2');
+  FINAI_NLU_HINGLISH.forEach(([re, to]) => { s = s.replace(re, to); });
+  let toks = s.match(/₹|\$|-?\d[\d,]*(?:\.\d+)?[a-z]*|[a-z]+|[,;.!?]|%|\//g) || [];
+  const data = new Set(); try { (db || []).forEach(r => String(r.sub || '').toLowerCase().split(/[^a-z0-9]+/).forEach(w => w.length >= 5 && data.add(w))); } catch (e) {}
+  const vocab = new Set(FINAI_NLU_VOCAB.concat([...data]));
+  const out = [];
+  toks.forEach((t, i) => {
+    if (/^[a-z]+$/.test(t)) {
+      if (FINAI_NLU_FILLER.has(t)) { if (!notes.includes(t + '→∅')) notes.push(t + '→∅'); return; }
+      if (t === 'cc') { const nx = toks[i + 1] || '', pv = toks[i - 1] || ''; if (/^(bill|bills|balance|payment|payments|limit|dues|due|outstanding|utilization|utilisation)$/.test(nx) || /^(on|by|using|via|with|my|the|pay|paying|paid)$/.test(pv)) { notes.push('cc→credit card'); out.push('credit', 'card'); return; } }
+      if (FINAI_NLU_SLANG[t] !== undefined) { const r = FINAI_NLU_SLANG[t]; if (r) { notes.push(t + '→' + r); out.push(r); } return; }
+      if (t.length >= 5 && !vocab.has(t)) { const hit = [...vocab].find(v => finaiSafeFuzzy(t, v)); if (hit) { notes.push(t + '→' + hit); out.push(hit); return; } }
+    }
+    out.push(t);
+  });
+  let text = out.join(' ').replace(/\s+([,;.!?%])/g, '$1').replace(/₹\s+/g, '₹').replace(/\$\s+/g, '$').replace(/\s+/g, ' ').trim();
+  return { raw: String(q == null ? '' : q), text, tokens: out, notes };
+}
+
+// ── B. Amounts, frequency, negation, period ──────────────────────────────
+function finaiNluAmounts(text) {
+  const res = [], flags = [], re = /(₹|\$)?(-)?(\d[\d,]*(?:\.\d+)?)(k|thousand|lakhs?|lacs?|l|cr|crores?|m|mn|million)?(?![a-z0-9])/g; let m;
+  while ((m = re.exec(text))) {
+    const after = text.slice(re.lastIndex, re.lastIndex + 14), before = text.slice(Math.max(0, m.index - 14), m.index), numTxt = m[3];
+    if (/^\s*(?:%|percent|(?:months?|mos?|mths?|years?|yrs?|weeks?|wks?|days?|st|nd|rd|th|x|times|emis?)\b)/.test(after)) continue;
+    if (/\.$/.test(before) && !m[1]) { /* part of a decimal fragment */ }
+    const valid = /^\d+(\.\d+)?$/.test(numTxt) || /^\d{1,3}(,\d{3})+(\.\d+)?$/.test(numTxt) || /^\d{1,2}(,\d{2})*,\d{3}(\.\d+)?$/.test(numTxt);
+    if (!valid) { flags.push('malformed_amount'); continue; }
+    let v = parseFloat(numTxt.replace(/,/g, '')), u = (m[4] || '').toLowerCase();
+    if (m[2]) flags.push('negative_amount');
+    if (u === 'k' || u === 'thousand') v *= 1e3; else if (u[0] === 'l') v *= 1e5; else if (u === 'cr' || u.startsWith('crore')) v *= 1e7;
+    else if (u === 'm' || u === 'mn' || u === 'million') flags.push('ambiguous_unit');
+    if (/^\s*(k|thousand|lakhs?|lacs?|cr|crores?)\b/.test(after) && u) flags.push('conflicting_units');
+    if (v === 0) flags.push('zero_amount');
+    res.push({ value: v, unit: u, start: m.index, end: re.lastIndex, sym: m[1] || '', before, after });
+  }
+  for (let i = res.length - 2; i >= 0; i--) { const a = res[i], b = res[i + 1]; if (/^(lakh|lac|cr|crore)/.test(a.unit) && /^(k|thousand|lakh|lac)/.test(b.unit) && /^\s*$/.test(a.after.slice(0, 0)) && b.start - a.end <= 2 && b.value < a.value) { a.value += b.value; a.end = b.end; res.splice(i + 1, 1); const k = flags.indexOf('conflicting_units'); if (k > -1) flags.splice(k, 1); } }
+  return { list: res, flags };
+}
+function finaiNluNegations(text) {
+  const toks = (text.match(/[a-z]+|[,;.!?]/g) || []), neg = new Set(), NEG = /^(not|no|dont|doesnt|didnt|never|without|wont|wouldnt|nahi|nope|except|skip)$/;
+  const CON = { emi: 'emi', emis: 'emi', instalment: 'emi', installment: 'emi', instalments: 'emi', installments: 'emi', finance: 'emi', financing: 'emi', card: 'credit_card', cards: 'credit_card', cash: 'cash', upi: 'cash', debit: 'cash', loan: 'loan', loans: 'loan', borrow: 'loan', borrowing: 'loan', buy: 'purchase', buying: 'purchase', purchase: 'purchase', purchasing: 'purchase', order: 'purchase', get: 'purchase', take: 'purchase', wait: 'wait', waiting: 'wait', later: 'wait', once: 'one_time', onetime: 'one_time', lumpsum: 'one_time', monthly: 'recurring', recurring: 'recurring', now: 'now', today: 'now' };
+  const concept = (i) => { const t = toks[i]; if (t === 'one' && toks[i + 1] === 'time') return 'one_time'; if (t === 'every' && toks[i + 1] === 'month') return 'recurring'; if (t === 'per' && toks[i + 1] === 'month') return 'recurring'; if (t === 'instead' && toks[i + 1] === 'of') return null; return CON[t] || null; };
+  toks.forEach((t, i) => {
+    if (t === 'instead' && toks[i + 1] === 'of') { for (let j = i + 2; j < Math.min(toks.length, i + 5); j++) { if (/^[,;.!?]$/.test(toks[j])) break; const c = concept(j); if (c) neg.add(c); } return; }
+    if (!NEG.test(t)) return;
+    if (t === 'nahi') { for (let j = i - 1; j >= Math.max(0, i - 3); j--) { if (/^[,;.!?]$/.test(toks[j])) break; const c = concept(j); if (c) neg.add(c); } }
+    let found = false;
+    for (let j = i + 1; j <= Math.min(toks.length - 1, i + 4); j++) {
+      if (/^[,;.!?]$/.test(toks[j]) || /^(but|and)$/.test(toks[j])) break;
+      if (found && /^(on|in|via|using|with|by|through|for|at|to|from)$/.test(toks[j])) break;
+      if (j > i + 1 && /^(i|you|it|we|they|am|is|are)$/.test(toks[j])) { continue; }
+      const c = concept(j); if (c) { neg.add(c); found = true; }
+    }
+  });
+  return neg;
+}
+function finaiNluFrequency(text, neg, hasAmt) {
+  const rec = /\b(monthly|every month|each month|per month|a month|\/month|every mth|pm|p\.m\.|per mnth|recurring|regularly)\b/.test(text) || /\d(?:k|l)?\s*\/\s*mo\b/.test(text);
+  const one = /\b(once|one time|onetime|lump ?sum|in one go|single payment|just once|only once|one shot)\b/.test(text);
+  const r = rec && !neg.has('recurring'), o = one && !neg.has('one_time');
+  if (r && o) return 'conflict';
+  if (r) return 'recurring';
+  if (o) return 'one_time';
+  if (neg.has('one_time') && !neg.has('recurring')) return 'recurring';
+  if (neg.has('recurring') && !neg.has('one_time')) return 'one_time';
+  return null;
+}
+function finaiNluPeriod(text) {
+  const w = Object.keys(FINAI_NUMW).join('|'), N = x => FINAI_NUMW[x] || parseInt(x, 10);
+  const t0 = new Date(); t0.setHours(0, 0, 0, 0); const iso = d => finaiLocalIso ? finaiLocalIso(d) : d.toISOString().slice(0, 10);
+  const day = (d, n) => new Date(d.getFullYear(), d.getMonth(), d.getDate() + n);
+  let m;
+  if (/\b(today)\b/.test(text) && !/\b(pay|put|buy)\b.*\btoday\b/.test(text)) return { kind: 'today', from: iso(t0), to: iso(t0), label: 'today', dir: 'back' };
+  if (/\byesterday\b/.test(text)) return { kind: 'yesterday', from: iso(day(t0, -1)), to: iso(day(t0, -1)), label: 'yesterday', dir: 'back' };
+  if (/\b(this|current) week\b/.test(text)) { const s = day(t0, -((t0.getDay() + 6) % 7)); return { kind: 'this_week', from: iso(s), to: iso(t0), label: 'this week so far', dir: 'back' }; }
+  if (/\b(last|previous|past) week\b/.test(text)) { const s = day(t0, -((t0.getDay() + 6) % 7) - 7); return { kind: 'last_week', from: iso(s), to: iso(day(s, 6)), label: 'last week', dir: 'back' }; }
+  if (/\b(next|coming) week\b/.test(text)) return { kind: 'next_week', label: 'next week', dir: 'ahead', months: 0 };
+  if (/\b(last|previous|prev|past) month\b/.test(text)) return { kind: 'last_month', label: 'last month', dir: 'back', months: 1 };
+  if (/\b(this|current) month\b|\bmonth so far\b/.test(text)) return { kind: 'this_month', label: 'this month', dir: 'back', months: 0 };
+  if (/\bnext month\b/.test(text)) return { kind: 'next_month', label: 'next month', dir: 'ahead', months: 1 };
+  if ((m = text.match(new RegExp('\\b(?:last|past|previous)\\s+(\\d+|' + w + ')\\s*(day|week|month)s?\\b')))) { const n = N(m[1]), u = m[2]; if (u === 'month') return { kind: 'last_n_months', months: n, label: 'the last ' + n + ' months', dir: 'back' }; const d = u === 'day' ? n : n * 7; return { kind: 'last_n_days', from: iso(day(t0, -d + 1)), to: iso(t0), label: 'the last ' + d + ' days', dir: 'back' }; }
+  if ((m = text.match(new RegExp('\\b(?:next|coming|in)\\s+(\\d+|' + w + ')\\s*(month|year|quarter)s?\\b')))) { const n = N(m[1]), mo = m[2] === 'month' ? n : m[2] === 'quarter' ? n * 3 : n * 12; return { kind: 'ahead_n_months', months: mo, label: 'the next ' + mo + ' months', dir: 'ahead' }; }
+  if ((m = text.match(new RegExp('\\b(\\d+|' + w + ')\\s*(month|year|quarter)s?\\b')))) { const n = N(m[1]), mo = m[2] === 'month' ? n : m[2] === 'quarter' ? n * 3 : n * 12; return { kind: 'n_months', months: mo, label: mo + ' months', dir: 'ahead' }; }
+  if (/\b(this|current) year\b|\bytd\b/.test(text)) return { kind: 'this_year', from: t0.getFullYear() + '-01-01', to: iso(t0), label: 'this year so far', dir: 'back' };
+  if (/\b(last|previous) year\b/.test(text)) return { kind: 'last_year', from: (t0.getFullYear() - 1) + '-01-01', to: (t0.getFullYear() - 1) + '-12-31', label: 'last year', dir: 'back' };
+  if (/\bhalf year\b|\bsix months\b/.test(text)) return { kind: 'n_months', months: 6, label: '6 months', dir: 'ahead' };
+  return null;
+}
+
+// ── C. Category resolver (dynamic, multiword, ambiguity-aware) ───────────
+function finaiResolveCategory(text) {
+  const cats = [...new Set((db || []).filter(r => r.type === 'Expense').map(r => String(r.sub || '').toLowerCase().trim()).filter(c => c.length >= 3))];
+  const words = (text.match(/[a-z]+/g) || []).filter(w => w.length >= 3 && !FINAI_NLU_STOP.has(w));
+  const scored = [];
+  cats.forEach(cat => {
+    const cw = cat.split(/[^a-z0-9]+/).filter(Boolean), hits = cw.map(x => { let best = 0; words.forEach(t => { if (finaiStemWord(t) === finaiStemWord(x)) best = Math.max(best, 1); else if (x.length >= 5 && finaiSafeFuzzy(t, x)) best = Math.max(best, 0.85); }); return best; });
+    const matched = hits.filter(h => h > 0).length; if (!matched) return;
+    const phrase = new RegExp('\\b' + cat.replace(/[^a-z0-9 ]/g, ' ').replace(/\s+/g, '\\s+') + '(s|es)?\\b').test(text);
+    let conf;
+    if (matched === cw.length) conf = phrase ? 1 : (Math.min(...hits) >= 1 ? 0.95 : 0.88);
+    else { const dist = cw.filter((x, i) => hits[i] > 0 && !FINAI_NLU_GENERIC.has(x) && x.length >= 4); conf = dist.length && hits.every(h => h === 0 || h === 1) ? 0.8 : 0.45; }
+    if (cw.length === 1 && cat.length <= 3 && conf < 1) conf = 0;
+    if (conf > 0) scored.push({ cat, conf });
+  });
+  scored.sort((a, b) => b.conf - a.conf);
+  const top = scored[0]; if (!top) return { cat: null, conf: 0, candidates: [], ambiguous: false };
+  const near = scored.filter(s => s.conf >= top.conf - 0.1 && s.conf >= 0.45);
+  if (near.length > 1 && !(top.conf === 1 && near[1].conf < 1)) return { cat: null, conf: top.conf, candidates: near.slice(0, 4).map(s => s.cat), ambiguous: true };
+  if (top.conf < 0.8) return { cat: null, conf: top.conf, candidates: [top.cat], ambiguous: false, probable: top.cat };
+  return { cat: top.cat, conf: top.conf, candidates: [top.cat], ambiguous: false };
+}
+
+// ── D. Intent representation + classifier ────────────────────────────────
+// ── Structured conversation state (Phase 3) ──────────────────────────────
+// One object owns everything the assistant remembers between messages:
+//   owner       – which signed-in account this conversation belongs to
+//   topic/params– what the last answer was about + only the parameters that topic uses
+//   scenario    – the active purchase scenario (same object as finaiPurchaseCtx)
+//   constraints – persistent user conditions, e.g. { noEmi: true }
+//   pending     – a clarification we asked and are waiting on
+// Rules: a new topic starts with empty params; a follow-up changes only what it
+// states; state expires after FINAI_CONV_TTL_TURNS messages or 30 idle minutes;
+// a different account always starts from nothing.
+const FINAI_CONV_TTL_TURNS = 6, FINAI_CONV_TTL_MS = 30 * 60 * 1000;
+function finaiConvFresh() { return { owner: null, seq: 0, at: 0, topic: null, topicSeq: 0, prevTopic: null, params: {}, scenario: null, constraints: {}, pending: null, sig: null }; }
+let finaiConv = finaiConvFresh();
+let finaiNluCurIR = null;
+function finaiConvOwner() { try { const u = JSON.parse(localStorage.getItem('fos_current_user') || '{}'); return String(u.cloudUserId || u.identifier || '').toLowerCase() || 'anon'; } catch (e) { return 'anon'; } }
+function finaiConvClear() {   // drop topic, scenario, constraints and the legacy stores, keep owner/seq
+  const o = finaiConv.owner, q = finaiConv.seq;
+  finaiConv = Object.assign(finaiConvFresh(), { owner: o, seq: q, at: Date.now() });
+  try { finaiPurchaseCtx = null; finaiCtx = { amount: null, category: null, monthly: false, intent: null, derived: false }; finaiSlots = { intent: null }; finaiChatState = { lastMetric: null, lastCategory: null }; finaiLastCatAmbig = []; } catch (e) {}
+}
+function finaiConvGuard() {   // runs before every message
+  const o = finaiConvOwner();
+  if (finaiConv.owner !== null && finaiConv.owner !== o) { finaiResetConversation(); finaiQSeq = 1; finaiNluSeqCounted = true; }
+  finaiConv.owner = o;
+  if (finaiConv.at && Date.now() - finaiConv.at > FINAI_CONV_TTL_MS) finaiConvClear();
+  finaiConv.seq++; finaiConv.at = Date.now();
+}
+function finaiNluSetLast(topic, params) {
+  const c = finaiConv;
+  if (c.topic !== topic) { c.prevTopic = c.topic; c.params = {}; }
+  c.topic = topic; c.topicSeq = c.seq; c.params = Object.assign({}, c.params, params || {}); c.sig = finaiDataSig();
+  c.scenario = finaiPurchaseCtx;
+}
+function finaiNluPrev() { const c = finaiConv; return c.topic && (c.seq - c.topicSeq) <= FINAI_CONV_TTL_TURNS ? c : null; }
+const FINAI_NLU_TOPIC_RE = /\b(loan|loans|debt|debts|emi|emis|spend|spending|income|salary|savings|goal|goals|invest|investment|investments|forecast|subscription|subscriptions|portfolio|balance|budget|insurance|afford|buy|purchase|compare|outlook)\b/;
+function finaiUnderstand(q) {
+  const nz = finaiNluNormalize(q);
+  let s = nz.text, act = 'info', switched = false;
+  const ir = { raw: nz.raw, text: s, notes: nz.notes, act, intent: 'unknown', secondary: null, metric: null, category: null, categoryCandidates: [], amount: null, amountFrequency: null, amounts: [], currency: 'configured', period: null, purchase: null, negated: [], reference: null, confidence: 0, needsClarification: false, clarification: null, flags: [] };
+  if (!s) { ir.intent = nz.raw.trim() ? 'smalltalk' : 'empty'; ir.confidence = 1; return ir; }
+  let m;
+  if ((m = s.match(/^(nevermind|never mind|forget (?:about )?(?:it|that|this)|ignore (?:that|it)|scratch that|start over|new question|different question|something else|cancel that|lets talk about)[\s,.;:!-]*/))) {
+    const rest = s.slice(m[0].length).trim();
+    if (!rest) { ir.intent = 'reset'; ir.act = 'switch'; ir.confidence = 1; return ir; }
+    const probe = finaiResolveCategory(rest);
+    if (FINAI_NLU_TOPIC_RE.test(rest) || probe.cat) { act = 'switch'; switched = true; } else act = 'correct';
+    s = rest;
+  } else if ((m = s.match(/^(no|nope|nah|wrong|i meant|sorry|wait no|not that|not what i)\b[\s,.;:!-]*/)) && s.length > m[0].length) { act = 'correct'; s = s.slice(m[0].length).trim(); }
+  const neg = finaiNluNegations(s), am = finaiNluAmounts(s), period = finaiNluPeriod(s), cat = finaiResolveCategory(s);
+  const has = re => re.test(s);
+  ir.text = s; ir.negated = [...neg]; ir.amounts = am.list.map(a => ({ value: a.value, unit: a.unit })); ir.flags = am.flags.slice(); ir.period = period;
+  const sym = (s.match(/[$₹]/) || [])[0]; if (sym) ir.currency = sym === '$' ? 'USD' : 'INR';
+  const freq = finaiNluFrequency(s, neg, am.list.length > 0); ir.amountFrequency = freq === 'conflict' ? null : freq; if (freq === 'conflict') ir.flags.push('frequency_conflict');
+  const purchase = finaiParsePurchase(s); ir.purchase = purchase;
+  ir.amount = purchase.price != null ? purchase.price : purchase.emi != null ? purchase.emi : (am.list[0] ? am.list[0].value : null);
+  ir.category = cat.cat; ir.categoryCandidates = cat.candidates || [];
+  if (/\bnot\b|\bnahi\b|\bdont\b|\bwithout\b/.test(s) === false && /\binstead\b/.test(s) === false) { /* no negation */ }
+  const refText = s.replace(/\b(this|that) (month|week|year|time|mnth)\b/g, ' ');
+  const pron = /\b(it|that|those|these|same|same thing|the same)\b|\bthis\b/.test(refText);
+  const lead = /^(and|also|but|what about|how about|make it|change it|same thing|same|instead|then|or|what if|how bout)\b/.test(s);
+  ir.reference = pron || lead ? { pronoun: pron, lead } : null;
+  const hyp = has(/\b(what if|if i|suppose|say i|lets say|assuming|in case)\b/), cmp = has(/\b(compare|comparison|versus|vs|difference|diff)\b/);
+  ir.act = act !== 'info' ? act : cmp ? 'compare' : hyp ? 'hypothetical' : lead || (pron && !has(/\b(how much|what is|show|tell)\b/)) ? 'modify' : has(/^(why|explain|how come|elaborate)\b|\bwhy\b/) ? 'explain' : has(/\b(should i|what should i|advice|suggest|recommend|better to|worth)\b/) ? 'recommend' : 'info';
+  const topicWord = FINAI_NLU_TOPIC_RE.test(s) || !!cat.cat || has(/\b(phone|laptop|tv|fridge|bike|car|watch|camera|tablet|trip|vacation)\b/);
+  const set = (intent, conf, extra) => { ir.intent = intent; ir.confidence = conf; return Object.assign(ir, extra || {}), ir; };
+  const spendCue = has(/\b(spend|spent|spending|expense|expenses|paid|cost|bought)\b/), pastSpend = has(/\b(spent|paid|bought)\b/);
+  const purchCue = has(/\b(afford|buy|buying|purchase|purchasing|upgrade|replace|order|splurge|treat myself)\b|\bget (a|an|the|this|that|new)\b|\b(add|take|taking|start)\b.*\b(new )?(emi|loan|instalment|installment)s?\b|\bnew emi\b/) || (has(/\bspend\b.*\bon\b/) && !cat.cat && !cat.ambiguous && !cat.probable && !pastSpend && !has(/\bhow much\b|\bdid i\b|\bhave i\b/));
+  const debtPay = has(/\b(pay|paying|prepay|put|throw|add|clear|repay|towards?|pour)\b/) && has(/\b(loan|loans|debt|emi|emis|card|outstanding|borrow|extra|prepay|lump|towards?)\b/);
+  const moneyLeft = am.list.length > 0 && has(/\b(left|remaining|spare|in hand|available|leftover)\b/);
+  // help / self-test
+  if (has(/^(run )?(the )?(fin ?ai )?self[- ]?test$/)) return set('selftest', 1);
+  if (has(/^(help|help me|what can (you|i)( do| ask| answer)?|what do you do|what can you help with|examples?|how does this work)[ ?.!]*$/)) return set('help', 1);
+  // reset / small talk
+  if (has(/^(hi|hey|hello|hii|yo|sup|good (morning|evening|afternoon))( there)?[ .!?]*$/)) return set('smalltalk', 1, { metric: 'greeting' });
+  if (has(/^(thanks|thank you|ok|okay|cool|great|got it|nice|k|fine|alright)[ .!?]*$/)) return set('smalltalk', 1, { metric: 'ack' });
+  // negated purchase ("what if i dont buy it") — never a buy instruction
+  if (neg.has('purchase') && has(/\b(buy|purchase|get|take|order)\b/) && !has(/\bshould i\b|\bcan i\b/)) return set('purchase_skip', 0.9);
+  // amount hygiene — clarify only when it changes the answer
+  if ((ir.flags.includes('malformed_amount') || ir.flags.includes('negative_amount') || ir.flags.includes('ambiguous_unit') || ir.flags.includes('conflicting_units')) && (purchCue || debtPay || has(/\b(save|find|cut|spent|spend|manage|left)\b/))) {
+    const msg = ir.flags.includes('ambiguous_unit') ? 'I’m not sure what “m” means in that amount — million, or months? Please write it as 30k, 5 lakh or 2 crore.' : ir.flags.includes('conflicting_units') ? 'That amount has two units in a row (like “30k lakh”). Could you retype it, e.g. 30k or 3 lakh?' : ir.flags.includes('negative_amount') ? 'An amount can’t be negative. Did you mean a positive figure? Please retype it, e.g. 5k.' : 'I couldn’t read that amount. Please retype it, e.g. 30000, 30k or 3 lakh.';
+    return set('clarify', 0.2, { needsClarification: true, clarification: { msg, options: [] } });
+  }
+  if (ir.flags.includes('frequency_conflict') && am.list.length) return set('clarify', 0.3, { needsClarification: true, clarification: { msg: 'You mentioned both “once” and “every month” — which is it for ' + fmt(am.list[0].value) + '?', options: [{ label: 'One time', q: s.replace(/\b(monthly|every month|each month|per month)\b/g, '').trim() + ' once' }, { label: 'Every month', q: s.replace(/\b(once|one time|lump ?sum)\b/g, '').trim() + ' every month' }] } });
+  // mixed: purchase vs debt prepayment
+  if (purchCue && debtPay && has(/\b(or|vs|versus|first|instead)\b/)) return set('purchase_vs_debt', 0.8, { secondary: 'debt_extra' });
+  if (purchCue && debtPay && am.list.length) return set('clarify', 0.4, { needsClarification: true, clarification: { msg: 'That mixes a purchase and a loan payment. Which should I check first?', options: [{ label: 'Check the purchase', q: 'can i afford ' + fmt(ir.amount) }, { label: 'Check the loan payment', q: 'pay ' + fmt(ir.amount) + ' extra once' }] } });
+  // financial health / pressure / priorities / safe spend
+  if (has(/\bam i (cooked|doomed|broke|screwed|in trouble|ok|okay|fine|safe|stable|financially (ok|okay|fine|stable|safe))\b|\bhow am i doing\b|\bhow (are|is) my (finances|money)\b|\bfinancial (health|situation|status)\b|\bcooked\b/)) return set('financial_health', 0.85);
+  if (has(/\b(how much (money|cash) (do )?i (have|got)|my (bank |cash |account )?balance|cash (in hand|balance|on hand)|how much is in my (bank|account)|net worth)\b/) && !has(/\b(loan|debt|card|outstanding|emi)\b/)) return set('balance_cash', 0.9);
+  const explainCue = has(/\bwhy\b|\bexplain\b|how (is|are|was|were|do you|did you) .*(calculated|computed|worked out|work out)|\bbreak (it )?down\b|what makes up|whats behind/);
+  if (explainCue && !purchCue) {
+    const em = has(/\b(forecast|outlook|free cash|safe to spend|projection)\b/) ? 'forecast' : has(/\b(sav(e|ing|ings))\b/) ? 'savings' : has(/\b(income|salary|earn|earned)\b/) ? 'income' : has(/\b(debt|loan|loans|emi|emis)\b/) ? 'debt' : has(/\b(spend|spending|spent|expense|expenses)\b/) ? 'spend' : null;
+    if (em) return set('explain_' + em, 0.85, { metric: em });
+    return set('explain_prev', 0.6);
+  }
+  if (has(/\bsafe(ly)?\b.*\bspend\b|\bspend\b.*\bsafe(ly)?\b|\bhow much can i (safely )?spend\b/) && !am.list.length) return set('safe_spend', 0.9);
+  if (moneyLeft && has(/\b(what|where|how|should|advice|use|put|do)\b/)) return set('surplus_advice', 0.85, { amount: am.list[0].value });
+  if (has(/\bpressure\b|whats (hurting|draining|eating)|where is my money going|why am i (short|broke)/)) return set('pressure', 0.85);
+  if (has(/\bprioriti[sz]e\b|what should i do (first|next)|what (do i do|to do) (first|next)|where should i start|what next\b/) && !(has(/\b(debt|loan|card|emi)s?\b/) && !has(/financ|money|first instead/))) return set('priorities', 0.85);
+  if (has(/\b(repay|pay (off|down)|clear)\b.*\b(debt|loan|card)\b.*\b(or|vs|versus|first)\b|\b(save|invest)\b.*\bor\b.*\b(repay|pay off)|\b(repay|pay off)\b.*\bor\b.*\b(save|invest)/) && !purchCue) return set('repay_vs_save', 0.85);
+  if (has(/\b(add|new|take|taking)\b.*\bemi\b/) && !am.list.length) return set('emi_room', 0.8);
+  if (has(/\bhow (can|do) i save more\b|\bsave more\b/) && !am.list.length) return set('save_more', 0.85);
+  // purchase affordability
+  if (purchCue && !has(/\b(pay|prepay)\b.*\b(extra|more)\b/)) {
+    const hasItem = purchase.price != null || purchase.emi != null || !!purchase.product;
+    return set('purchase_affordability', hasItem || ir.reference ? 0.9 : 0.5, { metric: 'affordability' });
+  }
+  // debt prepayment (monthly vs once is explicit, never guessed)
+  if (debtPay && !purchCue && !(!am.list.length && has(/\b(first|priority|order|which)\b/)) && (am.list.length || has(/\b(extra|prepay|lump)\b/))) {
+    if (!am.list.length) return set('clarify', 0.4, { needsClarification: true, clarification: { fill: true, msg: 'How much extra would you like to pay?', options: [{ label: '₹5,000 every month', q: 'pay 5k extra every month' }, { label: '₹10,000 once', q: 'put 10k once towards my loan' }] } });
+    return set('debt_extra', 0.9, { amount: am.list[0].value });
+  }
+  // compare periods
+  if ((cmp || has(/\b(more|less|higher|lower|up|down)\b.*\bthan\b/)) && (period || has(/\b(month|months)\b/))) return set('compare_periods', 0.85, { metric: has(/\b(income|earn|earned|earning|salary)\b/) ? 'income' : has(/\b(save|saving|savings)\b/) ? 'save' : spendCue ? 'spend' : null });
+  // outlook (forecast) vs purchase
+  if (period && period.dir === 'ahead' && period.months >= 1 && has(/\b(look|outlook|ahead|project|projection|forecast|will|happen|end up|future)\b/) && !has(/\bafford\b/)) return set('outlook', 0.85, { metric: 'outlook' });
+  if (am.list.length && has(/\b(find|free|squeeze|cut|trim|reduce|save|saving|savings|spare)\b/) && !has(/\b(afford|buy|purchase|extra|pay|goals?)\b/) && !moneyLeft) return set('find_savings', 0.85, { amount: am.list[0].value });
+  // "is that bad" / "can i manage 5k" judgement
+  const judgeCue = (has(/\b(bad|too much|too high|ok|okay|fine|normal|high|a lot|reasonable|worth it|too less|alright)\b/) && (spendCue || has(/\bis (that|it|this)\b/))) || (has(/\bshould i\b/) && spendCue && (am.list.length > 0 || !!cat.cat));
+  const manageCue = has(/\b(can i manage|will i manage|able to manage|can i handle|should i spend|is it safe|manage)\b/);
+  if ((judgeCue || manageCue) && (am.list.length || cat.cat)) return set('judge_spend', 0.85, { amount: am.list.length ? am.list[0].value : null, metric: 'judge' });
+  if (manageCue || (judgeCue && !am.list.length)) return set('judge_unspecified', 0.4, { needsClarification: !ir.reference, clarification: { fill: true, msg: 'Manage what? Give me an amount or a category — for example “can i manage 5k” or “is my dining spend too much?”', options: [{ label: 'How much can I safely spend?', q: 'how much can i safely spend' }, { label: 'What is due soon?', q: 'what is my 30 day forecast' }] } });
+  // category spend (including ambiguous / low-confidence categories)
+  const incomeCue = has(/\b(income|earn|earned|earning|salary|paycheck)\b/);
+  if (cat.ambiguous && (spendCue || has(/\bhow much\b/) || !topicWord)) return set('clarify_category', 0.4, { needsClarification: true, clarification: { msg: 'Which category do you mean?', options: cat.candidates.map(c => ({ label: c, q: 'how much did i spend on ' + c + (period ? ' ' + period.label : ' this month') })) } });
+  if (cat.cat && !incomeCue && !has(/\b(loan|debt|emi|goal|invest|subscription)s?\b/)) return set('spend_category', 0.9, { metric: 'category' });
+  if (!cat.cat && cat.probable && (spendCue || has(/\bhow much\b/))) return set('clarify_category', 0.5, { needsClarification: true, clarification: { msg: 'I’m not sure which category you mean. Is it “' + cat.probable + '”?', options: [{ label: cat.probable, q: 'how much did i spend on ' + cat.probable + (period ? ' ' + period.label : ' this month') }] } });
+  // plain metric lookups handled by the existing answer engine
+  const M = [['forecast', /\b(forecast|upcoming|projection|projected)\b|\bfree cash\b|\b(coming|due)\b.*\b(up|next|week|bills|payments|soon)\b/], ['anomalies', /\b(unusual|anomaly|anomalies|spike|spikes|suspicious)\b/], ['subscriptions', /\b(subscription|subscriptions|subs)\b/], ['goals', /\b(goal|goals|emergency)\b/], ['debt_priority', /\b(debt|loan|loans|emi|emis|card|cards)\b.*\b(first|priority|order|which)\b/], ['debt_status', /\b(debt|debts|loan|loans|emi|emis|borrow|owe)\b/], ['investments', /\b(invest|investing|investment|investments|portfolio|stocks|holdings|sip|fd|mutual)\b/], ['income', /\b(income|earn|earned|earning|salary)\b/], ['savings_rate', /\b(save|saved|saving|savings)\b/], ['essentials', /\b(necessary|essential|discretionary|unnecessary|wants|needs)\b/], ['spend_total', /\b(spend|spent|spending|expense|expenses|cost)\b/]];
+  for (const [k, re] of M) if (re.test(s)) return set('metric_' + k, 0.8, { metric: k });
+  if (am.list.length && !topicWord && !period && !purchase.method && !purchase.cheaper && !ir.reference && !lead && act !== 'correct' && !finaiNluPrev()) {
+    const v = am.list[0].value, f = ir.amountFrequency;
+    return set('amount_only', 0.3, { needsClarification: true, clarification: { msg: `What should I do with ${fmt(v)}${f === 'recurring' ? ' every month' : f === 'one_time' ? ' as a one-time amount' : ''}?`, options: [{ label: 'Check as a purchase', q: (f === 'recurring' ? 'can i afford ' + fmt(v) + ' monthly emi' : 'can i afford ' + fmt(v)) }, { label: f === 'recurring' ? 'Pay it extra on debt' : 'Pay it on my loan', q: f === 'recurring' ? 'pay ' + fmt(v) + ' extra every month' : 'put ' + fmt(v) + ' once towards my loan' }, { label: 'Find it in savings', q: 'find ' + fmt(v) + ' of savings' }] } });
+  }
+  if (ir.reference || act === 'correct' || lead || period || am.list.length || purchase.method || purchase.cheaper) return set('modify', 0.6);
+  return set('unknown', 0.1);
+}
+
+// ── E. Handlers added by the understanding layer ─────────────────────────
+function finaiNluClarify(c) {
+  const chips = (c.options || []).map(o => `<a href="#" class="finai-chip" style="display:inline-block;margin:4px 4px 0 0" onclick="finaiChipAsk('${String(o.q).replace(/\\/g, '\\\\').replace(/'/g, "\\'").replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;')}');return false">${finaiEscapeHtml(o.label)}</a>`).join('');
+  try { if (finaiNluCurIR) finaiConv.pending = { ir: finaiNluCurIR, options: c.options || [], seq: finaiConv.seq, fill: !!c.fill }; } catch (e) {}
+  return finaiEscapeHtml(c.msg).replace(/&quot;/g, '"') + (chips ? '<br>' + chips : '');
+}
+
+// ── Answering a pending clarification ("the first one", "food", "30k", "wait") ──
+function finaiConvResolvePending(q, pend) {
+  if (!pend || (finaiConv.seq - pend.seq) > 2) return null;
+  const nz = finaiNluNormalize(q).text, toks = (nz.match(/[a-z0-9₹]+/g) || []), opts = pend.options || [];
+  if (!nz || toks.length > 7) return null;
+  const ord = nz.match(/^(?:the )?(first|1st|1|second|2nd|2|third|3rd|3|last)(?: one| option)?$/);
+  if (ord && opts.length) { const i = { first: 0, '1st': 0, 1: 0, second: 1, '2nd': 1, 2: 1, third: 2, '3rd': 2, 3: 2, last: opts.length - 1 }[ord[1]]; if (opts[i]) return opts[i].q; }
+  if (opts.length === 1 && /^(yes|yeah|yep|ya|ok|okay|sure|correct|right|haan|han)\b/.test(nz)) return opts[0].q;
+  const words = t => (String(t).toLowerCase().match(/[a-z0-9]+/g) || []).filter(w => w.length >= 3 && !FINAI_NLU_STOP.has(w));
+  const rw = words(nz); let best = null, bestScore = 0, tie = false;
+  opts.forEach(o => { const lw = words(finaiNluNormalize(o.label).text); if (!lw.length || !rw.length) return; const hit = lw.filter(l => rw.some(r => finaiStemWord(r) === finaiStemWord(l) || finaiSafeFuzzy(r, l))).length, back = rw.filter(r => lw.some(l => finaiStemWord(r) === finaiStemWord(l) || finaiSafeFuzzy(r, l))).length, sc = Math.max(hit / lw.length, back / rw.length); if (sc > bestScore + 1e-9) { best = o; bestScore = sc; tie = false; } else if (Math.abs(sc - bestScore) < 1e-9 && sc > 0) tie = true; });
+  if (best && bestScore >= 0.5 && !tie) return best.q;
+  const k = pend.ir && pend.ir.intent, am = finaiNluAmounts(nz).list;
+  if (pend.fill && am.length && toks.length <= 6 && !/\b(afford|buy|purchase|pay|spend|spent|emi|loan)\b/.test(nz) && !(pend.ir.flags || []).length) return pend.ir.text + ' ' + nz;   // only a bare value fills a missing one
+  if (k === 'judge_unspecified') { const c = finaiResolveCategory(nz); if (c.cat) return 'is my ' + c.cat + ' spend too much'; }
+  return null;
+}
+function finaiNluResetTopic() { finaiConvClear(); }
+function finaiSumInRange(type, cat, from, to) {
+  let sum = 0, n = 0; (db || []).forEach(r => { if (r.type !== type || !r.date || r.date < from || r.date > to) return; if (cat && String(r.sub || '').toLowerCase() !== cat) return; sum += Number(r.amount || 0); n++; });
+  return { sum, n };
+}
+function finaiNluRange(p) {
+  if (!p) return null; if (p.from) return { from: p.from, to: p.to, label: p.label };
+  const t = new Date(); if (p.kind === 'last_n_months') { const f = new Date(t.getFullYear(), t.getMonth() - p.months, 1), e = new Date(t.getFullYear(), t.getMonth(), 0); return { from: finaiLocalIso(f), to: finaiLocalIso(e), label: 'the last ' + p.months + ' full months' }; }
+  return null;
+}
+function finaiNluCategoryAnswer(cat, period, type) {
+  const a = finaiBuildAnalysis(), C = finaiEscapeHtml(cat);
+  finaiChatState = { lastMetric: 'category', lastCategory: cat };
+  if (period && period.dir === 'ahead') return 'I can look back at what you spent, not forward. For the future, ask for a forecast, e.g. “what will 3 months look like?”.';
+  if (!period || period.kind === 'this_month') {
+    const t = finaiCategorySpendForMonth(cat, a.thisMonth), all = (db || []).filter(r => r.type === 'Expense' && String(r.sub || '').toLowerCase() === cat).reduce((s, r) => s + Number(r.amount || 0), 0), spike = a.spikes.find(s => String(s.cat || '').toLowerCase() === cat);
+    return `You've spent ${fmt(t)} on "${C}" this month so far, and ${fmt(all)} on it in total across all recorded transactions.${spike ? ` That's ${spike.pct.toFixed(0)}% higher than your usual average of ${fmt(Math.round(spike.avg))} for this category — worth a look.` : ''}`;
+  }
+  if (period.kind === 'last_month') {
+    const p = finaiCategorySpendForMonth(cat, a.prevMonth), t = finaiCategorySpendForMonth(cat, a.thisMonth);
+    return `You spent ${fmt(p)} on "${C}" last month (a full month). This month so far: ${fmt(t)}.`;
+  }
+  const r = finaiNluRange(period); if (!r) return `I can’t break spending down by “${finaiEscapeHtml(period.label)}” yet. Try today, this week, this month, last month or the last 3 months.`;
+  const x = finaiSumInRange('Expense', cat, r.from, r.to);
+  return x.n ? `You spent ${fmt(x.sum)} on "${C}" ${r.label} (${x.n} transaction${x.n > 1 ? 's' : ''}, ${finaiPvDate(r.from)} – ${finaiPvDate(r.to)}).` : `I don't see any "${C}" spending recorded ${r.label}.`;
+}
+function finaiCompareMonths(ir) {
+  const a = finaiBuildAnalysis(), t = new Date(), day = t.getDate(), pm = new Date(t.getFullYear(), t.getMonth() - 1, 1), L = [];
+  const up = (x, y) => y > 0 ? `${x >= y ? 'up' : 'down'} ${fmt(Math.abs(Math.round(x - y)))} (${Math.abs((x - y) / y * 100).toFixed(0)}%)` : 'no baseline last month';
+  const like = (type, cat) => finaiSumInRange(type, cat, finaiLocalIso(pm), finaiLocalIso(new Date(pm.getFullYear(), pm.getMonth(), day))).sum;
+  if (ir.category) {
+    const x = finaiCategorySpendForMonth(ir.category, a.thisMonth), y = finaiCategorySpendForMonth(ir.category, a.prevMonth);
+    finaiChatState = { lastMetric: 'category', lastCategory: ir.category };
+    return `<b>${finaiEscapeHtml(ir.category)}</b>: ${fmt(x)} so far this month vs ${fmt(y)} for all of last month. By day ${day} last month it was ${fmt(like('Expense', ir.category))} — so this month is ${up(x, like('Expense', ir.category))} like-for-like.`;
+  }
+  const m = ir.metric;
+  if (!m || m === 'spend') L.push(`<b>Spending:</b> ${fmt(a.thisMonthExpense)} so far this month vs ${fmt(a.prevMonthExpense)} for all of last month. Like-for-like (to day ${day}): last month was ${fmt(like('Expense'))}, so you're ${up(a.thisMonthExpense, like('Expense'))}.`);
+  if (!m || m === 'income') L.push(`<b>Income:</b> ${fmt(a.thisMonthIncome)} this month vs ${fmt(a.prevMonthIncome)} last month — ${up(a.thisMonthIncome, a.prevMonthIncome)}.`);
+  if (!m || m === 'save') { const rp = a.prevMonthIncome > 0 ? (a.prevMonthIncome - a.prevMonthExpense) / a.prevMonthIncome * 100 : null; L.push(a.monthSavingsRate === null || rp === null ? '<b>Savings rate:</b> I need income logged in both months to compare.' : `<b>Savings rate:</b> ${a.monthSavingsRate.toFixed(0)}% this month vs ${rp.toFixed(0)}% last month.`); }
+  L.push('<span class="finai-pv-note">This month is incomplete, so totals favour last month unless you compare like-for-like.</span>');
+  finaiChatState = { lastMetric: m === 'income' ? 'income' : m === 'save' ? 'save' : 'spend', lastCategory: null };
+  return L.join('<br>');
+}
+function finaiSurplusAdvice(amt) {
+  const c = finaiAdvisorContext(); if (c.dq.blocking === 'nodata' || c.dq.blocking === 'noincome') return 'I need your income and bills on record before I can say where spare money does the most good. Add them, then ask again.';
+  const L = [`Treating <b>${fmt(amt)}</b> as cash you can spare right now (I can't see your bank balance).`];
+  const soon = c.st.dues.filter(d => d.kind !== 'income' && d.daysUntil <= 7), ss = soon.reduce((s, d) => s + d.amount, 0); let rest = amt;
+  if (c.free < 0) { L.push(`Your next 30 days are already ${fmt(-c.free)} short, so <b>keep it for bills first</b>.`); return L.join('<br>'); }
+  if (ss > 0) { const k = Math.min(rest, ss); rest -= k; L.push(`1. Hold <b>${fmt(k)}</b> for bills due within 7 days (${soon.slice(0, 2).map(d => finaiEscapeHtml(d.label)).join(', ')}).`); }
+  if (rest > 0 && c.hiLoans[0]) { const h = c.hiLoans[0]; L.push(`${ss > 0 ? '2' : '1'}. Put <b>${fmt(rest)}</b> on ${finaiEscapeHtml(h.name)} (${h.rate}%) — saves about ${fmt(Math.min(rest, h.bal) * h.rate / 100)} a year. Check prepayment charges first.`); }
+  else if (rest > 0 && c.ef) L.push(`${ss > 0 ? '2' : '1'}. Add <b>${fmt(rest)}</b> to “${finaiEscapeHtml(c.ef.name)}” (${fmt(c.ef.rem)} to go).`);
+  else if (rest > 0) L.push(`${ss > 0 ? '2' : '1'}. No costly debt or emergency goal on record — keep <b>${fmt(rest)}</b> as a buffer, or <a href="#" onclick="finaiGoalQuick();return false" style="color:var(--brand-2);font-weight:700">start an emergency-fund goal</a>.`);
+  L.push('<span class="finai-pv-note">Nothing was recorded or moved.</span>');
+  return L.join('<br>');
+}
+function finaiHealthAnswer() {
+  const c = finaiAdvisorContext(); if (c.dq.blocking === 'nodata' || c.dq.blocking === 'noincome') return 'I can’t judge that yet — I need your income and bills on record. Add them and ask again.';
+  const dti = c.income > 0 ? c.emiMonthly / c.income * 100 : 0, a = c.a, bad = c.free < 0, watch = c.hiLoans.length > 0 || dti > FINAI_PV.DTI_CAUTION || c.capacity <= 0;
+  const L = [bad ? `🛑 <b>Under pressure:</b> your next 30 days are ${fmt(-c.free)} short.` : watch ? `⚠️ <b>Okay, but watch it:</b> you're not short, but little room is left.` : `✅ <b>Not cooked — you look stable.</b>`];
+  L.push(`Free cash over the next 30 days: <b>${fmt(c.free)}</b> (after bills, EMIs and typical spending).`);
+  if (c.emiMonthly) L.push(`EMIs take ${dti.toFixed(0)}% of income.`);
+  if (c.hiLoans[0]) L.push(`Costly debt: ${finaiEscapeHtml(c.hiLoans[0].name)} at ${c.hiLoans[0].rate}%.`);
+  if (a.monthSavingsRate !== null) L.push(`Savings rate this month so far: ${a.monthSavingsRate.toFixed(0)}%.`);
+  L.push('<span class="finai-pv-note">Based on recorded data and an estimate of day-to-day spending. Ask “what should I prioritize?” for next steps.</span>');
+  return L.join('<br>');
+}
+function finaiSkipAnswer() {
+  const prev = finaiNluPrev(), p = prev && prev.topic === 'purchase' && finaiPurchaseCtx ? finaiPurchaseCtx.p : null;
+  if (!p || (p.price == null && p.emi == null)) return finaiNluClarify({ msg: 'Skip what? Tell me the item or price first, e.g. “can i afford a ₹30,000 phone?”, and I’ll show what skipping it keeps.', options: [] });
+  const c = finaiAdvisorContext(), up = p.method === 'emi' ? (p.down || 0) : (p.price || 0);
+  return `If you skip it, nothing changes: your free cash stays about <b>${fmt(c.free)}</b> for the next 30 days${up > 0 ? ` and you keep the ${fmt(up)} you would have paid now` : ''}${p.method === 'emi' && p.emi ? `, with no new ${fmt(p.emi)}/month EMI` : ''}.<br><span class="finai-pv-note">Hypothetical — nothing was recorded.</span>`;
+}
+function finaiNluPurchaseModify(ir, prev) {
+  const prevP = finaiPurchaseCtx ? finaiPurchaseCtx.p : null; if (!prevP) return null;
+  const s = ir.text, mod = Object.assign({}, ir.purchase), next = Object.assign({}, prevP), note = [], K = finaiConv.constraints;
+  const cue = { wait: /\b(wait|later|delay|postpone)\b/.test(s), tenure: /\b(emi|instal|tenure|loan|finance)\b/.test(s) };
+  if (mod.tenure && !cue.tenure && !cue.wait) {
+    if ((next.method === 'emi' || mod.method === 'emi') && mod.whenMonths == null) return finaiNluClarify({ msg: `Do you mean a ${mod.tenure}-month EMI tenure, or waiting ${mod.tenure} months before buying?`, options: [{ label: mod.tenure + '-month EMI', q: 'on ' + mod.tenure + ' month emi' }, { label: 'Wait ' + mod.tenure + ' months', q: 'what if i wait ' + mod.tenure + ' months' }] });
+    mod.whenMonths = mod.tenure; delete mod.tenure;
+  }
+  ['price', 'emi', 'down', 'tenure', 'rate', 'whenMonths', 'method', 'product', 'essential'].forEach(k => { if (mod[k] != null) next[k] = mod[k]; });
+  if (mod.price != null && mod.emi == null && prevP.emi != null && (mod.tenure || mod.rate != null)) delete next.emi;   // new price + terms → the EMI is recomputed, not inherited
+  if (ir.amountFrequency === 'recurring' && mod.price != null && mod.emi == null) { next.emi = mod.price; next.price = prevP.price; next.method = 'emi'; }
+  if (ir.amountFrequency === 'one_time' && !mod.method) { next.method = 'cash'; delete next.emi; delete next.tenure; }
+  if (ir.negated.includes('emi') || ir.negated.includes('loan')) { if (!mod.method) next.method = 'cash'; delete next.emi; delete next.tenure; }
+  if (ir.negated.includes('wait')) next.whenMonths = 0;
+  if (ir.negated.includes('emi') || ir.negated.includes('loan')) K.noEmi = true; else if (mod.method === 'emi') K.noEmi = false;
+  if (ir.negated.includes('credit_card')) K.noCard = true; else if (mod.method === 'card') K.noCard = false;
+  if (K.noEmi && next.method === 'emi' && mod.method !== 'emi') { next.method = 'cash'; delete next.emi; delete next.tenure; }
+  if (K.noCard && next.method === 'card' && mod.method !== 'card') next.method = 'cash';
+  if (/\b(now|today|immediately)\b/.test(s) && mod.whenMonths == null) next.whenMonths = 0;
+  let focus = null;
+  if (/\bgoals?\b/.test(s)) focus = 'Focus: your goals — see the Impact section.';
+  else if (/emergency/.test(s)) focus = 'Focus: can this be paid without touching an emergency fund?';
+  else if (next.whenMonths > 0 && next.whenMonths !== prevP.whenMonths) focus = `Scenario: buy in ${Math.round(next.whenMonths)} month(s).`;
+  if (K.noEmi && !focus) focus = 'Still assuming no EMI, as you said earlier.';
+  if (mod.cheaper) {
+    const c = finaiAdvisorContext(), cap = Math.floor(Math.max(0, c.spendable) / 500) * 500;
+    if (mod.price == null) { if (cap <= 0) return 'There’s no safe spare cash right now, so even a cheaper version needs saving first. Ask “how much can I safely spend?” to see the numbers.'; next.price = Math.min(cap, next.price != null ? next.price : cap); focus = `Cheaper-version check at ${finaiPvMoney(next.price)}, the most your safe spending allows.`; }
+  }
+  if (finaiPurchaseCtx.sig !== finaiDataSig()) note.push('Your records changed since the last answer, so these figures are refreshed.');
+  const out = finaiPvRun(next, focus, note.join(' '));
+  finaiNluSetLast('purchase', {}); return out;
+}
+function finaiNluModify(ir, prev) {
+  const s = ir.text, P = prev.params || {}, a = () => finaiBuildAnalysis();
+  switch (prev.topic) {
+    case 'purchase': { const r = finaiNluPurchaseModify(ir, prev); if (r !== null) return r; break; }
+    case 'debt_extra': { if (ir.amount == null && !ir.amountFrequency) break; const amt = ir.amount != null ? ir.amount : P.amount, lump = ir.amountFrequency ? ir.amountFrequency === 'one_time' : !!P.lump; if (amt == null) break; const out = finaiRunIntent({ intent: 'extra', amount: amt, lump }, s); finaiNluSetLast('debt_extra', { amount: amt, lump }); return out; }
+    case 'outlook': { const n = ir.period && ir.period.months ? ir.period.months : null; if (n) { const out = finaiForecastWithNote(finaiRunIntent({ intent: 'outlook', months: n }, s)); finaiNluSetLast('outlook', { months: n }); return out; } break; }
+    case 'find_savings': { if (ir.amount == null) break; const amt = ir.amount; const out = finaiRunIntent({ intent: 'savings', amount: amt }, s); finaiNluSetLast('find_savings', { amount: amt }); return out; }
+    case 'spend_category': case 'metric_spend_total': case 'compare_periods': {
+      const cat = ir.category || P.category || null, period = ir.period || P.period || null;
+      if (cat) { const out = finaiNluCategoryAnswer(cat, period); finaiNluSetLast('spend_category', { category: cat, period }); return out; }
+      if (period && (period.kind === 'last_month' || period.kind === 'this_month')) { const out = finaiAnswerForMetric(P.metric || 'spend', null, period.kind === 'last_month' ? 'prev' : 'this', a()); if (out) { finaiNluSetLast('metric_spend_total', { metric: P.metric || 'spend', period }); return out; } }
+      if (period && period.from) { const r = finaiNluRange(period), x = finaiSumInRange('Expense', null, r.from, r.to); finaiNluSetLast('metric_spend_total', { metric: 'spend', period }); return `You spent ${fmt(x.sum)} in total ${r.label} (${finaiPvDate(r.from)} – ${finaiPvDate(r.to)}).`; }
+      break; }
+    case 'metric_income': case 'metric_savings_rate': { const mt = prev.topic === 'metric_income' ? 'income' : 'save'; if (ir.period && /(last|this)_month/.test(ir.period.kind)) { const out = finaiAnswerForMetric(mt, null, ir.period.kind === 'last_month' ? 'prev' : 'this', a()); if (out) return out; } break; }
+  }
+  return finaiNluClarify({ msg: 'I’m not sure what you want to change — what does “' + (ir.reference && ir.reference.pronoun ? 'it' : 'that') + '” refer to? Pick one, or ask a full question.', options: [{ label: 'Can I afford ₹30,000?', q: 'can i afford 30k' }, { label: 'This month’s spending', q: 'how much did i spend this month' }, { label: 'My loans', q: 'tell me about my loans' }] });
+}
+
+// ── F. One routing table ─────────────────────────────────────────────────
+function finaiRouteIR(ir) {
+  const s = ir.text, prev = finaiNluPrev(), a = () => finaiBuildAnalysis();
+  if (ir.act === 'switch' || ir.intent === 'reset') finaiNluResetTopic();
+  const words = s.split(/\s+/).length;
+  // follow-up / correction of the previous topic (only when there is one)
+  const standalone = /\b(how much|show|tell me|list)\b/.test(s) && FINAI_NLU_TOPIC_RE.test(s);
+  if (prev && ir.act !== 'switch' && !['empty', 'reset', 'smalltalk', 'purchase_skip', 'clarify'].includes(ir.intent)) {
+    const pp = prev.topic === 'purchase', purchModOnly = pp && (ir.purchase.method || ir.purchase.cheaper || ir.negated.includes('emi') || ir.negated.includes('credit_card')) && words <= 7;
+    const goalQ = pp && /\b(still|will)\b.*\b(goal|goals|emergency|okay|ok|fine|safe)\b/.test(s);
+    if (/^metric_/.test(ir.intent) && !(purchModOnly || goalQ)) { /* a standalone metric question — answer it, don't treat as a follow-up */ }
+    else if ((ir.intent !== 'purchase_affordability' || pp) && ((ir.reference && (ir.reference.lead || (ir.reference.pronoun && words <= 8 && ['modify', 'purchase_affordability'].includes(ir.intent)))) || ir.act === 'correct' || purchModOnly || goalQ || ir.intent === 'modify') && !standalone && !(ir.intent === 'purchase_affordability' && ir.purchase.price != null && !ir.reference)) {
+      if (goalQ && !ir.reference) ir.reference = { pronoun: false, lead: false };
+      const stale = prev.sig && prev.sig !== finaiDataSig() && prev.topic !== 'purchase', out = finaiNluModify(ir, prev);
+      return stale && typeof out === 'string' && !/^<a|finai-chip/.test(out) ? '<span class="finai-pv-note">Your records changed since my last answer, so I recalculated.</span><br>' + out : out;
+    }
+  }
+  if (ir.needsClarification && ir.clarification) return finaiNluClarify(ir.clarification);
+  const topic = (t, p) => finaiNluSetLast(t, p);
+  switch (ir.intent) {
+    case 'empty': return '';
+    case 'help': return finaiHelpAnswer();
+    case 'selftest': { const r = finaiSelfTest(false); return (r.failed ? '⚠️ <b>Self-test: ' + r.failed + ' of ' + r.total + ' checks failed.</b><br>' + r.failures.map(f => '• ' + finaiEscapeHtml(f)).join('<br>') : '✅ <b>Self-test passed: ' + r.passed + ' checks in ' + r.ms + ' ms.</b> It used synthetic data and left your records and storage untouched.'); }
+    case 'reset': return 'Okay — starting fresh. What would you like to know?';
+    case 'smalltalk': return ir.metric === 'greeting' ? 'Hi! Ask me about your spending, loans, goals, or whether you can afford something.' : 'Anytime. Anything else you’d like to check?';
+    case 'purchase_skip': return finaiSkipAnswer();
+    case 'financial_health': topic('financial_health'); return finaiHealthAnswer();
+    case 'balance_cash': topic('balance_cash'); return finaiBalanceAnswer();
+    case 'explain_spend': case 'explain_savings': case 'explain_income': case 'explain_debt': case 'explain_forecast': { const out = finaiExplainAnswer(ir.metric); topic(ir.intent, { metric: ir.metric }); return out; }
+    case 'explain_prev': { const t = (prev && prev.topic) || '', mm = /savings|save/.test(t) ? 'savings' : /spend/.test(t) ? 'spend' : /income/.test(t) ? 'income' : /debt/.test(t) ? 'debt' : /outlook|forecast/.test(t) ? 'forecast' : null; const out = mm ? finaiExplainAnswer(mm) : null; return out !== null ? out : finaiNluClarify({ msg: 'What would you like me to explain?', options: [{ label: 'My savings rate', q: 'explain my savings rate' }, { label: 'Why spending is high', q: 'why is my spending high' }, { label: 'How free cash is worked out', q: 'explain my forecast' }] }); }
+    case 'safe_spend': topic('safe_spend'); return finaiSafeSpendAnswer();
+    case 'priorities': topic('priorities'); return finaiPriorityAnswer();
+    case 'pressure': topic('pressure'); return finaiPressureAnswer();
+    case 'save_more': topic('save_more'); return finaiSaveMoreAnswer();
+    case 'repay_vs_save': topic('repay_vs_save'); return finaiRepayVsSaveAnswer();
+    case 'emi_room': topic('emi_room'); return finaiEmiRoomAnswer();
+    case 'surplus_advice': topic('surplus_advice', { amount: ir.amount }); return finaiSurplusAdvice(ir.amount);
+    case 'purchase_vs_debt': { const p = ir.purchase.price != null ? ir.purchase : (finaiPurchaseCtx && prev ? finaiPurchaseCtx.p : null); if (!p || p.price == null) return finaiNluClarify({ msg: 'What is the purchase price? I’ll compare it with paying down debt.', options: [{ label: '₹30,000', q: 'pay off my loan first or buy a 30k phone' }] }); return finaiPvDebtVsPurchase(p); }
+    case 'purchase_affordability': {
+      const p = Object.assign({}, ir.purchase);
+      if (ir.amountFrequency === 'recurring' && p.price != null && p.emi == null) { p.emi = p.price; delete p.price; p.method = 'emi'; }
+      if (p.price == null && p.emi == null) {
+        if (prev && prev.topic === 'purchase') return finaiNluModify(ir, prev);
+        return finaiNluClarify({ fill: true, msg: 'What’s the price? For example “can I afford a ₹40,000 phone?” — add “on EMI”, “by credit card” or “not EMI” if relevant.', options: [{ label: 'Open the purchase form', q: 'can i afford this purchase' }] });
+      }
+      finaiConv.constraints = { noEmi: ir.negated.includes('emi') || ir.negated.includes('loan'), noCard: ir.negated.includes('credit_card') };
+      const out = finaiPvRun(p); topic('purchase'); return out;
+    }
+    case 'debt_extra': { const lump = ir.amountFrequency === 'one_time', out = finaiRunIntent({ intent: 'extra', amount: ir.amount, lump }, s); topic('debt_extra', { amount: ir.amount, lump }); return (ir.amountFrequency ? '' : `<span class="finai-pv-note">Assuming ${fmt(ir.amount)} <b>every month</b> — say “once” for a one-time payment.</span><br>`) + out; }
+    case 'find_savings': { const out = finaiRunIntent({ intent: 'savings', amount: ir.amount }, s); topic('find_savings', { amount: ir.amount }); return out; }
+    case 'outlook': { const out = finaiForecastWithNote(finaiRunIntent({ intent: 'outlook', months: ir.period.months }, s)); topic('outlook', { months: ir.period.months }); return out; }
+    case 'compare_periods': topic('compare_periods', { category: ir.category, metric: ir.metric }); return finaiCompareMonths(ir);
+    case 'judge_spend': {
+      const cat = ir.category, amt = ir.amount, monthly = ir.amountFrequency === 'recurring' || /\b(spent|spend|spending|paid)\b/.test(s);
+      if (amt == null && cat) { const sp = finaiCategorySpendForMonth(cat, a().thisMonth); topic('judge_spend', { category: cat }); return sp > 0 ? finaiJudge({ amount: sp, category: cat, monthly: true, derived: true }) : `I don't see any "${finaiEscapeHtml(cat)}" spending this month to judge yet.`; }
+      topic('judge_spend', { category: cat, amount: amt });
+      return (cat && !ir.amountFrequency ? `<span class="finai-pv-note">Treating ${fmt(amt)} as this month's spending${cat ? ' on ' + finaiEscapeHtml(cat) : ''} — nothing is saved.</span><br>` : '') + finaiJudge({ amount: amt, category: cat, monthly, derived: false });
+    }
+    case 'spend_category': { const out = finaiNluCategoryAnswer(ir.category, ir.period); topic('spend_category', { category: ir.category, period: ir.period }); return out; }
+    case 'modify': return prev ? finaiNluModify(ir, prev) : finaiNluClarify({ msg: 'I’m not sure what that refers to — could you ask the full question? For example “how much did I spend on food last month?”', options: [{ label: 'This month’s spending', q: 'how much did i spend this month' }, { label: 'Can I afford ₹30,000?', q: 'can i afford 30k' }] });
+    case 'unknown': return null;
+    default:
+      if (/^metric_/.test(ir.intent)) {
+        let out = null; const whole = !ir.period || ir.period.kind === 'this_month';
+        if (whole && ir.intent === 'metric_income') out = finaiIncomeAnswer(); else if (whole && ir.intent === 'metric_spend_total') out = finaiSpendAnswer(); else if (whole && ir.intent === 'metric_savings_rate') out = finaiSavingsRateAnswer(); else if (ir.intent === 'metric_debt_status') out = finaiDebtAnswer();
+        if (out === null) out = finaiAnswerQuestionBase(s);
+        if (out && !/^I can currently answer/.test(out)) {
+          if (ir.intent === 'metric_forecast') out = finaiForecastWithNote(out);
+          if (ir.intent === 'metric_investments' && /^No active investment holdings/.test(out)) out += '<br>' + finaiQNote('Add your holdings in the investment / portfolio section and I will include them. Investments are market-linked, so I never count them as spendable cash.');
+          topic(ir.intent, { metric: ir.metric, period: ir.period }); return out;
+        }
+      }
+      return null;
+  }
+}
+function finaiNluFallback(q) {
+  let tail = ''; try { tail = finaiDidYouMean(q); } catch (e) { tail = 'Try: “how much did I spend on food this month?”, “can I afford 30k?” or “what will 6 months look like?”'; }
+  return tail;
+}
 function finaiAnswerQuestion(q) {
+  q = String(q == null ? '' : q);
+  if (!q.trim()) return '';
+  if (q.length > 600) q = q.slice(0, 600);   // bound work on pasted/oversized input
+  finaiQSeq++; finaiNluSeqCounted = true;
+  let ir = null;
+  try { finaiConvGuard(); } catch (e) { console.error('FIN AI conversation guard failed:', e); }
+  try { const pend = finaiConv.pending; finaiConv.pending = null; const rq = finaiConvResolvePending(q, pend); if (rq !== null) q = rq; } catch (e) { finaiConv.pending = null; }
+  try { ir = finaiUnderstand(q); finaiNluCurIR = ir; const out = finaiRouteIR(ir); if (out !== null && out !== undefined) return String(out); } catch (e) { console.error('FIN AI understanding layer failed, using the classic router:', e); }
+  try {
+    if (!ir || !ir.reference) finaiCtx = { amount: null, category: null, monthly: false, intent: null, derived: false };   // no stale amounts into an unrelated question
+    const r = finaiAnswerQuestionLegacy(ir && ir.text ? ir.text : q); if (r && String(r).trim()) return r;
+  } catch (e) { console.error('FIN AI classic router failed:', e); }
+  return finaiNluFallback(q);
+}
+
+// ══════════════════════════════════════════════════════════════════════════
+// FIN AI — IN-APP SELF-TEST + HELP (Phase 5)
+// finaiSelfTest() runs inside the app (console, or type "run self test" in Ask
+// AI). It swaps in a synthetic user, runs the checks, and restores everything in
+// a finally block. It never calls a save function; it also verifies that
+// localStorage is byte-for-byte unchanged afterwards.
+// ══════════════════════════════════════════════════════════════════════════
+function finaiHelpAnswer() {
+  const C = (l, q) => `<a href="#" class="finai-chip" style="display:inline-block;margin:3px 4px 0 0" onclick="finaiChipAsk('${q.replace(/'/g, "\\'")}');return false">${finaiEscapeHtml(l)}</a>`;
+  return `<b>You can talk to me normally — typos, shorthand and follow-ups are fine.</b><br>` +
+    `<b>Spending &amp; income:</b> ${C('Food this month', 'how much did i spend on food this month')}${C('Compare months', 'compare this month vs last month')}${C('Is 4k on food bad?', 'spent 4k on food is that bad')}<br>` +
+    `<b>Buying something:</b> ${C('Can I afford 30k?', 'can i afford a 30k phone')}${C('On EMI?', 'can i afford a 30k phone on 12 month emi at 14%')}${C('Safe to spend', 'how much can i safely spend this month')}<br>` +
+    `<b>Debt &amp; planning:</b> ${C('My loans', 'tell me about my loans')}${C('Pay 5k extra', 'pay 5k extra every month')}${C('6 months ahead', 'what will 6 months look like')}${C('Priorities', 'what should i prioritize')}<br>` +
+    `<b>Understanding:</b> ${C('Explain savings rate', 'explain my savings rate')}${C('Am I okay?', 'am i cooked financially')}<br>` +
+    finaiQNote('After an answer you can say “what if 25k instead”, “not EMI”, “wait 3 months”, “and food?” or “forget that”. Nothing I discuss is saved to your records. To check my own working, type “run self test”.');
+}
+function finaiSelfTest(verbose) {
+  const t0 = Date.now(), fails = []; let passed = 0;
+  const S = { db, portDb, creditDb, insuranceDb, subscriptionsDb, finaiGoals, budgets, ccCards, finaiConv, finaiPurchaseCtx, finaiCtx, finaiSlots, finaiChatState, finaiChatHistory, finaiStateCache, finaiNluCurIR, finaiLastCatAmbig, finaiQSeq, finaiNluSeqCounted };
+  const lsKey = () => { try { return JSON.stringify(Object.keys(localStorage).sort().map(k => [k, localStorage.getItem(k)])); } catch (e) { return ''; } };
+  const ls0 = lsKey();
+  const strip = h => String(h).replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim();
+  const ok = (c, m, x) => { if (c) passed++; else fails.push(m + (x ? ' → ' + strip(x).slice(0, 110) : '')); };
+  const pill = h => (String(h).match(/finai-pv-pill">([^<]+)</) || [])[1];
+  try {
+    const t = new Date(), iso = d => finaiLocalIso(d), rows = []; let n = 0;
+    const add = (d, type, name, amount, sub, rec) => rows.push({ id: 's' + (++n), date: iso(d), type, name, amount, sub, recurring: !!rec });
+    for (let m = 3; m >= 0; m--) { const b = new Date(t.getFullYear(), t.getMonth() - m, 1), day = m === 0 ? Math.max(1, t.getDate()) : 25;
+      add(new Date(b.getFullYear(), b.getMonth(), 1), 'Income', 'Salary', 80000, 'Salary', true); add(new Date(b.getFullYear(), b.getMonth(), 2), 'Expense', 'Rent', 20000, 'Rent', true);
+      [['Food', 6000], ['Dining', 3000], ['Medical Bills', 2500], ['Electricity Bills', 1800], ['Fuel', 2500]].forEach(([s, a], i) => add(new Date(b.getFullYear(), b.getMonth(), Math.max(1, Math.min(day, 3 + i * 2))), 'Expense', s + ' ' + m, a, s)); }
+    const fresh = () => { finaiResetConversation(); db = rows.map(r => Object.assign({}, r)); creditDb = [{ status: 'Active', lenderName: 'Test Loan', monthlyEmi: 8000, outstandingBalance: 200000, interestRate: 11, dueDate: '5' }]; portDb = []; insuranceDb = []; subscriptionsDb = []; finaiGoals = []; budgets = {}; ccCards = []; finaiConv.owner = finaiConvOwner(); };
+    const ask = q => finaiAnswerQuestion(q), ir = q => finaiUnderstand(q), P = () => finaiPurchaseCtx && finaiPurchaseCtx.p;
+    fresh();
+    let r = ir('hw mch spent on fud this mnth'); ok(r.intent === 'spend_category' && r.category === 'food', 'typos → food spend', JSON.stringify(r.intent));
+    r = ir('can i aford 30k phone'); ok(r.intent === 'purchase_affordability' && r.amount === 30000, 'typo affordability');
+    r = ir('can i afford 30k not emi'); ok(r.negated.includes('emi') && r.purchase.method === 'cash', 'not emi kept');
+    r = ir('pay 2k extra every month'); ok(r.intent === 'debt_extra' && r.amountFrequency === 'recurring', 'recurring extra');
+    r = ir('put 20k once on my loan'); ok(r.intent === 'debt_extra' && r.amountFrequency === 'one_time', 'one-time prepay');
+    r = ir('30k monthly, not once'); ok(r.amountFrequency === 'recurring' && r.needsClarification, 'monthly not once');
+    ok(ir('dont buy it').intent === 'purchase_skip', 'dont buy ≠ buy');
+    ok(ir('compare this month vs last month').intent === 'compare_periods', 'compare months');
+    ok(ir('what will 6 months look like').intent === 'outlook', 'outlook ≠ purchase');
+    ok(ir('how much did i spend on food').intent === 'spend_category', 'category ≠ purchase');
+    ok(ir('what is my income').intent !== 'compare_periods', '"is" ≠ "vs"');
+    ok(ir('tell me a joke i guess').category === null, 'no arbitrary category');
+    ok(ir('how much did i spend on bills').intent === 'clarify_category', 'ambiguous category asks');
+    ok(finaiAnswerQuestion('') === '' && finaiAnswerQuestion('   ') === '', 'empty input does nothing');
+    ok(/not sure|try/i.test(strip(ask('blah quantum pizza'))), 'friendly fallback');
+    ok(ir('can i afford 30m phone').needsClarification, 'ambiguous unit asks');
+    ok(finaiNluAmounts(finaiNluNormalize('30k 30 lakh 1.5L 2cr ₹1,20,000 rs 500').text).list.map(a => a.value).join() === '30000,3000000,150000,20000000,120000,500', 'amount formats');
+    // follow-ups and constraints
+    fresh(); ask('can i afford 30k not emi'); ask('what if 40k instead'); ok(P().price === 40000 && P().method === 'cash', 'follow-up keeps cash');
+    ask('what if i wait 3 months'); ok(P().whenMonths === 3 && P().method === 'cash', 'wait added');
+    ask('and on emi?'); ok(P().method === 'emi', 'explicit change wins');
+    fresh(); ask('can i afford a 30k phone'); ask('nvm tell me about my loans'); ok(finaiPurchaseCtx === null, 'switch clears scenario');
+    fresh(); ask('should i buy it'); r = ask('30k'); ok(pill(r) && P().price === 30000, 'pending price answered', r);
+    fresh(); ask('how much did i spend on food'); r = strip(ask('how much did i spend this month')); ok(!/"food"/.test(r), 'no stale category');
+    fresh(); ask('can i afford a 30k phone'); finaiConv.owner = 'someone-else'; r = ask('what if i wait 3 months'); ok(!pill(r), 'other account state not reused');
+    // answer quality
+    fresh(); r = strip(ask('what is my income')); ok(/a month/.test(r) && /this month so far/i.test(r), 'income labelled monthly vs partial', r);
+    r = strip(ask('tell me about my loans')); ok(/different things/.test(r), 'balance vs EMI explained', r);
+    r = strip(ask('how much money do i have')); ok(/doesn't store a bank or cash balance/.test(r), 'no invented balance', r);
+    r = strip(ask('what will 6 months look like')); ok(/not a guarantee/.test(r), 'forecast assumptions', r);
+    db = db.filter(x => x.type !== 'Income'); r = strip(ask('what will 6 months look like')); ok(/can.t see any income/.test(r) && !/−₹|₹-/.test(r), 'no income → no fake loss', r);
+    fresh(); r = ask('can i afford a 30k phone on 12 month emi of 1k'); ok(!pill(r), 'contradiction clarified', r);
+    r = ask('can i afford a 20k phone'); ok(pill(r) && /nothing was added/.test(r) && P().price === 20000 && P().emi == null, 'new question after a clarification starts clean', r);
+    // safety: hypothetical talk never changes records
+    fresh(); const snap = () => JSON.stringify([db, creditDb, finaiGoals, budgets, ccCards, portDb]), b0 = snap();
+    ['can i afford 30k not emi', 'what if i wait 3 months', 'pay 20k once on my loan', 'spent 4k on food is that bad', 'i got 5k left what should i do', 'find 5k of savings', 'explain my savings rate'].forEach(q => ask(q));
+    ok(snap() === b0, 'records unchanged by hypotheticals');
+    fresh(); db = []; creditDb = []; const bad = ['what is my income', 'can i afford 30k', 'how much did i spend on food', 'tell me about my loans', 'what will 6 months look like', 'compare this month vs last month', 'pay 2k extra every month', 'explain my savings rate'].filter(q => { let a; try { a = String(ask(q)); } catch (e) { return true; } return !a.trim() || /NaN|undefined|Infinity/.test(a); });
+    ok(!bad.length, 'empty records handled', bad.join(' | '));
+    fresh(); db.push({ id: 'x1', date: null, type: 'Expense', name: 'a', amount: 5, sub: 'Food' }, { id: 'x2', date: 'garbage', type: 'Expense', name: 'b', amount: 7, sub: 'Food' });
+    ok(!/NaN|undefined/.test(ask('how much did i spend on food last week')), 'missing/bad dates handled');
+  } catch (e) { fails.push('self-test crashed: ' + e.message); }
+  finally {
+    db = S.db; portDb = S.portDb; creditDb = S.creditDb; insuranceDb = S.insuranceDb; subscriptionsDb = S.subscriptionsDb; finaiGoals = S.finaiGoals; budgets = S.budgets; ccCards = S.ccCards;
+    finaiConv = S.finaiConv; finaiPurchaseCtx = S.finaiPurchaseCtx; finaiCtx = S.finaiCtx; finaiSlots = S.finaiSlots; finaiChatState = S.finaiChatState; finaiChatHistory = S.finaiChatHistory; finaiStateCache = S.finaiStateCache; finaiNluCurIR = S.finaiNluCurIR; finaiLastCatAmbig = S.finaiLastCatAmbig; finaiQSeq = S.finaiQSeq; finaiNluSeqCounted = S.finaiNluSeqCounted;
+  }
+  if (lsKey() === ls0) passed++; else fails.push('localStorage changed during the self-test');
+  const res = { passed, failed: fails.length, total: passed + fails.length, failures: fails, ms: Date.now() - t0 };
+  if (verbose !== false) console[res.failed ? 'warn' : 'log']('FinAI self-test: ' + res.passed + '/' + res.total + ' passed in ' + res.ms + ' ms', res.failures);
+  return res;
+}
+
+/* Classic router (kept intact). The understanding layer below calls it as a fallback. */
+function finaiAnswerQuestionLegacy(q) {
   try {
     const pvOut = finaiPurchaseRoute(q);
     if (pvOut !== null) return pvOut;
