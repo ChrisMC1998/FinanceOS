@@ -2955,6 +2955,23 @@ body.light-mode .settings-undo-btn:hover { color: white; }
   #modal .modal-box, #port-modal .modal-box { overflow-x:hidden; }
 }
 
+.fcb-box{max-height:220px;overflow:auto}
+.fm-box{max-width:640px;width:94vw;max-height:88vh;overflow:auto}
+.fm-top{display:flex;justify-content:space-between;align-items:center;gap:10px;margin-bottom:10px}
+.fm-tabs{display:flex;gap:6px;margin-bottom:10px}
+.fm-tab{background:transparent;border:1px solid rgba(128,128,128,.3);color:var(--text-muted);padding:6px 14px;border-radius:999px;font-weight:700;font-size:.78rem;cursor:pointer}
+.fm-tab.on{border-color:var(--accent);color:var(--accent)}
+.fm-h{font-size:.68rem;font-weight:800;text-transform:uppercase;letter-spacing:.05em;color:var(--accent);margin:14px 0 6px}
+.fm-row{display:flex;align-items:center;gap:10px;padding:7px 2px;border-bottom:1px solid rgba(128,128,128,.18);font-size:.82rem;flex-wrap:wrap}
+.fm-row b{flex:1;min-width:120px;font-weight:600}
+.fm-row.off,.fm-chip.off{opacity:.45}
+.fm-m{color:var(--text-muted);font-size:.72rem;font-family:'DM Mono',monospace}
+.fm-a a,.fm-chip a{color:var(--accent);cursor:pointer;margin-left:10px;font-size:.72rem}
+.fm-subs{display:flex;flex-wrap:wrap;gap:6px;padding:6px 0 8px 12px}
+.fm-chip{border:1px solid rgba(128,128,128,.3);border-radius:999px;padding:2px 10px;font-size:.72rem}
+.fm-chip a{margin-left:4px}
+.fm-note{font-size:.74rem;color:var(--text-muted);margin:6px 0}
+.fm-add{display:flex;gap:8px;margin-top:8px}
 </style>
 
 <style id="fos-floating-glass">
@@ -8035,12 +8052,28 @@ function passAppLockGate() {
       <div class="qa-chips" id="amt-chips"></div>
     </div>
     <div class="input-group">
-      <label>Category / Payee</label>
+      <label>Category <a onclick="fosOpenManager('cats')" style="float:right;color:var(--accent);cursor:pointer;font-weight:600;text-transform:none;letter-spacing:0">Manage</a></label>
       <div style="position:relative">
-        <input type="text" id="inp-name" class="input-field" placeholder="e.g. Food, HDFC Loan" autocomplete="off" oninput="entryNameInput()" onfocus="entryNameInput()" onblur="setTimeout(function(){var b=document.getElementById('name-suggestions');if(b)b.style.display='none';},150)">
+        <input type="text" id="inp-catname" class="input-field" placeholder="Search or add a category" autocomplete="off" oninput="_cs.cat=false;fosHints();fcbRender('cat')" onfocus="fcbRender('cat',true)" onchange="fosOnCatChange()" onblur="setTimeout(function(){var b=document.getElementById('fcb-cat');if(b)b.style.display='none'},150)" onkeydown="fcbKey(event,'cat')">
+        <div class="tag-suggestions fcb-box" id="fcb-cat"></div>
+      </div>
+      <div class="qa-hint" id="cat-hint"></div>
+    </div>
+    <div class="input-group">
+      <label>Payee</label>
+      <div style="position:relative">
+        <input type="text" id="inp-name" class="input-field" placeholder="e.g. Zomato, HDFC Bank, Landlord" autocomplete="off" oninput="entryNameInput()" onfocus="entryNameInput()" onblur="setTimeout(function(){var b=document.getElementById('name-suggestions');if(b)b.style.display='none'},150)">
         <div class="tag-suggestions" id="name-suggestions"></div>
       </div>
       <div class="qa-hint" id="name-hint"></div>
+    </div>
+    <div class="input-group">
+      <label>Subcategory</label>
+      <div style="position:relative">
+        <input type="text" id="inp-sub" class="input-field" placeholder="Search or add a subcategory" autocomplete="off" oninput="_cs.sub=false;_autoFill.sub=false;fosHints();fcbRender('sub');renderMoreSummary()" onfocus="fcbRender('sub',true)" onblur="setTimeout(function(){var b=document.getElementById('fcb-sub');if(b)b.style.display='none'},150)" onkeydown="fcbKey(event,'sub')">
+        <div class="tag-suggestions fcb-box" id="fcb-sub"></div>
+      </div>
+      <div class="qa-hint" id="sub-hint"></div>
     </div>
     <div class="input-group">
       <label>Date</label>
@@ -8054,10 +8087,6 @@ function passAppLockGate() {
     </div>
     <div class="more-toggle" onclick="toggleMoreDetails()"><i class="fas fa-chevron-right" id="more-chev" style="font-size:0.65rem;transition:0.15s"></i><span>More details</span><span class="ms" id="more-summary"></span></div>
     <div id="more-details" style="display:none">
-      <div class="input-group">
-        <label>Sub-Category</label>
-        <input type="text" id="inp-sub" class="input-field" placeholder="Auto-filled from your history" oninput="_autoFill.sub=false">
-      </div>
       <div class="input-group">
         <label>Paid via</label>
         <select id="inp-pay" class="input-field" onchange="_autoFill.pay=false;renderMoreSummary()"></select>
@@ -10028,11 +10057,12 @@ function scheduleSave() {
 function wipeLocalFinancialData() {
   db = []; portDb = []; creditDb = []; insuranceDb = []; notesDb = []; subscriptionsDb = []; finaiGoals = [];
   budgets = {}; ccCards = []; notifications = []; gameStats = {};
+  try { fosMaster = null; } catch (e) {}
   try { finaiResetConversation(); } catch (e) {}
   ['fos_db_v3','fos_port_v3','fos_credit_v1','fos_insurance_v1','fos_notes_v1','fos_subscriptions_v1',
    'fos_budgets','financeOS_ccCards','fos_notifications','fos_game_stats',
    'fos_dashboard_layout_v4','fos_onboarding_goal','fos_last_active_view','fos_finai_goals_v1',
-   'fos_last_nw_milestone','fos_last_portfolio_update','fos_finai_score_history','fos_notif_dismissed'
+   'fos_master_v1','fos_last_nw_milestone','fos_last_portfolio_update','fos_finai_score_history','fos_notif_dismissed'
   ].forEach(k => localStorage.removeItem(k));
 }
 
@@ -15280,7 +15310,7 @@ const allData = getFilteredData();
   }
   // Apply inline name search
   if (txnSearchQuery) {
-    data = data.filter(item => (item.name||'').toLowerCase().includes(txnSearchQuery));
+    data = data.filter(item => [item.name,item.payee,item.category,item.sub,item.subcategory].join(' ').toLowerCase().includes(txnSearchQuery));
   }
   updateSortArrows(sortCol, sortAsc);
   const tbody = document.getElementById('table-body');
@@ -15436,7 +15466,7 @@ const allData = getFilteredData();
       <td style="width:52px;padding:0 12px;text-align:center;vertical-align:middle;white-space:nowrap"><input type="checkbox" class="txn-checkbox row-chk" data-id="${item.id}" onclick="onRowCheckChange()" style="vertical-align:middle"><span style="color:var(--text-muted);font-size:0.68rem;font-family:'DM Mono',monospace;margin-left:5px;display:inline-block;min-width:16px;text-align:right;vertical-align:middle">${index+1}</span></td>
       <td style="font-weight:500">${item.name} ${item.recurring?'<i class="fas fa-redo recur-icon" title="Recurring"></i>':''} ${item.notes?`<span style="font-size:0.7rem;color:var(--text-muted)">(${item.notes})</span>`:''}${item.pay?` <span style="font-size:0.66rem;color:var(--text-muted)">· ${typeof payLabel==='function'?payLabel(item.pay):item.pay}</span>`:''}${item.auto?' <span style="font-size:0.6rem;color:var(--accent);border:1px solid rgba(var(--brand-rgb),0.3);border-radius:4px;padding:0 4px" title="Added automatically (recurring)">auto</span>':''}</td>
       <td><span class="badge ${bc}">${item.type}</span></td>
-      <td style="color:var(--text-muted)">${item.sub||'-'}</td>
+      <td style="color:var(--text-muted)">${_esc(item.category||item.sub||'-')}${item.subcategory?` <span style="font-size:0.7rem;opacity:.7">› ${_esc(item.subcategory)}</span>`:''}</td>
       <td>${tagsHtml}</td>
       <td style="color:var(--text-muted);font-family:'DM Mono',monospace;font-size:0.75rem">${fmtDate(item.date)}</td>
       <td style="text-align:right;font-family:'DM Mono',monospace;color:${color};font-weight:600">${sign}${fmt(item.amount)}</td>
@@ -15507,11 +15537,11 @@ function editFinanceEntry(id) {
   if (!entry) return;
   editingFinanceId = id;
   document.getElementById('modal-title').textContent = 'Edit Finance Record';
-  document.getElementById('inp-name').value = entry.name;
+  document.getElementById('inp-name').value = fosPayeeOf(entry); document.getElementById('inp-catname').value = entry.category || entry.sub || ''; _cs = { cat:false, sub:false };
   document.getElementById('inp-amt').value = entry.amount;
   document.getElementById('inp-date').value = entry.date;
   document.getElementById('inp-cat').value = entry.type;
-  document.getElementById('inp-sub').value = entry.sub || '';
+  document.getElementById('inp-sub').value = entry.subcategory || '';
   document.getElementById('inp-notes').value = entry.notes || '';
   document.getElementById('inp-recurring').checked = entry.recurring;
   const tags = entry.tags || [];
@@ -15526,7 +15556,7 @@ function editFinanceEntry(id) {
   document.getElementById('name-suggestions').style.display = 'none';
   fillPayOptions(entry.pay || '');
   entryUiSync(true);
-  toggleMoreDetails(!!(entry.sub || tags.length || entry.recurring || entry.pay));
+  toggleMoreDetails(!!(tags.length || entry.recurring || entry.pay));
   document.getElementById('modal').style.display = 'flex';
 }
 
@@ -19577,7 +19607,7 @@ function payLabel(v) {
 }
 function fillPayOptions(cur) {
   const sel = document.getElementById('inp-pay');
-  const base = ['Cash', 'UPI', 'Debit Card', 'Bank Transfer'];
+  const base = ['Cash', 'UPI', 'Debit Card', 'Credit Card', 'Bank Transfer', 'Net Banking', 'Digital Wallet', 'Auto Debit', 'Cheque', 'Other'];
   let h = '<option value="">— Not set —</option>' + base.map(b => `<option value="${b}">${b}</option>`).join('');
   const cards = (ccCards || []);
   if (cards.length) h += '<optgroup label="Credit cards">' + cards.map(c => `<option value="cc:${_esc(c.id)}">${_esc(c.nickname || c.bankName)}</option>`).join('') + '</optgroup>';
@@ -19602,7 +19632,7 @@ function entryNameInput() {
     else if (q.length >= 3 && _lev(k.slice(0, q.length + 1), q) <= 1) sc = 40;
     else if (q.length >= 4 && _lev(k, q) <= 2) sc = 30;
     return { h, sc };
-  }).filter(x => x.sc > 0).sort((a, b) => b.sc - a.sc || b.h.n - a.h.n).slice(0, 6);
+  }).filter(x => x.sc > 0 && !fosHiddenPayee(x.h.name)).sort((a, b) => b.sc - a.sc || b.h.n - a.h.n).slice(0, 6);
   _nameList = list.map(x => x.h.name);
   const exact = !!hist[q];
   if (list.length && !(exact && list.length === 1)) {
@@ -19626,6 +19656,7 @@ function pickEntryName(i) {
 
 // Fill sub-category / tags / last note from history; offer last amounts + notes as chips
 function entryAutofill() {
+  fosApplySuggestion();
   const q = document.getElementById('inp-name').value.trim().toLowerCase();
   const hist = editingFinanceId ? null : _entryHistory(_entryType())[q];
   const ac = document.getElementById('amt-chips'), nc = document.getElementById('note-chips');
@@ -19633,7 +19664,6 @@ function entryAutofill() {
   if (!hist) {
     ac.innerHTML = ''; nc.innerHTML = '';
     if (!editingFinanceId) {
-      if (_autoFill.sub) sub.value = '';
       if (_autoFill.notes) notes.value = '';
       if (_autoFill.pay) document.getElementById('inp-pay').value = '';
       if (_autoFill.tags) { document.getElementById('inp-tags').value = ''; renderTagChips([]); }
@@ -19645,7 +19675,6 @@ function entryAutofill() {
   _noteList = _topKeys(hist.notes, 3);
   nc.innerHTML = _noteList.map((n, i) => `<button type="button" class="qa-chip" onclick="document.getElementById('inp-notes').value=_noteList[${i}];_autoFill.notes=false">${_esc(n)}</button>`).join('');
   const L = hist.last;
-  if (!sub.value || _autoFill.sub) { sub.value = L.sub || ''; _autoFill.sub = true; }
   if (!notes.value || _autoFill.notes) { notes.value = L.notes || ''; _autoFill.notes = true; }
   const payEl = document.getElementById('inp-pay');
   if (!payEl.value || _autoFill.pay) { payEl.value = L.pay || ''; _autoFill.pay = !!L.pay; }
@@ -19683,7 +19712,7 @@ function quickAdd(i) {
     qm.textContent = '⚠ ' + (r.notes || r.name) + ' ₹' + Number(r.amount).toLocaleString('en-IN') + ' is already on ' + date + ' — tap again to add it anyway.'; return;
   }
   _dupKey = ''; qm.style.color = '';
-  db.push({ id: Date.now(), name: r.name, amount: Number(r.amount), type: r.type, sub: r.sub || '', date, notes: r.notes || '', recurring: false, tags: (r.tags || []).slice(), pay: r.pay || '' });
+  db.push({ id: Date.now(), name: r.name, amount: Number(r.amount), type: r.type, sub: r.sub || '', category: r.category, payee: r.payee, subcategory: r.subcategory, date, notes: r.notes || '', recurring: false, tags: (r.tags || []).slice(), pay: r.pay || '' });
   _entryCount++; _afterEntrySaved();
   document.getElementById('qa-msg').textContent = '✓ Added ' + (r.notes || r.name) + ' ₹' + Number(r.amount).toLocaleString('en-IN') + ' on ' + date + (_entryCount > 1 ? '  (' + _entryCount + ' added this session)' : '');
   buildQuickAdd();
@@ -19698,8 +19727,296 @@ function entryUiSync(edit) {
   document.querySelectorAll('#modal .input-field.err').forEach(el => el.classList.remove('err'));
   document.getElementById('fin-another-btn').style.display = edit ? 'none' : '';
   if (!edit) buildQuickAdd(); else document.getElementById('qa-wrap').style.display = 'none';
+  fosOnType(edit);
   renderMoreSummary();
 }
+
+// ═══════════════ SMART ENTRY: categories / subcategories / payees (additive) ═══════════════
+// Storage: localStorage 'fos_master_v1' (master lists). Transactions keep legacy name/sub AND gain
+// category / payee / subcategory. Compat rule: name = payee||category, sub = category (what all
+// existing analytics bucket on); the NEW subcategory lives in r.subcategory.
+const FOS_MASTER_KEY = 'fos_master_v1';
+const FOS_DEF_CATS = {
+  Expense: ['Food & Dining','Groceries','Transportation','Fuel','Shopping','Household','Utilities & Bills','Health & Medical','Insurance','Personal Care','Entertainment','Subscriptions','Travel','Education','Family & Gifts','Pets','Banking & Financial Charges','Housing & Rent','Loans & EMIs','Taxes','Professional Services','Other'],
+  Income: ['Salary','Business Income','Freelance Income','Investment Returns','Interest Income','Rental Income','Cashback & Rewards','Refunds','Gifts Received','Other Income'],
+  Investment: ['Mutual Funds','Stocks','ETFs','Gold','Silver','Bonds','Fixed Deposits','Real Estate','Retirement Funds','Other Investments'],
+  Loan: ['Personal Loan','Home Loan','Vehicle Loan','Education Loan','Credit Card EMI','Other Loan']
+};
+const FOS_DEF_SUBS = {
+  'Food & Dining': ['Restaurants','Fast Food','Cafes','Takeaway','Food Delivery','Beverages','Snacks'],
+  'Transportation': ['Cab','Auto','Bus','Train','Metro','Flight','Parking','Vehicle Maintenance'],
+  'Fuel': ['Petrol','Diesel','CNG','EV Charging'],
+  'Shopping': ['Clothing','Footwear','Electronics','Accessories','Home Appliances','Online Shopping','Personal Items'],
+  'Health & Medical': ['Doctor Consultation','Medicines','Hospital','Diagnostics','Physiotherapy','Dental','Eye Care'],
+  'Utilities & Bills': ['Electricity','Water','Internet','Mobile Recharge','Gas','Maintenance'],
+  'Loans & EMIs': ['Personal Loan EMI','Home Loan EMI','Vehicle Loan EMI','Credit Card EMI','Interest Payment','Loan Repayment'],
+  'Entertainment': ['Movies','Gaming','Events','Music','Streaming','Recreation'],
+  'Subscriptions': ['Streaming','Music','Software']
+};
+// Last-resort suggestions (only used when the payee has NO history). History always wins.
+const FOS_PAYEE_HINTS = { zomato:['Food & Dining','Food Delivery'], swiggy:['Food & Dining','Food Delivery'], uber:['Transportation','Cab'], ola:['Transportation','Cab'], 'indian oil':['Fuel','Petrol'], iocl:['Fuel','Petrol'], hpcl:['Fuel','Petrol'], bpcl:['Fuel','Petrol'], netflix:['Subscriptions','Streaming'], 'amazon prime':['Subscriptions','Streaming'], spotify:['Subscriptions','Music'], dmart:['Groceries',''], flipkart:['Shopping','Online Shopping'] };
+const fosClean = s => String(s == null ? '' : s).replace(/\s+/g, ' ').trim();
+const fosKey = s => fosClean(s).toLowerCase();
+const _fid = p => p + Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
+let fosMaster = null;
+function fosM() { if (!fosMaster) fosMaster = fosLoadMaster(); return fosMaster; }
+function fosSave() { try { localStorage.setItem(FOS_MASTER_KEY, JSON.stringify(fosM())); } catch (e) {} }
+function fosLoadMaster() {
+  let m = null; try { m = JSON.parse(localStorage.getItem(FOS_MASTER_KEY) || 'null'); } catch (e) {}
+  if (!m || !Array.isArray(m.cats)) m = { v: 1, cats: [], subs: [], payees: [], hiddenPayees: [], seeded: false };
+  m.subs = m.subs || []; m.payees = m.payees || []; m.hiddenPayees = m.hiddenPayees || [];
+  if (!m.seeded) { // seed defaults ONCE so renamed/disabled defaults never come back
+    Object.keys(FOS_DEF_CATS).forEach(t => FOS_DEF_CATS[t].forEach(n => { if (!m.cats.some(c => c.type === t && fosKey(c.name) === fosKey(n))) m.cats.push({ id: _fid('c'), name: n, type: t, active: true, custom: false }); }));
+    Object.keys(FOS_DEF_SUBS).forEach(cn => { const c = m.cats.find(x => x.type === 'Expense' && fosKey(x.name) === fosKey(cn)); if (c) FOS_DEF_SUBS[cn].forEach(s => { if (!m.subs.some(x => x.catId === c.id && fosKey(x.name) === fosKey(s))) m.subs.push({ id: _fid('s'), catId: c.id, name: s, active: true }); }); });
+    m.seeded = true; try { localStorage.setItem(FOS_MASTER_KEY, JSON.stringify(m)); } catch (e) {}
+  }
+  return m;
+}
+function fosFindCat(type, name) { const k = fosKey(name); return fosM().cats.find(c => c.type === type && fosKey(c.name) === k) || null; }
+function fosAddCat(type, name, custom) {
+  name = fosClean(name); if (!name || !FOS_DEF_CATS[type]) return null;
+  let c = fosFindCat(type, name); if (c) { c.active = true; return c; }
+  c = { id: _fid('c'), name, type, active: true, custom: custom !== false }; fosM().cats.push(c); return c;
+}
+function fosAddSub(catId, name) {
+  name = fosClean(name); if (!name || !fosM().cats.some(c => c.id === catId)) return null;
+  let s = fosM().subs.find(x => x.catId === catId && fosKey(x.name) === fosKey(name)); if (s) { s.active = true; return s; }
+  s = { id: _fid('s'), catId, name, active: true }; fosM().subs.push(s); return s;
+}
+function fosCatUse() { const u = {}; (db || []).forEach(r => { const c = fosKey(r.category || r.sub); if (c) { const k = r.type + '|' + c; u[k] = (u[k] || 0) + 1; } }); return u; }
+function fosCatsFor(type) {
+  const u = fosCatUse(), oth = c => /^other/i.test(c.name) ? 1 : 0;
+  return fosM().cats.filter(c => c.type === type && c.active).sort((a, b) => oth(a) - oth(b) || (u[type + '|' + fosKey(b.name)] || 0) - (u[type + '|' + fosKey(a.name)] || 0));
+}
+function fosSubsFor(catName, type) { const c = fosFindCat(type, catName); return c ? fosM().subs.filter(s => s.catId === c.id && s.active).map(s => s.name) : []; }
+function fosPayeeOf(r) { if (r.payee !== undefined && r.payee !== null) return fosClean(r.payee); return fosKey(r.name) === fosKey(r.sub) ? '' : fosClean(r.name); }
+function fosHiddenPayee(n) { return fosM().hiddenPayees.indexOf(fosKey(n)) >= 0; }
+// Pulls categories / subcategories that exist only in history (legacy "sub" values, other devices) into the master list
+function fosSyncFromDb() {
+  let ch = false;
+  (db || []).forEach(r => {
+    if (!r || !FOS_DEF_CATS[r.type]) return;
+    const cn = fosClean(r.category || r.sub); if (!cn) return;
+    let c = fosFindCat(r.type, cn); if (!c) { c = fosAddCat(r.type, cn, true); ch = true; }
+    const sn = fosClean(r.subcategory);
+    if (sn && c && !fosM().subs.some(x => x.catId === c.id && fosKey(x.name) === fosKey(sn))) { fosAddSub(c.id, sn); ch = true; }
+  });
+  if (ch) fosSave();
+}
+// Canonical names (no writes): fixes casing / whitespace and avoids duplicate records
+function fosResolve(type, cat, sub, payee) {
+  cat = fosClean(cat); sub = fosClean(sub); payee = fosClean(payee);
+  const c = fosFindCat(type, cat), out = { cat: c ? c.name : cat, sub, payee, newCat: !c, newSub: false };
+  if (sub) { const s = c && fosM().subs.find(x => x.catId === c.id && fosKey(x.name) === fosKey(sub)); if (s) out.sub = s.name; else out.newSub = true; }
+  if (payee) {
+    const k = fosKey(payee), h = (db || []).find(r => fosKey(fosPayeeOf(r)) === k);
+    if (h) out.payee = fosPayeeOf(h); else { const mp = fosM().payees.find(p => fosKey(p.name) === k); if (mp) out.payee = mp.name; }
+  }
+  return out;
+}
+function fosPersist(R, type) {
+  const c = fosAddCat(type, R.cat); if (c && R.sub) fosAddSub(c.id, R.sub);
+  if (R.payee) {
+    const k = fosKey(R.payee);
+    if (!fosM().payees.some(p => fosKey(p.name) === k)) fosM().payees.push({ id: _fid('p'), name: R.payee });
+    fosM().hiddenPayees = fosM().hiddenPayees.filter(x => x !== k);
+  }
+  fosSave();
+}
+// Payee → category/subcategory. Exact payee match, learned from saved history (recent + frequent win; a payee can have many mappings)
+function fosPayeeSuggest(name, type) {
+  const k = fosKey(name); if (!k) return null;
+  const rows = (db || []).filter(r => r.type === type && fosKey(fosPayeeOf(r) || r.name) === k && (r.category || r.sub)).sort((a, b) => (b.date || '').localeCompare(a.date || ''));
+  if (rows.length) {
+    const g = {};
+    rows.forEach((r, i) => { const cat = fosClean(r.category || r.sub), sub = fosClean(r.subcategory), key = cat + '|' + sub; const e = g[key] || (g[key] = { cat, sub, sc: 0 }); e.sc += 1 + (i === 0 ? 2 : i === 1 ? 1 : 0); });
+    return Object.values(g).sort((a, b) => b.sc - a.sc)[0];
+  }
+  if (type === 'Expense') {
+    const hk = Object.keys(FOS_PAYEE_HINTS).find(h => k === h || k.indexOf(h + ' ') === 0);
+    if (hk) { const c = fosFindCat('Expense', FOS_PAYEE_HINTS[hk][0]); if (c) return { cat: c.name, sub: FOS_PAYEE_HINTS[hk][1], sc: 0, builtin: true }; }
+  }
+  return null;
+}
+
+// ── searchable dropdowns (Category / Subcategory) ──
+let _fcbList = { cat: [], sub: [] }, _fcbSel = { cat: -1, sub: -1 }, _cs = { cat: false, sub: false };
+const _fcbId = k => k === 'cat' ? 'inp-catname' : 'inp-sub';
+function fcbRender(kind, all) {
+  const inp = document.getElementById(_fcbId(kind)), box = document.getElementById('fcb-' + kind), type = _entryType();
+  const raw = fosClean(inp.value), q = fosKey(raw), catName = fosClean(document.getElementById('inp-catname').value);
+  _fcbSel[kind] = -1;
+  if (kind === 'sub' && !catName) { _fcbList.sub = []; box.innerHTML = '<div class="tag-suggestion-item" style="opacity:.7">Choose a category first</div>'; box.style.display = 'block'; return; }
+  const base = kind === 'cat' ? fosCatsFor(type).map(c => c.name) : fosSubsFor(catName, type);
+  const items = base.filter(n => all || !q || fosKey(n).indexOf(q) >= 0).sort((a, b) => (fosKey(b).indexOf(q) === 0 ? 1 : 0) - (fosKey(a).indexOf(q) === 0 ? 1 : 0)).slice(0, 40).map(v => ({ v }));
+  if (raw && !base.some(n => fosKey(n) === q)) items.push({ v: raw, add: true });
+  _fcbList[kind] = items;
+  box.innerHTML = items.length ? items.map((it, i) => `<div class="tag-suggestion-item" onmousedown="event.preventDefault();fcbPick('${kind}',${i})">${it.add ? '＋ Add “' + _esc(it.v) + '” as new ' + (kind === 'cat' ? 'category' : 'subcategory') : _esc(it.v)}</div>`).join('') : '<div class="tag-suggestion-item" style="opacity:.7">No subcategories yet — type to add one</div>';
+  box.style.display = 'block';
+}
+function fcbPick(kind, i) {
+  const it = (_fcbList[kind] || [])[i]; if (!it) return;
+  const inp = document.getElementById(_fcbId(kind)), type = _entryType();
+  if (it.add) {
+    if (kind === 'cat') { const c = fosAddCat(type, it.v); if (!c) return; it.v = c.name; }
+    else { const c = fosFindCat(type, document.getElementById('inp-catname').value); const s = c && fosAddSub(c.id, it.v); if (!s) return; it.v = s.name; }
+    fosSave();
+  }
+  inp.value = it.v; _cs[kind] = false; document.getElementById('fcb-' + kind).style.display = 'none';
+  if (kind === 'cat') fosOnCatChange();
+  fosHints();
+  if (/^other\b/i.test(it.v)) { inp.select(); fosHint(kind, 'Type to replace “Other” with your own name'); }
+  renderMoreSummary();
+}
+function fcbKey(e, kind) {
+  const box = document.getElementById('fcb-' + kind), items = box.querySelectorAll('.tag-suggestion-item'), n = (_fcbList[kind] || []).length;
+  if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
+    if (box.style.display === 'none') fcbRender(kind, true);
+    const n2 = (_fcbList[kind] || []).length; if (!n2) return;
+    e.preventDefault(); e.stopPropagation();
+    _fcbSel[kind] = e.key === 'ArrowDown' ? Math.min(_fcbSel[kind] + 1, n2 - 1) : Math.max(_fcbSel[kind] - 1, 0);
+    const its = box.querySelectorAll('.tag-suggestion-item'); its.forEach((el, j) => el.classList.toggle('sel', j === _fcbSel[kind]));
+    const s = its[_fcbSel[kind]]; if (s && s.scrollIntoView) s.scrollIntoView({ block: 'nearest' });
+  } else if (e.key === 'Enter' && _fcbSel[kind] >= 0 && box.style.display !== 'none' && n) { e.preventDefault(); e.stopPropagation(); fcbPick(kind, _fcbSel[kind]); }
+  else if (e.key === 'Escape') box.style.display = 'none';
+}
+function fosHint(kind, msg) { const el = document.getElementById(kind + '-hint'); if (el) { el.textContent = msg || ''; el.style.color = 'var(--accent)'; } }
+function fosHints() {
+  const p = fosClean(document.getElementById('inp-name').value);
+  fosHint('cat', _cs.cat ? '✨ Suggested from “' + p + '” history — edit to override' : '');
+  fosHint('sub', _cs.sub ? '✨ Suggested from “' + p + '” history — edit to override' : '');
+}
+function fosOnCatChange() {
+  const type = _entryType(), cn = fosClean(document.getElementById('inp-catname').value), sub = document.getElementById('inp-sub');
+  if (sub.value) { const ok = cn && fosSubsFor(cn, type).some(s => fosKey(s) === fosKey(sub.value)); if (!ok) { sub.value = ''; _cs.sub = false; } }
+  fosHints(); renderMoreSummary();
+}
+function fosOnType(edit) {
+  fosSyncFromDb(); if (edit) return;
+  const cat = document.getElementById('inp-catname');
+  if (cat.value && !fosFindCat(_entryType(), cat.value)) { cat.value = ''; document.getElementById('inp-sub').value = ''; _cs = { cat: false, sub: false }; } else fosOnCatChange();
+  fosHints();
+}
+function fosResetForm() { _cs = { cat: false, sub: false }; ['cat-hint', 'sub-hint'].forEach(i => { const e = document.getElementById(i); if (e) e.textContent = ''; }); ['fcb-cat', 'fcb-sub'].forEach(i => { const e = document.getElementById(i); if (e) e.style.display = 'none'; }); }
+// Never overrides something the user chose: only fills empty fields or fields that are still marked "suggested"
+function fosApplySuggestion() {
+  if (editingFinanceId) return;
+  const type = _entryType(), nm = document.getElementById('inp-name').value, catEl = document.getElementById('inp-catname'), subEl = document.getElementById('inp-sub');
+  const s = fosPayeeSuggest(nm, type);
+  if (!s) { if (_cs.cat) { catEl.value = ''; _cs.cat = false; } if (_cs.sub) { subEl.value = ''; _cs.sub = false; } fosHints(); return; }
+  if (!fosClean(catEl.value) || _cs.cat) { catEl.value = s.cat; _cs.cat = true; }
+  if ((!fosClean(subEl.value) || _cs.sub) && fosKey(s.cat) === fosKey(catEl.value)) { subEl.value = s.sub; _cs.sub = !!s.sub; }
+  fosHints();
+}
+
+// ── master management (rename / disable / merge — never deletes transactions) ──
+function fosRenameCat(id, nn) {
+  nn = fosClean(nn); const c = fosM().cats.find(x => x.id === id); if (!c || !nn) return 'A name is required.';
+  if (fosM().cats.some(x => x.id !== id && x.type === c.type && fosKey(x.name) === fosKey(nn))) return 'That category already exists.';
+  const ok = fosKey(c.name), old = c.name; c.name = nn;
+  (db || []).forEach(r => { if (r.type === c.type && fosKey(r.category || r.sub) === ok) { r.sub = nn; if (r.category !== undefined) r.category = nn; } });
+  try { if (typeof budgets === 'object' && budgets && budgets[old] !== undefined && budgets[nn] === undefined) { budgets[nn] = budgets[old]; delete budgets[old]; localStorage.setItem('fos_budgets', JSON.stringify(budgets)); } } catch (e) {}
+  fosSave(); return '';
+}
+function fosRenameSub(id, nn) {
+  nn = fosClean(nn); const s = fosM().subs.find(x => x.id === id); if (!s || !nn) return 'A name is required.';
+  if (fosM().subs.some(x => x.id !== id && x.catId === s.catId && fosKey(x.name) === fosKey(nn))) return 'That subcategory already exists in this category.';
+  const c = fosM().cats.find(x => x.id === s.catId), ok = fosKey(s.name); s.name = nn;
+  (db || []).forEach(r => { if (c && r.type === c.type && fosKey(r.category || r.sub) === fosKey(c.name) && fosKey(r.subcategory) === ok) r.subcategory = nn; });
+  fosSave(); return '';
+}
+function fosPayeeList() {
+  const m = {};
+  (db || []).forEach(r => { const p = fosPayeeOf(r); if (!p) return; const k = fosKey(p), e = m[k] || (m[k] = { name: p, n: 0, spent: 0, last: '' }); e.n++; if (r.type === 'Expense') e.spent += Number(r.amount) || 0; if ((r.date || '') > e.last) { e.last = r.date; e.name = p; } });
+  fosM().payees.forEach(p => { const k = fosKey(p.name); if (!m[k]) m[k] = { name: p.name, n: 0, spent: 0, last: '' }; });
+  return Object.values(m).sort((a, b) => b.n - a.n || a.name.localeCompare(b.name));
+}
+// Rename, or merge when the new name is an existing payee. Rewrites name+payee on matching records (counts are kept).
+function fosRenamePayee(oldName, nn) {
+  nn = fosClean(nn); if (!nn) return { err: 'A name is required.' };
+  const ok = fosKey(oldName), nk = fosKey(nn); let n = 0;
+  const target = (db || []).find(r => fosKey(fosPayeeOf(r)) === nk && nk !== ok); if (target) nn = fosPayeeOf(target);
+  (db || []).forEach(r => { if (fosKey(fosPayeeOf(r)) === ok) { r.payee = nn; r.name = nn; n++; } });
+  const M = fosM(); M.payees = M.payees.filter(p => fosKey(p.name) !== ok); if (!M.payees.some(p => fosKey(p.name) === fosKey(nn))) M.payees.push({ id: _fid('p'), name: nn });
+  M.hiddenPayees = M.hiddenPayees.filter(x => x !== ok); fosSave(); return { n, merged: !!target };
+}
+function fosMergeMaster(m) { // restore: additive merge, never overwrites existing master data
+  if (!m || !Array.isArray(m.cats)) return; const idMap = {};
+  m.cats.forEach(c => { if (!c || !c.name || !FOS_DEF_CATS[c.type]) return; const ex = fosFindCat(c.type, c.name) || fosAddCat(c.type, c.name, c.custom !== false); if (ex) idMap[c.id] = ex.id; });
+  (m.subs || []).forEach(s => { const cid = idMap[s.catId]; if (cid && s.name) fosAddSub(cid, s.name); });
+  (m.payees || []).forEach(p => { if (p && p.name && !fosM().payees.some(x => fosKey(x.name) === fosKey(p.name))) fosM().payees.push({ id: _fid('p'), name: fosClean(p.name) }); });
+  (m.hiddenPayees || []).forEach(k => { if (fosM().hiddenPayees.indexOf(k) < 0) fosM().hiddenPayees.push(k); });
+  fosSave();
+}
+function fosInsights() {
+  const now = localISO().slice(0, 7), d = new Date(); d.setDate(1); d.setMonth(d.getMonth() - 1); const prev = localISO(d).slice(0, 7);
+  const cats = {}, pays = {}, subs = {};
+  (db || []).forEach(r => {
+    if (r.type !== 'Expense' || !r.date) return; const mk = r.date.slice(0, 7), a = Number(r.amount) || 0;
+    const c = fosClean(r.category || r.sub) || 'Uncategorised', e = cats[c] || (cats[c] = { name: c, cur: 0, prev: 0 });
+    if (mk === now) e.cur += a; else if (mk === prev) e.prev += a;
+    const p = fosPayeeOf(r); if (p) { const x = pays[fosKey(p)] || (pays[fosKey(p)] = { name: p, total: 0 }); x.total += a; }
+    if (r.subcategory && mk === now) { const k = c + ' › ' + r.subcategory, x = subs[k] || (subs[k] = { name: k, total: 0 }); x.total += a; }
+  });
+  const top = (o, n) => Object.values(o).sort((a, b) => b.total - a.total).slice(0, n);
+  return { cats: Object.values(cats).filter(c => c.cur || c.prev).sort((a, b) => b.cur - a.cur).map(c => Object.assign(c, { d: c.cur - c.prev })), payees: top(pays, 10), subs: top(subs, 10), now, prev };
+}
+function fosQuery(q) {
+  const k = fosKey(q), now = localISO().slice(0, 7); let all = 0, cur = 0, n = 0;
+  if (!k) return null;
+  (db || []).forEach(r => { if (r.type !== 'Expense') return; if ([fosPayeeOf(r), r.name, r.category, r.sub, r.subcategory].some(x => fosKey(x).indexOf(k) >= 0)) { const a = Number(r.amount) || 0; all += a; n++; if ((r.date || '').slice(0, 7) === now) cur += a; } });
+  return { all, cur, n };
+}
+// ── manager UI ──
+let _fosTab = 'cats', _fosPL = [];
+function fosCloseManager() { const e = document.getElementById('fos-mgr'); if (e) e.style.display = 'none'; }
+function fosOpenManager(tab) {
+  fosSyncFromDb(); let el = document.getElementById('fos-mgr');
+  if (!el) { el = document.createElement('div'); el.id = 'fos-mgr'; el.className = 'modal-overlay'; el.onmousedown = e => { if (e.target === el) fosCloseManager(); }; document.body.appendChild(el); }
+  el.style.display = 'flex'; el.style.zIndex = 100000; _fosTab = tab || _fosTab || 'cats'; fosMgrRender();
+}
+function fosAfterChange() { try { scheduleSave(); _afterEntrySaved(); } catch (e) {} fosMgrRender(); }
+function fosMgrRender() {
+  const el = document.getElementById('fos-mgr'); if (!el) return;
+  const tabs = [['cats', 'Categories'], ['payees', 'Payees'], ['insights', 'Insights']].map(t => `<button type="button" class="fm-tab${_fosTab === t[0] ? ' on' : ''}" onclick="_fosTab='${t[0]}';fosMgrRender()">${t[1]}</button>`).join('');
+  el.innerHTML = `<div class="modal-box fm-box"><div class="fm-top"><div class="modal-title" style="margin:0">Categories, payees &amp; insights</div><button class="btn-secondary" onclick="fosCloseManager()">Close</button></div><div class="fm-tabs">${tabs}</div><div id="fm-body">${_fosTab === 'cats' ? fosMgrCats() : _fosTab === 'payees' ? fosMgrPayees() : fosMgrInsights()}</div></div>`;
+  if (_fosTab === 'payees') fosPayeeRows();
+}
+function fosMgrCats() {
+  const u = fosCatUse(); let h = '<div class="fm-note">Disabling or renaming never deletes transactions — history keeps showing under the (new) name.</div>';
+  ['Expense', 'Income', 'Investment', 'Loan'].forEach(t => {
+    h += `<div class="fm-h">${t}</div>`;
+    fosM().cats.filter(c => c.type === t).forEach(c => {
+      const n = u[t + '|' + fosKey(c.name)] || 0, subs = fosM().subs.filter(s => s.catId === c.id);
+      h += `<div class="fm-row${c.active ? '' : ' off'}"><b>${_esc(c.name)}</b><span class="fm-m">${n} txn</span><span class="fm-a"><a onclick="fosUiRenameCat('${c.id}')">rename</a><a onclick="fosUiToggleCat('${c.id}')">${c.active ? 'disable' : 'enable'}</a><a onclick="fosUiAddSub('${c.id}')">+ sub</a></span></div>`;
+      if (subs.length) h += '<div class="fm-subs">' + subs.map(s => `<span class="fm-chip${s.active ? '' : ' off'}">${_esc(s.name)} <a onclick="fosUiRenameSub('${s.id}')">✎</a> <a onclick="fosUiToggleSub('${s.id}')">${s.active ? '✕' : '↺'}</a></span>`).join('') + '</div>';
+    });
+    h += `<div class="fm-add"><input id="fm-new-${t}" class="input-field" placeholder="New ${t.toLowerCase()} category" onkeydown="if(event.key==='Enter'){event.stopPropagation();fosUiAddCat('${t}')}"><button class="btn-secondary" onclick="fosUiAddCat('${t}')">Add</button></div>`;
+  });
+  return h;
+}
+function fosMgrPayees() { return '<div class="fm-note">Rename a payee to fix it everywhere, or rename it to an existing payee to merge duplicates. Archived payees stop appearing in suggestions.</div><input id="fm-psearch" class="input-field" placeholder="Search payees…" oninput="fosPayeeRows()" style="margin-bottom:8px"><div id="fm-plist"></div>'; }
+function fosPayeeRows() {
+  const q = fosKey((document.getElementById('fm-psearch') || {}).value), box = document.getElementById('fm-plist'); if (!box) return;
+  _fosPL = fosPayeeList().filter(p => !q || fosKey(p.name).indexOf(q) >= 0);
+  box.innerHTML = _fosPL.length ? _fosPL.slice(0, 200).map((p, i) => `<div class="fm-row${fosHiddenPayee(p.name) ? ' off' : ''}"><b>${_esc(p.name)}</b><span class="fm-m">${p.n} txn · ${fmt(p.spent)}</span><span class="fm-a"><a onclick="fosUiRenamePayee(${i})">rename / merge</a><a onclick="fosUiTogglePayee(${i})">${fosHiddenPayee(p.name) ? 'unarchive' : 'archive'}</a></span></div>`).join('') : '<div class="fm-note">No payees yet — they appear as you save transactions.</div>';
+}
+function fosMgrInsights() {
+  const I = fosInsights(), row = (n, v) => `<div class="fm-row"><b>${_esc(n)}</b><span class="fm-m">${fmt(v)}</span></div>`;
+  return `<input id="fm-q" class="input-field" placeholder="How much did I spend on… (payee, category or subcategory)" oninput="fosUiQuery()" style="margin-bottom:6px"><div id="fm-qres" class="fm-note"></div>
+  <div class="fm-h">Category — ${I.now} vs ${I.prev}</div>${I.cats.map(c => `<div class="fm-row"><b>${_esc(c.name)}</b><span class="fm-m">${fmt(c.cur)} <span style="color:${c.d > 0 ? '#f87171' : '#34d399'}">${c.d > 0 ? '▲' : c.d < 0 ? '▼' : '•'} ${fmt(Math.abs(c.d))}</span></span></div>`).join('') || '<div class="fm-note">No expenses in the last two months.</div>'}
+  <div class="fm-h">Top payees (all time, expenses)</div>${I.payees.map(p => row(p.name, p.total)).join('') || '<div class="fm-note">Add transactions with a payee to see this.</div>'}
+  <div class="fm-h">Top subcategories this month</div>${I.subs.map(p => row(p.name, p.total)).join('') || '<div class="fm-note">Nothing yet.</div>'}`;
+}
+function fosUiQuery() { const r = fosQuery(document.getElementById('fm-q').value), o = document.getElementById('fm-qres'); o.textContent = r ? (r.n + ' expense(s) · all time ' + fmt(r.all) + ' · this month ' + fmt(r.cur)) : ''; }
+function fosUiAddCat(t) { const i = document.getElementById('fm-new-' + t), v = fosClean(i.value); if (!v) return; fosAddCat(t, v); fosSave(); fosAfterChange(); }
+function fosUiRenameCat(id) { const c = fosM().cats.find(x => x.id === id); if (!c) return; const v = prompt('Rename category “' + c.name + '” to:', c.name); if (v === null) return; const e = fosRenameCat(id, v); if (e) alert(e); fosAfterChange(); }
+function fosUiToggleCat(id) { const c = fosM().cats.find(x => x.id === id); if (c) { c.active = !c.active; fosSave(); fosMgrRender(); } }
+function fosUiAddSub(id) { const v = prompt('New subcategory name:'); if (v === null) return; if (!fosAddSub(id, v)) alert('A name is required.'); fosSave(); fosMgrRender(); }
+function fosUiRenameSub(id) { const s = fosM().subs.find(x => x.id === id); if (!s) return; const v = prompt('Rename subcategory “' + s.name + '” to:', s.name); if (v === null) return; const e = fosRenameSub(id, v); if (e) alert(e); fosAfterChange(); }
+function fosUiToggleSub(id) { const s = fosM().subs.find(x => x.id === id); if (s) { s.active = !s.active; fosSave(); fosMgrRender(); } }
+function fosUiRenamePayee(i) { const p = _fosPL[i]; if (!p) return; const v = prompt('Rename “' + p.name + '” to (use an existing payee name to merge):', p.name); if (v === null) return; const r = fosRenamePayee(p.name, v); if (r.err) { alert(r.err); return; } if (r.merged) alert('Merged — ' + r.n + ' transaction(s) now use the existing payee.'); fosAfterChange(); }
+function fosUiTogglePayee(i) { const p = _fosPL[i]; if (!p) return; const k = fosKey(p.name), H = fosM().hiddenPayees, j = H.indexOf(k); if (j >= 0) H.splice(j, 1); else H.push(k); fosSave(); fosPayeeRows(); }
 
 function openModal() {
   editingFinanceId = null; _entryCount = 0; _autoFill = { sub:false, notes:false, tags:false, pay:false };
@@ -19709,13 +20026,14 @@ function openModal() {
   document.getElementById('inp-recurring').checked = false;
   document.getElementById('fin-save-btn').textContent = 'Save Entry';
   document.getElementById('fin-delete-btn').style.display = 'none';
-  ['inp-name','inp-amt','inp-sub','inp-notes','inp-tags','inp-tags-input'].forEach(id => document.getElementById(id).value = '');
+  ['inp-name','inp-catname','inp-amt','inp-sub','inp-notes','inp-tags','inp-tags-input'].forEach(id => document.getElementById(id).value = '');
   ['tag-chips-preview','amt-chips','note-chips','name-hint','qa-msg'].forEach(id => document.getElementById(id).innerHTML = '');
   document.getElementById('tag-suggestions').style.display = 'none';
   document.getElementById('name-suggestions').style.display = 'none';
   _dupKey = ''; document.getElementById('qa-msg').style.color = '';
   fillPayOptions('');
   toggleMoreDetails(false);
+  fosResetForm();
   entryUiSync(false);
   document.getElementById('modal').style.display = 'flex';
   setTimeout(() => { const a = document.getElementById('inp-amt'); if (a) a.focus(); }, 60);
@@ -19733,8 +20051,8 @@ function _afterEntrySaved() {
 
 function saveEntry(another) {
   const f = id => document.getElementById(id);
-  const name = f('inp-name').value.trim(), amt = f('inp-amt').value, type = _entryType();
-  let sub = f('inp-sub').value.trim();
+  const payeeIn = fosClean(f('inp-name').value), amt = f('inp-amt').value, type = _entryType();
+  const catIn = fosClean(f('inp-catname').value), subIn = fosClean(f('inp-sub').value);
   const date = f('inp-date').value, notes = f('inp-notes').value.trim(), recurring = f('inp-recurring').checked;
   const tagsRaw = f('inp-tags').value, pay = f('inp-pay').value;
   const tags = tagsRaw ? tagsRaw.split(',').map(t => t.trim()).filter(Boolean) : [];
@@ -19743,7 +20061,7 @@ function saveEntry(another) {
   document.querySelectorAll('#modal .input-field.err').forEach(el => el.classList.remove('err'));
   const bad = [];
   if (!(Number(amt) > 0)) bad.push(['inp-amt', 'an amount']);
-  if (!name) bad.push(['inp-name', 'a category / payee']);
+  if (!catIn) bad.push(['inp-catname', 'a category']);
   if (!date) bad.push(['inp-date', 'a date']);
   if (bad.length) {
     bad.forEach(b => f(b[0]).classList.add('err'));
@@ -19751,6 +20069,8 @@ function saveEntry(another) {
     f(bad[0][0]).focus(); return;
   }
   f('entry-err').textContent = ''; f('entry-err').style.color = '';
+  const R = fosResolve(type, catIn, subIn, payeeIn);
+  const category = R.cat, subcategory = R.sub, payee = R.payee, name = payee || category;
   if (!editingFinanceId) {
     const key = ['s', type, name.toLowerCase(), Number(amt), date].join('|');
     if (_dupKey !== key && _dupFind(type, name, amt, date)) {
@@ -19761,21 +20081,22 @@ function saveEntry(another) {
   _dupKey = '';
 
   // Sub-category falls back to your history, then (for expenses) the category name — same convention as your existing data
-  if (!sub) { const h = _entryHistory(type)[name.toLowerCase()]; sub = (h && h.last.sub) || (type === 'Expense' ? name : ''); }
+  fosPersist(R, type);
+  const sub = category; // compat: existing analytics bucket on r.sub
 
   if (editingFinanceId) {
     const idx = db.findIndex(x => x.id === editingFinanceId);
-    if (idx >= 0) db[idx] = { ...db[idx], name, amount: Number(amt), type, sub, date, notes, recurring, tags, pay };
+    if (idx >= 0) db[idx] = { ...db[idx], name, amount: Number(amt), type, sub, category, payee, subcategory, date, notes, recurring, tags, pay };
   } else {
-    db.push({ id: Date.now(), name, amount: Number(amt), type, sub, date, notes, recurring, tags, pay });
+    db.push({ id: Date.now(), name, amount: Number(amt), type, sub, category, payee, subcategory, date, notes, recurring, tags, pay });
   }
   _afterEntrySaved();
 
   if (addMore) {
     _entryCount++;
-    ['inp-name','inp-amt','inp-sub','inp-notes','inp-tags','inp-tags-input'].forEach(id => f(id).value = '');
+    ['inp-name','inp-catname','inp-amt','inp-sub','inp-notes','inp-tags','inp-tags-input'].forEach(id => f(id).value = '');
     ['tag-chips-preview','amt-chips','note-chips','name-hint'].forEach(id => f(id).innerHTML = '');
-    f('inp-recurring').checked = false; f('inp-pay').value = ''; _autoFill = { sub:false, notes:false, tags:false, pay:false };
+    f('inp-recurring').checked = false; f('inp-pay').value = ''; _cs = { cat:false, sub:false }; fosHints(); _autoFill = { sub:false, notes:false, tags:false, pay:false };
     f('qa-msg').textContent = '✓ Saved ' + name + ' ₹' + Number(amt).toLocaleString('en-IN') + ' — ' + _entryCount + ' added this session. Date kept as ' + date + '.';
     buildQuickAdd(); renderMoreSummary(); f('inp-amt').focus();
   } else closeModal();
@@ -19800,7 +20121,7 @@ function processRecurring() {
         m++; if (m > 12) { m = 1; y++; }
         const d = y + '-' + _pad2(m) + '-' + _pad2(Math.min(day, new Date(y, m, 0).getDate()));
         if (d > today) break;
-        added.push({ id: Date.now() + added.length, name: last.name, amount: Number(last.amount), type: last.type, sub: last.sub || '', date: d, notes: last.notes || '', recurring: true, tags: (last.tags || []).slice(), pay: last.pay || '', auto: true });
+        added.push({ id: Date.now() + added.length, name: last.name, amount: Number(last.amount), type: last.type, sub: last.sub || '', category: last.category, payee: last.payee, subcategory: last.subcategory, date: d, notes: last.notes || '', recurring: true, tags: (last.tags || []).slice(), pay: last.pay || '', auto: true });
       }
     });
     if (!added.length) return 0;
@@ -22424,16 +22745,16 @@ function runExport() {
 
   let csv = '';
   if (wantTransactions) {
-    csv += 'TRANSACTIONS\nName,SubCategory,Type,Amount,Date,Recurring,Notes\n';
+    csv += 'TRANSACTIONS\nName,SubCategory,Type,Amount,Date,Recurring,Notes,Category,Payee,Subcategory\n';
     db.filter(r => r.type!=='Loan'&&r.type!=='Investment').filter(r=>inRange(r.date)).forEach(r => {
-      csv += `"${r.name}","${r.sub||''}","${r.type}",${r.amount},"${r.date}",${r.recurring||false},"${r.notes||''}"\n`;
+      csv += `"${r.name}","${r.sub||''}","${r.type}",${r.amount},"${r.date}",${r.recurring||false},"${r.notes||''}","${r.category||r.sub||''}","${fosPayeeOf(r)}","${r.subcategory||''}"\n`;
     });
     csv += '\n';
   }
   if (wantLoans) {
-    csv += 'LOANS & EMI\nName,SubCategory,Type,Amount,Date,Recurring,Notes\n';
+    csv += 'LOANS & EMI\nName,SubCategory,Type,Amount,Date,Recurring,Notes,Category,Payee,Subcategory\n';
     db.filter(r=>r.type==='Loan').filter(r=>inRange(r.date)).forEach(r => {
-      csv += `"${r.name}","${r.sub||''}","${r.type}",${r.amount},"${r.date}",${r.recurring||false},"${r.notes||''}"\n`;
+      csv += `"${r.name}","${r.sub||''}","${r.type}",${r.amount},"${r.date}",${r.recurring||false},"${r.notes||''}","${r.category||r.sub||''}","${fosPayeeOf(r)}","${r.subcategory||''}"\n`;
     });
     csv += '\n';
   }
@@ -22445,9 +22766,9 @@ function runExport() {
     csv += '\n';
   }
   if (wantInvestments) {
-    csv += 'INVESTMENTS\nName,SubCategory,Type,Amount,Date,Recurring,Notes\n';
+    csv += 'INVESTMENTS\nName,SubCategory,Type,Amount,Date,Recurring,Notes,Category,Payee,Subcategory\n';
     db.filter(r=>r.type==='Investment').filter(r=>inRange(r.date)).forEach(r => {
-      csv += `"${r.name}","${r.sub||''}","${r.type}",${r.amount},"${r.date}",${r.recurring||false},"${r.notes||''}"\n`;
+      csv += `"${r.name}","${r.sub||''}","${r.type}",${r.amount},"${r.date}",${r.recurring||false},"${r.notes||''}","${r.category||r.sub||''}","${fosPayeeOf(r)}","${r.subcategory||''}"\n`;
     });
     csv += '\n';
   }
@@ -23113,7 +23434,7 @@ function runSearch(q) {
   // Search finance db
   const finHits = db.filter(r =>
     r.name.toLowerCase().includes(ql) ||
-    (r.sub||'').toLowerCase().includes(ql) ||
+    (r.sub||'').toLowerCase().includes(ql) || (r.payee||'').toLowerCase().includes(ql) || (r.category||'').toLowerCase().includes(ql) || (r.subcategory||'').toLowerCase().includes(ql) ||
     (r.notes||'').toLowerCase().includes(ql) ||
     r.type.toLowerCase().includes(ql)
   ).slice(0,8);
@@ -23607,6 +23928,7 @@ function downloadBackup() {
     subscriptionsDb,
     finaiGoals,
     ccCards,
+    master: fosM(),
     notifications,
     gameStats,
     dashboardLayout: JSON.parse(localStorage.getItem('fos_dashboard_layout_v4') || '{}'),
@@ -23706,6 +24028,9 @@ async function confirmRestore() {
     ccCards = pendingRestoreData.ccCards;
     localStorage.setItem('financeOS_ccCards', JSON.stringify(ccCards));
   }
+
+  // Category / payee master data (additive merge)
+  if (pendingRestoreData.master) fosMergeMaster(pendingRestoreData.master);
 
   // Notifications
   if (pendingRestoreData.notifications) {
