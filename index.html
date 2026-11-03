@@ -2972,6 +2972,46 @@ body.light-mode .settings-undo-btn:hover { color: white; }
 .fm-chip a{margin-left:4px}
 .fm-note{font-size:.74rem;color:var(--text-muted);margin:6px 0}
 .fm-add{display:flex;gap:8px;margin-top:8px}
+
+/* ══════════════════════════════════════════════
+   SIDEBAR CATEGORY COLLAPSE — independent per-category (does NOT change sidebar width)
+══════════════════════════════════════════════ */
+.sidebar .nav-cat-toggle, .port-sidebar .nav-cat-toggle {
+  display: flex; align-items: center; justify-content: space-between;
+  cursor: pointer; user-select: none; -webkit-user-select: none;
+  border-radius: 8px;
+  transition: background 0.2s ease;
+}
+.sidebar .nav-cat-toggle:hover, .port-sidebar .nav-cat-toggle:hover { background: rgba(128,128,128,0.10); }
+.sidebar .nav-cat-toggle:focus-visible, .port-sidebar .nav-cat-toggle:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+.nav-cat-chevron {
+  font-size: 0.58rem; opacity: 0.55; flex-shrink: 0; margin-left: 6px;
+  transition: transform 0.22s ease, opacity 0.2s ease;
+}
+.nav-cat-toggle:hover .nav-cat-chevron { opacity: 1; }
+.nav-cat-toggle[aria-expanded="false"] .nav-cat-chevron { transform: rotate(-90deg); }
+
+.nav-group {
+  display: grid; grid-template-rows: 1fr; margin-bottom: 0;
+  transition: grid-template-rows 0.22s ease, margin-bottom 0.22s ease;
+}
+.nav-group-inner { min-height: 0; display: flex; flex-direction: column; gap: 3px; }
+.nav-group.is-cat-collapsed { grid-template-rows: 0fr; margin-bottom: -3px; }
+.nav-group.is-cat-collapsed > .nav-group-inner,
+.nav-group.is-cat-animating > .nav-group-inner { overflow: hidden; }
+.nav-group.is-cat-collapsed > .nav-group-inner { visibility: hidden; transition: visibility 0s linear 0.22s; }
+.nav-group.no-anim { transition: none !important; }
+
+/* Icon-only layouts (full-sidebar collapse + tablet) hide category headings,
+   so every category's items must stay reachable there. */
+.sidebar.collapsed .nav-group, .port-sidebar.collapsed .nav-group { grid-template-rows: 1fr !important; margin-bottom: 0 !important; }
+.sidebar.collapsed .nav-group-inner, .port-sidebar.collapsed .nav-group-inner { visibility: visible !important; overflow: visible !important; }
+@media (min-width:901px) and (max-width:1200px) {
+  .nav-group { grid-template-rows: 1fr !important; margin-bottom: 0 !important; }
+  .nav-group-inner { visibility: visible !important; overflow: visible !important; }
+}
+body.fos-no-sidebar-anim .nav-group, body.fos-no-sidebar-anim .nav-cat-chevron { transition: none !important; }
+@media (prefers-reduced-motion: reduce) { .nav-group, .nav-cat-chevron { transition: none !important; } }
 </style>
 
 <style id="fos-floating-glass">
@@ -4721,7 +4761,10 @@ document.addEventListener('DOMContentLoaded', function () {
 // Per-user UI preferences (currency, toggles, tracking mode…) are stashed per
 // account on logout / account switch, so one person's settings never leak to the next.
 const USER_PREF_KEYS = ['fos_currency','fos_number_system','fos_time','fos_date','fos_shortcuts','fos_custom_tags',
-  'fos_finance_sidebar_collapsed','fos_portfolio_sidebar_collapsed','financeOS_roughboard_v1','fos_tracking_mode',
+  'fos_finance_sidebar_collapsed','fos_portfolio_sidebar_collapsed',
+  'fos_sidebar_category_finance_collapsed','fos_sidebar_category_tools_collapsed','fos_sidebar_category_playbook_collapsed',
+  'fos_sidebar_category_insights_collapsed','fos_sidebar_category_my_zone_collapsed','pos_sidebar_by_asset_collapsed',
+  'financeOS_roughboard_v1','fos_tracking_mode',
   'fos_biometric_cred_id','fos_biometric_enabled','fos_pc_lock_enabled','fos_pc_lock_hash','fos_pc_lock_salt'];
 function collectPrefs() {
   var o = {};
@@ -4939,7 +4982,7 @@ async function onCloudSignedIn(session) {
   } else if (!lastUid && typeof localDataIsEmpty === 'function' && !localDataIsEmpty()) {
     unclaimedLocal = true;         // data with no known owner — never auto-upload it
   }
-  if (lastUid !== uid) restorePrefs(uid);
+  if (lastUid !== uid) { restorePrefs(uid); if (typeof applySidebarCategoryStates === 'function') applySidebarCategoryStates(); }
   localStorage.setItem('fos_last_cloud_uid', uid);
   activeDataUid = uid;
 
@@ -6245,7 +6288,8 @@ function passAppLockGate() {
   </div>
 
 
-  <div class="nav-section-label">Finance</div>
+  <div class="nav-section-label nav-cat-toggle" role="button" tabindex="0" aria-expanded="true" aria-controls="fos-cat-finance" aria-label="Collapse Finance section" data-cat-key="fos_sidebar_category_finance_collapsed" data-cat-name="Finance" title="Collapse / expand Finance">Finance<i class="fas fa-chevron-down nav-cat-chevron" aria-hidden="true"></i></div>
+  <div class="nav-group" id="fos-cat-finance"><div class="nav-group-inner">
   <div class="nav-item" id="fin-nav-loans" onclick="switchView('loans',this,'finance')">
     <div class="nav-icon"><i class="fas fa-landmark"></i></div>
     <span class="nav-label">Loans &amp; EMI</span>
@@ -6262,13 +6306,18 @@ function passAppLockGate() {
     <div class="nav-icon"><i class="fas fa-percentage" style="color:#fb923c"></i></div>
     <span class="nav-label">CC Utilization</span>
   </div>
-<div class="nav-section-label">Tools</div>
+  </div></div>
+
+  <div class="nav-section-label nav-cat-toggle" role="button" tabindex="0" aria-expanded="true" aria-controls="fos-cat-tools" aria-label="Collapse Tools section" data-cat-key="fos_sidebar_category_tools_collapsed" data-cat-name="Tools" title="Collapse / expand Tools">Tools<i class="fas fa-chevron-down nav-cat-chevron" aria-hidden="true"></i></div>
+  <div class="nav-group" id="fos-cat-tools"><div class="nav-group-inner">
   <div class="nav-item" id="fin-nav-scenario" onclick="switchView('scenario',this,'finance')">
     <div class="nav-icon"><i class="fas fa-calculator"></i></div>
     <span class="nav-label">Scenario</span>
   </div>
+  </div></div>
 
-  <div class="nav-section-label">Playbook</div>
+  <div class="nav-section-label nav-cat-toggle" role="button" tabindex="0" aria-expanded="true" aria-controls="fos-cat-playbook" aria-label="Collapse Playbook section" data-cat-key="fos_sidebar_category_playbook_collapsed" data-cat-name="Playbook" title="Collapse / expand Playbook">Playbook<i class="fas fa-chevron-down nav-cat-chevron" aria-hidden="true"></i></div>
+  <div class="nav-group" id="fos-cat-playbook"><div class="nav-group-inner">
   <div class="nav-item" id="fin-nav-roughboard" onclick="switchView('roughboard',this,'finance')">
     <div class="nav-icon"><i class="fas fa-table"></i></div>
     <span class="nav-label">Rough Board</span>
@@ -6277,8 +6326,10 @@ function passAppLockGate() {
     <div class="nav-icon"><i class="fas fa-square-root-alt"></i></div>
     <span class="nav-label">Calculator</span>
   </div>
+  </div></div>
 
-  <div class="nav-section-label">Insights</div>
+  <div class="nav-section-label nav-cat-toggle" role="button" tabindex="0" aria-expanded="true" aria-controls="fos-cat-insights" aria-label="Collapse Insights section" data-cat-key="fos_sidebar_category_insights_collapsed" data-cat-name="Insights" title="Collapse / expand Insights">Insights<i class="fas fa-chevron-down nav-cat-chevron" aria-hidden="true"></i></div>
+  <div class="nav-group" id="fos-cat-insights"><div class="nav-group-inner">
   <div class="nav-item" id="fin-nav-analytics" onclick="switchView('analytics',this,'finance')">
     <div class="nav-icon"><i class="fas fa-chart-line"></i></div>
     <span class="nav-label">Analytics</span>
@@ -6300,8 +6351,10 @@ function passAppLockGate() {
     <span class="nav-label">Notifications</span>
     <span id="notif-count-badge" style="display:none" class="budget-badge over"></span>
   </div>
+  </div></div>
 
-  <div class="nav-section-label">My Zone</div>
+  <div class="nav-section-label nav-cat-toggle" role="button" tabindex="0" aria-expanded="true" aria-controls="fos-cat-my-zone" aria-label="Collapse My Zone section" data-cat-key="fos_sidebar_category_my_zone_collapsed" data-cat-name="My Zone" title="Collapse / expand My Zone">My Zone<i class="fas fa-chevron-down nav-cat-chevron" aria-hidden="true"></i></div>
+  <div class="nav-group" id="fos-cat-my-zone"><div class="nav-group-inner">
   <div class="nav-item" id="fin-nav-insurance" onclick="switchView('insurance',this,'finance')">
     <div class="nav-icon"><i class="fas fa-shield-alt" style="color:#34d399"></i></div>
     <span class="nav-label">Insurance</span>
@@ -6314,6 +6367,7 @@ function passAppLockGate() {
     <div class="nav-icon"><svg class="fos-ai" viewBox="0 0 24 24" width="19" height="19" aria-hidden="true"><use href="#fos-ai"/></svg></div>
     <span class="nav-label">Fin AI</span>
   </div>
+  </div></div>
 
   <div class="sidebar-footer" style="margin-top:auto">
     <!-- Expanded footer -->
@@ -6371,7 +6425,8 @@ function passAppLockGate() {
     <span class="nav-label">Port. Analytics</span>
   </div>
 
-  <div class="nav-section-label" style="color:#7c6eb3;margin-top:4px">By Asset</div>
+  <div class="nav-section-label nav-cat-toggle" role="button" tabindex="0" aria-expanded="true" aria-controls="pos-cat-by-asset" aria-label="Collapse By Asset section" data-cat-key="pos_sidebar_by_asset_collapsed" data-cat-name="By Asset" title="Collapse / expand By Asset" style="color:#7c6eb3;margin-top:4px">By Asset<i class="fas fa-chevron-down nav-cat-chevron" aria-hidden="true"></i></div>
+  <div class="nav-group" id="pos-cat-by-asset"><div class="nav-group-inner">
   <div class="port-nav-item" id="port-nav-gold" onclick="filterPortAsset('Gold')">
     <div class="nav-icon"><i class="fas fa-coins" style="color:var(--c-gold)"></i></div>
     <span class="nav-label">Gold</span>
@@ -6412,6 +6467,7 @@ function passAppLockGate() {
     <div class="nav-icon"><i class="fas fa-asterisk" style="color:#a78bfa"></i></div>
     <span class="nav-label">All Assets</span>
   </div>
+  </div></div>
 
   <div class="port-filter-box">
     <div class="port-filter-label">Holding Status</div>
@@ -6437,6 +6493,57 @@ function passAppLockGate() {
     </button>
   </div>
 </div>
+
+<script id="fos-sidebar-categories">
+/* Independent per-category collapse for the FinanceOS / PortfolioOS sidebars.
+   Each heading carries its own localStorage key (data-cat-key). Never touches the
+   full-sidebar toggle, sidebar width, navigation handlers or any financial data. */
+(function () {
+  function read(k) { try { return localStorage.getItem(k) === 'true'; } catch (e) { return false; } }
+  function write(k, v) { try { localStorage.setItem(k, v ? 'true' : 'false'); } catch (e) {} }
+  function setState(label, collapsed, animate) {
+    var group = document.getElementById(label.getAttribute('aria-controls'));
+    if (!group) return;
+    var name = label.getAttribute('data-cat-name') || 'category';
+    if (animate) {
+      group.classList.add('is-cat-animating');
+      clearTimeout(group.__catT);
+      group.__catT = setTimeout(function () { group.classList.remove('is-cat-animating'); }, 260);
+    } else {
+      group.classList.add('no-anim');
+    }
+    group.classList.toggle('is-cat-collapsed', collapsed);
+    label.setAttribute('aria-expanded', collapsed ? 'false' : 'true');
+    label.setAttribute('aria-label', (collapsed ? 'Expand ' : 'Collapse ') + name + ' section');
+    if (!animate) { void group.offsetHeight; group.classList.remove('no-anim'); }
+  }
+  function apply() {
+    document.querySelectorAll('.nav-cat-toggle[data-cat-key]').forEach(function (label) {
+      setState(label, read(label.getAttribute('data-cat-key')), false);
+    });
+  }
+  function toggle(label) {
+    var collapsed = label.getAttribute('aria-expanded') === 'true';   // expanded -> collapse
+    setState(label, collapsed, true);
+    write(label.getAttribute('data-cat-key'), collapsed);
+  }
+  ['finance-sidebar', 'portfolio-sidebar'].forEach(function (id) {
+    var sb = document.getElementById(id);
+    if (!sb) return;
+    sb.addEventListener('click', function (e) {
+      var l = e.target.closest && e.target.closest('.nav-cat-toggle');
+      if (l && sb.contains(l)) toggle(l);
+    });
+    sb.addEventListener('keydown', function (e) {
+      if (e.key !== 'Enter' && e.key !== ' ') return;
+      var l = e.target.closest && e.target.closest('.nav-cat-toggle');
+      if (l && sb.contains(l)) { e.preventDefault(); toggle(l); }
+    });
+  });
+  window.applySidebarCategoryStates = apply;   // re-applied after per-account prefs are restored on sign-in
+  apply();
+})();
+</script>
 
 <!-- MAIN CONTENT -->
 <div class="main">
