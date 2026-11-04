@@ -31908,11 +31908,21 @@ body.light-mode .txa-advhead h2 i{color:#0f766e}
 </script>
 <style id="fhs-style">
 /* Dashboard: Expense Category Breakdown (70%) + Financial Health Score (30%) */
-.fhs-row{display:grid;grid-template-columns:minmax(0,7fr) minmax(0,3fr);gap:1.3rem;margin-top:1.3rem;align-items:stretch}
+.fhs-row{display:grid;grid-template-columns:minmax(0,6fr) minmax(0,4fr);gap:1.3rem;margin:1.3rem 0;align-items:stretch}
 .fhs-row>.glass-panel{margin:0 !important;min-width:0}
 @media (max-width:1180px){.fhs-row{grid-template-columns:minmax(0,1fr)}}
 /* slightly shorter breakdown (desktop only; mobile keeps its own sizing) */
 @media (min-width:701px){#dash-expbreak .txa-donut{flex:0 0 min(250px,46%);height:250px}#dash-expbreak .txa-legend{max-height:250px}}
+/* side-by-side: the breakdown stretches to the score panel's height and the doughnut fills it (no blank band underneath) */
+@media (min-width:1181px){
+  #dash-expbreak-panel{display:flex;flex-direction:column}
+  #dash-expbreak{flex:1 1 auto;min-height:0;display:flex;flex-direction:column}
+  #dash-expbreak .txa-donut-wrap{flex:1 1 auto;min-height:260px}
+  #dash-expbreak .txa-donut{position:relative;flex:0 0 min(46%,430px);height:auto;min-height:260px;align-self:stretch}
+  #dash-expbreak .txa-donut canvas{position:absolute;left:0;top:0}
+  #dash-expbreak .txa-legend{align-self:stretch;max-height:380px}
+  #dash-expbreak .txa-inspect{flex:0 0 auto}
+}
 /* score panel */
 #dash-fhs-panel{display:flex;flex-direction:column}
 #dash-fhs-panel .fhs-title small{display:block;margin-top:2px;font-size:.66rem;font-weight:600;color:var(--text-muted);letter-spacing:0;text-transform:none}
