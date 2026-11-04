@@ -6778,6 +6778,12 @@ function passAppLockGate() {
         </div>
       </div>
 
+      <!-- EXPENSE CATEGORY BREAKDOWN (interactive doughnut: category → subcategory → payee) -->
+      <div class="glass-panel txa-host" id="dash-expbreak-panel" style="margin-top:1.3rem;margin-bottom:0">
+        <div class="panel-title fxb-title"><span><i class="fas fa-chart-pie" style="margin-right:7px;color:var(--brand,#20CDB5)"></i>Expense Category Breakdown</span><small>Click a slice or category to inspect · drill into subcategories &amp; payees</small></div>
+        <div id="dash-expbreak"></div>
+      </div>
+
       <div class="charts-3col" style="margin-top:1.3rem">
         <div class="glass-panel" style="margin-bottom:0">
           <div class="panel-title" style="color:#a78bfa">Portfolio by Asset Type</div>
@@ -7300,6 +7306,15 @@ function passAppLockGate() {
           <div class="empty-chart-msg" id="empty-cats" style="display:none">No expense data</div>
           <div style="height:230px"><canvas id="chart-cats"></canvas></div>
         </div>
+      </div>
+      <!-- Expense Breakdown + Payee Insights -->
+      <div class="glass-panel span-full txa-host" id="ana-expbreak-panel" style="margin-top:1.3rem">
+        <div class="panel-title fxb-title"><span><i class="fas fa-chart-pie" style="margin-right:7px;color:var(--brand,#20CDB5)"></i>Expense Breakdown — Category · Subcategory · Payee</span><small>Same period as the charts above · click a slice to drill down</small></div>
+        <div id="ana-expbreak"></div>
+      </div>
+      <div class="glass-panel span-full txa-host" id="ana-payee-panel" style="margin-top:1.3rem">
+        <div class="panel-title fxb-title"><span><i class="fas fa-store" style="margin-right:7px;color:#f472b6"></i>Payee Insights — where your money goes</span><small id="ana-payee-scope"></small></div>
+        <div id="ana-payee-insights"></div>
       </div>
     </div>
 
@@ -10858,10 +10873,10 @@ function setFilterMode(mode, btn) {
   applyFilters();
 }
 
-function getFilteredData() {
-  // Check which filter elements to use based on active view
+function getFilteredData(forView) {
+  // Check which filter elements to use based on active view (forView lets a component ask for a specific view's filters)
   let fM, fY;
-  if (activeView === 'analytics') {
+  if ((forView || activeView) === 'analytics') {
     // Analytics view uses trend-month and trend-year
     const trendMonth = document.getElementById('trend-month');
     const trendYear = document.getElementById('trend-year');
@@ -14329,11 +14344,94 @@ function sumType(type, data) {
   return (data || []).filter(r => r && r.type === type).reduce((a, b) => a + _amt(b.amount), 0);
 }
 
-function groupData(type, data) {
-  const g = {};
-  (data || []).filter(r => r && r.type === type).forEach(r => {
-    const key = r.sub || 'General';
-    g[key] = (g[key] || 0) + _amt(r.amount);
+// ── EXPENSE DIMENSIONS: category / subcategory / payee (single source of truth) ───────────────
+// New entries store r.category / r.subcategory / r.payee and keep legacy r.sub (= category) and
+// r.name (= payee || category). Older entries only have r.sub (category) and r.name (free text).
+// These helpers read BOTH shapes so the Dashboard, Analytics page and Transactions analytics bucket identically.
+const TX_NO_SUB = 'No subcategory', TX_NO_PAYEE = 'No payee';
+function _txClean(s) { return String(s == null ? '' : s).replace(/\s+/g, ' ').trim(); }
+function _txKey(s) { return _txClean(s).toLowerCase(); }
+function txCategory(r) { return _txClean(r && (r.category || r.sub)) || 'General'; }
+function txSubcategory(r) { return _txClean(r && r.subcategory); }
+function txPayee(r) {
+  if (!r) return '';
+  if (r.payee !== undefined && r.payee !== null) return _txClean(r.payee);
+  const n = _txClean(r.name), c = _txClean(r.category || r.sub);   // legacy: name was free text, sub the category
+  return n && n.toLowerCase() !== c.toLowerCase() ? n : '';
+}
+// Display labels: case/whitespace variants merge; the spelling with the largest total wins (same in every view).
+function _txCanon(rows, pick) {
+  const seen = {};
+  rows.forEach(r => { const l = pick(r); if (!l) return; const k = _txKey(l), e = seen[k] || (seen[k] = {}); e[l] = (e[l] || 0) + _amt(r.amount); });
+  const out = {};
+  Object.keys(seen).forEach(k => { const v = seen[k]; out[k] = Object.keys(v).sort((a, b) => v[b] - v[a] || (a < b ? -1 : 1))[0]; });
+  return out;
+}
+function txMaps(type) {
+  const rows = (typeof db !== 'undefined' && Array.isArray(db) ? db : []).filter(r => r && r.type === type);
+  return { c: _txCanon(rows, txCategory), s: _txCanon(rows, txSubcategory), p: _txCanon(rows, txPayee) };
+}
+// kind: 'c' category · 's' subcategory (scoped inside its category) · 'p' payee
+function txKeyOf(r, kind) {
+  const ck = _txKey(txCategory(r));
+  if (kind === 'c') return ck;
+  if (kind === 's') return ck + '|' + _txKey(txSubcategory(r));
+  return _txKey(txPayee(r));
+}
+function txLabelOf(r, kind, maps) {
+  if (kind === 'c') return maps.c[_txKey(txCategory(r))] || 'General';
+  if (kind === 's') { const sk = _txKey(txSubcategory(r)); return sk ? (maps.s[sk] || txSubcategory(r)) : TX_NO_SUB; }
+  const pk = _txKey(txPayee(r)); return pk ? (maps.p[pk] || txPayee(r)) : TX_NO_PAYEE;
+}
+function txFullLabel(r, kind, maps) {
+  const l = txLabelOf(r, kind, maps);
+  return kind === 's' ? txLabelOf(r, 'c', maps) + ' › ' + l : l;
+}
+// Group rows of ONE type into [{key,name,cat,none,total,count,items}] sorted by total desc
+function txGroup(rows, kind, maps) {
+  const m = {}, out = [];
+  (rows || []).forEach(r => {
+    const k = txKeyOf(r, kind);
+    let g = m[k];
+    if (!g) {
+      g = m[k] = { key: k, name: txLabelOf(r, kind, maps), cat: txLabelOf(r, 'c', maps), none: kind === 'p' ? !_txKey(txPayee(r)) : kind === 's' ? !_txKey(txSubcategory(r)) : false, total: 0, count: 0, items: [] };
+      out.push(g);
+    }
+    g.total += _amt(r.amount); g.count++; g.items.push(r);
+  });
+  out.sort((a, b) => b.total - a.total || (a.name < b.name ? -1 : 1));
+  return out;
+}
+// Previous period for the active month/year filters (null when there is no single comparable period)
+function fosPrevRows(monthId, yearId) {
+  const mEl = document.getElementById(monthId), yEl = document.getElementById(yearId);
+  const fM = mEl ? mEl.value : 'all', fY = yEl ? yEl.value : 'all';
+  if (filterMode !== 'only') return null;
+  const p2 = n => String(n).padStart(2, '0');
+  if (fM !== 'all' && fY !== 'all') {
+    let y = parseInt(fY, 10), m = parseInt(fM, 10) - 1; if (m < 1) { m = 12; y--; }
+    const key = y + '-' + p2(m); return db.filter(r => r && String(r.date || '').slice(0, 7) === key);
+  }
+  if (fM === 'all' && fY !== 'all') { const y = String(parseInt(fY, 10) - 1); return db.filter(r => r && String(r.date || '').slice(0, 4) === y); }
+  return null;
+}
+function fosScopeLabel(monthId, yearId) {
+  const mEl = document.getElementById(monthId), yEl = document.getElementById(yearId);
+  const fM = mEl ? mEl.value : 'all', fY = yEl ? yEl.value : 'all';
+  if (fM === 'all' && fY === 'all') return 'All time';
+  const mn = fM !== 'all' ? MONTHS[parseInt(fM, 10) - 1] : '';
+  const txt = (mn + ' ' + (fY !== 'all' ? fY : '(all years)')).trim();
+  return filterMode === 'only' ? txt : 'Up to ' + txt;
+}
+
+// groupData(type, data[, by]) → { label: total } in first-seen order. by: 'category' (default) | 'subcategory' | 'payee'.
+// Two-argument calls behave as before (bucket by category) but read category||sub and merge spelling variants.
+function groupData(type, data, by) {
+  const kind = by === 'payee' ? 'p' : by === 'subcategory' ? 's' : 'c', maps = txMaps(type), g = {};
+  (data || []).forEach(r => {
+    if (!r || r.type !== type) return;
+    const k = txFullLabel(r, kind, maps);
+    g[k] = (g[k] || 0) + _amt(r.amount);
   });
   return g;
 }
@@ -14460,12 +14558,8 @@ function renderDashboardImmediate() {
 
   mixWrap.style.cssText = 'width:100%;height:360px;overflow-y:auto;overflow-x:hidden;padding:4px 6px 4px 2px;scrollbar-width:none;-ms-overflow-style:none';
 
-  const expByCat2 = {};
   const filteredData2 = getFilteredData();
-  filteredData2.filter(t => t.type === 'Expense').forEach(t => {
-    const catName = t.sub || t.category || 'General';
-    expByCat2[catName] = (expByCat2[catName] || 0) + t.amount;
-  });
+  const expByCat2 = groupData('Expense', filteredData2);   // shared category bucketing (category || sub)
 
   const mixEntries = Object.entries(expByCat2).sort((a,b) => b[1] - a[1]);
   const mixTotal = mixEntries.reduce((a,[,v]) => a+v, 0) || 1;
@@ -14503,6 +14597,9 @@ function renderDashboardImmediate() {
     }).join('');
     animateLiquidBars(mixWrap);
   }
+
+  // 2b. Expense Category Breakdown (interactive doughnut with subcategory / payee drill-down)
+  try { if (typeof fosExpBreakRender === 'function') fosExpBreakRender('dash'); } catch (e) { console.error('Expense breakdown (dashboard) failed:', e); }
 
  // Portfolio by asset type - Center-Stat Ring + Progress Legend
   const byType = {};
@@ -17423,6 +17520,7 @@ function renderAnalytics() {
 
   // ── Summary KPI Cards ──────────────────────────────────────────────────────
   analyticsUpdateKPIs(data, trendData);
+  try { if (typeof fosExpBreakRender === 'function') fosExpBreakRender('ana'); } catch (e) { console.error('Expense breakdown (analytics) failed:', e); }
 
   // ── Income vs Outflow Trend (Triple Layered Rhythm) ──────────────────────
   const tI = trendData.map(m => db.filter(d => d.type==='Income' && matchMonth(d,m)).reduce((a,b) => a+b.amount, 0));
@@ -20624,6 +20722,7 @@ function executeUndo() {
   if (activeView === 'port-table') renderPortTable();
   if (activeView === 'credit') renderCreditTracker();
   if (activeView === 'dashboard') renderDashboard();
+  if (activeView === 'analytics') renderAnalytics();
 }
 
 function deleteItem(id) {
@@ -30302,6 +30401,31 @@ function toggleTvPanel(force){
      `db` / `budgets` arrays; uses the app's fmt(), fmtDate(), budgetSpent(),
      finaiClassifyExpense() and the already-loaded Chart.js. No data is stored.
      ══════════════════════════════════════════════════════════════════════════ -->
+<style id="fos-expbreak-style">
+/* Expense Category Breakdown (Dashboard + Analytics) — reuses the Transactions-Analytics (.txa-*) look */
+.txa-host{--txa-card:rgba(255,255,255,.04);--txa-card-hover:rgba(255,255,255,.07);--txa-border:rgba(255,255,255,.09);--txa-text:#f3fafa;--txa-mut:#9fb3b5;--txa-acc:var(--brand,#20CDB5);--txa-acc2:var(--brand-2,#43E0CC);--txa-up:#f472b6;--txa-down:#34d399;--txa-warn:#fbbf24;--txa-track:rgba(255,255,255,.08);--txa-solid:#101c1e;font-family:'DM Sans',system-ui,sans-serif}
+body.light-mode .txa-host{--txa-card:rgba(255,255,255,.88);--txa-card-hover:#ffffff;--txa-border:#d6e2e7;--txa-text:#0f172a;--txa-mut:#475569;--txa-up:#be185d;--txa-down:#047857;--txa-warn:#b45309;--txa-track:rgba(15,23,42,.09);--txa-solid:#f3f8fa}
+.fxb-title{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap}
+.fxb-title small{font-size:.66rem;font-weight:600;color:var(--text-muted);letter-spacing:0;text-transform:none}
+.fxb-tabs{margin-bottom:6px}
+.fxb-scope{font-size:.7rem;color:var(--txa-mut);margin:2px 0 12px;font-weight:600}
+.txa-host .txa-inspect{margin-top:14px}
+.fxb-crumbs{display:flex;align-items:center;gap:6px;flex-wrap:wrap;min-width:0}
+.fxb-crumb{font-family:inherit;font-size:.82rem;font-weight:800;color:var(--txa-text);background:transparent;border:0;padding:0}
+button.fxb-crumb{cursor:pointer;font-size:.7rem;font-weight:700;padding:3px 9px;border-radius:999px;border:1px solid var(--txa-border);background:var(--txa-card-hover)}
+button.fxb-crumb:hover{border-color:var(--txa-acc)}
+.fxb-sep{color:var(--txa-mut);font-size:.8rem}
+.fxb-hint{font-weight:600;text-transform:none;letter-spacing:0;opacity:.75;margin-left:6px}
+.fxb-kpis{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px;margin-bottom:14px}
+.fxb-two{display:grid;grid-template-columns:1.3fr 1fr;gap:18px}
+.txa-host .txa-kpi{padding:12px 14px;border-radius:14px;border:1px solid var(--txa-border);background:var(--txa-card);min-width:0}
+.txa-host .txa-kpi-top{display:flex;align-items:center;gap:8px;margin-bottom:6px}
+.txa-host .txa-kpi-ico{width:26px;height:26px;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:.72rem;color:var(--k);background:color-mix(in srgb,var(--k) 15%,transparent)}
+.txa-host .txa-kpi-val{font-family:'DM Mono',monospace;font-size:1.02rem;font-weight:700;color:var(--txa-text);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.txa-host .txa-kpi-sub{margin-top:3px;font-size:.68rem;color:var(--txa-mut);font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+@media (max-width:900px){.fxb-kpis{grid-template-columns:repeat(2,minmax(0,1fr))}.fxb-two{grid-template-columns:1fr}}
+@media (max-width:700px){.txa-host .txa-donut-wrap{flex-direction:column;align-items:stretch}.txa-host .txa-donut{flex:0 0 auto;width:100%;height:250px}.txa-host .txa-legend{max-height:230px}}
+</style>
 <style id="txn-analytics-style">
 /* ── Button (lives inside #txn-summary-bar, after "Entries Shown") ── */
 .txn-analytics-btn{flex:0 0 auto;align-self:stretch;margin-left:auto;display:inline-flex;align-items:center;justify-content:center;gap:9px;padding:9px 20px;border-radius:11px;cursor:pointer;font-family:inherit;font-size:.82rem;font-weight:700;letter-spacing:.3px;color:#04201c;background:linear-gradient(135deg,var(--brand-2,#43E0CC),var(--brand,#20CDB5));border:1px solid rgba(var(--brand-rgb,32,205,181),.55);box-shadow:0 6px 18px rgba(var(--brand-rgb,32,205,181),.22),inset 0 1px 0 rgba(255,255,255,.35);transition:transform .18s ease,box-shadow .18s ease,filter .18s ease;white-space:nowrap}
@@ -30578,6 +30702,221 @@ body.light-mode .txa-badge.det{color:#6d28d9}
   </div>
 </div>
 
+<script id="fos-expbreak-script">
+/* Expense Category Breakdown — one shared component used by the Dashboard and the Analytics page.
+   Same doughnut / legend / inspector look as Transactions → Analytics, plus subcategory and payee drill-down.
+   All numbers come from the live `db` through the shared txGroup()/txMaps() helpers. */
+(function () {
+  'use strict';
+  if (window.__fosExpBreak) return; window.__fosExpBreak = true;
+  var PAL = ['#20CDB5','#38bdf8','#a78bfa','#f472b6','#fbbf24','#34d399','#fb923c','#60a5fa','#e879f9'], OTH = '#64748b', OTHK = '__others__';
+  var TITLES = { c: 'Categories', s: 'Subcategories', p: 'Payees' };
+  var INST = {
+    dash: { p: 'dash', view: 'dashboard', monthId: 'filter-month', yearId: 'filter-year', dim: 'c', sel: null, dr: [], chart: null, sig: '' },
+    ana:  { p: 'ana',  view: 'analytics', monthId: 'trend-month',  yearId: 'trend-year',  dim: 'c', sel: null, dr: [], chart: null, sig: '' }
+  };
+  function $(i) { return document.getElementById(i); }
+  function esc(s) { return _esc(s); }
+  function r1(n) { return Math.round(n * 10) / 10; }
+  function light() { return document.body.classList.contains('light-mode'); }
+  function cText() { return light() ? '#334155' : '#B7C4C5'; }
+  function cStrong() { return light() ? '#0f172a' : '#f3fafa'; }
+  function sum(a) { return a.reduce(function (s, r) { return s + _amt(r.amount); }, 0); }
+  function expRows(I) { return getFilteredData(I.view).filter(function (r) { return r && r.type === 'Expense'; }); }
+  function prevRows(I) { var p = fosPrevRows(I.monthId, I.yearId); return p ? p.filter(function (r) { return r && r.type === 'Expense'; }) : null; }
+  function dt(s) { return typeof fmtDate === 'function' ? fmtDate(s) : s; }
+  function who(r) { return txPayee(r) || String(r.name || '').trim() || txCategory(r); }
+  function sig(I) {
+    var h = 0, n = 0, s;
+    (Array.isArray(db) ? db : []).forEach(function (r) {
+      if (!r || r.type !== 'Expense') return; n++;
+      s = r.id + '|' + r.amount + '|' + r.date + '|' + r.sub + '|' + r.category + '|' + r.subcategory + '|' + r.payee + '|' + r.name;
+      for (var j = 0; j < s.length; j++) h = (h * 31 + s.charCodeAt(j)) | 0;
+    });
+    var m = $(I.monthId), y = $(I.yearId);
+    return n + ':' + h + ':' + (m ? m.value : '') + (y ? y.value : '') + filterMode + (light() ? 'L' : 'D') + (I.dim) + (typeof activeView !== 'undefined' ? activeView : '');
+  }
+  function delta(cur, prev) {
+    if (prev == null) return '';
+    if (prev === 0) return cur > 0 ? '<span class="txa-delta up">NEW</span>' : '';
+    var c = (cur - prev) / prev * 100;
+    if (Math.abs(c) < 0.5) return '<span class="txa-delta flat">≈ 0%</span>';
+    var a = Math.abs(c);
+    return '<span class="txa-delta ' + (c > 0 ? 'up' : 'down') + '">' + (c > 0 ? '▲ ' : '▼ ') + (a > 999 ? '999%+' : r1(a) + '%') + '</span>';
+  }
+  function slices(I) {
+    var g = txGroup(I.rows, I.dim, I.maps).map(function (x, i) {
+      return { key: x.key, name: I.dim === 's' ? x.cat + ' › ' + x.name : x.name, total: x.total, count: x.count, items: x.items, color: i < PAL.length ? PAL[i] : OTH };
+    });
+    if (g.length > PAL.length + 1) {
+      var top = g.slice(0, PAL.length), rest = g.slice(PAL.length), items = [], t = 0, n = 0;
+      rest.forEach(function (s) { t += s.total; n += s.count; items = items.concat(s.items); });
+      top.push({ key: OTHK, name: 'Other (' + rest.length + ')', total: t, count: n, items: items, color: OTH, others: true });
+      return top;
+    }
+    return g;
+  }
+  function selSlice(I) { if (I.sel === null) return null; return I.S.filter(function (s) { return s.key === I.sel; })[0] || null; }
+
+  function render(p) {
+    var I = INST[p]; if (!I) return;
+    var host = $(p + '-expbreak'); if (!host) return;
+    if (typeof activeView !== 'undefined' && activeView !== I.view) return;
+    if (I.chart) { try { I.chart.destroy(); } catch (e) {} I.chart = null; }
+    I.rows = expRows(I); I.prev = prevRows(I); I.maps = txMaps('Expense'); I.total = sum(I.rows); I.sig = sig(I);
+    var tabs = '<div class="txa-chips fxb-tabs" role="group" aria-label="Breakdown by">' + ['c', 's', 'p'].map(function (k) {
+      return '<button type="button" class="txa-chip' + (I.dim === k ? ' on' : '') + '" data-fxb-dim="' + p + '|' + k + '" aria-pressed="' + (I.dim === k) + '">' + TITLES[k] + '</button>';
+    }).join('') + '</div><div class="fxb-scope">' + esc(fosScopeLabel(I.monthId, I.yearId)) + ' · ' + I.rows.length + ' expense transaction' + (I.rows.length === 1 ? '' : 's') + '</div>';
+    if (!I.rows.length) { I.S = []; host.innerHTML = tabs + '<div class="txa-muted-empty">No expense data for this period</div>'; return; }
+    I.S = slices(I);
+    if (I.sel !== null && !selSlice(I)) { I.sel = null; I.dr = []; }
+    host.innerHTML = tabs +
+      '<div class="txa-donut-wrap"><div class="txa-chartwrap txa-donut"><canvas id="' + p + '-donut" aria-label="Expense doughnut chart" role="img"></canvas></div><div class="txa-legend" id="' + p + '-legend"></div></div>' +
+      '<section class="txa-card txa-inspect" id="' + p + '-inspect" hidden></section>';
+    legend(p); inspect(p, false); chart(p);
+  }
+  function chart(p) {
+    var I = INST[p], cv = $(p + '-donut'); if (!cv || typeof Chart === 'undefined') return;
+    var S = I.S, colors = S.map(function (s) { return s.color; }), total = I.total;
+    var ds = { data: S.map(function (s) { return s.total; }), backgroundColor: colors, borderColor: light() ? 'rgba(255,255,255,0.95)' : 'rgba(5,7,8,0.9)', borderWidth: 2, hoverOffset: 8, offset: S.map(function (s) { return I.sel !== null && s.key === I.sel ? 14 : 0; }) };
+    try { if (typeof donutSliceStyle === 'function') Object.assign(ds, donutSliceStyle(cv, colors)); } catch (e) {}
+    var center = { id: 'fxbCenter', afterDraw: function (ch) {
+      var a = ch.chartArea; if (!a) return;
+      var cur = selSlice(I), label = cur ? cur.name : 'Total expenses', val = fmt(cur ? cur.total : total);
+      var cx = (a.left + a.right) / 2, cy = (a.top + a.bottom) / 2, maxW = (a.right - a.left) * 0.56, c = ch.ctx;
+      c.save(); c.textAlign = 'center'; c.textBaseline = 'middle'; c.fillStyle = cText(); c.font = '700 10px "DM Sans", sans-serif';
+      var lt = label.toUpperCase(); while (c.measureText(lt).width > maxW && lt.length > 4) lt = lt.slice(0, -2);
+      if (lt.length < label.length) lt = lt.trim() + '…';
+      c.fillText(lt, cx, cy - 13);
+      var fs = 19; c.font = '700 ' + fs + 'px "DM Mono", monospace';
+      while (c.measureText(val).width > maxW && fs > 10) { fs--; c.font = '700 ' + fs + 'px "DM Mono", monospace'; }
+      c.fillStyle = cStrong(); c.fillText(val, cx, cy + 8); c.restore();
+    } };
+    try {
+      var ex = Chart.getChart ? Chart.getChart(cv) : null; if (ex) ex.destroy();
+      I.chart = new Chart(cv.getContext('2d'), {
+        type: 'doughnut', data: { labels: S.map(function (s) { return s.name; }), datasets: [ds] }, plugins: [center],
+        options: { responsive: true, maintainAspectRatio: false, cutout: '68%', layout: { padding: 10 },
+          onClick: function (e, els) { if (els && els.length) pick(p, S[els[0].index].key); },
+          onHover: function (e, els) { if (e && e.native && e.native.target) e.native.target.style.cursor = els.length ? 'pointer' : 'default'; },
+          plugins: { legend: { display: false }, tooltip: { callbacks: {
+            label: function (c) { var s = S[c.dataIndex]; return ' ' + fmt(s.total) + '  (' + r1(total ? s.total / total * 100 : 0) + '%)'; },
+            afterLabel: function (c) { var s = S[c.dataIndex]; return ' ' + s.count + ' transaction' + (s.count === 1 ? '' : 's'); } } } } }
+      });
+    } catch (e) { console.error('Expense breakdown chart failed:', e); }
+  }
+  function legend(p) {
+    var I = INST[p], el = $(p + '-legend'); if (!el) return;
+    el.innerHTML = I.S.map(function (s) {
+      var on = I.sel !== null && s.key === I.sel;
+      return '<button type="button" class="txa-leg' + (on ? ' sel' : '') + '" style="--cc:' + s.color + '" data-fxb-pick="' + p + '|' + encodeURIComponent(s.key) + '" aria-pressed="' + on + '"><span class="txa-dot"></span><span class="txa-leg-n" title="' + esc(s.name) + '">' + esc(s.name) + '</span><span class="txa-leg-v"><b>' + fmt(s.total) + '</b> · ' + r1(I.total ? s.total / I.total * 100 : 0) + '%</span></button>';
+    }).join('');
+  }
+  function pick(p, key) {
+    var I = INST[p]; I.sel = (I.sel === key) ? null : key; I.dr = [];
+    legend(p); inspect(p, true);
+    if (I.chart) { I.chart.data.datasets[0].offset = I.S.map(function (s) { return I.sel !== null && s.key === I.sel ? 14 : 0; }); I.chart.update(); }
+  }
+  function inspect(p, scroll) {
+    var I = INST[p], box = $(p + '-inspect'); if (!box) return;
+    var s = selSlice(I);
+    if (!s) { box.hidden = true; box.innerHTML = ''; return; }
+    var items = s.items.slice();
+    I.dr.forEach(function (d) { items = items.filter(function (r) { return txKeyOf(r, d.kind) === d.key; }); });
+    var fixed = { c: false, s: false, p: false };
+    if (!s.others) { if (I.dim === 'c') fixed.c = true; else if (I.dim === 's') { fixed.c = true; fixed.s = true; } else fixed.p = true; }
+    I.dr.forEach(function (d) { fixed[d.kind] = true; if (d.kind === 's') fixed.c = true; });
+    var tot = sum(items), cnt = items.length;
+    var crumbs = '<span class="fxb-crumb cur">' + esc(s.name) + '</span>' + I.dr.map(function (d, i) { return '<span class="fxb-sep">›</span><button type="button" class="fxb-crumb" data-fxb-up="' + p + '|' + i + '" title="Remove filter">' + esc(d.name) + ' ✕</button>'; }).join('');
+    var dl = '';
+    if (I.prev && !s.others && !I.dr.length) dl = delta(tot, sum(I.prev.filter(function (r) { return txKeyOf(r, I.dim) === s.key; })));
+    var html = '<div class="txa-ihead"><span class="txa-dot" style="--cc:' + s.color + '"></span><div class="fxb-crumbs">' + crumbs + '</div><div class="txa-note">' + cnt + ' transaction' + (cnt === 1 ? '' : 's') + ' · <b class="txa-mono">' + fmt(tot) + '</b> · ' + r1(I.total ? tot / I.total * 100 : 0) + '% of expenses · avg ' + fmt(cnt ? tot / cnt : 0) + ' ' + dl + '</div><button type="button" class="txa-xbtn" data-fxb-clear="' + p + '">Clear</button></div>';
+    ['c', 's', 'p'].forEach(function (k) {
+      if (fixed[k]) return;
+      var g = txGroup(items, k, I.maps); if (g.length < 1) return;
+      if (g.length === 1 && g[0].none) return;
+      html += '<div class="txa-lbl" style="margin:10px 0 4px">' + TITLES[k] + ' <span class="fxb-hint">click to drill down</span></div><div class="txa-list" style="max-height:230px"><div class="txa-tbl-h"><span>' + TITLES[k].slice(0, -3) + (k === 'c' ? 'y' : 'y') + '</span><span class="r">Txns</span><span class="r">Share</span><span class="r">Total</span></div>' +
+        g.slice(0, 25).map(function (x, i) {
+          var nm = (k === 's' && !fixed.c) ? x.cat + ' › ' + x.name : x.name;
+          return '<button type="button" class="txa-tbl-r" style="--cc:' + PAL[i % PAL.length] + '" data-fxb-drill="' + p + '|' + k + '|' + encodeURIComponent(x.key) + '|' + encodeURIComponent(nm) + '"><span class="c"><span class="txa-dot"></span><span class="nm" title="' + esc(nm) + '">' + esc(nm) + '</span></span><span class="r">' + x.count + '</span><span class="r">' + r1(tot ? x.total / tot * 100 : 0) + '%</span><span class="r">' + fmt(x.total) + '</span></button>';
+        }).join('') + '</div>';
+    });
+    var LIM = 100, sorted = items.slice().sort(function (a, b) { return a.date < b.date ? 1 : a.date > b.date ? -1 : _amt(b.amount) - _amt(a.amount); });
+    html += '<div class="txa-lbl" style="margin:12px 0 4px">Transactions</div><div class="txa-list">' + sorted.slice(0, LIM).map(function (r) {
+      var sub = txSubcategory(r);
+      return '<div class="txa-row"><span class="d">' + dt(r.date) + '</span><div class="n"><span class="nm" title="' + esc(who(r)) + '">' + esc(who(r)) + '</span><em>' + esc(txCategory(r)) + (sub ? ' › ' + esc(sub) : '') + '</em></div><span class="a">' + fmt(_amt(r.amount)) + '</span></div>';
+    }).join('') + '</div>' + (sorted.length > LIM ? '<div class="txa-note" style="margin-top:8px">Showing the latest ' + LIM + ' of ' + sorted.length + ' transactions.</div>' : '');
+    box.style.setProperty('--cc', s.color); box.innerHTML = html; box.hidden = false;
+    if (scroll) { try { box.scrollIntoView({ behavior: 'smooth', block: 'nearest' }); } catch (e) {} }
+  }
+
+  /* ── Payee insights (Analytics page) ── */
+  function payeePanel() {
+    var host = $('ana-payee-insights'); if (!host) return;
+    var I = INST.ana; if (typeof activeView !== 'undefined' && activeView !== 'analytics') return;
+    var rows = expRows(I), prev = prevRows(I), maps = txMaps('Expense'), total = sum(rows);
+    var all = txGroup(rows, 'p', maps), named = all.filter(function (g) { return !g.none; }), none = all.filter(function (g) { return g.none; })[0];
+    var sc = $('ana-payee-scope'); if (sc) sc.textContent = fosScopeLabel(I.monthId, I.yearId);
+    if (!named.length) { host.innerHTML = '<div class="txa-muted-empty">' + (rows.length ? 'No payees recorded in this period — add a Payee when you save a transaction to see where your money goes.' : 'No expense data for this period') + '</div>'; return; }
+    var freq = named.slice().sort(function (a, b) { return b.count - a.count || b.total - a.total; })[0];
+    var top5 = named.slice(0, 5).reduce(function (s, g) { return s + g.total; }, 0), top = named[0];
+    var pmap = {}; if (prev) txGroup(prev, 'p', maps).forEach(function (g) { pmap[g.key] = g; });
+    function mainCat(g) { var c = txGroup(g.items, 'c', maps)[0]; return c ? c.name : ''; }
+    function kpi(ic, col, lb, v, sub) { return '<div class="txa-kpi" style="--k:' + col + '"><div class="txa-kpi-top"><div class="txa-kpi-ico"><i class="fas ' + ic + '"></i></div><span class="txa-lbl">' + lb + '</span></div><div class="txa-kpi-val" title="' + esc(v) + '">' + esc(v) + '</div><div class="txa-kpi-sub">' + sub + '</div></div>'; }
+    var kp = '<div class="fxb-kpis">' +
+      kpi('fa-store', '#f472b6', 'Top payee', top.name, '<span class="t">' + fmt(top.total) + ' · ' + r1(total ? top.total / total * 100 : 0) + '% of spend</span>') +
+      kpi('fa-repeat', '#38bdf8', 'Most frequent', freq.name, '<span class="t">' + freq.count + ' txns · avg ' + fmt(freq.total / freq.count) + '</span>') +
+      kpi('fa-bullseye', '#fbbf24', 'Top-5 concentration', r1(total ? top5 / total * 100 : 0) + '%', '<span class="t">of expenses go to 5 payees</span>') +
+      kpi('fa-users', '#34d399', 'Unique payees', String(named.length), '<span class="t">' + (none ? fmt(none.total) + ' has no payee (' + r1(total ? none.total / total * 100 : 0) + '%)' : 'every expense has a payee') + '</span>') + '</div>';
+    var max = top.total || 1;
+    var list = named.slice(0, 8).map(function (g, i) {
+      var pg = prev ? pmap[g.key] : null;
+      return '<button type="button" class="txa-pick" data-fxb-goto="' + encodeURIComponent(g.key) + '" style="--cc:' + PAL[i % PAL.length] + '"><div class="txa-rk"><span class="no">' + (i + 1) + '</span><span class="nm" title="' + esc(g.name) + '">' + esc(g.name) + '</span><span class="am">' + fmt(g.total) + '</span><span class="txa-bar"><i style="width:' + Math.max(2, g.total / max * 100) + '%"></i></span><span class="mt">' + r1(total ? g.total / total * 100 : 0) + '% · ' + g.count + ' txn' + (g.count === 1 ? '' : 's') + ' · avg ' + fmt(g.total / g.count) + ' · ' + esc(mainCat(g)) + (prev ? ' ' + delta(g.total, pg ? pg.total : 0) : '') + '</span></div></button>';
+    }).join('');
+    var mv = '';
+    if (prev) {
+      var inc = named.map(function (g) { var pg = pmap[g.key], pt = pg ? pg.total : 0; return { g: g, pt: pt, d: g.total - pt }; }).filter(function (x) { return x.d > 0; }).sort(function (a, b) { return b.d - a.d; }).slice(0, 4);
+      var neu = named.filter(function (g) { return !pmap[g.key]; });
+      mv = '<div class="txa-lbl" style="margin:0 0 6px">Biggest increases vs previous period</div>' + (inc.length ? inc.map(function (x) { return '<div class="txa-mv"><span class="nm" title="' + esc(x.g.name) + '">' + esc(x.g.name) + '</span><span class="v">' + fmt(x.pt) + ' → ' + fmt(x.g.total) + '</span>' + delta(x.g.total, x.pt) + '</div>'; }).join('') : '<div class="txa-muted-empty" style="padding:8px">No payee spending increased.</div>') +
+        '<div class="txa-lbl" style="margin:12px 0 6px">New payees this period</div>' + (neu.length ? '<div class="txa-note"><b>' + neu.length + '</b> new: ' + neu.slice(0, 5).map(function (g) { return esc(g.name) + ' (' + fmt(g.total) + ')'; }).join(', ') + (neu.length > 5 ? ' …' : '') + '</div>' : '<div class="txa-note">None — every payee was also used in the previous period.</div>');
+    } else mv = '<div class="txa-note">Pick a month (or a year) with the “Only” filter to compare payees with the previous period.</div>';
+    host.innerHTML = kp + '<div class="fxb-two"><div><div class="txa-lbl" style="margin:0 0 8px">Where your money goes — top payees <span class="fxb-hint">click to drill down</span></div><div class="txa-rank">' + list + '</div></div><div>' + mv + '</div></div>';
+  }
+
+  function renderAll() { render('dash'); render('ana'); payeePanel(); }
+  window.fosExpBreakRender = function (p) { if (p === 'ana') { render('ana'); payeePanel(); } else render(p || 'dash'); };
+
+  document.addEventListener('click', function (e) {
+    var t = e.target; if (!t || !t.closest) return;
+    var b;
+    if ((b = t.closest('[data-fxb-dim]'))) { var a = b.getAttribute('data-fxb-dim').split('|'), I = INST[a[0]]; if (I) { I.dim = a[1]; I.sel = null; I.dr = []; render(a[0]); } return; }
+    if ((b = t.closest('[data-fxb-pick]'))) { var q = b.getAttribute('data-fxb-pick').split('|'); pick(q[0], decodeURIComponent(q[1])); return; }
+    if ((b = t.closest('[data-fxb-drill]'))) { var d = b.getAttribute('data-fxb-drill').split('|'), J = INST[d[0]]; if (J) { J.dr.push({ kind: d[1], key: decodeURIComponent(d[2]), name: decodeURIComponent(d[3]) }); inspect(d[0], false); } return; }
+    if ((b = t.closest('[data-fxb-up]'))) { var u = b.getAttribute('data-fxb-up').split('|'), K = INST[u[0]]; if (K) { K.dr = K.dr.slice(0, parseInt(u[1], 10)); inspect(u[0], false); } return; }
+    if ((b = t.closest('[data-fxb-clear]'))) { var c = b.getAttribute('data-fxb-clear'), L = INST[c]; if (L) { L.sel = null; L.dr = []; legend(c); inspect(c, false); if (L.chart) { L.chart.data.datasets[0].offset = L.S.map(function () { return 0; }); L.chart.update(); } } return; }
+    if ((b = t.closest('[data-fxb-goto]'))) { var M = INST.ana; M.dim = 'p'; M.sel = null; M.dr = []; render('ana'); pick('ana', decodeURIComponent(b.getAttribute('data-fxb-goto'))); var pn = $('ana-expbreak-panel'); if (pn && pn.scrollIntoView) { try { pn.scrollIntoView({ behavior: 'smooth', block: 'start' }); } catch (x) {} } }
+  });
+
+  /* Safety net: any add / edit / delete / undo / import calls scheduleSave(). If the visible view's data changed
+     and nothing re-rendered it yet, re-render that view so every chart stays in step with the data. */
+  var timer = 0;
+  function watch() {
+    clearTimeout(timer);
+    timer = setTimeout(function () {
+      try {
+        var v = typeof activeView !== 'undefined' ? activeView : '';
+        var I = v === 'dashboard' ? INST.dash : v === 'analytics' ? INST.ana : null;
+        if (I && $(I.p + '-expbreak') && sig(I) !== I.sig) { if (v === 'dashboard') renderDashboard(); else renderAnalytics(); }
+      } catch (e) { console.error(e); }
+    }, 120);
+  }
+  if (typeof window.scheduleSave === 'function') {
+    var orig = window.scheduleSave;
+    window.scheduleSave = function () { var r = orig.apply(this, arguments); watch(); return r; };
+  }
+  new MutationObserver(function () { watch(); }).observe(document.body, { attributes: true, attributeFilter: ['class'] });
+})();
+</script>
 <script id="txn-analytics-script">
 (function () {
   'use strict';
@@ -30624,7 +30963,7 @@ body.light-mode .txa-badge.det{color:#6d28d9}
   /* ───────────── data (live `db`, Expense only) ───────────── */
   function allExpenses() {
     var src = (typeof db !== 'undefined' && Array.isArray(db)) ? db : [];
-    var out = [];
+    var out = [], mp = txMaps('Expense');
     for (var i = 0; i < src.length; i++) {
       var r = src[i];
       if (!r || r.type !== 'Expense') continue;
@@ -30632,7 +30971,7 @@ body.light-mode .txa-badge.det{color:#6d28d9}
       if (!/^\d{4}-\d{2}-\d{2}$/.test(d)) continue;
       var a = Number(r.amount);
       if (!isFinite(a)) continue;
-      out.push({ r: r, id: r.id, name: String(r.name || '').trim() || 'Unnamed', cat: String(r.sub || '').trim() || 'General', amount: a, date: d, tags: Array.isArray(r.tags) ? r.tags : [], recurring: !!r.recurring });
+      out.push({ r: r, id: r.id, name: String(r.name || '').trim() || 'Unnamed', cat: txLabelOf(r, 'c', mp), sub: txSubcategory(r), payee: txPayee(r), amount: a, date: d, tags: Array.isArray(r.tags) ? r.tags : [], recurring: !!r.recurring });
     }
     return out;
   }
@@ -30640,7 +30979,7 @@ body.light-mode .txa-badge.det{color:#6d28d9}
     var src = (typeof db !== 'undefined' && Array.isArray(db)) ? db : [], h = 0, n = 0;
     for (var i = 0; i < src.length; i++) {
       var r = src[i]; if (!r || r.type !== 'Expense') continue; n++;
-      var s = r.id + '|' + r.amount + '|' + r.date + '|' + r.sub + '|' + r.name + '|' + (r.tags || []).join(',') + '|' + (r.recurring ? 1 : 0);
+      var s = r.id + '|' + r.amount + '|' + r.date + '|' + r.sub + '|' + r.category + '|' + r.subcategory + '|' + r.payee + '|' + r.name + '|' + (r.tags || []).join(',') + '|' + (r.recurring ? 1 : 0);
       for (var j = 0; j < s.length; j++) h = (h * 31 + s.charCodeAt(j)) | 0;
     }
     var b = (typeof budgets !== 'undefined' && budgets) ? JSON.stringify(budgets) : '';
@@ -31004,7 +31343,7 @@ body.light-mode .txa-badge.det{color:#6d28d9}
     box.style.setProperty('--cc', s.color);
     box.innerHTML = '<div class="txa-ihead"><span class="txa-dot" style="--cc:' + s.color + '"></span><h3>' + esc(s.name) + '</h3><div class="txa-note">' + s.count + ' transaction' + (s.count === 1 ? '' : 's') + ' · <b class="txa-mono">' + money(s.total) + '</b> · ' + r1(A.total ? s.total / A.total * 100 : 0) + '% of expenses · avg ' + money(s.count ? s.total / s.count : 0) + '</div><button type="button" class="txa-xbtn" data-txa-clear="1"><i class="fas fa-times" style="margin-right:6px"></i>Clear</button></div>' +
       '<div class="txa-list">' + shown.map(function (e) {
-        return '<div class="txa-row"><span class="d">' + dt(e.date) + '</span><div class="n"><span class="nm" title="' + esc(e.name) + '">' + esc(e.name) + '</span>' + (isO ? '<em>' + esc(e.cat) + '</em> ' : '') + (e.tags.length ? e.tags.map(function (t) { return '<span class="txa-tag">#' + esc(t) + '</span>'; }).join('') : '') + '</div><span class="a">' + money(e.amount) + '</span></div>';
+        return '<div class="txa-row"><span class="d">' + dt(e.date) + '</span><div class="n"><span class="nm" title="' + esc(e.name) + '">' + esc(e.name) + '</span>' + (isO ? '<em>' + esc(e.cat) + '</em> ' : '') + (e.sub ? '<em>' + esc(e.sub) + '</em> ' : '') + (e.tags.length ? e.tags.map(function (t) { return '<span class="txa-tag">#' + esc(t) + '</span>'; }).join('') : '') + '</div><span class="a">' + money(e.amount) + '</span></div>';
       }).join('') + '</div>' + (items.length > LIM ? '<div class="txa-note" style="margin-top:8px">Showing the latest ' + LIM + ' of ' + items.length + ' transactions.</div>' : '');
     box.hidden = false;
     if (scroll) { try { box.scrollIntoView({ behavior: 'smooth', block: 'nearest' }); } catch (e) {} }
