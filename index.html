@@ -6779,9 +6779,16 @@ function passAppLockGate() {
       </div>
 
       <!-- EXPENSE CATEGORY BREAKDOWN (interactive doughnut: category → subcategory → payee) -->
+      <div class="fhs-row">
       <div class="glass-panel txa-host" id="dash-expbreak-panel" style="margin-top:1.3rem;margin-bottom:0">
         <div class="panel-title fxb-title"><span><i class="fas fa-chart-pie" style="margin-right:7px;color:var(--brand,#20CDB5)"></i>Expense Category Breakdown</span><small>Click a slice or category to inspect · drill into subcategories &amp; payees</small></div>
         <div id="dash-expbreak"></div>
+      </div>
+      <!-- FINANCIAL HEALTH SCORE (30%) -->
+      <div class="glass-panel txa-host" id="dash-fhs-panel">
+        <div class="panel-title fhs-title"><span><i class="fas fa-heart-pulse" style="margin-right:7px;color:var(--brand,#20CDB5)"></i>Financial Health Score</span><small id="dash-fhs-scope"></small></div>
+        <div id="dash-fhs"></div>
+      </div>
       </div>
 
       <div class="charts-3col" style="margin-top:1.3rem">
@@ -14600,6 +14607,7 @@ function renderDashboardImmediate() {
 
   // 2b. Expense Category Breakdown (interactive doughnut with subcategory / payee drill-down)
   try { if (typeof fosExpBreakRender === 'function') fosExpBreakRender('dash'); } catch (e) { console.error('Expense breakdown (dashboard) failed:', e); }
+  try { if (typeof fhsRender === 'function') fhsRender(); } catch (e) { console.error('Financial health score failed:', e); }
 
  // Portfolio by asset type - Center-Stat Ring + Progress Legend
   const byType = {};
@@ -30697,6 +30705,9 @@ body.light-mode .txa-badge.det{color:#6d28d9}
           <h3 class="txa-h"><i class="fas fa-lightbulb"></i>Smart Insights</h3>
           <div class="txa-insights" id="txa-insights"></div>
         </section>
+
+        <!-- Advanced Spending Analysis (filled by txaAdvRender) -->
+        <div class="txa-adv" id="txa-adv"></div>
       </div>
     </div>
   </div>
@@ -31201,7 +31212,7 @@ body.light-mode .txa-badge.det{color:#6d28d9}
   function catColor(A, name) { var c = A.catMap[name]; return c ? c.color : OTHERS_COLOR; }
 
   /* ───────────── charts ───────────── */
-  function destroyCharts() { Object.keys(st.charts).forEach(function (k) { try { st.charts[k].destroy(); } catch (e) {} delete st.charts[k]; }); }
+  function destroyCharts() { try { if (window.txaAdvDestroy) window.txaAdvDestroy(); } catch (e) {} Object.keys(st.charts).forEach(function (k) { try { st.charts[k].destroy(); } catch (e) {} delete st.charts[k]; }); }
   function mk(key, id, cfg) {
     var cv = $(id); if (!cv || typeof Chart === 'undefined') return null;
     try {
@@ -31449,6 +31460,7 @@ body.light-mode .txa-badge.det{color:#6d28d9}
 
     renderLegend(); renderInspector(false);
     drawCharts(A, range, W);
+    try { if (window.txaAdvRender) window.txaAdvRender(st.data); } catch (e) { console.error("Advanced analytics failed:", e); }
   }
 
   /* ───────────── open / close ───────────── */
@@ -31543,6 +31555,540 @@ body.light-mode .txa-badge.det{color:#6d28d9}
     ensureButton();
   }
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init); else init();
+})();
+</script>
+<style id="txa-adv-style">
+/* Advanced Spending Analysis — extends the existing .txa-* design tokens (dark + light themes) */
+.txa-adv{display:flex;flex-direction:column;gap:14px;min-width:0}
+.txa-advhead{display:flex;align-items:center;justify-content:space-between;gap:12px 18px;flex-wrap:wrap;margin-top:12px;padding:16px 4px 0;border-top:1px solid var(--txa-border)}
+.txa-advhead h2{margin:0 0 3px;font-size:1.12rem;font-weight:800;color:var(--txa-text);display:flex;align-items:center;gap:10px}
+.txa-advhead h2 i{color:var(--txa-acc2)}
+body.light-mode .txa-advhead h2 i{color:#0f766e}
+.txa-advhead .txa-chips{max-width:100%}
+.txa-adv-sec{display:flex;flex-direction:column;gap:14px;min-width:0;scroll-margin-top:6px}
+.txa-adv-bar{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:10px}
+.txa-sel{font-family:inherit;font-size:.76rem;font-weight:700;color:var(--txa-text);background:var(--txa-card-hover);border:1px solid var(--txa-border);border-radius:10px;padding:7px 10px;max-width:100%;cursor:pointer}
+.txa-sel:focus-visible{outline:2px solid var(--txa-acc2);outline-offset:2px}
+.txa-sel option{background:var(--txa-solid);color:var(--txa-text)}
+.txa-adv-scroll{max-height:340px;overflow:auto;scrollbar-width:thin}
+.txa-at{display:grid;gap:8px;align-items:center;padding:8px 6px;font-size:.74rem;border-bottom:1px solid var(--txa-border);color:var(--txa-text)}
+.txa-at>span{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.txa-at>span.r{text-align:right;font-family:'DM Mono',monospace}
+.txa-at-h{position:sticky;top:0;z-index:1;background:var(--txa-solid);font-size:.6rem;text-transform:uppercase;letter-spacing:1px;font-weight:800;color:var(--txa-mut)}
+.txa-at-h>span.r{font-family:inherit}
+.txa-adv-nm{display:flex;align-items:center;gap:8px;min-width:0;font-weight:700}
+.txa-adv-nm>span:last-child{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.txa-adv .txa-chartwrap{height:260px}
+.txa-adv .txa-ins-t .txa-badge{margin-left:6px;vertical-align:middle}
+@media (max-width:900px){.txa-advhead{padding-top:12px}}
+@media (max-width:640px){.txa-adv .txa-chartwrap{height:230px}}
+</style>
+<script id="txa-adv-script">
+/* Transactions → Analytics: Advanced Spending Analysis (below Smart Insights).
+   Reads only the data the existing modal already computed (expense records, selected range, previous period).
+   Every figure is derived from real transactions — nothing is estimated beyond clearly labelled what-if scenarios. */
+(function () {
+  'use strict';
+  if (window.__txaAdv) return; window.__txaAdv = true;
+  var PAL = ['#20CDB5','#38bdf8','#a78bfa','#f472b6','#fbbf24','#34d399','#fb923c','#60a5fa','#e879f9'], GREY = '#64748b';
+  var MN = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+  var ch = {}, X = null, subCat = '__all__';
+
+  function $(i) { return document.getElementById(i); }
+  function esc(s) { return typeof _esc === 'function' ? _esc(s) : String(s == null ? '' : s).replace(/[&<>"']/g, function (c) { return ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'})[c]; }); }
+  function p2(n) { return String(n).padStart(2, '0'); }
+  function iso(d) { return d.getFullYear() + '-' + p2(d.getMonth() + 1) + '-' + p2(d.getDate()); }
+  function pd(s) { var a = String(s).slice(0, 10).split('-').map(Number); return new Date(a[0], a[1] - 1, a[2]); }
+  function addD(d, n) { return new Date(d.getFullYear(), d.getMonth(), d.getDate() + n); }
+  function dd(a, b) { return Math.round((Date.UTC(b.getFullYear(), b.getMonth(), b.getDate()) - Date.UTC(a.getFullYear(), a.getMonth(), a.getDate())) / 864e5); }
+  function $m(n) { return fmt(n); }
+  function fd(s) { return fmtDate(typeof s === 'string' ? s : iso(s)); }
+  function r0(n) { return Math.round(n); }
+  function r1(n) { return Math.round(n * 10) / 10; }
+  function light() { return document.body.classList.contains('light-mode'); }
+  function cT() { return light() ? '#334155' : '#B7C4C5'; }
+  function cG() { return light() ? 'rgba(15,23,42,0.08)' : 'rgba(180,220,218,0.07)'; }
+  function col(i) { return i < PAL.length ? PAL[i] : GREY; }
+  function quant(s, q) { if (!s.length) return 0; var p = (s.length - 1) * q, lo = Math.floor(p), hi = Math.ceil(p); return s[lo] + (s[hi] - s[lo]) * (p - lo); }
+  function compact(v) {
+    var sym = localStorage.getItem('fos_currency') || '₹', ind = (localStorage.getItem('fos_number_system') || 'indian') === 'indian', a = Math.abs(v), s = v < 0 ? '-' : '', x;
+    if (ind) { if (a >= 1e7) x = r1(a / 1e7) + 'Cr'; else if (a >= 1e5) x = r1(a / 1e5) + 'L'; else if (a >= 1e3) x = r1(a / 1e3) + 'K'; else x = String(r0(a)); }
+    else { if (a >= 1e9) x = r1(a / 1e9) + 'B'; else if (a >= 1e6) x = r1(a / 1e6) + 'M'; else if (a >= 1e3) x = r1(a / 1e3) + 'K'; else x = String(r0(a)); }
+    return s + sym + x;
+  }
+
+  /* ── html builders ── */
+  function dl(c, p) {
+    if (p == null) return '';
+    if (p === 0) return c > 0 ? '<span class="txa-delta up">NEW</span>' : '<span class="txa-delta flat">—</span>';
+    var x = (c - p) / p * 100; if (Math.abs(x) < 0.5) return '<span class="txa-delta flat">≈ 0%</span>';
+    var a = Math.abs(x); return '<span class="txa-delta ' + (x > 0 ? 'up' : 'down') + '">' + (x > 0 ? '▲ ' : '▼ ') + (a > 999 ? '999%+' : r1(a) + '%') + '</span>';
+  }
+  function card(icon, title, small, body) { return '<section class="txa-card"><h3 class="txa-h"><i class="fas ' + icon + '"></i>' + title + (small ? '<small>' + small + '</small>' : '') + '</h3>' + body + '</section>'; }
+  function cv(id) { return '<div class="txa-chartwrap"><canvas id="' + id + '"></canvas></div>'; }
+  function empty(t) { return '<div class="txa-muted-empty">' + t + '</div>'; }
+  function nm(s, c) { return '<span class="txa-adv-nm">' + (c ? '<span class="txa-dot" style="--cc:' + c + '"></span>' : '') + '<span title="' + esc(s) + '">' + esc(s) + '</span></span>'; }
+  function tbl(cols, rows, min) {
+    var g = 'grid-template-columns:' + cols.map(function (c) { return c.w; }).join(' ');
+    return '<div class="txa-list txa-adv-scroll"><div style="min-width:' + (min || 480) + 'px"><div class="txa-at txa-at-h" style="' + g + '">' + cols.map(function (c) { return '<span class="' + (c.r ? 'r' : '') + '">' + c.h + '</span>'; }).join('') + '</div>' +
+      rows.map(function (r) { return '<div class="txa-at" style="' + g + '">' + r.map(function (c, i) { return '<span class="' + (cols[i].r ? 'r' : '') + '">' + c + '</span>'; }).join('') + '</div>'; }).join('') + '</div></div>';
+  }
+  function ins(tone, icon, title, text, save) {
+    return '<div class="txa-ins ' + tone + '"><div class="txa-ins-ico"><i class="fas ' + icon + '"></i></div><div style="min-width:0"><div class="txa-ins-t">' + title + (save ? ' <span class="txa-badge">SAVE ≈ ' + $m(save) + '</span>' : '') + '</div><div class="txa-ins-d">' + text + '</div></div></div>';
+  }
+  function kp(label, val, sub, color) { return '<div class="txa-kpi" style="--k:' + color + '"><div class="txa-kpi-top"><span class="txa-lbl">' + label + '</span></div><div class="txa-kpi-val">' + val + '</div><div class="txa-kpi-sub">' + sub + '</div></div>'; }
+
+  /* ── data prep & grouping ── */
+  function prep(all) {
+    var mp = txMaps('Expense');
+    all.forEach(function (e) {
+      var r = e.r; e._sub = txLabelOf(r, 's', mp); e._subk = txKeyOf(r, 's'); e._nosub = !txSubcategory(r);
+      e._pay = txLabelOf(r, 'p', mp); e._payk = txKeyOf(r, 'p');
+    });
+  }
+  function grp(list, kf, lf) {
+    var m = {}, o = [];
+    list.forEach(function (e) { var k = kf(e), g = m[k]; if (!g) { g = m[k] = { k: k, n: lf(e), cat: e.cat, t: 0, c: 0, it: [], last: '' }; o.push(g); } g.t += e.amount; g.c++; g.it.push(e); if (e.date > g.last) g.last = e.date; });
+    return o.sort(function (a, b) { return b.t - a.t; });
+  }
+  function mapOf(a) { var m = {}; a.forEach(function (g) { m[g.k] = g; }); return m; }
+  function sum(l) { return l.reduce(function (s, e) { return s + e.amount; }, 0); }
+  var KC = function (e) { return e.cat; };
+  var KP = function (e) { return e._payk || ('n:' + e.name.toLowerCase()); }, LP = function (e) { return e._payk ? e._pay : e.name; };
+
+  /* ── time buckets (m = calendar months, w = 7-day weeks from range start) ── */
+  function bk(rg, mode) {
+    var b = [], map = {};
+    if (mode === 'w') { for (var i = 0; i < rg.days; i += 7) { var s = addD(rg.start, i), e = addD(rg.start, Math.min(rg.days - 1, i + 6)); b.push({ l: s.getDate() + ' ' + MN[s.getMonth()], d: dd(s, e) + 1 }); } }
+    else {
+      var m = new Date(rg.start.getFullYear(), rg.start.getMonth(), 1), last = new Date(rg.end.getFullYear(), rg.end.getMonth(), 1);
+      for (; m <= last; m = new Date(m.getFullYear(), m.getMonth() + 1, 1)) {
+        var ms = m < rg.start ? rg.start : m, mEnd = new Date(m.getFullYear(), m.getMonth() + 1, 0), me = mEnd > rg.end ? rg.end : mEnd;
+        map[m.getFullYear() + '-' + p2(m.getMonth() + 1)] = b.length; b.push({ l: MN[m.getMonth()] + ' ' + String(m.getFullYear()).slice(2), d: Math.max(1, dd(ms, me) + 1) });
+      }
+    }
+    b.mode = mode; b.map = map; b.rg = rg; return b;
+  }
+  function bi(b, e) { if (b.mode === 'w') { var i = Math.floor(dd(b.rg.start, pd(e.date)) / 7); return i >= 0 && i < b.length ? i : -1; } var v = b.map[e.date.slice(0, 7)]; return v == null ? -1 : v; }
+  function series(b, items) { var a = b.map(function () { return 0; }); items.forEach(function (e) { var i = bi(b, e); if (i >= 0) a[i] += e.amount; }); return a; }
+
+  /* ── charts ── */
+  function destroy() { Object.keys(ch).forEach(function (k) { try { ch[k].destroy(); } catch (e) {} delete ch[k]; }); }
+  function mk(k, id, cfg) {
+    var c = $(id); if (!c || typeof Chart === 'undefined') return;
+    try { if (ch[k]) { ch[k].destroy(); delete ch[k]; } var ex = Chart.getChart ? Chart.getChart(c) : null; if (ex) ex.destroy(); ch[k] = new Chart(c.getContext('2d'), cfg); }
+    catch (e) { console.error('Advanced analytics chart failed (' + k + '):', e); }
+  }
+  function axes(h, stk) {
+    var cat = { grid: { display: false }, border: { display: false }, stacked: !!stk, ticks: { color: cT(), font: { size: 11 }, maxRotation: 0, autoSkip: true, maxTicksLimit: h ? 20 : 10 } };
+    if (h) cat.ticks.callback = function (v) { var l = this.getLabelForValue(v); return l.length > 24 ? l.slice(0, 23) + '…' : l; };
+    var val = { beginAtZero: true, stacked: !!stk, grid: { color: cG() }, border: { display: false }, ticks: { color: cT(), font: { size: 11 }, maxTicksLimit: 6, callback: function (v) { return compact(v); } } };
+    return h ? { x: val, y: cat } : { x: cat, y: val };
+  }
+  function opts(h, stk, legend) {
+    return { responsive: true, maintainAspectRatio: false, indexAxis: h ? 'y' : 'x', interaction: { mode: 'index', intersect: false }, scales: axes(h, stk),
+      plugins: { legend: { display: !!legend, labels: { color: cT(), boxWidth: 10, boxHeight: 10, font: { size: 11 } } }, tooltip: { callbacks: { label: function (c) { return ' ' + c.dataset.label + ': ' + $m(c.parsed[h ? 'x' : 'y']); } } } } };
+  }
+  function lineDs(label, data, color) { return { label: label, data: data, borderColor: color, backgroundColor: color, borderWidth: 2.2, tension: 0.3, pointRadius: data.length <= 20 ? 3 : 0, pointHoverRadius: 5, fill: false }; }
+  function barDs(label, data, color) { return { label: label, data: data, backgroundColor: color, borderRadius: 6, borderSkipped: 'bottom', maxBarThickness: 38 }; }
+
+  /* ── 1. CATEGORY ANALYSIS ── */
+  function secCat() {
+    var gc = grp(X.cur, KC, KC), pm = X.prv ? mapOf(grp(X.prv, KC, KC)) : null, T = X.T, cur = mapOf(gc);
+    var rows = gc.map(function (g, i) { var p = pm && pm[g.k] ? pm[g.k].t : 0; return [nm(g.n, col(i)), $m(g.t), r1(T ? g.t / T * 100 : 0) + '%', pm ? $m(p) : '—', pm ? dl(g.t, p) : '—', g.c]; });
+    if (pm) Object.keys(pm).forEach(function (k) { if (!cur[k]) rows.push([nm(pm[k].n, GREY), $m(0), '0%', $m(pm[k].t), '<span class="txa-delta down">▼ 100%</span>', 0]); });
+    var cols = [{ h: 'Category', w: 'minmax(0,1.5fr)' }, { h: 'Spent', w: '.9fr', r: 1 }, { h: 'Share', w: '.6fr', r: 1 }, { h: 'Previous', w: '.9fr', r: 1 }, { h: 'Change', w: '.9fr', r: 1 }, { h: 'Txns', w: '.5fr', r: 1 }];
+    var note = pm ? esc(X.rg.prevNote) + ': ' + fd(X.rg.prev.startISO) + ' – ' + fd(X.rg.prev.endISO) : 'No previous period for All Time';
+    $('adv-cat').innerHTML = '<div class="txa-grid txa-g2">' + card('fa-layer-group', 'Category Analysis', note, tbl(cols, rows, 520)) +
+      card('fa-chart-column', 'Category Trends Over Time', X.am === 'm' ? 'Monthly · top 6 + others' : 'Weekly · top 6 + others', cv('adv-c-cat')) + '</div>';
+    var b = bk(X.rg, X.am), top = gc.slice(0, 6), ds = top.map(function (g, i) { return barDs(g.n, series(b, g.it), col(i)); });
+    if (gc.length > 6) ds.push(barDs('Other categories', series(b, [].concat.apply([], gc.slice(6).map(function (g) { return g.it; }))), GREY));
+    var o = opts(false, true, true); mk('cat', 'adv-c-cat', { type: 'bar', data: { labels: b.map(function (x) { return x.l; }), datasets: ds }, options: o });
+  }
+
+  /* ── 2. SUBCATEGORY ANALYSIS ── */
+  function secSub() {
+    var cats = grp(X.cur, KC, KC), sel = subCat;
+    if (sel !== '__all__' && !cats.some(function (g) { return g.k === sel; })) sel = subCat = '__all__';
+    var f = function (l) { return sel === '__all__' ? l : l.filter(function (e) { return e.cat === sel; }); };
+    var cur = f(X.cur), prv = X.prv ? f(X.prv) : null, scope = sum(cur);
+    var KS = function (e) { return e._subk; }, LS = function (e) { return sel === '__all__' ? e.cat + ' › ' + e._sub : e._sub; };
+    var withSub = cur.filter(function (e) { return !e._nosub; }), noSubT = sum(cur) - sum(withSub);
+    var gs = grp(withSub, KS, LS), pm = prv ? mapOf(grp(prv.filter(function (e) { return !e._nosub; }), KS, LS)) : null;
+    var selHtml = '<select id="adv-subsel" class="txa-sel" aria-label="Category filter"><option value="__all__">All categories</option>' + cats.map(function (g) { return '<option value="' + esc(g.k) + '"' + (g.k === sel ? ' selected' : '') + '>' + esc(g.n) + '</option>'; }).join('') + '</select>';
+    var head = '<div class="txa-adv-bar"><span class="txa-lbl">Subcategory breakdown within</span>' + selHtml + '</div>';
+    if (!gs.length) { $('adv-sub').innerHTML = card('fa-sitemap', 'Subcategory Analysis', '', head + empty('No subcategories are recorded' + (sel === '__all__' ? '' : ' for this category') + ' in this period. Add a subcategory to your transactions to unlock this breakdown.')); ['subBar', 'subTr'].forEach(function (k) { if (ch[k]) { ch[k].destroy(); delete ch[k]; } }); return; }
+    var rows = gs.slice(0, 15).map(function (g, i) { var p = pm && pm[g.k] ? pm[g.k].t : 0; return [nm(g.n, col(i)), $m(g.t), r1(scope ? g.t / scope * 100 : 0) + '%', pm ? $m(p) : '—', pm ? dl(g.t, p) : '—', g.c]; });
+    var cols = [{ h: 'Subcategory', w: 'minmax(0,1.7fr)' }, { h: 'Spent', w: '.9fr', r: 1 }, { h: sel === '__all__' ? 'Share' : 'Of category', w: '.7fr', r: 1 }, { h: 'Previous', w: '.9fr', r: 1 }, { h: 'Change', w: '.9fr', r: 1 }, { h: 'Txns', w: '.5fr', r: 1 }];
+    var noteTxt = noSubT > 0 ? $m(noSubT) + ' (' + r0(scope ? noSubT / scope * 100 : 0) + '%) has no subcategory and is excluded below.' : 'All spending in scope has a subcategory.';
+    $('adv-sub').innerHTML = card('fa-sitemap', 'Subcategory Analysis', 'Top ' + Math.min(15, gs.length) + ' of ' + gs.length, head + '<div class="txa-note" style="margin-bottom:10px">' + noteTxt + '</div>' +
+      '<div class="txa-grid txa-g2"><div><div class="txa-lbl" style="margin-bottom:6px">Highest-spending subcategories' + (prv ? ' · vs previous period' : '') + '</div>' + cv('adv-c-sub') + '</div><div><div class="txa-lbl" style="margin-bottom:6px">Top 5 subcategory trends</div>' + cv('adv-c-subtr') + '</div></div><div style="margin-top:14px">' + tbl(cols, rows, 520) + '</div>');
+    var t10 = gs.slice(0, 10), ds = [barDs('Current', t10.map(function (g) { return g.t; }), col(0))];
+    if (pm) ds.push(barDs('Previous', t10.map(function (g) { return pm[g.k] ? pm[g.k].t : 0; }), GREY));
+    mk('subBar', 'adv-c-sub', { type: 'bar', data: { labels: t10.map(function (g) { return g.n; }), datasets: ds }, options: opts(true, false, !!pm) });
+    var b = bk(X.rg, X.am);
+    mk('subTr', 'adv-c-subtr', { type: 'line', data: { labels: b.map(function (x) { return x.l; }), datasets: gs.slice(0, 5).map(function (g, i) { return lineDs(g.n, series(b, g.it), col(i)); }) }, options: opts(false, false, true) });
+  }
+
+  /* ── 3. PAYEE ANALYSIS ── */
+  function secPayee() {
+    var named = X.cur.filter(function (e) { return e._payk; }), noP = X.T - sum(named), pm = X.prv ? mapOf(grp(X.prv.filter(function (e) { return e._payk; }), KP, LP)) : null;
+    if (!named.length) { $('adv-pay').innerHTML = card('fa-store', 'Payee Analysis', '', empty('No payees are recorded in this period. Add a payee to your expense transactions to see merchant-level analysis.')); return; }
+    var gp = grp(named, KP, LP), T = X.T;
+    var rows = gp.slice(0, 15).map(function (g, i) {
+      var p = pm && pm[g.k] ? pm[g.k].t : 0; return [nm(g.n, col(i)), $m(g.t), g.c, $m(g.t / g.c), fd(g.last), pm ? dl(g.t, p) : '—'];
+    });
+    var cols = [{ h: 'Payee', w: 'minmax(0,1.5fr)' }, { h: 'Total', w: '.9fr', r: 1 }, { h: 'Txns', w: '.5fr', r: 1 }, { h: 'Avg', w: '.8fr', r: 1 }, { h: 'Last paid', w: '.9fr', r: 1 }, { h: 'Change', w: '.8fr', r: 1 }];
+    var rep = gp.filter(function (g) { return g.c >= 3; }).sort(function (a, b) { return b.c - a.c || b.t - a.t; }).slice(0, 8).map(function (g) {
+      var ds = Array.from(new Set(g.it.map(function (e) { return e.date; }))).sort(), gap = null;
+      if (ds.length >= 2) gap = r0(dd(pd(ds[0]), pd(ds[ds.length - 1])) / (ds.length - 1));
+      var cnt = {}, best = 0, bv = 0; g.it.forEach(function (e) { var k = e.amount.toFixed(2); cnt[k] = (cnt[k] || 0) + 1; if (cnt[k] > best) { best = cnt[k]; bv = e.amount; } });
+      return '<div class="txa-rc"><span class="nm" title="' + esc(g.n) + '">' + esc(g.n) + '</span><span class="am">' + $m(g.t) + '</span><span class="mt"><span class="txa-badge">' + g.c + '×</span>avg ' + $m(g.t / g.c) + (gap ? ' · about every ' + gap + ' day' + (gap === 1 ? '' : 's') : '') + (best >= 3 && best / g.c >= 0.6 ? ' · same ' + $m(bv) + ' ×' + best : '') + '</span></div>';
+    });
+    $('adv-pay').innerHTML = '<div class="txa-grid txa-g2">' + card('fa-store', 'Highest-Spending Payees', 'Top ' + Math.min(15, gp.length) + ' of ' + gp.length + (noP > 0 ? ' · ' + $m(noP) + ' has no payee' : ''), tbl(cols, rows, 520)) +
+      card('fa-chart-bar', 'Total Spend per Payee', 'Top 10', cv('adv-c-pay')) + '</div>' +
+      '<div class="txa-grid txa-g2">' + card('fa-repeat', 'Frequent & Repeat Payments', 'Payees with 3+ transactions', rep.length ? '<div class="txa-recur">' + rep.join('') + '</div>' : empty('No payee has 3 or more transactions in this period.')) +
+      card('fa-chart-line', 'Payee Spending Trends', X.am === 'm' ? 'Monthly · top 5' : 'Weekly · top 5', cv('adv-c-paytr')) + '</div>';
+    var t10 = gp.slice(0, 10);
+    mk('pay', 'adv-c-pay', { type: 'bar', data: { labels: t10.map(function (g) { return g.n; }), datasets: [{ label: 'Spent', data: t10.map(function (g) { return g.t; }), backgroundColor: t10.map(function (g, i) { return col(i); }), borderRadius: 6, maxBarThickness: 26 }] }, options: opts(true, false, false) });
+    var b = bk(X.rg, X.am);
+    mk('payTr', 'adv-c-paytr', { type: 'line', data: { labels: b.map(function (x) { return x.l; }), datasets: gp.slice(0, 5).map(function (g, i) { return lineDs(g.n, series(b, g.it), col(i)); }) }, options: opts(false, false, true) });
+  }
+
+  /* ── shared derivations (used by sections 4 & 5) ── */
+  function spikes() {
+    var by = {}; X.cur.forEach(function (e) { (by[e.date] = by[e.date] || []).push(e); });
+    var days = Object.keys(by).map(function (d) { return { d: d, t: sum(by[d]), it: by[d] }; });
+    if (days.length < 8) return { list: [], thr: 0, enough: false, mean: 0 };
+    var v = days.map(function (x) { return x.t; }), mean = v.reduce(function (s, x) { return s + x; }, 0) / v.length;
+    var sd = Math.sqrt(v.reduce(function (s, x) { return s + Math.pow(x - mean, 2); }, 0) / v.length), med = quant(v.slice().sort(function (a, b) { return a - b; }), 0.5), thr = mean + 2 * sd;
+    var list = days.filter(function (x) { return x.t > thr && x.t >= 2 * med; }).sort(function (a, b) { return b.t - a.t; });
+    return { list: list, thr: thr, enough: true, mean: mean, med: med };
+  }
+  function smalls() {
+    var a = X.cur.map(function (e) { return e.amount; }).sort(function (x, y) { return x - y; }), med = quant(a, 0.5);
+    var g = grp(X.cur.filter(function (e) { return e.amount <= med; }), KP, LP).filter(function (x) { return x.c >= 4; }).sort(function (x, y) { return y.t - x.t; });
+    return { med: med, groups: g, total: g.reduce(function (s, x) { return s + x.t; }, 0) };
+  }
+
+  /* ── 4. SPENDING TRENDS & PATTERNS ── */
+  function secTrend() {
+    var bm = bk(X.rg, 'm'), bw = bk(X.rg, 'w'), sm = series(bm, X.cur), sw = series(bw, X.cur);
+    function perDay(b, s) { return s.map(function (v, i) { return v / b[i].d; }); }
+    var ub = bm.length >= 2 ? bm : (bw.length >= 2 ? bw : null), chg = [];
+    if (ub) { var pv = perDay(ub, ub === bm ? sm : sw); for (var i = 1; i < ub.length; i++) if (pv[i - 1] > 0) chg.push({ l: ub[i - 1].l + ' → ' + ub[i].l, f: pv[i - 1], t: pv[i], pc: (pv[i] - pv[i - 1]) / pv[i - 1] * 100 }); }
+    var ups = chg.filter(function (c) { return c.pc >= 10; }).sort(function (a, b) { return b.pc - a.pc; }).slice(0, 3), downs = chg.filter(function (c) { return c.pc <= -10; }).sort(function (a, b) { return a.pc - b.pc; }).slice(0, 3);
+    function chRow(c) { return '<div class="txa-mv"><span class="nm">' + esc(c.l) + '</span><span class="v">' + $m(c.f) + ' → ' + $m(c.t) + '/day</span>' + dl(c.t, c.f) + '</div>'; }
+    var changeBody = !chg.length ? empty('At least two periods with spending are needed to show increases and decreases.') :
+      '<div class="txa-note" style="margin-bottom:8px">Compared on average spend per day (' + (ub === bm ? 'month' : 'week') + ' to ' + (ub === bm ? 'month' : 'week') + '), so partial periods are fair.</div>' +
+      '<div class="txa-lbl" style="margin:6px 0 4px">Biggest increases</div>' + (ups.length ? ups.map(chRow).join('') : '<div class="txa-note">None of 10% or more.</div>') +
+      '<div class="txa-lbl" style="margin:10px 0 4px">Biggest decreases</div>' + (downs.length ? downs.map(chRow).join('') : '<div class="txa-note">None of 10% or more.</div>');
+    var S = spikes(), spBody;
+    if (!S.enough) spBody = empty('Spike detection needs at least 8 days with spending in the selected period.');
+    else if (!S.list.length) spBody = empty('No unusual spending spikes. No single day rose above ' + $m(S.thr) + ' (average spending day ' + $m(S.mean) + ').');
+    else spBody = '<div class="txa-note" style="margin-bottom:6px">Days above ' + $m(S.thr) + ' (mean + 2 standard deviations of spending days, and at least 2× the median day of ' + $m(S.med) + ').</div><div class="txa-recur">' + S.list.slice(0, 5).map(function (x) {
+      var big = x.it.slice().sort(function (a, b) { return b.amount - a.amount; })[0];
+      return '<div class="txa-rc"><span class="nm">' + fd(x.d) + '</span><span class="am">' + $m(x.t) + '</span><span class="mt"><span class="txa-badge">' + r1(x.t / S.mean) + '× average</span>mostly ' + esc(big.name) + ' (' + $m(big.amount) + ') · ' + x.it.length + ' txn' + (x.it.length === 1 ? '' : 's') + '</span></div>';
+    }).join('') + '</div>';
+    var SM = smalls(), perM = 30.4375 / Math.max(1, X.rg.days);
+    var smBody = !SM.groups.length ? empty('No payee or item repeats 4 or more times as a small expense (at or below the median transaction of ' + $m(SM.med) + ').') :
+      '<div class="txa-note" style="margin-bottom:8px">Small = at or below the median transaction (' + $m(SM.med) + '); shown when repeated 4+ times.</div>' +
+      tbl([{ h: 'Payee / item', w: 'minmax(0,1.6fr)' }, { h: 'Times', w: '.5fr', r: 1 }, { h: 'Avg', w: '.8fr', r: 1 }, { h: 'Total', w: '.9fr', r: 1 }, { h: '≈ / month', w: '.9fr', r: 1 }], SM.groups.slice(0, 8).map(function (g, i) { return [nm(g.n, col(i)), g.c, $m(g.t / g.c), $m(g.t), $m(g.t * perM)]; }), 480) +
+      '<div class="txa-sum"><span>Frequent small expenses combined</span><span class="txa-mono">' + $m(SM.total) + ' (' + r0(X.T ? SM.total / X.T * 100 : 0) + '%)</span></div>';
+    $('adv-trend').innerHTML = '<div class="txa-grid txa-g2">' + card('fa-calendar-days', 'Monthly Spending Pattern', bm.length + ' month' + (bm.length === 1 ? '' : 's'), cv('adv-c-m')) + card('fa-calendar-week', 'Weekly Spending Pattern', '7-day blocks from ' + fd(X.rg.start), cv('adv-c-w')) + '</div>' +
+      '<div class="txa-grid txa-g2">' + card('fa-arrows-up-down', 'Spending Increases & Decreases', '', changeBody) + card('fa-bolt', 'Unusual Spending Spikes', '', spBody) + '</div>' +
+      card('fa-coins', 'Recurring & Frequent Small Expenses', '', smBody);
+    function barCfg(b, s) { var o = opts(false, false, false); o.plugins.tooltip.callbacks.afterLabel = function (c) { return ' ' + $m(s[c.dataIndex] / b[c.dataIndex].d) + ' per day over ' + b[c.dataIndex].d + ' day' + (b[c.dataIndex].d === 1 ? '' : 's'); }; return { type: 'bar', data: { labels: b.map(function (x) { return x.l; }), datasets: [barDs('Spent', s, col(0))] }, options: o }; }
+    mk('m', 'adv-c-m', barCfg(bm, sm)); mk('w', 'adv-c-w', barCfg(bw, sw));
+  }
+
+  /* ── 5. EXPENSE REDUCTION OPPORTUNITIES ── */
+  function rises(kf, lf, scopeFilter) {
+    if (!X.prv) return [];
+    var cur = scopeFilter ? X.cur.filter(scopeFilter) : X.cur, prv = scopeFilter ? X.prv.filter(scopeFilter) : X.prv, pm = mapOf(grp(prv, kf, lf)), T = X.T, out = [];
+    grp(cur, kf, lf).forEach(function (g) {
+      var p = pm[g.k] ? pm[g.k].t : 0, d = g.t - p; if (d <= 0) return;
+      if (p > 0 && d / p * 100 >= 15 && d >= T * 0.02) out.push({ g: g, p: p, d: d, pc: d / p * 100 });
+      else if (p === 0 && g.t >= T * 0.05) out.push({ g: g, p: 0, d: d, pc: null });
+    });
+    return out.sort(function (a, b) { return b.d - a.d; });
+  }
+  function driver(cat) {
+    var f = function (e) { return e.cat === cat; }, pm = mapOf(grp(X.prv.filter(f), KP, LP)), best = null;
+    grp(X.cur.filter(f), KP, LP).forEach(function (g) { var d = g.t - (pm[g.k] ? pm[g.k].t : 0); if (d > 0 && (!best || d > best.d)) best = { n: g.n, d: d }; });
+    return best;
+  }
+  function secSave() {
+    var T = X.T, perM = 30.4375 / Math.max(1, X.rg.days), cards = [], riseCats = rises(KC, KC), riseSubs = rises(function (e) { return e._subk; }, function (e) { return e.cat + ' › ' + e._sub; }, function (e) { return !e._nosub; });
+    var riseTot = riseCats.reduce(function (s, x) { return s + x.d; }, 0);
+    riseCats.slice(0, 4).forEach(function (x) {
+      var dr = driver(x.g.n);
+      cards.push(ins('warn', 'fa-arrow-up-right-dots', esc(x.g.n) + ' is rising', x.pc === null ? 'New this period: <b>' + $m(x.g.t) + '</b> across ' + x.g.c + ' transactions, with nothing in the previous period.' : 'Up <b>' + r0(x.pc) + '%</b> (' + $m(x.p) + ' → ' + $m(x.g.t) + ').' + (dr ? ' Biggest driver: <b>' + esc(dr.n) + '</b> (+' + $m(dr.d) + ').' : '') +
+        ' <b>Action:</b> set a cap near the previous level (' + $m(x.p) + ') and review the larger ' + esc(x.g.n) + ' transactions first.', x.d));
+    });
+    var shownCats = {}; riseCats.forEach(function (x) { shownCats[x.g.n] = 1; });
+    var subs = riseSubs.filter(function (x) { return !shownCats[x.g.cat]; }).slice(0, 3);
+    if (!subs.length && riseSubs.length) subs = riseSubs.slice(0, 2);
+    if (subs.length) cards.push(ins('warn', 'fa-sitemap', 'Subcategories with increasing spend', subs.map(function (x) { return '<b>' + esc(x.g.n) + '</b> ' + (x.pc === null ? 'is new (' + $m(x.g.t) + ')' : 'is up ' + r0(x.pc) + '% (' + $m(x.p) + ' → ' + $m(x.g.t) + ')'); }).join('; ') + '. <b>Action:</b> check whether these are one-offs or a new habit.'));
+    var disc = 0, dc = {}; X.cur.forEach(function (e) { var k = (typeof finaiClassifyExpense === 'function') ? finaiClassifyExpense({ sub: e.cat, name: e.name }) : 'uncertain'; if (k === 'discretionary') { disc += e.amount; dc[e.cat] = (dc[e.cat] || 0) + e.amount; } });
+    if (T > 0 && disc >= T * 0.1) {
+      var dn = Object.keys(dc).sort(function (a, b) { return dc[b] - dc[a]; }).slice(0, 2).map(esc).join(' & ');
+      cards.push(ins('tip', 'fa-piggy-bank', 'Discretionary spending', '<b>' + r0(disc / T * 100) + '%</b> (' + $m(disc) + ') of spending is discretionary, mainly <b>' + dn + '</b>. <b>What-if:</b> a 10% trim frees about ' + $m(disc * 0.1) + ' this period (≈ ' + $m(disc * 0.1 * perM) + '/month).', disc * 0.1));
+    }
+    var SM = smalls();
+    if (SM.groups.length && SM.total >= T * 0.05) cards.push(ins('tip', 'fa-coins', 'Small expenses that repeat', SM.groups.slice(0, 3).map(function (g) { return '<b>' + esc(g.n) + '</b> (' + g.c + '× · ' + $m(g.t) + ')'; }).join(', ') + ' total <b>' + $m(SM.total) + '</b>. <b>What-if:</b> 25% fewer of these saves about ' + $m(SM.total * 0.25) + ' this period (≈ ' + $m(SM.total * 0.25 * perM) + '/month).', SM.total * 0.25));
+    var S = spikes();
+    if (S.list.length) { var ex = S.list.reduce(function (s, x) { return s + (x.t - S.mean); }, 0); cards.push(ins('warn', 'fa-bolt', 'One-off spending peaks', S.list.length + ' day' + (S.list.length === 1 ? '' : 's') + ' ran well above normal, adding about <b>' + $m(ex) + '</b> over a typical spending day (' + $m(S.mean) + '). <b>Action:</b> plan or defer large purchases so they do not stack on the same days.', ex)); }
+    var named = X.cur.filter(function (e) { return e._payk; }), gp = grp(named, KP, LP);
+    if (gp.length > 1 && gp[0].t >= T * 0.2) cards.push(ins('info', 'fa-store', 'Spending concentrated in one payee', '<b>' + esc(gp[0].n) + '</b> accounts for <b>' + r0(gp[0].t / T * 100) + '%</b> (' + $m(gp[0].t) + ') of spending over ' + gp[0].c + ' transaction' + (gp[0].c === 1 ? '' : 's') + '. <b>Action:</b> compare alternatives or negotiate here first — it moves your total the most.'));
+    if (!X.prv) cards.push(ins('info', 'fa-circle-info', 'Trend-based findings need a comparison period', 'Choose a range other than All Time to see which categories and subcategories are rising. The usage-based findings here still apply.'));
+    if (!cards.length) cards.push(ins('good', 'fa-circle-check', 'Nothing stands out', 'No rising categories, concentrated payees, spikes or repeating small expenses cross the detection thresholds for this period.'));
+    var kp5 = '<div class="txa-kpis" style="grid-template-columns:repeat(auto-fit,minmax(190px,1fr));margin-bottom:14px">' +
+      kp('Increase vs previous', X.prv ? $m(riseTot) : '—', X.prv ? 'From ' + riseCats.length + ' rising categor' + (riseCats.length === 1 ? 'y' : 'ies') : 'Not available for All Time', '#f472b6') +
+      kp('Discretionary', $m(disc), r0(T ? disc / T * 100 : 0) + '% of spending', '#a78bfa') +
+      kp('Frequent small spends', $m(SM.total), SM.groups.length + ' repeating item' + (SM.groups.length === 1 ? '' : 's'), '#fbbf24') +
+      kp('Spike excess', $m(S.list.reduce(function (s, x) { return s + (x.t - S.mean); }, 0)), S.list.length + ' unusual day' + (S.list.length === 1 ? '' : 's'), '#38bdf8') + '</div>';
+    $('adv-save').innerHTML = card('fa-piggy-bank', 'Expense Reduction Opportunities', 'Facts from your data; “What-if” items are scenarios, not forecasts', kp5 + '<div class="txa-insights">' + cards.join('') + '</div>');
+  }
+
+  /* ── 6. ADVANCED COMPARISONS ── */
+  function secCmp() {
+    var A = X.A, P = X.P, hasP = !!P;
+    function np(items) { return Object.keys(mapOf(grp(items.filter(function (e) { return e._payk; }), KP, LP))).length; }
+    var met = [['Total spending', $m(A.total), hasP ? $m(P.total) : '—', hasP ? dl(A.total, P.total) : '—'], ['Transactions', A.count, hasP ? P.count : '—', hasP ? dl(A.count, P.count) : '—'],
+      ['Avg per day', $m(A.avgDaily), hasP ? $m(P.avgDaily) : '—', hasP ? dl(A.avgDaily, P.avgDaily) : '—'], ['Avg transaction', $m(A.avgTxn), hasP ? $m(P.avgTxn) : '—', hasP ? dl(A.avgTxn, P.avgTxn) : '—'],
+      ['Categories used', A.cats.length, hasP ? P.cats.length : '—', hasP ? dl(A.cats.length, P.cats.length) : '—'], ['Payees paid', np(A.items), hasP ? np(P.items) : '—', hasP ? dl(np(A.items), np(P.items)) : '—']];
+    var perCard = card('fa-code-compare', 'Current vs Previous Period', hasP ? esc(X.rg.prevNote) : '', hasP ? tbl([{ h: 'Metric', w: 'minmax(0,1.4fr)' }, { h: 'Current', w: '1fr', r: 1 }, { h: 'Previous', w: '1fr', r: 1 }, { h: 'Change', w: '.9fr', r: 1 }], met, 420) : empty('A previous period is not defined for All Time. Pick another range to compare.') + tbl([{ h: 'Metric', w: 'minmax(0,1.4fr)' }, { h: 'Current', w: '1fr', r: 1 }], met.map(function (r) { return [r[0], r[1]]; }), 300));
+    var bm = bk(X.rg, 'm'), sm = series(bm, X.cur), mRows = bm.map(function (b, i) {
+      var a = sm[i] / b.d, pa = i ? sm[i - 1] / bm[i - 1].d : null;
+      return [esc(b.l) + (b.d < 28 ? ' <span class="txa-note">(' + b.d + 'd)</span>' : ''), $m(sm[i]), $m(a), i ? dl(sm[i], sm[i - 1]) : '—', i ? dl(a, pa) : '—'];
+    });
+    var momCard = card('fa-calendar-plus', 'Month-over-Month Changes', 'Δ per day adjusts for partial months', bm.length < 2 ? empty('Month-over-month needs a range that spans at least two calendar months.') : tbl([{ h: 'Month', w: 'minmax(0,1fr)' }, { h: 'Total', w: '.9fr', r: 1 }, { h: 'Avg/day', w: '.8fr', r: 1 }, { h: 'Δ Total', w: '.8fr', r: 1 }, { h: 'Δ /day', w: '.8fr', r: 1 }], mRows, 480));
+    var gc = grp(X.cur, KC, KC), cvs = gc.map(function (g, i) {
+      var subs = grp(g.it.filter(function (e) { return !e._nosub; }), function (e) { return e._subk; }, function (e) { return e._sub; }), un = g.t - sum(g.it.filter(function (e) { return !e._nosub; }));
+      return [nm(g.n, col(i)), $m(g.t), subs.length, subs.length ? esc(subs[0].n) : '—', subs.length ? r0(subs[0].t / g.t * 100) + '%' : '—', r0(un / g.t * 100) + '%'];
+    });
+    var cvsCard = card('fa-diagram-project', 'Category vs Subcategory', 'How concentrated each category is', tbl([{ h: 'Category', w: 'minmax(0,1.3fr)' }, { h: 'Total', w: '.9fr', r: 1 }, { h: 'Subs', w: '.5fr', r: 1 }, { h: 'Top subcategory', w: 'minmax(0,1.2fr)' }, { h: 'Its share', w: '.7fr', r: 1 }, { h: 'No sub', w: '.6fr', r: 1 }], cvs, 600));
+    var named = X.cur.filter(function (e) { return e._payk; }), gp = grp(named, KP, LP), pm = X.prv ? mapOf(grp(X.prv.filter(function (e) { return e._payk; }), KP, LP)) : null, movers = '';
+    if (pm) {
+      var cm = mapOf(gp), mv = gp.map(function (g) { return { n: g.n, c: g.t, p: pm[g.k] ? pm[g.k].t : 0 }; });
+      Object.keys(pm).forEach(function (k) { if (!cm[k]) mv.push({ n: pm[k].n, c: 0, p: pm[k].t }); });
+      mv.sort(function (a, b) { return Math.abs(b.c - b.p) - Math.abs(a.c - a.p); });
+      movers = '<div class="txa-lbl" style="margin:12px 0 4px">Biggest payee changes</div>' + mv.slice(0, 6).map(function (r) { return '<div class="txa-mv"><span class="nm" title="' + esc(r.n) + '">' + esc(r.n) + '</span><span class="v">' + $m(r.p) + ' → ' + $m(r.c) + '</span>' + (r.c === 0 ? '<span class="txa-delta down">STOPPED</span>' : dl(r.c, r.p)) + '</div>'; }).join('');
+    }
+    var payCard = card('fa-store', 'Payee-wise Comparison', pm ? 'Top 8 · current vs previous' : 'Top 8 · no previous period', gp.length ? cv('adv-c-paycmp') + movers : empty('No payees are recorded in this period.'));
+    $('adv-cmp').innerHTML = '<div class="txa-grid txa-g2">' + perCard + momCard + '</div><div class="txa-grid txa-g2">' + cvsCard + payCard + '</div>';
+    if (gp.length) {
+      var t8 = gp.slice(0, 8), ds = [barDs('Current', t8.map(function (g) { return g.t; }), col(0))];
+      if (pm) ds.push(barDs('Previous', t8.map(function (g) { return pm[g.k] ? pm[g.k].t : 0; }), GREY));
+      mk('payCmp', 'adv-c-paycmp', { type: 'bar', data: { labels: t8.map(function (g) { return g.n; }), datasets: ds }, options: opts(false, false, !!pm) });
+    }
+  }
+
+  /* ── entry point (called by the Analytics modal after each render) ── */
+  window.txaAdvRender = function (D) {
+    var host = $('txa-adv'); if (!host || !D || !D.A || !D.A.count) return;
+    prep(D.all);
+    X = { all: D.all, rg: D.range, cur: D.A.items, prv: D.P ? D.P.items : null, A: D.A, P: D.P, T: D.A.total, am: D.range.days > 62 ? 'm' : 'w' };
+    host.innerHTML = '<div class="txa-advhead"><div><h2><i class="fas fa-microscope"></i>Advanced Spending Analysis</h2><div class="txa-note">Calculated from your actual expense transactions between ' + fd(D.range.startISO) + ' and ' + fd(D.range.end) + '.</div></div>' +
+      '<div class="txa-chips" role="navigation" aria-label="Jump to section">' + [['adv-cat', 'Categories'], ['adv-sub', 'Subcategories'], ['adv-pay', 'Payees'], ['adv-trend', 'Trends'], ['adv-save', 'Savings'], ['adv-cmp', 'Comparisons']].map(function (x) { return '<button type="button" class="txa-chip" data-adv-go="' + x[0] + '">' + x[1] + '</button>'; }).join('') + '</div></div>' +
+      ['adv-cat', 'adv-sub', 'adv-pay', 'adv-trend', 'adv-save', 'adv-cmp'].map(function (i) { return '<div id="' + i + '" class="txa-adv-sec"></div>'; }).join('');
+    [secCat, secSub, secPayee, secTrend, secSave, secCmp].forEach(function (f) { try { f(); } catch (e) { console.error('Advanced analytics section failed:', e); } });
+  };
+  window.txaAdvDestroy = function () { destroy(); X = null; var h = $('txa-adv'); if (h) h.innerHTML = ''; };
+
+  document.addEventListener('change', function (e) {
+    if (e.target && e.target.id === 'adv-subsel' && X) { subCat = e.target.value; try { secSub(); } catch (x) { console.error(x); } var s = $('adv-subsel'); if (s) try { s.focus({ preventScroll: true }); } catch (x) {} }
+  });
+  document.addEventListener('click', function (e) {
+    var b = e.target.closest ? e.target.closest('[data-adv-go]') : null; if (!b) return;
+    var t = $(b.getAttribute('data-adv-go')); if (t) try { t.scrollIntoView({ behavior: 'smooth', block: 'start' }); } catch (x) {}
+  });
+})();
+</script>
+<style id="fhs-style">
+/* Dashboard: Expense Category Breakdown (70%) + Financial Health Score (30%) */
+.fhs-row{display:grid;grid-template-columns:minmax(0,7fr) minmax(0,3fr);gap:1.3rem;margin-top:1.3rem;align-items:stretch}
+.fhs-row>.glass-panel{margin:0 !important;min-width:0}
+@media (max-width:1180px){.fhs-row{grid-template-columns:minmax(0,1fr)}}
+/* slightly shorter breakdown (desktop only; mobile keeps its own sizing) */
+@media (min-width:701px){#dash-expbreak .txa-donut{flex:0 0 min(250px,46%);height:250px}#dash-expbreak .txa-legend{max-height:250px}}
+/* score panel */
+#dash-fhs-panel{display:flex;flex-direction:column}
+#dash-fhs-panel .fhs-title small{display:block;margin-top:2px;font-size:.66rem;font-weight:600;color:var(--text-muted);letter-spacing:0;text-transform:none}
+.fhs-top{display:flex;align-items:center;gap:14px;margin:4px 0 10px}
+.fhs-gauge{flex:0 0 112px;width:112px;height:112px;filter:drop-shadow(0 0 10px rgba(var(--brand-rgb,32,205,181),.18))}
+.fhs-trk{fill:none;stroke:var(--txa-track);stroke-width:9}
+.fhs-arc{fill:none;stroke-width:9;stroke-linecap:round;transition:stroke-dashoffset .8s cubic-bezier(.2,.8,.2,1),stroke .3s}
+.fhs-num{font-family:'DM Mono',monospace;font-size:26px;font-weight:700;fill:var(--txa-text)}
+.fhs-of{font-size:8.5px;font-weight:700;letter-spacing:.8px;text-transform:uppercase;fill:var(--txa-mut)}
+.fhs-stat{min-width:0;display:flex;flex-direction:column;gap:7px;align-items:flex-start}
+.fhs-chip{display:inline-block;padding:4px 12px;border-radius:999px;font-size:.74rem;font-weight:800;letter-spacing:.3px;color:var(--c);background:color-mix(in srgb,var(--c) 15%,transparent);border:1px solid color-mix(in srgb,var(--c) 40%,transparent)}
+.fhs-sum{font-size:.72rem;line-height:1.5;color:var(--txa-mut)}
+.fhs-sum b{color:var(--txa-text)}
+.fhs-sec{padding-top:10px;margin-top:10px;border-top:1px solid var(--txa-border)}
+.fhs-h{display:flex;align-items:center;gap:7px;margin-bottom:7px;font-size:.66rem;font-weight:800;text-transform:uppercase;letter-spacing:.9px;color:var(--txa-mut)}
+.fhs-h.g{color:var(--txa-down)}.fhs-h.a{color:var(--txa-warn)}
+.fhs-ul,.fhs-ol{margin:0;padding:0;list-style:none;display:flex;flex-direction:column;gap:7px}
+.fhs-ul li{display:grid;grid-template-columns:16px minmax(0,1fr);gap:8px;font-size:.74rem;line-height:1.45;color:var(--txa-mut);overflow-wrap:anywhere}
+.fhs-ul li i{font-size:.66rem;margin-top:3px;text-align:center}
+.fhs-ul li.g i{color:var(--txa-down)}.fhs-ul li.a i{color:var(--txa-warn)}.fhs-ul li.r i{color:#f87171}
+.fhs-ul li b,.fhs-ol li b{color:var(--txa-text);font-weight:700}
+.fhs-ol{counter-reset:r}
+.fhs-ol li{counter-increment:r;position:relative;padding:8px 10px 8px 32px;border-radius:11px;background:rgba(var(--brand-rgb,32,205,181),.07);border:1px solid rgba(var(--brand-rgb,32,205,181),.18);font-size:.73rem;line-height:1.45;color:var(--txa-mut);overflow-wrap:anywhere}
+.fhs-ol li::before{content:counter(r);position:absolute;left:9px;top:8px;width:16px;height:16px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:.6rem;font-weight:800;color:#04201c;background:linear-gradient(135deg,var(--txa-acc2),var(--txa-acc))}
+.fhs-how{margin-top:12px;border-top:1px solid var(--txa-border);padding-top:8px}
+.fhs-how summary{cursor:pointer;font-size:.68rem;font-weight:700;color:var(--txa-mut);list-style:none}
+.fhs-how summary::-webkit-details-marker{display:none}
+.fhs-how summary::before{content:"▸ ";color:var(--txa-acc2)}
+.fhs-how[open] summary::before{content:"▾ "}
+.fhs-how-b{margin-top:8px}
+.fhs-mr{display:flex;justify-content:space-between;gap:10px;padding:5px 0;border-bottom:1px solid var(--txa-border);font-size:.69rem;color:var(--txa-text)}
+.fhs-mr .n em{font-style:normal;color:var(--txa-mut);font-size:.62rem}
+.fhs-mr .v{text-align:right;color:var(--txa-mut);min-width:0}.fhs-mr .v b{color:var(--txa-text)}.fhs-mr .v.na{font-style:italic}
+@media (max-width:1180px) and (min-width:641px){#dash-fhs-panel .fhs-top{gap:20px}}
+@media (max-width:420px){.fhs-gauge{flex-basis:92px;width:92px;height:92px}}
+</style>
+<script id="fhs-script">
+/* Dashboard → Financial Health Score (beside the Expense Category Breakdown).
+   Transparent method: six measures, each scored 0–10 from real records in the dashboard's selected period.
+   The overall score is the weighted average of the measures that CAN be evaluated; missing data is never scored as zero. */
+(function () {
+  'use strict';
+  if (window.__fhs) return; window.__fhs = true;
+  var GREEN = '#34d399', TEAL = '#20CDB5', AMBER = '#fbbf24', RED = '#f87171', MIN_W = 35;
+
+  function $(i) { return document.getElementById(i); }
+  function esc(s) { return typeof _esc === 'function' ? _esc(s) : String(s == null ? '' : s).replace(/[&<>"']/g, function (c) { return ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'})[c]; }); }
+  function r0(n) { return Math.round(n); }
+  function r1(n) { return Math.round(n * 10) / 10; }
+  function pc(n) { return r0(n * 100) + '%'; }
+  function m(n) { return fmt(n); }
+  function lin(v, best, worst) { return Math.max(0, Math.min(10, (v - worst) / (best - worst) * 10)); }   /* 10 at `best`, 0 at `worst` */
+  function monthKey(d) { return String(d || '').slice(0, 7); }
+
+  function compute() {
+    var data = getFilteredData('dashboard'), prv = fosPrevRows('filter-month', 'filter-year');
+    var inc = sumType('Income', data), exp = sumType('Expense', data), loan = sumType('Loan', data), inv = sumType('Investment', data);
+    var months = budgetMonthsInScope(data), expRows = data.filter(function (r) { return r && r.type === 'Expense'; });
+    var R = { inc: inc, exp: exp, loan: loan, inv: inv, months: months, M: [], prv: prv, data: data, expRows: expRows };
+    function add(id, name, w, score, val, why) { R.M.push({ id: id, name: name, w: w, score: score, val: val, why: why }); }
+
+    /* 1 savings rate */
+    if (inc > 0) { R.rate = (inc - exp - loan) / inc; add('sav', 'Savings rate', 25, lin(R.rate, 0.20, 0), pc(R.rate) + ' of income kept after expenses & EMIs', ''); }
+    else add('sav', 'Savings rate', 25, null, '', 'No income recorded in this period');
+    /* 2 expense-to-income */
+    if (inc > 0) { R.ratio = exp / inc; add('exp', 'Expense-to-income', 20, lin(R.ratio, 0.5, 1), pc(R.ratio) + ' of income spent', ''); }
+    else add('exp', 'Expense-to-income', 20, null, '', 'No income recorded in this period');
+    /* 3 debt / EMI burden */
+    if (inc > 0) { R.debt = loan / inc; add('debt', 'Debt / EMI burden', 15, loan > 0 ? lin(R.debt, 0.10, 0.40) : 10, loan > 0 ? pc(R.debt) + ' of income goes to EMIs/loans' : 'No EMI or loan payments', ''); }
+    else add('debt', 'Debt / EMI burden', 15, null, '', 'No income recorded in this period');
+    /* 4 investments */
+    var hasInv = (db || []).some(function (r) { return r && r.type === 'Investment'; });
+    if (inc > 0 && hasInv) {
+      var amt = lin(inv / inc, 0.10, 0), im = {}; data.forEach(function (r) { if (r.type === 'Investment') im[monthKey(r.date)] = 1; });
+      R.invMonths = Object.keys(im).length; var sc = months >= 2 ? 0.6 * amt + 0.4 * Math.min(10, R.invMonths / months * 10) : amt;
+      add('inv', 'Investments & consistency', 15, sc, pc(inv / inc) + ' of income invested' + (months >= 2 ? ' · ' + R.invMonths + ' of ' + months + ' months' : ''), '');
+    } else add('inv', 'Investments & consistency', 15, null, '', inc > 0 ? 'No investment records yet' : 'No income recorded in this period');
+    /* 5 budget adherence */
+    var cats = Object.keys(budgets || {}).filter(function (k) { return Number(budgets[k]) > 0; });
+    if (cats.length) {
+      R.bud = cats.map(function (c) { var lim = Number(budgets[c]) * months, sp = budgetSpent(expRows, c); return { c: c, lim: lim, sp: sp, ok: sp <= lim, score: sp <= lim ? 10 : lin(sp / lim, 1, 1.5) }; });
+      var avg = R.bud.reduce(function (s, b) { return s + b.score; }, 0) / R.bud.length;
+      add('bud', 'Budget adherence', 15, avg, R.bud.filter(function (b) { return b.ok; }).length + ' of ' + R.bud.length + ' budgets within limit', '');
+    } else add('bud', 'Budget adherence', 15, null, '', 'No budgets set');
+    /* 6 spending trend */
+    var pe = prv ? sumType('Expense', prv) : 0;
+    if (prv && pe > 0) { R.g = (exp - pe) / pe; R.pe = pe; add('trd', 'Spending trend', 10, lin(R.g, 0, 0.30), (R.g >= 0 ? '+' : '') + r0(R.g * 100) + '% vs previous period', ''); }
+    else add('trd', 'Spending trend', 10, null, '', prv ? 'No expenses in the previous period' : 'Needs a single month or year selected');
+    var ev = R.M.filter(function (x) { return x.score !== null; }), ws = ev.reduce(function (s, x) { return s + x.w; }, 0);
+    R.ok = ws >= MIN_W; R.n = ev.length;
+    R.score = R.ok ? r1(ev.reduce(function (s, x) { return s + x.score * x.w; }, 0) / ws) : null;
+    return R;
+  }
+  function status(s) { return s >= 8 ? ['Excellent', GREEN] : s >= 6.5 ? ['Good', TEAL] : s >= 5 ? ['Average', AMBER] : ['Needs Attention', RED]; }
+
+  function insights(R) {
+    var good = [], bad = [], rec = [], inc = R.inc, exp = R.exp, per = Math.max(1, R.months);
+    var mp = txMaps('Expense'), gc = txGroup(R.expRows, 'c', mp), pm = null;
+    if (R.prv) { pm = {}; txGroup(R.prv.filter(function (r) { return r && r.type === 'Expense'; }), 'c', mp).forEach(function (g) { pm[g.key] = g; }); }
+    /* savings */
+    if (R.rate != null) {
+      if (R.rate >= 0.2) good.push('Strong savings: you kept <b>' + pc(R.rate) + '</b> of income (' + m(inc - exp - R.loan) + ').');
+      else if (R.rate >= 0.1) good.push('Positive savings: <b>' + pc(R.rate) + '</b> of income kept.');
+      else if (R.rate < 0) bad.push(['r', 'Spending and EMIs exceed income by <b>' + m(-(inc - exp - R.loan)) + '</b>.']);
+      else bad.push(['a', 'Low savings rate: only <b>' + pc(R.rate) + '</b> of income kept (aim for 20%).']);
+    }
+    if (R.ratio != null && R.ratio <= 0.6) good.push('Healthy income-to-expense ratio: spending is <b>' + pc(R.ratio) + '</b> of income.');
+    /* budgets */
+    if (R.bud) {
+      var over = R.bud.filter(function (b) { return !b.ok; }).sort(function (a, b) { return (b.sp - b.lim) - (a.sp - a.lim); }), okN = R.bud.length - over.length;
+      if (!over.length) good.push('Good budget management: all <b>' + R.bud.length + '</b> budgets are within limit.');
+      else { if (okN) good.push('<b>' + okN + ' of ' + R.bud.length + '</b> budgets are on track.'); bad.push(['r', 'Over budget: ' + over.slice(0, 2).map(function (b) { return '<b>' + esc(b.c) + '</b> by ' + m(b.sp - b.lim); }).join(', ') + (over.length > 2 ? ' +' + (over.length - 2) + ' more' : '') + '.']); }
+    }
+    /* investing */
+    if (R.inv > 0 && inc > 0 && R.inv / inc >= 0.1) good.push('Consistent investing: <b>' + pc(R.inv / inc) + '</b> of income invested' + (R.months >= 2 ? ' across ' + R.invMonths + ' of ' + R.months + ' months' : '') + '.');
+    else if (R.months >= 2 && R.invMonths && R.invMonths === R.months) good.push('You invested in every month of this period.');
+    /* debt */
+    if (R.debt != null) {
+      if (R.loan === 0) good.push('No EMI or loan payments in this period.');
+      else if (R.debt <= 0.1) good.push('EMIs are light at <b>' + pc(R.debt) + '</b> of income.');
+      else if (R.debt >= 0.2) bad.push([R.debt >= 0.35 ? 'r' : 'a', 'Heavy EMI burden: <b>' + m(R.loan) + '</b> is <b>' + pc(R.debt) + '</b> of income.']);
+    }
+    if (R.prv) { var pl = sumType('Loan', R.prv); if (pl > 0 && R.loan > pl * 1.1) bad.push(['a', 'EMI/loan payments rose <b>' + r0((R.loan - pl) / pl * 100) + '%</b> (' + m(pl) + ' → ' + m(R.loan) + ').']); }
+    /* recurring */
+    var recT = R.expRows.filter(function (r) { return r.recurring; }).reduce(function (s, r) { return s + Number(r.amount || 0); }, 0);
+    if (inc > 0 && recT / inc >= 0.25) bad.push(['a', 'High recurring expenses: <b>' + m(recT) + '</b> (' + pc(recT / inc) + ' of income).']);
+    /* categories */
+    var disc = 0, dc = {}; R.expRows.forEach(function (r) { var c = txCategory(r); if (finaiClassifyExpense({ sub: c, name: r.name }) === 'discretionary') { disc += Number(r.amount || 0); dc[c] = (dc[c] || 0) + Number(r.amount || 0); } });
+    var dn = Object.keys(dc).sort(function (a, b) { return dc[b] - dc[a]; }).slice(0, 2);
+    if (exp > 0 && gc.length > 1 && gc[0].total / exp >= 0.4) bad.push(['a', '<b>' + esc(gc[0].name) + '</b> takes <b>' + pc(gc[0].total / exp) + '</b> of spending.']);
+    if (exp > 0 && disc / exp >= 0.25) bad.push(['a', 'Discretionary spending is <b>' + pc(disc / exp) + '</b> of expenses (mainly ' + dn.map(esc).join(' & ') + ').']);
+    var rising = [];
+    if (pm) {
+      gc.forEach(function (g) { var p = pm[g.key] ? pm[g.key].total : 0, d = g.total - p; if (p > 0 && d / p >= 0.2 && d >= exp * 0.03) rising.push({ n: g.name, d: d, pc: d / p }); });
+      rising.sort(function (a, b) { return b.d - a.d; });
+      var drops = gc.filter(function (g) { var p = pm[g.key] ? pm[g.key].total : 0; return p > 0 && (p - g.total) / p >= 0.15 && (p - g.total) >= exp * 0.02; }).sort(function (a, b) { return (pm[b.key].total - b.total) - (pm[a.key].total - a.total); });
+      if (drops.length) good.push('Controlled spending: <b>' + esc(drops[0].name) + '</b> is down <b>' + r0((pm[drops[0].key].total - drops[0].total) / pm[drops[0].key].total * 100) + '%</b> vs the previous period.');
+      if (R.g != null && R.g >= 0.15) bad.push(['a', 'Spending is up <b>' + r0(R.g * 100) + '%</b> vs the previous period' + (rising.length ? ', led by <b>' + esc(rising[0].n) + '</b>' : '') + '.']);
+    }
+    /* recommendations (data-driven, highest priority first) */
+    if (R.bud) { var ob = R.bud.filter(function (b) { return !b.ok; }).sort(function (a, b) { return (b.sp - b.lim) - (a.sp - a.lim); })[0]; if (ob) rec.push('Bring <b>' + esc(ob.c) + '</b> back within its ' + m(ob.lim) + ' limit; it is ' + m(ob.sp - ob.lim) + ' over this period.'); }
+    if (R.rate != null && R.rate < 0.2) { var need = (R.rate < 0 ? -(inc - exp - R.loan) : 0.2 * inc - (inc - exp - R.loan)) / per; rec.push(R.rate < 0 ? 'Cut about <b>' + m(need) + '/month</b> of spending to break even, starting with your largest or discretionary categories.' : 'Raise savings to 20% of income by setting aside about <b>' + m(need) + '/month</b> more.'); }
+    if (disc > 0 && exp > 0 && disc / exp >= 0.15) rec.push('Trim discretionary spending (' + dn.map(esc).join(' & ') + ') by 10% to free up about <b>' + m(disc * 0.1) + '</b> per period.');
+    if (rising.length) rec.push('Review <b>' + esc(rising[0].n) + '</b>: it is up ' + r0(rising[0].pc * 100) + '% (' + m(rising[0].d) + ' more than last period).');
+    if (inc > 0 && recT / inc >= 0.25) rec.push('Review recurring payments (' + m(recT) + ') and cancel anything you no longer use.');
+    if (R.debt != null && R.debt >= 0.2) rec.push('Avoid new EMIs and prepay the costliest loan to bring EMIs under 20% of income.');
+    if (inc > 0 && R.rate >= 0.2 && R.inv / inc < 0.1) rec.push('Move about <b>' + m(0.1 * inc - R.inv) + '</b> of your surplus into investments to reach 10% of income.');
+    if (rec.length < 2 && gc.length) rec.push('Your largest category is <b>' + esc(gc[0].name) + '</b> (' + m(gc[0].total) + '); review it first for easy savings.');
+    if (rec.length < 2 && R.rate != null && R.rate >= 0.2) rec.push('You are on track; keep the habit and consider raising your monthly SIP as income grows.');
+    return { good: good.slice(0, 3), bad: bad.slice(0, 3), rec: rec.slice(0, 3) };
+  }
+
+  function gauge(score, color) {
+    var C = 2 * Math.PI * 44, off = score == null ? C : C * (1 - score / 10);
+    return '<svg class="fhs-gauge" viewBox="0 0 110 110" role="img" aria-label="' + (score == null ? 'Score not available' : 'Financial health score ' + score + ' out of 10') + '"><circle cx="55" cy="55" r="44" class="fhs-trk"/><circle cx="55" cy="55" r="44" class="fhs-arc" style="stroke:' + color + ';stroke-dasharray:' + C.toFixed(1) + ';stroke-dashoffset:' + off.toFixed(1) + '" transform="rotate(-90 55 55)"/>' +
+      '<text x="55" y="55" class="fhs-num" text-anchor="middle">' + (score == null ? '—' : score.toFixed(1)) + '</text><text x="55" y="73" class="fhs-of" text-anchor="middle">out of 10</text></svg>';
+  }
+  function list(items, cls, icon) { return '<ul class="fhs-ul">' + items.map(function (x) { var s = Array.isArray(x) ? x[0] : null, t = Array.isArray(x) ? x[1] : x; return '<li class="' + (s ? (s === 'r' ? 'r' : 'a') : cls) + '"><i class="fas ' + (s ? 'fa-triangle-exclamation' : icon) + '"></i><span>' + t + '</span></li>'; }).join('') + '</ul>'; }
+
+  function render() {
+    var host = $('dash-fhs'); if (!host) return;
+    if (typeof activeView !== 'undefined' && activeView !== 'dashboard') return;
+    var R = compute(), st = R.ok ? status(R.score) : ['Not enough data', '#64748b'], I = R.ok ? insights(R) : { good: [], bad: [], rec: [] };
+    var sc = $('dash-fhs-scope'); if (sc) sc.textContent = fosScopeLabel('filter-month', 'filter-year');
+    var strong = R.M.filter(function (x) { return x.score !== null; }).sort(function (a, b) { return b.score - a.score; });
+    var sum = R.ok ? 'Based on <b>' + R.n + ' of ' + R.M.length + '</b> measures. ' + (strong.length > 1 ? 'Strongest: <b>' + esc(strong[0].name) + '</b> (' + r1(strong[0].score) + '/10); weakest: <b>' + esc(strong[strong.length - 1].name) + '</b> (' + r1(strong[strong.length - 1].score) + '/10).' : '') :
+      'Add income entries (and optionally budgets or investments) for this period to calculate a score. Missing data is never counted against you.';
+    var how = '<details class="fhs-how"><summary>How this score is calculated</summary><div class="fhs-how-b"><div class="txa-note" style="margin-bottom:6px">Each measure is scored 0–10 and weighted. Measures without data are skipped and the rest are re-weighted, so missing data never lowers your score. A score needs measures worth at least ' + MIN_W + '% of the weight.</div>' +
+      R.M.map(function (x) { return '<div class="fhs-mr"><span class="n">' + esc(x.name) + ' <em>' + x.w + '%</em></span>' + (x.score === null ? '<span class="v na">Not evaluated · ' + esc(x.why) + '</span>' : '<span class="v"><b>' + r1(x.score) + '</b>/10 · ' + esc(x.val) + '</span>') + '</div>'; }).join('') +
+      '<div class="txa-note" style="margin-top:6px">Savings: 20% of income = 10. Spend ratio: ≤50% = 10, ≥100% = 0. EMIs: ≤10% = 10, ≥40% = 0. Investing: 10% of income = 10. Budgets: within limit = 10, 50% over = 0. Trend: flat or lower = 10, +30% = 0. Bands: 8+ Excellent, 6.5+ Good, 5+ Average.</div></div></details>';
+    host.innerHTML = '<div class="fhs-top">' + gauge(R.score, st[1]) + '<div class="fhs-stat"><span class="fhs-chip" style="--c:' + st[1] + '">' + st[0] + '</span><div class="fhs-sum">' + sum + '</div></div></div>' +
+      (R.ok ? '<div class="fhs-sec"><div class="fhs-h g"><i class="fas fa-circle-check"></i>What’s Going Well</div>' + (I.good.length ? list(I.good, 'g', 'fa-check') : '<div class="txa-note">No standout strengths yet in this period.</div>') + '</div>' +
+        '<div class="fhs-sec"><div class="fhs-h a"><i class="fas fa-triangle-exclamation"></i>What Needs Improvement</div>' + (I.bad.length ? list(I.bad, 'a', 'fa-exclamation') : '<div class="txa-note"><i class="fas fa-check" style="color:' + GREEN + '"></i> Nothing flagged for this period.</div>') + '</div>' +
+        '<div class="fhs-sec"><div class="fhs-h"><i class="fas fa-lightbulb"></i>Smart Recommendations</div>' + (I.rec.length ? '<ol class="fhs-ol">' + I.rec.map(function (t) { return '<li>' + t + '</li>'; }).join('') + '</ol>' : '<div class="txa-note">Keep tracking: recommendations appear as more data comes in.</div>') + '</div>' : '') + how;
+  }
+  window.fhsRender = render;
 })();
 </script>
 </body>
