@@ -2974,6 +2974,7 @@ body.light-mode .settings-undo-btn:hover { color: white; }
 .fm-row.off,.fm-chip.off{opacity:.45}
 .fm-m{color:var(--text-muted);font-size:.72rem;font-family:'DM Mono',monospace}
 .fm-a a,.fm-chip a{color:var(--accent);cursor:pointer;margin-left:10px;font-size:.72rem}
+.fm-sel{width:auto;max-width:150px;padding:4px 6px;font-size:.74rem;margin:0 0 0 6px}
 .fm-subs{display:flex;flex-wrap:wrap;gap:6px;padding:6px 0 8px 12px}
 .fm-chip{border:1px solid rgba(128,128,128,.3);border-radius:999px;padding:2px 10px;font-size:.72rem}
 .fm-chip a{margin-left:4px}
@@ -8112,6 +8113,7 @@ function passAppLockGate() {
                   <input id="fg-saved" class="finai-ask-input" type="number" min="0" placeholder="Saved so far">
                   <input id="fg-monthly" class="finai-ask-input" type="number" min="0" placeholder="Monthly contribution">
                   <input id="fg-date" class="finai-ask-input" type="date" title="Target date (optional)">
+                  <label class="full" style="grid-column:1/-1;font-size:.74rem;display:flex;gap:8px;align-items:center;flex-wrap:wrap"><span><input id="fg-auto" type="checkbox"> Track automatically — saved = income − expenses − loans − investments since</span><input id="fg-since" class="finai-ask-input" type="date" title="Blank = from when the goal is created" style="max-width:150px"><span style="opacity:.7">“Saved so far” counts as a starting balance.</span></label>
                 </div>
                 <div class="finai-goal-form-row">
                   <button class="btn-add" id="fg-save" style="background:rgba(56,189,248,0.85)" onclick="finaiGoalSave()">Add goal</button>
@@ -12113,7 +12115,7 @@ function finaiDebtAnswer(extra) {
 
 // ── Goals ───────────────────────────────────────────────────────────────────
 function finaiGoalCalc(g) {
-  const target = Number(g.target) || 0, saved = Number(g.saved) || 0, monthly = Number(g.monthly) || 0;
+  const target = Number(g.target) || 0, saved = (g.auto && window.polGoalSaved ? window.polGoalSaved(g) : Number(g.saved)) || 0, monthly = (g.auto && window.polGoalMonthly ? window.polGoalMonthly(g) : Number(g.monthly)) || 0;
   const rem = Math.max(0, target - saved), pct = target > 0 ? Math.min(100, (saved / target) * 100) : 0;
   const months = rem <= 0 ? 0 : (monthly > 0 ? Math.ceil(rem / monthly) : null);
   let need = null, boost = null;
@@ -12142,11 +12144,11 @@ function finaiGoalAnswer() {
 }
 function finaiGoalReadForm() {
   const v = id => (document.getElementById(id) || {}).value || '';
-  return { name: v('fg-name').trim(), target: Number(v('fg-target')) || 0, saved: Number(v('fg-saved')) || 0, monthly: Number(v('fg-monthly')) || 0, targetDate: v('fg-date') };
+  return { name: v('fg-name').trim(), target: Number(v('fg-target')) || 0, saved: Number(v('fg-saved')) || 0, monthly: Number(v('fg-monthly')) || 0, targetDate: v('fg-date'), auto: !!(document.getElementById('fg-auto') || {}).checked, since: v('fg-since') };
 }
 function finaiGoalFillForm(g) {
   const set = (id, val) => { const el = document.getElementById(id); if (el) el.value = val; };
-  set('fg-name', g.name || ''); set('fg-target', g.target || ''); set('fg-saved', g.saved || ''); set('fg-monthly', g.monthly || ''); set('fg-date', g.targetDate || '');
+  set('fg-name', g.name || ''); set('fg-target', g.target || ''); set('fg-saved', g.saved || ''); set('fg-monthly', g.monthly || ''); set('fg-date', g.targetDate || ''); set('fg-since', g.since || ''); const ga = document.getElementById('fg-auto'); if (ga) ga.checked = !!g.auto;
   const title = document.getElementById('fg-title'), save = document.getElementById('fg-save'), cancel = document.getElementById('fg-cancel');
   if (title) title.textContent = finaiGoalEditId ? 'Edit goal' : 'Add a goal';
   if (save) save.textContent = finaiGoalEditId ? 'Update goal' : 'Add goal';
@@ -12335,10 +12337,10 @@ function finaiRenderGoals() {
     if (!c.done && c.need !== null && !c.onTrack) tip = `<div class="finai-goal-tip warn"><i class="fas fa-triangle-exclamation"></i> Needs ${fmt(c.need)}/month to hit ${finaiEscapeHtml(g.targetDate)}</div>`;
     else if (!c.done && c.boost) tip = `<div class="finai-goal-tip"><i class="fas fa-lightbulb"></i> Raising to ${fmt(c.boost.monthly)}/month finishes ${c.boost.earlier} month${c.boost.earlier > 1 ? 's' : ''} earlier</div>`;
     return `<div class="finai-goal">
-      <div class="finai-goal-top"><b>${finaiEscapeHtml(g.name)}</b><span>${c.pct.toFixed(0)}%</span></div>
+      <div class="finai-goal-top"><b>${finaiEscapeHtml(g.name)}${g.auto?' <small style="font-weight:600;opacity:.7" title="Tracks income minus expenses, loans and investments">⚡ auto</small>':''}</b><span>${c.pct.toFixed(0)}%</span></div>
       <div class="finai-bar"><span style="width:${c.pct.toFixed(1)}%"></span></div>
       <div class="finai-goal-sub"><span>${fmt(c.saved)} / ${fmt(c.target)}</span><span>${line}</span></div>${tip}
-      <div class="finai-goal-actions"><button onclick="finaiGoalAddSavings(${g.id})"><i class="fas fa-plus"></i> Add savings</button><button onclick="finaiGoalEdit(${g.id})"><i class="fas fa-pen"></i> Edit</button><button onclick="finaiGoalDelete(${g.id})"><i class="fas fa-trash"></i></button></div></div>`;
+      <div class="finai-goal-actions">${g.auto?'':`<button onclick="finaiGoalAddSavings(${g.id})"><i class="fas fa-plus"></i> Add savings</button>`}<button onclick="finaiGoalEdit(${g.id})"><i class="fas fa-pen"></i> Edit</button><button onclick="finaiGoalDelete(${g.id})"><i class="fas fa-trash"></i></button></div></div>`;
   }).join('');
   const total = gs.reduce((s, g) => s + (finaiGoalCalc(g).done ? 0 : Number(g.monthly) || 0), 0);
   const st = finaiStateCache, cap = st ? Math.max(0, st.forecast.freeAfterSpending - Math.round(st.forecast.income * 0.1)) : null;
@@ -15683,6 +15685,7 @@ const allData = getFilteredData();
   if (currentTagFilter) {
     data = data.filter(item => (item.tags||[]).includes(currentTagFilter));
   }
+  if (typeof polApply === 'function') data = polApply(data);
   // Apply inline name search
   if (txnSearchQuery) {
     data = data.filter(item => [item.name,item.payee,item.category,item.sub,item.subcategory].join(' ').toLowerCase().includes(txnSearchQuery));
@@ -15839,9 +15842,9 @@ const allData = getFilteredData();
     // Add to string variable instead of DOM
     htmlRows += `<tr data-id="${item.id}">
       <td style="width:52px;padding:0 12px;text-align:center;vertical-align:middle;white-space:nowrap"><input type="checkbox" class="txn-checkbox row-chk" data-id="${item.id}" onclick="onRowCheckChange()" style="vertical-align:middle"><span style="color:var(--text-muted);font-size:0.68rem;font-family:'DM Mono',monospace;margin-left:5px;display:inline-block;min-width:16px;text-align:right;vertical-align:middle">${index+1}</span></td>
-      <td style="font-weight:500">${item.name} ${item.recurring?'<i class="fas fa-redo recur-icon" title="Recurring"></i>':''} ${item.notes?`<span style="font-size:0.7rem;color:var(--text-muted)">(${item.notes})</span>`:''}${item.pay?` <span style="font-size:0.66rem;color:var(--text-muted)">· ${typeof payLabel==='function'?payLabel(item.pay):item.pay}</span>`:''}${item.auto?' <span style="font-size:0.6rem;color:var(--accent);border:1px solid rgba(var(--brand-rgb),0.3);border-radius:4px;padding:0 4px" title="Added automatically (recurring)">auto</span>':''}</td>
+      <td style="font-weight:500">${item.payee?`<a class="pol-lnk" data-pol="p|${encodeURIComponent(item.payee)}|${item.type}">${item.name}</a>`:item.name} ${item.recurring?'<i class="fas fa-redo recur-icon" title="Recurring"></i>':''} ${item.notes?`<span style="font-size:0.7rem;color:var(--text-muted)">(${item.notes})</span>`:''}${item.pay?` <span style="font-size:0.66rem;color:var(--text-muted)">· ${typeof payLabel==='function'?payLabel(item.pay):item.pay}</span>`:''}${item.auto?' <span style="font-size:0.6rem;color:var(--accent);border:1px solid rgba(var(--brand-rgb),0.3);border-radius:4px;padding:0 4px" title="Added automatically (recurring)">auto</span>':''}</td>
       <td><span class="badge ${bc}">${item.type}</span></td>
-      <td style="color:var(--text-muted)">${_esc(item.category||item.sub||'-')}${item.subcategory?` <span style="font-size:0.7rem;opacity:.7">› ${_esc(item.subcategory)}</span>`:''}</td>
+      <td style="color:var(--text-muted)">${(item.category||item.sub)?`<a class="pol-lnk" data-pol="c|${encodeURIComponent(item.category||item.sub)}|${item.type}">${_esc(item.category||item.sub)}</a>`:'-'}${item.subcategory?` <span style="font-size:0.7rem;opacity:.7">› <a class="pol-lnk" data-pol="s|${encodeURIComponent(item.subcategory)}|${item.type}|${encodeURIComponent(item.category||item.sub||'')}">${_esc(item.subcategory)}</a></span>`:''}</td>
       <td>${tagsHtml}</td>
       <td style="color:var(--text-muted);font-family:'DM Mono',monospace;font-size:0.75rem">${fmtDate(item.date)}</td>
       <td style="text-align:right;font-family:'DM Mono',monospace;color:${color};font-weight:600">${sign}${fmt(item.amount)}</td>
@@ -20665,8 +20668,8 @@ function fosOpenManager(tab) {
 function fosAfterChange() { try { scheduleSave(); _afterEntrySaved(); } catch (e) {} fosMgrRender(); }
 function fosMgrRender() {
   const el = document.getElementById('fos-mgr'); if (!el) return;
-  const tabs = [['cats', 'Categories'], ['payees', 'Payees'], ['insights', 'Insights']].map(t => `<button type="button" class="fm-tab${_fosTab === t[0] ? ' on' : ''}" onclick="_fosTab='${t[0]}';fosMgrRender()">${t[1]}</button>`).join('');
-  el.innerHTML = `<div class="modal-box fm-box"><div class="fm-top"><div class="modal-title" style="margin:0">Categories, payees &amp; insights</div><button class="btn-secondary" onclick="fosCloseManager()">Close</button></div><div class="fm-tabs">${tabs}</div><div id="fm-body">${_fosTab === 'cats' ? fosMgrCats() : _fosTab === 'payees' ? fosMgrPayees() : fosMgrInsights()}</div></div>`;
+  const tabs = [['cats', 'Categories'], ['payees', 'Payees'], ['clean', 'Clean-up'], ['insights', 'Insights']].map(t => `<button type="button" class="fm-tab${_fosTab === t[0] ? ' on' : ''}" onclick="_fosTab='${t[0]}';fosMgrRender()">${t[1]}</button>`).join('');
+  el.innerHTML = `<div class="modal-box fm-box"><div class="fm-top"><div class="modal-title" style="margin:0">Categories, payees &amp; insights</div><button class="btn-secondary" onclick="fosCloseManager()">Close</button></div><div class="fm-tabs">${tabs}</div><div id="fm-body">${_fosTab === 'cats' ? fosMgrCats() : _fosTab === 'payees' ? fosMgrPayees() : _fosTab === 'clean' ? fosMgrClean() : fosMgrInsights()}</div></div>`;
   if (_fosTab === 'payees') fosPayeeRows();
 }
 function fosMgrCats() {
@@ -20687,6 +20690,70 @@ function fosPayeeRows() {
   const q = fosKey((document.getElementById('fm-psearch') || {}).value), box = document.getElementById('fm-plist'); if (!box) return;
   _fosPL = fosPayeeList().filter(p => !q || fosKey(p.name).indexOf(q) >= 0);
   box.innerHTML = _fosPL.length ? _fosPL.slice(0, 200).map((p, i) => `<div class="fm-row${fosHiddenPayee(p.name) ? ' off' : ''}"><b>${_esc(p.name)}</b><span class="fm-m">${p.n} txn · ${fmt(p.spent)}</span><span class="fm-a"><a onclick="fosUiRenamePayee(${i})">rename / merge</a><a onclick="fosUiTogglePayee(${i})">${fosHiddenPayee(p.name) ? 'unarchive' : 'archive'}</a></span></div>`).join('') : '<div class="fm-note">No payees yet — they appear as you save transactions.</div>';
+}
+// ═══════════════ PAYEE CLEAN-UP (additive): "merge these?" suggestions + payees with no category ═══════════════
+// Every merge goes through fosRenamePayee; nothing is deleted. Undo restores the last action (until reload).
+let _fosCU = { groups: [], unc: [], undo: null, other: false, msg: '' };
+const _CU_KEYS = ['payee', 'name', 'category', 'sub', 'subcategory'];
+const _cuBlank = c => !c || (_fosCU.other && /^other/i.test(c));
+function fosCUBest(sp) { const mixed = s => s !== s.toLowerCase() && s !== s.toUpperCase() ? 1 : 0; return Object.keys(sp).sort((a, b) => (mixed(b) - mixed(a)) || sp[b] - sp[a] || a.localeCompare(b))[0]; }
+function fosCUSnap(r, out) { const o = {}; _CU_KEYS.forEach(k => o[k] = [k in r, r[k]]); out.push({ r, id: r.id, o }); }
+function fosCUGroups() {
+  const sp = {};
+  (db || []).forEach(r => { const p = fosPayeeOf(r); if (!p) return; const k = fosKey(p), e = sp[k] || (sp[k] = { key: k, sp: {}, n: 0 }); e.sp[p] = (e.sp[p] || 0) + 1; e.n++; });
+  const E = Object.values(sp), ign = fosM().mergeIgnore || [];
+  E.forEach(e => { e.norm = fosNorm(e.key) || e.key; e.flat = e.norm.replace(/ /g, ''); });
+  const par = E.map((_, i) => i), find = i => par[i] === i ? i : (par[i] = find(par[i])), uni = (a, b) => { par[find(a)] = find(b); };
+  const first = {}, bucket = {};
+  E.forEach((e, i) => { if (first[e.flat] === undefined) first[e.flat] = i; else uni(first[e.flat], i); if (e.flat.length >= 5) (bucket[e.flat[0]] = bucket[e.flat[0]] || []).push(i); });
+  Object.values(bucket).forEach(l => { for (let a = 0; a < l.length; a++) for (let b = a + 1; b < l.length; b++) { if (find(l[a]) === find(l[b])) continue; const x = E[l[a]].flat, y = E[l[b]].flat; if (_lev(x, y) <= (Math.min(x.length, y.length) >= 9 ? 2 : 1)) uni(l[a], l[b]); } });
+  const G = {}; E.forEach((e, i) => (G[find(i)] = G[find(i)] || []).push(e));
+  return Object.values(G).filter(g => g.length > 1 || Object.keys(g[0].sp).length > 1).map(g => {
+    const vars = g.map(e => ({ key: e.key, name: fosCUBest(e.sp), sp: e.sp, n: e.n, clean: e.key === e.norm ? 1 : 0 })).sort((a, b) => (b.clean - a.clean) || (b.n - a.n) || (a.name.length - b.name.length));
+    return { id: vars.map(v => v.key).sort().join('|'), vars, n: vars.reduce((s, v) => s + v.n, 0) };
+  }).filter(g => ign.indexOf(g.id) < 0).sort((a, b) => b.n - a.n);
+}
+function fosCUUncat() {
+  const tot = {}, m = {};
+  (db || []).forEach(r => { const p = fosPayeeOf(r); if (p && FOS_DEF_CATS[r.type]) { const k = r.type + '|' + fosKey(p); tot[k] = (tot[k] || 0) + 1; } });
+  (db || []).forEach(r => { const p = fosPayeeOf(r); if (!p || !FOS_DEF_CATS[r.type] || !_cuBlank(fosClean(r.category || r.sub))) return; const k = r.type + '|' + fosKey(p), e = m[k] || (m[k] = { type: r.type, name: p, key: fosKey(p), n: 0, tot: tot[k], spent: 0 }); e.n++; e.spent += Number(r.amount) || 0; });
+  return Object.values(m).map(e => { const s = fosPayeeSuggest(e.name, e.type), c = s && fosFindCat(e.type, s.cat); e.sg = c && c.active && !/^other/i.test(s.cat) ? s : null; return e; }).sort((a, b) => b.spent - a.spent || b.n - a.n);
+}
+function fosMgrClean() {
+  const G = _fosCU.groups = fosCUGroups(), U = _fosCU.unc = fosCUUncat();
+  const catOpts = (t, sel) => '<option value="">— choose category —</option>' + fosCatsFor(t).map(c => `<option value="${_esc(c.name)}"${fosKey(c.name) === fosKey(sel) ? ' selected' : ''}>${_esc(c.name)}</option>`).join('');
+  const subOpts = (c, t, sel) => '<option value="">no subcategory</option>' + fosSubsFor(c, t).map(s => `<option value="${_esc(s)}"${fosKey(s) === fosKey(sel) ? ' selected' : ''}>${_esc(s)}</option>`).join('');
+  const gh = G.length ? G.map((g, i) => `<div class="fm-row"><b>${g.vars.map(v => _esc(Object.keys(v.sp).join(' / ')) + ' <span class="fm-m">×' + v.n + '</span>').join(' &nbsp;+&nbsp; ')}</b><span class="fm-a" style="white-space:nowrap">into <select id="cu-t-${i}" class="input-field fm-sel">${g.vars.map((v, j) => `<option value="${j}">${_esc(v.name)}</option>`).join('')}</select><a onclick="fosCUMerge(${i})">${g.vars.length > 1 ? 'merge' : 'unify'}</a><a onclick="fosCUIgnore(${i})">not the same</a></span></div>`).join('') : '<div class="fm-note">No look-alike payees found — nothing to merge.</div>';
+  const uh = U.length ? U.slice(0, 150).map((u, i) => `<div class="fm-row"><b><a class="pol-lnk" data-pol="p|${encodeURIComponent(u.name)}|${u.type}">${_esc(u.name)}</a>${u.type !== 'Expense' ? ' <span class="fm-m">' + _esc(u.type) + '</span>' : ''}</b><span class="fm-m">${u.n}${u.tot > u.n ? ' of ' + u.tot : ''} txn · ${fmt(u.spent)}${u.sg ? ' · ' + (u.sg.builtin ? 'guess' : 'from history') : ''}</span><span class="fm-a" style="white-space:nowrap"><select id="cu-c-${i}" class="input-field fm-sel" onchange="fosCUSub(${i})">${catOpts(u.type, u.sg && u.sg.cat)}</select><select id="cu-s-${i}" class="input-field fm-sel">${subOpts(u.sg ? u.sg.cat : '', u.type, u.sg && u.sg.sub)}</select><a onclick="fosCUApply(${i})">apply</a></span></div>`).join('') + (U.length > 150 ? `<div class="fm-note">Showing the top 150 by spend (${U.length} total) — apply these, then reopen.</div>` : '') : '<div class="fm-note">Every payee has a category. 🎉</div>';
+  return `${_fosCU.msg ? `<div class="fm-note" style="color:#34d399">${_esc(_fosCU.msg)}${_fosCU.undo ? ' <a onclick="fosCUUndo()" style="color:var(--accent);cursor:pointer;margin-left:8px">undo</a>' : ''}</div>` : ''}
+  <div class="fm-h">Merge these? (${G.length})</div><div class="fm-note">Look-alikes such as “Swiggy”, “swiggy” and “SWIGGY ORDER”. Pick the name to keep, then merge — all their transactions move to it.</div>${gh}
+  <div class="fm-h">Payees with no category (${U.length})</div><div class="fm-note"><label style="cursor:pointer"><input type="checkbox" ${_fosCU.other ? 'checked' : ''} onchange="_fosCU.other=this.checked;fosMgrRender()"> also count “Other” as uncategorised</label>${U.length ? ' &nbsp; <a onclick="fosCUApplyAll()" style="color:var(--accent);cursor:pointer;font-weight:700">Apply all chosen →</a>' : ''}</div>${uh}`;
+}
+function fosCUSub(i) { const u = _fosCU.unc[i], c = document.getElementById('cu-c-' + i), s = document.getElementById('cu-s-' + i); if (u && c && s) s.innerHTML = '<option value="">no subcategory</option>' + fosSubsFor(c.value, u.type).map(x => `<option value="${_esc(x)}">${_esc(x)}</option>`).join(''); }
+function fosCUMerge(i) {
+  const g = _fosCU.groups[i], sel = document.getElementById('cu-t-' + i); if (!g || !sel) return;
+  const t = g.vars[+sel.value], snap = [], keys = g.vars.map(v => v.key);
+  (db || []).forEach(r => { if (keys.indexOf(fosKey(fosPayeeOf(r))) >= 0) fosCUSnap(r, snap); });
+  fosRenamePayee(t.name, t.name); g.vars.forEach(v => { if (v.key !== t.key) fosRenamePayee(v.name, t.name); });
+  _fosCU.undo = { snap }; _fosCU.msg = (g.vars.length > 1 ? 'Merged ' + g.vars.length + ' payees' : 'Unified spellings') + ' into “' + t.name + '” (' + snap.length + ' transactions).'; fosAfterChange();
+}
+function fosCUIgnore(i) { const g = _fosCU.groups[i]; if (!g) return; const M = fosM(); (M.mergeIgnore = M.mergeIgnore || []).push(g.id); fosSave(); fosMgrRender(); }
+function fosCUDo(i, snap) {
+  const u = _fosCU.unc[i], c = document.getElementById('cu-c-' + i), s = document.getElementById('cu-s-' + i); if (!u || !c || !c.value) return 0; let n = 0;
+  (db || []).forEach(r => { if (r.type !== u.type || fosKey(fosPayeeOf(r)) !== u.key || !_cuBlank(fosClean(r.category || r.sub))) return; fosCUSnap(r, snap); r.category = c.value; r.sub = c.value; if (s && s.value) r.subcategory = s.value; n++; });
+  return n;
+}
+function fosCUApply(i) { const snap = [], n = fosCUDo(i, snap); if (!n) { alert('Choose a category first.'); return; } _fosCU.undo = { snap }; _fosCU.msg = 'Categorised ' + n + ' transaction(s) for “' + _fosCU.unc[i].name + '”.'; fosAfterChange(); }
+function fosCUApplyAll() {
+  const chosen = _fosCU.unc.filter((u, i) => { const c = document.getElementById('cu-c-' + i); return c && c.value; }).length;
+  if (!chosen) { alert('Choose a category for at least one payee first.'); return; } if (!confirm('Apply the chosen category to ' + chosen + ' payee(s)?')) return;
+  const snap = []; let n = 0; _fosCU.unc.forEach((u, i) => { n += fosCUDo(i, snap); });
+  _fosCU.undo = { snap }; _fosCU.msg = 'Categorised ' + n + ' transaction(s) across ' + chosen + ' payee(s).'; fosAfterChange();
+}
+function fosCUUndo() {
+  const u = _fosCU.undo; if (!u) return; const by = {}; (db || []).forEach(r => by[r.id] = r);
+  u.snap.forEach(s => { const r = (db || []).indexOf(s.r) >= 0 ? s.r : by[s.id]; if (r) _CU_KEYS.forEach(k => { if (s.o[k][0]) r[k] = s.o[k][1]; else delete r[k]; }); });
+  _fosCU.undo = null; _fosCU.msg = 'Undone.'; fosAfterChange();
 }
 function fosMgrInsights() {
   const I = fosInsights(), row = (n, v) => `<div class="fm-row"><b>${_esc(n)}</b><span class="fm-m">${fmt(v)}</span></div>`;
@@ -31142,7 +31209,7 @@ body.light-mode .txa-badge.det{color:#6d28d9}
     var I = INST[p], el = $(p + '-legend'); if (!el) return;
     el.innerHTML = I.S.map(function (s) {
       var on = I.sel !== null && s.key === I.sel;
-      return '<button type="button" class="txa-leg' + (on ? ' sel' : '') + '" style="--cc:' + s.color + '" data-fxb-pick="' + p + '|' + encodeURIComponent(s.key) + '" aria-pressed="' + on + '"><span class="txa-dot"></span><span class="txa-leg-n" title="' + esc(s.name) + '">' + esc(s.name) + '</span><span class="txa-leg-v"><b>' + fmt(s.total) + '</b> · ' + r1(I.total ? s.total / I.total * 100 : 0) + '%</span></button>';
+      return '<button type="button" class="txa-leg' + (on ? ' sel' : '') + '" style="--cc:' + s.color + '" data-fxb-pick="' + p + '|' + encodeURIComponent(s.key) + '" aria-pressed="' + on + '"><span class="txa-dot"></span><span class="txa-leg-n" data-pol="' + I.dim + '|' + encodeURIComponent(s.name) + '" title="' + esc(s.name) + '">' + esc(s.name) + '</span><span class="txa-leg-v"><b>' + fmt(s.total) + '</b> · ' + r1(I.total ? s.total / I.total * 100 : 0) + '%</span></button>';
     }).join('');
   }
   function pick(p, key) {
@@ -31171,7 +31238,7 @@ body.light-mode .txa-badge.det{color:#6d28d9}
       html += '<div class="txa-lbl" style="margin:10px 0 4px">' + TITLES[k] + ' <span class="fxb-hint">click to drill down</span></div><div class="txa-list" style="max-height:230px"><div class="txa-tbl-h"><span>' + TITLES[k].slice(0, -3) + (k === 'c' ? 'y' : 'y') + '</span><span class="r">Txns</span><span class="r">Share</span><span class="r">Total</span></div>' +
         g.slice(0, 25).map(function (x, i) {
           var nm = (k === 's' && !fixed.c) ? x.cat + ' › ' + x.name : x.name;
-          return '<button type="button" class="txa-tbl-r" style="--cc:' + PAL[i % PAL.length] + '" data-fxb-drill="' + p + '|' + k + '|' + encodeURIComponent(x.key) + '|' + encodeURIComponent(nm) + '"><span class="c"><span class="txa-dot"></span><span class="nm" title="' + esc(nm) + '">' + esc(nm) + '</span></span><span class="r">' + x.count + '</span><span class="r">' + r1(tot ? x.total / tot * 100 : 0) + '%</span><span class="r">' + fmt(x.total) + '</span></button>';
+          return '<button type="button" class="txa-tbl-r" style="--cc:' + PAL[i % PAL.length] + '" data-fxb-drill="' + p + '|' + k + '|' + encodeURIComponent(x.key) + '|' + encodeURIComponent(nm) + '"><span class="c"><span class="txa-dot"></span><span class="nm" data-pol="' + k + '|' + encodeURIComponent(nm) + '" title="' + esc(nm) + '">' + esc(nm) + '</span></span><span class="r">' + x.count + '</span><span class="r">' + r1(tot ? x.total / tot * 100 : 0) + '%</span><span class="r">' + fmt(x.total) + '</span></button>';
         }).join('') + '</div>';
     });
     var LIM = 100, sorted = items.slice().sort(function (a, b) { return a.date < b.date ? 1 : a.date > b.date ? -1 : _amt(b.amount) - _amt(a.amount); });
@@ -31204,7 +31271,7 @@ body.light-mode .txa-badge.det{color:#6d28d9}
     var max = top.total || 1;
     var list = named.slice(0, 8).map(function (g, i) {
       var pg = prev ? pmap[g.key] : null;
-      return '<button type="button" class="txa-pick" data-fxb-goto="' + encodeURIComponent(g.key) + '" style="--cc:' + PAL[i % PAL.length] + '"><div class="txa-rk"><span class="no">' + (i + 1) + '</span><span class="nm" title="' + esc(g.name) + '">' + esc(g.name) + '</span><span class="am">' + fmt(g.total) + '</span><span class="txa-bar"><i style="width:' + Math.max(2, g.total / max * 100) + '%"></i></span><span class="mt">' + r1(total ? g.total / total * 100 : 0) + '% · ' + g.count + ' txn' + (g.count === 1 ? '' : 's') + ' · avg ' + fmt(g.total / g.count) + ' · ' + esc(mainCat(g)) + (prev ? ' ' + delta(g.total, pg ? pg.total : 0) : '') + '</span></div></button>';
+      return '<button type="button" class="txa-pick" data-fxb-goto="' + encodeURIComponent(g.key) + '" style="--cc:' + PAL[i % PAL.length] + '"><div class="txa-rk"><span class="no">' + (i + 1) + '</span><span class="nm" data-pol="p|' + encodeURIComponent(g.name) + '" title="' + esc(g.name) + '">' + esc(g.name) + '</span><span class="am">' + fmt(g.total) + '</span><span class="txa-bar"><i style="width:' + Math.max(2, g.total / max * 100) + '%"></i></span><span class="mt">' + r1(total ? g.total / total * 100 : 0) + '% · ' + g.count + ' txn' + (g.count === 1 ? '' : 's') + ' · avg ' + fmt(g.total / g.count) + ' · ' + esc(mainCat(g)) + (prev ? ' ' + delta(g.total, pg ? pg.total : 0) : '') + '</span></div></button>';
     }).join('');
     var mv = '';
     if (prev) {
@@ -31663,7 +31730,7 @@ body.light-mode .txa-badge.det{color:#6d28d9}
   function renderLegend() {
     var A = st.data.A, S = slices(A), tot = A.total;
     $('txa-legend').innerHTML = S.map(function (s) {
-      return '<button type="button" class="txa-leg' + (s.key === st.sel ? ' sel' : '') + '" style="--cc:' + s.color + '" data-txa-cat="' + esc(encodeURIComponent(s.key)) + '" aria-pressed="' + (s.key === st.sel) + '"><span class="txa-dot"></span><span class="txa-leg-n" title="' + esc(s.name) + '">' + esc(s.name) + '</span><span class="txa-leg-v"><b>' + money(s.total) + '</b> · ' + r1(tot ? s.total / tot * 100 : 0) + '%</span></button>';
+      return '<button type="button" class="txa-leg' + (s.key === st.sel ? ' sel' : '') + '" style="--cc:' + s.color + '" data-txa-cat="' + esc(encodeURIComponent(s.key)) + '" aria-pressed="' + (s.key === st.sel) + '"><span class="txa-dot"></span><span class="txa-leg-n" data-pol="c|' + encodeURIComponent(s.name) + '" title="' + esc(s.name) + '">' + esc(s.name) + '</span><span class="txa-leg-v"><b>' + money(s.total) + '</b> · ' + r1(tot ? s.total / tot * 100 : 0) + '%</span></button>';
     }).join('');
   }
   function renderInspector(scroll) {
@@ -31730,7 +31797,7 @@ body.light-mode .txa-badge.det{color:#6d28d9}
     /* top 5 categories */
     var maxC = A.cats[0].total || 1;
     $('txa-top5').innerHTML = A.cats.slice(0, 5).map(function (c, i) {
-      return '<button type="button" class="txa-pick" data-txa-cat="' + esc(encodeURIComponent(c.name)) + '" style="--cc:' + c.color + '"><div class="txa-rk"><span class="no">' + (i + 1) + '</span><span class="nm" title="' + esc(c.name) + '">' + esc(c.name) + '</span><span class="am">' + money(c.total) + '</span><span class="txa-bar"><i style="width:' + Math.max(2, c.total / maxC * 100) + '%"></i></span><span class="mt">' + r1(c.total / tot * 100) + '% of expenses · ' + c.count + ' txn' + (c.count === 1 ? '' : 's') + '</span></div></button>';
+      return '<button type="button" class="txa-pick" data-txa-cat="' + esc(encodeURIComponent(c.name)) + '" style="--cc:' + c.color + '"><div class="txa-rk"><span class="no">' + (i + 1) + '</span><span class="nm" data-pol="c|' + encodeURIComponent(c.name) + '" title="' + esc(c.name) + '">' + esc(c.name) + '</span><span class="am">' + money(c.total) + '</span><span class="txa-bar"><i style="width:' + Math.max(2, c.total / maxC * 100) + '%"></i></span><span class="mt">' + r1(c.total / tot * 100) + '% of expenses · ' + c.count + ' txn' + (c.count === 1 ? '' : 's') + '</span></div></button>';
     }).join('');
 
     /* 5 largest transactions */
@@ -31755,7 +31822,7 @@ body.light-mode .txa-badge.det{color:#6d28d9}
     /* category-wise transaction counts */
     var byCount = A.cats.slice().sort(function (a, b) { return b.count - a.count || b.total - a.total; });
     $('txa-counts').innerHTML = '<div class="txa-list" style="max-height:300px"><div class="txa-tbl-h"><span>Category</span><span class="r">Txns</span><span class="r">Avg</span><span class="r">Total</span></div>' + byCount.map(function (c) {
-      return '<button type="button" class="txa-tbl-r" style="--cc:' + c.color + '" data-txa-cat="' + esc(encodeURIComponent(c.name)) + '"><span class="c"><span class="txa-dot"></span><span class="nm" title="' + esc(c.name) + '">' + esc(c.name) + '</span></span><span class="r">' + c.count + '</span><span class="r">' + money(c.total / c.count) + '</span><span class="r">' + money(c.total) + '</span></button>';
+      return '<button type="button" class="txa-tbl-r" style="--cc:' + c.color + '" data-txa-cat="' + esc(encodeURIComponent(c.name)) + '"><span class="c"><span class="txa-dot"></span><span class="nm" data-pol="c|' + encodeURIComponent(c.name) + '" title="' + esc(c.name) + '">' + esc(c.name) + '</span></span><span class="r">' + c.count + '</span><span class="r">' + money(c.total / c.count) + '</span><span class="r">' + money(c.total) + '</span></button>';
     }).join('') + '</div>';
 
     /* recurring */
@@ -32692,6 +32759,330 @@ body.light-mode .txa-advhead h2 i{color:#0f766e}
     }, 4500);
   });
 })();
+</script>
+<style id="pol-style">
+[data-pol]{cursor:pointer}[data-pol]:hover,.pol-lnk:hover{text-decoration:underline;color:var(--accent)}
+.pol-lnk{cursor:pointer;color:inherit;text-decoration:underline dotted rgba(128,128,128,.6);text-underline-offset:3px}
+.pol-lnk2{color:var(--accent);cursor:pointer;font-weight:600;font-size:.74rem;margin-left:10px}
+.pol-bar{margin-bottom:10px}.pol-row{display:flex;flex-wrap:wrap;gap:6px;align-items:center;margin-bottom:6px}
+.pol-row .input-field{width:auto;max-width:150px;padding:6px 8px;font-size:.78rem}
+.pol-lbl{font-size:.64rem;font-weight:800;text-transform:uppercase;letter-spacing:.06em;color:var(--text-muted)}
+.pol-hint{font-size:.72rem;color:var(--text-muted)}
+.pol-chip{border:1px solid rgba(128,128,128,.35);border-radius:999px;padding:3px 11px;font-size:.74rem;cursor:pointer;color:var(--text-muted)}
+.pol-chip.on{border-color:var(--accent);color:var(--accent)}.pol-chip a{margin-left:6px;opacity:.7}
+.pol-card{margin-bottom:14px;padding:14px 16px}.pol-un{border:1px dashed rgba(128,128,128,.4);border-radius:12px;font-size:.82rem}
+.pol-un ul,.pol-two ul{margin:6px 0 0 16px;padding:0;font-size:.8rem;line-height:1.55}
+.pol-h{font-size:.66rem;font-weight:800;text-transform:uppercase;letter-spacing:.06em;color:var(--accent)}
+.pol-me-h{display:flex;align-items:center;gap:8px;margin-bottom:10px}
+.pol-nav{background:transparent;border:1px solid rgba(128,128,128,.35);color:inherit;border-radius:8px;width:28px;height:28px;cursor:pointer}.pol-nav:disabled{opacity:.3;cursor:default}
+.pol-tiles{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:8px;margin-bottom:12px}
+.pol-tile{border:1px solid rgba(128,128,128,.22);border-radius:11px;padding:8px 12px;display:flex;flex-direction:column}
+.pol-tile span{font-size:.62rem;text-transform:uppercase;letter-spacing:1px;color:var(--text-muted);font-weight:700}
+.pol-tile b{font-family:'DM Mono',monospace;font-size:1rem}.pol-tile small{font-size:.68rem;color:var(--text-muted)}
+.pol-two{display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:16px}
+</style>
+
+<script id="pol-polish">
+(function(){
+'use strict';
+var $=function(id){return document.getElementById(id)}, esc=function(s){return _esc(s)};
+var LSV='pol_views_v1', LSM='pol_me_collapsed';
+var F0={type:'',cat:'',sub:'',payee:'',range:'all',min:'',max:''};
+window.polF=Object.assign({},F0);
+var RL={all:'All time',thisMonth:'This month',lastMonth:'Last month',last3:'Last 3 months',thisYear:'This year'};
+var MN=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+function pad(n){return (n<10?'0':'')+n}
+function ym(d){return d.getFullYear()+'-'+pad(d.getMonth()+1)}
+function addM(m,n){var p=m.split('-');return ym(new Date(+p[0],+p[1]-1+n,1))}
+function mLabel(m){var p=m.split('-');return MN[+p[1]-1]+' '+p[0]}
+function bounds(k){var n=new Date(),c=ym(n);
+  if(k==='thisMonth')return[c+'-01',c+'-31'];
+  if(k==='lastMonth'){var p=addM(c,-1);return[p+'-01',p+'-31']}
+  if(k==='last3')return[addM(c,-2)+'-01',c+'-31'];
+  if(k==='thisYear')return[n.getFullYear()+'-01-01',n.getFullYear()+'-12-31'];
+  if(/^\d{4}-\d{2}$/.test(k))return[k+'-01',k+'-31'];
+  return null}
+function rangeLabel(k){return RL[k]||(/^\d{4}-\d{2}$/.test(k)?mLabel(k):'All time')}
+function isActive(){var P=window.polF;return Object.keys(F0).some(function(k){return String(P[k])!==String(F0[k])})}
+
+/* ── 1. filter engine (hooked into renderTable) ── */
+window.polApply=function(d){var f=window.polF;
+  if(f.type)d=d.filter(function(r){return r.type===f.type});
+  if(f.cat)d=d.filter(function(r){return fosKey(r.category||r.sub)===fosKey(f.cat)});
+  if(f.sub)d=d.filter(function(r){return fosKey(r.subcategory)===fosKey(f.sub)});
+  if(f.payee)d=d.filter(function(r){return fosKey(fosPayeeOf(r))===fosKey(f.payee)});
+  var b=bounds(f.range);if(b)d=d.filter(function(r){return r.date>=b[0]&&r.date<=b[1]});
+  if(f.min!==''&&f.min!=null)d=d.filter(function(r){return Number(r.amount)>=Number(f.min)});
+  if(f.max!==''&&f.max!=null)d=d.filter(function(r){return Number(r.amount)<=Number(f.max)});
+  return d};
+window.polGo=function(o){
+  window.polF=Object.assign({},F0,o||{});
+  if(o&&o.range&&o.range!=='all')['filter-month','filter-year'].forEach(function(id){var e=$(id);if(e)e.value='all'});
+  try{if(document.body.classList.contains('txn-analytics-open')&&$('txa-close'))$('txa-close').click()}catch(e){}
+  try{fosCloseManager()}catch(e){}
+  var btn=document.querySelector('.sidebar .nav-item[onclick*="\'transactions\'"]');
+  switchView('transactions',btn,'finance');polSync()};
+window.polSet=function(k,v){window.polF[k]=v;renderTable()};
+window.polClear=function(){window.polF=Object.assign({},F0);renderTable()};
+document.addEventListener('click',function(e){
+  var a=e.target&&e.target.closest&&e.target.closest('[data-pol]');if(!a)return;
+  var p=a.getAttribute('data-pol').split('|'),nm=decodeURIComponent(p[1]||'');
+  if(!nm||/^(General|No payee|No subcategory)$/.test(nm))return;
+  e.preventDefault();e.stopPropagation();
+  var o={type:p[2]||'Expense'};
+  if(p[0]==='c')o.cat=nm;else if(p[0]==='s'){o.sub=nm;if(p[3])o.cat=decodeURIComponent(p[3])}else o.payee=nm;
+  if(p[4])o.range=p[4];
+  polGo(o)},true);
+
+/* ── 2. filter bar + saved views on Transactions ── */
+function views(){try{return JSON.parse(localStorage.getItem(LSV)||'[]')||[]}catch(e){return[]}}
+function saveViews(v){try{localStorage.setItem(LSV,JSON.stringify(v))}catch(e){}}
+function norm(f){return JSON.stringify(Object.assign({},F0,f))}
+function autoName(){var f=window.polF,p=[];
+  if(f.range!=='all')p.push(rangeLabel(f.range));
+  if(f.cat)p.push(f.cat);if(f.sub)p.push(f.sub);if(f.payee)p.push(f.payee);
+  if(f.type&&!f.cat)p.push(f.type+'s');
+  if(f.min!==''&&f.max!=='')p.push('₹'+Number(f.min).toLocaleString('en-IN')+'–'+Number(f.max).toLocaleString('en-IN'));
+  else if(f.min!=='')p.push('above ₹'+Number(f.min).toLocaleString('en-IN'));
+  else if(f.max!=='')p.push('below ₹'+Number(f.max).toLocaleString('en-IN'));
+  return p.join(' – ')||'My view'}
+window.polSaveView=function(){var n=prompt('Name this view:',autoName());if(!n||!n.trim())return;
+  var v=views();v.push({id:'v'+Date.now().toString(36),name:n.trim(),f:Object.assign({},window.polF)});saveViews(v);polSync()};
+window.polOpenView=function(id){var v=views().filter(function(x){return x.id===id})[0];if(v)polGo(v.f)};
+window.polDelView=function(id){if(!confirm('Delete this saved view?'))return;saveViews(views().filter(function(x){return x.id!==id}));polSync()};
+function initBar(){var w=$('txn-search-wrap');if(!w||$('pol-bar'))return;
+  var opt=function(a,l){return '<option value="'+a+'">'+l+'</option>'};
+  w.insertAdjacentHTML('beforebegin','<div id="pol-bar" class="pol-bar"><div id="pol-views" class="pol-row"></div><div class="pol-row">'+
+  '<select id="pol-range" class="input-field" onchange="polSet(\'range\',this.value)">'+Object.keys(RL).map(function(k){return opt(k,RL[k])}).join('')+'</select>'+
+  '<select id="pol-type" class="input-field" onchange="polSet(\'type\',this.value)">'+opt('','All types')+['Expense','Income','Loan','Investment'].map(function(t){return opt(t,t)}).join('')+'</select>'+
+  '<select id="pol-cat" class="input-field" onchange="polSet(\'cat\',this.value)"></select>'+
+  '<input id="pol-min" type="number" min="0" class="input-field" placeholder="Min ₹" oninput="polSet(\'min\',this.value)">'+
+  '<input id="pol-max" type="number" min="0" class="input-field" placeholder="Max ₹" oninput="polSet(\'max\',this.value)"></div><div id="pol-act" class="pol-row"></div></div>')}
+function setv(id,v){var e=$(id);if(e&&e.value!==String(v))e.value=v}
+function polSync(){var P=window.polF;if(!$('pol-bar'))return;
+  var cs={};db.forEach(function(r){var c=fosClean(r.category||r.sub);if(c&&!cs[fosKey(c)])cs[fosKey(c)]=c});
+  if(P.cat&&!cs[fosKey(P.cat)])cs[fosKey(P.cat)]=P.cat;
+  $('pol-cat').innerHTML='<option value="">All categories</option>'+Object.keys(cs).map(function(k){return cs[k]}).sort().map(function(n){return '<option value="'+esc(n)+'"'+(fosKey(n)===fosKey(P.cat)?' selected':'')+'>'+esc(n)+'</option>'}).join('');
+  setv('pol-range',P.range);setv('pol-type',P.type);setv('pol-min',P.min);setv('pol-max',P.max);
+  var ch=[];if(P.sub)ch.push(['sub','Subcategory: '+P.sub]);if(P.payee)ch.push(['payee','Payee: '+P.payee]);
+  $('pol-act').innerHTML=ch.map(function(c){return '<span class="pol-chip on">'+esc(c[1])+' <a onclick="polSet(\''+c[0]+'\',\'\')">✕</a></span>'}).join('')+
+    (isActive()?'<a class="pol-lnk2" onclick="polClear()">Clear all</a><a class="pol-lnk2" onclick="polSaveView()">+ Save as view</a>':'');
+  var V=views(),cur=norm(P);
+  $('pol-views').innerHTML=V.length?'<span class="pol-lbl">Views</span>'+V.map(function(v){return '<span class="pol-chip'+(norm(v.f)===cur?' on':'')+'" onclick="polOpenView(\''+v.id+'\')">'+esc(v.name)+' <a title="Delete view" onclick="event.stopPropagation();polDelView(\''+v.id+'\')">✕</a></span>'}).join(''):
+    '<span class="pol-hint">Set filters, then “Save as view” — e.g. “Last month – Food only” or “Big expenses above ₹5,000”.</span>'}
+function tableAfter(){initBar();polSync();
+  var tb=$('table-body'),es=tb&&tb.querySelector('.empty-state p');if(!es)return;
+  es.innerHTML=!db.length?'No transactions yet — tap <b>+</b> to add your first one.':(isActive()?'Nothing matches these filters. <a class="pol-lnk2" onclick="polClear()">Clear filters</a>':es.innerHTML)}
+
+/* ── 3. quick entry: repeat last + top payees ── */
+function lastEntry(t){return db.filter(function(r){return r.type===t}).sort(fosByRecent)[0]}
+function topPayees(t){var cut=localISO(new Date(Date.now()-120*864e5)),g={};
+  db.forEach(function(r){if(r.type!==t)return;var p=fosPayeeOf(r);if(!p||fosHiddenPayee(p))return;var k=fosKey(p),e=g[k]||(g[k]={name:p,s:0,last:''});e.s+=(r.date>=cut?3:1);if((r.date||'')>=e.last){e.last=r.date||'';e.name=p}});
+  return Object.keys(g).map(function(k){return g[k]}).sort(function(a,b){return b.s-a.s||(b.last>a.last?1:-1)}).slice(0,5)}
+window.polQE=function(){var wrap=$('qa-wrap');if(!wrap)return;
+  var box=$('pol-qe');if(!box){wrap.insertAdjacentHTML('beforebegin','<div id="pol-qe"></div>');box=$('pol-qe')}
+  if(typeof editingFinanceId!=='undefined'&&editingFinanceId){box.innerHTML='';return}
+  var t=_entryType(),l=lastEntry(t),tp=topPayees(t);window._polTP=tp;
+  box.innerHTML=(l||tp.length)?'<div style="margin-bottom:12px"><label class="qa-lbl">Quick entry — tap to fill</label><div class="qa-chips">'+
+    (l?'<button type="button" class="qa-chip" onclick="polRepeat()" title="Fill the form from your latest '+t.toLowerCase()+'">↻ Repeat last: '+esc(fosPayeeOf(l)||l.category||l.sub||l.name)+' · ₹'+Number(l.amount).toLocaleString('en-IN')+'</button>':'')+
+    tp.map(function(p,i){return '<button type="button" class="qa-chip" onclick="polPickPayee('+i+')">'+esc(p.name)+'</button>'}).join('')+'</div></div>':''};
+window.polRepeat=function(){var l=lastEntry(_entryType());if(!l)return;
+  var set=function(id,v){var e=$(id);if(e)e.value=v};
+  set('inp-catname',l.category||l.sub||'');set('inp-name',fosPayeeOf(l));set('inp-sub',l.subcategory||'');set('inp-amt',l.amount);set('inp-notes',l.notes||'');
+  if(l.pay)set('inp-pay',l.pay);set('inp-date',localISO());
+  set('inp-tags',(l.tags||[]).join(','));try{renderTagChips(l.tags||[])}catch(e){}
+  _cs={cat:true,sub:!!l.subcategory};_autoFill={sub:false,notes:false,tags:false,pay:false};
+  try{syncDateChips();fosHints();renderMoreSummary()}catch(e){}
+  var m=$('qa-msg');if(m){m.style.color='';m.textContent='Filled from your last entry — check the amount and date, then Save.'}$('inp-amt').focus();$('inp-amt').select()};
+window.polPickPayee=function(i){var p=(window._polTP||[])[i];if(!p)return;
+  $('inp-name').value=p.name;$('name-suggestions').style.display='none';entryAutofill();var a=$('inp-amt');if(!a.value)a.focus()};
+
+/* ── 4. low-data states: what unlocks next ── */
+function dataStats(){var ms={},inc=0,exp=0,pay=0;
+  db.forEach(function(r){if(r.date)ms[r.date.slice(0,7)]=1;if(r.type==='Income')inc++;if(r.type==='Expense')exp++;if(fosPayeeOf(r))pay++});
+  var k=Object.keys(ms).sort(),span=0;
+  if(k.length){var a=k[0].split('-'),b=k[k.length-1].split('-');span=(+b[0]-+a[0])*12+(+b[1]-+a[1])+1}
+  return{n:db.length,months:k,span:span,inc:inc,exp:exp,pay:pay}}
+function paintUnlock(id){var el=$(id);if(!el)return;var s=dataStats(),L=[];
+  if(!s.n)L.push('Add your first transaction with the <b>+</b> button — charts and insights start filling in after a handful of entries.');
+  else{
+    if(s.span<3)L.push('Add <b>'+(3-s.span)+' more month'+(3-s.span>1?'s':'')+'</b> of entries (you have '+s.span+') to unlock forecasts, recurring-bill detection and unusual-spend alerts.');
+    if(!s.inc)L.push('Add an <b>income</b> entry to unlock your savings rate and the month-end summary.');
+    if(s.exp>0&&s.exp<10)L.push('Add about <b>'+(10-s.exp)+' more expenses</b> so category breakdowns and month comparisons have something to compare.');
+    if(s.exp>0&&!s.pay)L.push('Add a <b>Payee</b> when you save expenses to unlock Payee Insights and “merge these?” clean-up.')}
+  if(s.n&&s.span<4)L.push('<b>Trend watch</b> needs about 4 months of data ('+s.span+' so far).');
+  if(s.n&&s.span<12)L.push('<b>Seasonality</b> (festival-month spending forecasts) unlocks after 12 months — '+(12-s.span)+' to go.');
+  L=L.slice(0,3);
+  el.style.display=L.length?'':'none';
+  el.innerHTML=L.length?'<div class="pol-h"><i class="fas fa-unlock-alt"></i> What unlocks with more data</div><ul>'+L.map(function(x){return '<li>'+x+'</li>'}).join('')+'</ul>':''}
+
+/* ── 5. month-end summary card ── */
+var ME={m:null};
+function mStats(m){var o={m:m,inc:0,exp:0,loan:0,inv:0,cats:{},pays:{},uncat:0,n:0};
+  db.forEach(function(r){if((r.date||'').slice(0,7)!==m)return;o.n++;var a=Number(r.amount)||0;
+    if(r.type==='Income')o.inc+=a;else if(r.type==='Loan')o.loan+=a;else if(r.type==='Investment')o.inv+=a;
+    else if(r.type==='Expense'){o.exp+=a;var c=fosClean(r.category||r.sub);if(!c)o.uncat++;var ck=fosKey(c)||'general';(o.cats[ck]=o.cats[ck]||{name:c||'General',t:0}).t+=a;
+      var p=fosPayeeOf(r);if(p){var pk=fosKey(p);(o.pays[pk]=o.pays[pk]||{name:p,t:0}).t+=a}}});
+  o.bal=o.inc-o.exp-o.loan-o.inv;o.rate=o.inc>0?o.bal/o.inc*100:null;return o}
+function link(kind,name,m,extra){return '<a class="pol-lnk" data-pol="'+kind+'|'+encodeURIComponent(name)+'|Expense|'+(extra||'')+'|'+m+'">'+esc(name)+'</a>'}
+function paintME(){var el=$('pol-me');if(!el)return;var s=dataStats();
+  var ks=s.months.filter(function(m){return db.some(function(r){return r.type==='Expense'&&(r.date||'').slice(0,7)===m})});
+  if(!ks.length){el.style.display='none';return}
+  var n=new Date(),cur=ym(n),last=addM(cur,-1);
+  if(!ME.m||ks.indexOf(ME.m)<0)ME.m=(n.getDate()>=26&&ks.indexOf(cur)>=0)?cur:ks.indexOf(last)>=0?last:ks[ks.length-1];
+  var m=ME.m,c=mStats(m),p=mStats(addM(m,-1)),i=ks.indexOf(m),hid=localStorage.getItem(LSM)==='1';
+  el.style.display='';
+  var head='<div class="pol-me-h"><button class="pol-nav" '+(i>0?'':'disabled')+' onclick="polMeStep(-1)">‹</button><b>'+mLabel(m)+(m===cur?' · so far':'')+' summary</b><button class="pol-nav" '+(i<ks.length-1?'':'disabled')+' onclick="polMeStep(1)">›</button><span style="flex:1"></span><a class="pol-lnk2" onclick="polMeToggle()">'+(hid?'Show':'Hide')+'</a></div>';
+  if(hid){el.innerHTML=head;return}
+  var tp=Object.keys(c.pays).map(function(k){return c.pays[k]}).sort(function(a,b){return b.t-a.t})[0];
+  var tile=function(l,v,sub,col){return '<div class="pol-tile"><span>'+l+'</span><b'+(col?' style="color:'+col+'"':'')+'>'+v+'</b><small>'+(sub||'&nbsp;')+'</small></div>'};
+  var rt=c.rate==null?'—':Math.round(c.rate)+'%',dr=(c.rate!=null&&p.rate!=null)?(Math.round(c.rate-p.rate)):null;
+  var tiles='<div class="pol-tiles">'+tile('Income',fmt(c.inc),'',  '#34d399')+tile('Expenses',fmt(c.exp),p.exp?(c.exp>=p.exp?'▲ ':'▼ ')+fmt(Math.abs(c.exp-p.exp))+' vs '+mLabel(addM(m,-1)):'','#f472b6')+
+    tile('Savings rate',rt,dr==null?(c.inc?'':'no income recorded'):(dr>=0?'▲ ':'▼ ')+Math.abs(dr)+' pts vs prior',c.rate!=null&&c.rate<0?'#f87171':'#a78bfa')+
+    tile('Top payee',tp?link('p',tp.name,m).replace('Expense|','Expense|'):'—',tp?fmt(tp.t)+' · '+Math.round(tp.t/c.exp*100)+'% of spend':'no payees yet')+'</div>';
+  var keys={};Object.keys(c.cats).concat(Object.keys(p.cats)).forEach(function(k){keys[k]=1});
+  var ch=Object.keys(keys).map(function(k){var a=c.cats[k]?c.cats[k].t:0,b=p.cats[k]?p.cats[k].t:0;return{name:(c.cats[k]||p.cats[k]).name,a:a,b:b,d:a-b}}).filter(function(x){return Math.abs(x.d)>=1}).sort(function(x,y){return Math.abs(y.d)-Math.abs(x.d)}).slice(0,4);
+  var chH=p.exp?(ch.length?ch.map(function(x){return '<li>'+link('c',x.name,m)+' <span style="color:'+(x.d>0?'#f87171':'#34d399')+'">'+(x.d>0?'▲ +':'▼ −')+fmt(Math.abs(x.d))+(x.b?' ('+(x.d>0?'+':'−')+Math.round(Math.abs(x.d)/x.b*100)+'%)':' (new)')+'</span></li>'}).join(''):'<li>No category changed vs '+mLabel(addM(m,-1))+'.</li>'):'<li>Add '+mLabel(addM(m,-1))+' to compare month over month.</li>';
+  var fix=[],avgOf=function(k){var v=[];for(var j=1;j<=3;j++){var q=mStats(addM(m,-j));if(q.cats[k])v.push(q.cats[k].t)}return v.length?v.reduce(function(a,b){return a+b},0)/v.length:0};
+  var up=ch.filter(function(x){return x.d>0}).map(function(x){var k=fosKey(x.name)||'general';return{x:x,ref:avgOf(k)||x.b}}).filter(function(o){return o.x.a>o.ref*1.15&&o.x.a-o.ref>=300})[0];
+  if(up)fix.push(link('c',up.x.name,m)+' ran '+fmt(up.x.a-up.ref)+' above its usual '+fmt(up.ref)+' — try capping it near that.');
+  if(c.inc>0&&c.rate<20)fix.push('Savings rate was '+Math.round(c.rate)+'% — reaching 20% would keep about '+fmt(Math.max(0,c.inc*0.2-c.bal))+' more.');
+  else if(!c.inc&&c.exp)fix.push('No income recorded for '+mLabel(m)+' — add it to see your savings rate.');
+  if(c.uncat)fix.push(c.uncat+' expense'+(c.uncat>1?'s have':' has')+' no category — <a class="pol-lnk2" onclick="fosOpenManager(\'clean\')">fix them in one screen</a>.');
+  var dg=0;try{dg=fosCUGroups().length}catch(e){}if(dg)fix.push(dg+' payee group'+(dg>1?'s look':' looks')+' like duplicates — <a class="pol-lnk2" onclick="fosOpenManager(\'clean\')">review merges</a>.');
+  if(tp&&c.exp&&tp.t/c.exp>=0.25)fix.push(link('p',tp.name,m)+' took '+Math.round(tp.t/c.exp*100)+'% of your spending — worth a look.');
+  fix=fix.slice(0,3);
+  el.innerHTML=head+tiles+'<div class="pol-two"><div><div class="pol-h">Biggest changes</div><ul>'+chH+'</ul></div><div><div class="pol-h">Fix next month</div><ul>'+(fix.length?fix.map(function(x){return '<li>'+x+'</li>'}).join(''):'<li>Nothing urgent — you’re on track. 👍</li>')+'</ul></div></div>'}
+window.polMeStep=function(d){var s=dataStats(),ks=s.months.filter(function(m){return db.some(function(r){return r.type==='Expense'&&(r.date||'').slice(0,7)===m})}),i=ks.indexOf(ME.m)+d;if(i>=0&&i<ks.length){ME.m=ks[i];paintME()}};
+window.polMeToggle=function(){try{localStorage.setItem(LSM,localStorage.getItem(LSM)==='1'?'0':'1')}catch(e){}paintME()};
+
+/* ── wiring ── */
+function initDash(){var v=$('view-dashboard');if(v&&!$('pol-me'))v.insertAdjacentHTML('afterbegin','<div id="pol-me" class="glass-panel pol-card" style="display:none"></div><div id="pol-unlock-d" class="pol-card pol-un" style="display:none"></div>');
+  var a=$('view-analytics');if(a&&!$('pol-unlock-a'))a.insertAdjacentHTML('afterbegin','<div id="pol-unlock-a" class="pol-card pol-un" style="display:none"></div>')}
+function wrap(n,after){var o=window[n];if(typeof o!=='function'||o.__pol)return;var w=function(){var r=o.apply(this,arguments);try{after()}catch(e){console.error('polish:',e)}return r};w.__pol=1;window[n]=w}
+wrap('renderTable',tableAfter);
+wrap('renderDashboard',function(){initDash();paintME();paintUnlock('pol-unlock-d')});
+wrap('renderAnalytics',function(){initDash();paintUnlock('pol-unlock-a')});
+wrap('buildQuickAdd',window.polQE);
+wrap('openModal',window.polQE);
+initDash();initBar();polSync();
+try{paintME();paintUnlock('pol-unlock-d');paintUnlock('pol-unlock-a')}catch(e){}
+})();
+
+</script>
+<script id="pol-smart-script">
+(function(){
+'use strict';
+var $=function(id){return document.getElementById(id)},esc=function(s){return _esc(s)};
+var MN=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+var FEST={1:'Pongal / Sankranti',4:'New Year festivals',8:'Onam / Ganesh Chaturthi',9:'Ganesh Chaturthi / Navaratri',10:'Navaratri / Diwali',11:'Diwali',12:'Christmas / year-end'};
+function pad(n){return (n<10?'0':'')+n}
+function ym(d){return d.getFullYear()+'-'+pad(d.getMonth()+1)}
+function addM(m,n){var p=m.split('-');return ym(new Date(+p[0],+p[1]-1+n,1))}
+function curM(){return ym(new Date())}
+function mLabel(m){var p=m.split('-');return MN[+p[1]-1]+' '+p[0]}
+function avg(a){return a.length?a.reduce(function(x,y){return x+y},0)/a.length:0}
+function lk(kind,name,cat){return '<a class="pol-lnk" data-pol="'+kind+'|'+encodeURIComponent(name)+'|Expense|'+(cat?encodeURIComponent(cat):'')+'">'+esc(name)+'</a>'}
+
+/* ── Goals: auto-tracked from Income − (Expense + Loan + Investment) ── */
+function net(since){var t=localISO(),n=0;
+  db.forEach(function(r){if(!r.date||r.date<since||r.date>t)return;var a=Number(r.amount)||0;
+    if(r.type==='Income')n+=a;else if(r.type==='Expense'||r.type==='Loan'||r.type==='Investment')n-=a});return n}
+function sinceOf(g){return g.since||(g.created?String(g.created).slice(0,10):curM()+'-01')}
+window.polGoalSaved=function(g){var used=0,res=0;
+  (finaiGoals||[]).some(function(x){if(!x.auto)return false;
+    var base=Number(x.saved)||0,t=Number(x.target)||0,s=Math.min(t,base+Math.max(0,net(sinceOf(x))-used));
+    used+=Math.max(0,s-base);if(x.id===g.id){res=s;return true}return false});return res};
+window.polGoalMonthly=function(){var cur=curM(),v=[];
+  for(var i=1;i<=3;i++){var m=addM(cur,-i);v.push(net(m+'-01')-net(addM(m,1)+'-01'))}
+  return Math.max(0,Math.round(avg(v)))};
+
+/* ── series ── */
+function series(){var cats={},subs={},tot={};
+  db.forEach(function(r){if(r.type!=='Expense'||!r.date)return;var m=r.date.slice(0,7),a=Number(r.amount)||0,c=fosClean(r.category||r.sub)||'General',ck=fosKey(c);
+    tot[m]=(tot[m]||0)+a;var o=cats[ck]=cats[ck]||{name:c,cat:c,m:{}};o.m[m]=(o.m[m]||0)+a;
+    var s=fosClean(r.subcategory);if(s&&fosKey(s)!==ck){var sk=ck+'›'+fosKey(s),q=subs[sk]=subs[sk]||{name:s,cat:c,sub:1,m:{}};q.m[m]=(q.m[m]||0)+a}});
+  return{cats:cats,subs:subs,tot:tot}}
+
+/* ── Trend watch: N consecutive month-over-month rises (complete months only) ── */
+function trends(S){var cur=curM(),ms=[],out=[],seen={};
+  for(var i=7;i>=1;i--)ms.push(addM(cur,-i));
+  [S.cats,S.subs].forEach(function(grp){Object.keys(grp).forEach(function(k){var o=grp[k],v=ms.map(function(m){return o.m[m]||0}),L=v.length-1;
+    var up=0,i=L;while(i>0&&v[i]>v[i-1]&&v[i-1]>0){up++;i--}
+    var dn=0,j=L;while(j>0&&v[j]<v[j-1]&&v[j]>0){dn++;j--}
+    var e=null;
+    if(up>=3&&v[L]>=300&&v[L]>=v[L-up]*1.15)e={o:o,n:up,from:v[L-up],to:v[L],dir:1};
+    else if(dn>=3&&v[L-dn]>=300)e={o:o,n:dn,from:v[L-dn],to:v[L],dir:-1};
+    if(!e)return;var key=e.dir+'|'+Math.round(e.from)+'|'+Math.round(e.to);if(seen[key])return;seen[key]=1;out.push(e)})});
+  var ups=out.filter(function(e){return e.dir>0}).sort(function(a,b){return b.n-a.n||b.to/b.from-a.to/a.from}).slice(0,4);
+  return ups.concat(out.filter(function(e){return e.dir<0}).sort(function(a,b){return b.n-a.n}).slice(0,1))}
+
+/* ── Subscription creep: fixed-price recurring charges whose amount stepped up ── */
+function creep(){var g={},out=[],cut=addM(curM(),-12)+'-01';
+  db.forEach(function(r){if(r.type!=='Expense'||!r.date)return;var p=fosPayeeOf(r);if(!p)return;var k=fosKey(p);(g[k]=g[k]||{name:p,rows:[]}).rows.push(r)});
+  Object.keys(g).forEach(function(k){var rows=g[k].rows.sort(function(a,b){return a.date<b.date?-1:a.date>b.date?1:0}),n=rows.length;if(n<3)return;
+    var a=rows.map(function(r){return Number(r.amount)||0}),mo={};rows.forEach(function(r){mo[r.date.slice(0,7)]=1});if(Object.keys(mo).length<3)return;
+    var gaps=[];for(var i=1;i<n;i++)gaps.push((new Date(rows[i].date)-new Date(rows[i-1].date))/864e5);gaps.sort(function(x,y){return x-y});
+    var med=gaps[Math.floor(gaps.length/2)];if(med<20||med>40)return;
+    var near=function(x,y){return y>0&&Math.abs(x-y)/y<=0.05};
+    for(var j=n-1;j>=2;j--){if(a[j]>a[j-1]*1.03&&a[j]-a[j-1]>=5){
+      var ok=near(a[j-1],a[j-2]);for(var q=j;q<n&&ok;q++)ok=near(a[q],a[j]);
+      if(ok&&rows[j].date>=cut)out.push({name:g[k].name,from:a[j-1],to:a[j],since:rows[j].date,annual:(a[j]-a[j-1])*12});
+      break}}});
+  return out.sort(function(x,y){return y.annual-x.annual}).slice(0,5)}
+
+/* ── Seasonality: needs 12+ complete months ── */
+function seasonal(S){var cur=curM(),ms=Object.keys(S.tot).filter(function(m){return m<cur&&S.tot[m]>0}).sort();
+  if(ms.length<12)return null;var a=ms[0].split('-'),b=ms[ms.length-1].split('-');if((+b[0]-+a[0])*12+(+b[1]-+a[1])+1<12)return null;
+  var overall=avg(ms.map(function(m){return S.tot[m]})),by={};
+  ms.forEach(function(m){var k=+m.slice(5);(by[k]=by[k]||[]).push(S.tot[m])});
+  var av={};Object.keys(by).forEach(function(k){av[k]=avg(by[k])});
+  var nowK=new Date().getMonth()+1,res={av:av,overall:overall,next:null};
+  for(var d=1;d<=4&&!res.next;d++){var k=((nowK-1+d)%12)+1;
+    if(av[k]&&av[k]/overall>=1.2&&av[k]-overall>=1000){
+      var dr=Object.keys(S.cats).map(function(ck){var o=S.cats[ck],vals=ms.filter(function(m){return +m.slice(5)===k}).map(function(m){return o.m[m]||0}),base=avg(ms.map(function(m){return o.m[m]||0}));return{name:o.name,x:avg(vals)-base}}).filter(function(x){return x.x>=300}).sort(function(x,y){return y.x-x.x}).slice(0,2);
+      res.next={k:k,d:d,exp:av[k],extra:av[k]-overall,drivers:dr}}}
+  return res}
+window.polSeasonGoal=function(k,extra,d){var now=new Date(),y=now.getFullYear()+(k<=now.getMonth()+1?1:0),t=Math.max(500,Math.round(extra/500)*500);
+  if(!confirm('Create an auto-tracked goal "'+MN[k-1]+' festival buffer" for '+fmt(t)+' by '+MN[k-1]+' '+y+'?'))return;
+  finaiGoals.push({id:Date.now(),created:new Date().toISOString(),name:MN[k-1]+' festival buffer',target:t,saved:0,monthly:0,targetDate:y+'-'+pad(k)+'-01',auto:true,since:localISO()});
+  saveFinaiGoals();paint()};
+window.polNewGoal=function(){var b=document.querySelector('.sidebar .nav-item[onclick*="\'finai\'"]');if(b)b.click();
+  setTimeout(function(){try{finaiGoalEditId=null;finaiGoalFillForm({});var a=$('fg-auto');if(a)a.checked=true;var n=$('fg-name');if(n)n.focus()}catch(e){}},250)};
+window.polOpenGoals=function(){var b=document.querySelector('.sidebar .nav-item[onclick*="\'finai\'"]');if(b)b.click()};
+
+/* ── panel ── */
+function paint(){var el=$('pol-smart');if(!el)return;
+  if(!db.length){el.style.display='none';return}
+  var S=series(),H=[];
+  var gs=(finaiGoals||[]).slice(0,3);
+  H.push('<div class="pol-h">Goals <a class="pol-lnk2" onclick="polNewGoal()">+ auto goal</a><a class="pol-lnk2" onclick="polOpenGoals()">manage</a></div>'+
+    (gs.length?gs.map(function(g){var c=finaiGoalCalc(g);return '<div style="margin:6px 0"><div style="display:flex;justify-content:space-between;font-size:.8rem"><span>'+esc(g.name)+(g.auto?' <small style="opacity:.65">⚡ auto</small>':'')+'</span><span style="font-family:\'DM Mono\',monospace">'+fmt(c.saved)+' / '+fmt(c.target)+' · '+Math.round(c.pct)+'%</span></div><div style="height:6px;border-radius:4px;background:rgba(128,128,128,.2);overflow:hidden"><div style="height:100%;width:'+c.pct.toFixed(1)+'%;background:var(--accent)"></div></div>'+
+      (g.auto&&!c.done?'<small style="color:var(--text-muted)">'+(c.months!==null?'at your recent surplus of '+fmt(c.monthly)+'/month → about '+c.months+' month'+(c.months>1?'s':''):'no surplus in the last 3 months yet')+'</small>':'')+'</div>'}).join(''):
+      '<div class="pol-hint">Set a savings target that tracks itself: saved = income − expenses − loans − investments from the day you start.</div>'));
+  var T=trends(S);
+  if(T.length)H.push('<div class="pol-h" style="margin-top:12px">Trend watch</div><ul>'+T.map(function(e){var pc=Math.round(Math.abs(e.to-e.from)/e.from*100),l=e.o.sub?lk('s',e.o.name,e.o.cat):lk('c',e.o.name);
+    return '<li>'+l+(e.o.sub?' <small style="opacity:.65">('+esc(e.o.cat)+')</small>':'')+(e.dir>0?' has grown <b>'+e.n+' months in a row</b>':' has <b style="color:#34d399">fallen '+e.n+' months in a row</b>')+' — '+fmt(e.from)+' → '+fmt(e.to)+' (<span style="color:'+(e.dir>0?'#f87171':'#34d399')+'">'+(e.dir>0?'+':'−')+pc+'%</span>)</li>'}).join('')+'</ul>');
+  var C=creep();
+  if(C.length)H.push('<div class="pol-h" style="margin-top:12px">Subscription creep</div><ul>'+C.map(function(c){return '<li>'+lk('p',c.name)+' went '+fmt(c.from)+' → <b>'+fmt(c.to)+'</b> (+'+Math.round((c.to/c.from-1)*100)+'%) since '+mLabel(c.since.slice(0,7))+' — about <span style="color:#f87171">'+fmt(c.annual)+'/year</span> more</li>'}).join('')+'</ul>'+
+    '<div class="pol-hint">Total creep: about '+fmt(C.reduce(function(s,c){return s+c.annual},0))+' a year. Worth checking whether each is still worth it.</div>');
+  var Z=seasonal(S);
+  if(Z){var mx=Math.max.apply(null,Object.keys(Z.av).map(function(k){return Z.av[k]}));
+    var bars='<div style="display:flex;gap:4px;align-items:flex-end;height:46px;margin:8px 0 4px">'+MN.map(function(n,i){var v=Z.av[i+1];return '<div title="'+n+': '+(v?fmt(v):'no data')+'" style="flex:1;text-align:center"><div style="height:'+(v?Math.max(4,v/mx*40):2)+'px;border-radius:3px;background:'+(v&&v/Z.overall>=1.2?'#f472b6':'rgba(128,128,128,.4)')+'"></div><small style="font-size:.55rem;color:var(--text-muted)">'+n[0]+'</small></div>'}).join('')+'</div>';
+    var nx=Z.next;
+    H.push('<div class="pol-h" style="margin-top:12px">Seasonality</div>'+bars+(nx?'<div style="font-size:.8rem">Expect about <b>'+fmt(nx.exp)+'</b> in <b>'+MN[nx.k-1]+'</b> — '+Math.round((nx.exp/Z.overall-1)*100)+'% above your usual '+fmt(Z.overall)+'/month'+(FEST[nx.k]?' <small style="opacity:.7">(often festival season: '+FEST[nx.k]+')</small>':'')+'.'+
+      (nx.drivers.length?' Driven by '+nx.drivers.map(function(d){return lk('c',d.name)+' (+'+fmt(d.x)+')'}).join(' and ')+'.':'')+
+      '<br>Set aside about <b>'+fmt(Math.ceil(nx.extra/nx.d/100)*100)+'/month</b> from now. <a class="pol-lnk2" onclick="polSeasonGoal('+nx.k+','+Math.round(nx.extra)+','+nx.d+')">Create a goal for it</a></div>':
+      '<div class="pol-hint">No festival-style spike is due in the next 4 months. Pink bars are months running 20%+ above your average.</div>'))}
+  el.style.display='';el.innerHTML='<div class="pol-me-h"><b>Smarter insights</b></div>'+H.join('')}
+window.polSmartPaint=paint;
+function init(){var v=$('view-dashboard');if(!v||$('pol-smart'))return;var a=$('pol-unlock-d'),h='<div id="pol-smart" class="glass-panel pol-card" style="display:none"></div>';
+  if(a)a.insertAdjacentHTML('afterend',h);else v.insertAdjacentHTML('afterbegin',h)}
+var o=window.renderDashboard;
+if(typeof o==='function'){var w=function(){var r=o.apply(this,arguments);try{init();paint()}catch(e){console.error('smart:',e)}return r};window.renderDashboard=w}
+try{init();paint()}catch(e){}
+})();
+
 </script>
 </body>
 </html>
