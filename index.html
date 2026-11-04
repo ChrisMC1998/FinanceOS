@@ -19374,6 +19374,205 @@ Chart.defaults.elements.line.borderWidth = 3; // Thicker, premium lines
 Chart.defaults.elements.point.radius = 0; // Hide points by default
 Chart.defaults.elements.point.hoverRadius = 6; // Show points on hover
 
+// ══════════════════════════════════════════════════════════════════════════
+// CHART HOVER ANIMATIONS — every Chart.js chart type + SVG rings
+//   bar → swells & glows · doughnut/pie/polar → slice pops out & glows
+//   line → crosshair + glowing pulse ring on the point · radar/bubble → glowing halo
+// Disabled automatically for users with "reduce motion" turned on.
+// To switch off a single chart: options.plugins.fosHoverFx = { enabled: false }
+// ══════════════════════════════════════════════════════════════════════════
+(function fosChartHoverFx() {
+  const reduce = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  if (reduce) return;
+
+  // 1) Smoother, slightly springier hover transitions for all chart types
+  try {
+    Chart.defaults.transitions.active.animation.duration = 280;
+    Chart.defaults.transitions.active.animation.easing = 'easeOutCubic';
+  } catch (e) {}
+  Chart.defaults.elements.point.hoverRadius = 7;
+  Chart.defaults.elements.point.hoverBorderWidth = 3;
+  Chart.defaults.elements.point.hoverBorderColor = '#ffffff';
+
+  const fxColor = c => (typeof c === 'string' && c && c !== 'transparent') ? c : fosBrandRgba(1);
+
+  function roundRect(ctx, x, y, w, h, r) {
+    r = Math.max(0, Math.min(r, w / 2, h / 2));
+    ctx.beginPath();
+    ctx.moveTo(x + r, y);
+    ctx.arcTo(x + w, y, x + w, y + h, r);
+    ctx.arcTo(x + w, y + h, x, y + h, r);
+    ctx.arcTo(x, y + h, x, y, r);
+    ctx.arcTo(x, y, x + w, y, r);
+    ctx.closePath();
+  }
+
+  function drawBar(ctx, chart, item, t) {
+    const el = item.element, o = el.options || {};
+    const meta = chart.getDatasetMeta(item.datasetIndex);
+    const p = el.getProps(['x', 'y', 'base', 'width', 'height'], true);
+    const horiz = !!(meta.iScale && meta.iScale.axis === 'y');
+    let l, r, tp, b;
+    if (horiz) { const hh = p.height / 2; l = Math.min(p.x, p.base); r = Math.max(p.x, p.base); tp = p.y - hh; b = p.y + hh; }
+    else       { const hw = p.width / 2;  l = p.x - hw; r = p.x + hw; tp = Math.min(p.y, p.base); b = Math.max(p.y, p.base); }
+    if (!(r - l > 0) || !(b - tp > 0)) return;
+    const g = 3 * t;                         // the bar "swells" by up to 3px each side
+    l -= g; r += g; tp -= g; b += g;
+    const br = typeof o.borderRadius === 'number' ? o.borderRadius : ((o.borderRadius && o.borderRadius.topLeft) || 6);
+    ctx.save();
+    ctx.globalAlpha = Math.min(1, t);
+    ctx.shadowColor = fxColor(o.backgroundColor);
+    ctx.shadowBlur = 22 * t;
+    ctx.fillStyle = o.backgroundColor || fosBrandRgba(0.9);
+    roundRect(ctx, l, tp, r - l, b - tp, br); ctx.fill();
+    ctx.shadowBlur = 0;
+    ctx.fillStyle = 'rgba(255,255,255,0.16)'; ctx.fill();
+    ctx.lineWidth = 1.2; ctx.strokeStyle = 'rgba(255,255,255,0.55)'; ctx.stroke();
+    ctx.restore();
+  }
+
+  function drawArc(ctx, item, t) {
+    const el = item.element, o = el.options || {};
+    const p = el.getProps(['x', 'y', 'startAngle', 'endAngle', 'innerRadius', 'outerRadius'], true);
+    const mid = (p.startAngle + p.endAngle) / 2, off = o.offset || 0;
+    const col = fxColor(o.backgroundColor);
+    ctx.save();
+    ctx.translate(Math.cos(mid) * off, Math.sin(mid) * off);   // follow the slice's pop-out
+    ctx.globalAlpha = Math.min(1, t);
+    ctx.beginPath();
+    ctx.arc(p.x, p.y, p.outerRadius + 1.5, p.startAngle, p.endAngle, false);
+    ctx.arc(p.x, p.y, p.innerRadius, p.endAngle, p.startAngle, true);
+    ctx.closePath();
+    ctx.shadowColor = col; ctx.shadowBlur = 24 * t;
+    ctx.lineWidth = 2.5; ctx.strokeStyle = col; ctx.stroke();
+    ctx.shadowBlur = 0;
+    ctx.fillStyle = 'rgba(255,255,255,0.14)'; ctx.fill();
+    ctx.restore();
+  }
+
+  function drawPoint(ctx, item, t) {
+    const el = item.element, o = el.options || {};
+    const p = el.getProps(['x', 'y'], true);
+    if (p.x == null || p.y == null || isNaN(p.x) || isNaN(p.y)) return;
+    const r = (o.radius > 0 ? o.radius : (o.hoverRadius || 6));
+    const col = fxColor(o.borderColor && o.borderColor !== 'transparent' ? o.borderColor : o.backgroundColor);
+    ctx.save();
+    ctx.strokeStyle = col; ctx.shadowColor = col;
+    ctx.globalAlpha = Math.min(1, 0.9 * t); ctx.shadowBlur = 16 * t; ctx.lineWidth = 2;
+    ctx.beginPath(); ctx.arc(p.x, p.y, r + 3 + 3 * t, 0, Math.PI * 2); ctx.stroke();
+    ctx.shadowBlur = 0; ctx.globalAlpha = 0.35 * t; ctx.lineWidth = 1;
+    ctx.beginPath(); ctx.arc(p.x, p.y, r + 8 + 6 * t, 0, Math.PI * 2); ctx.stroke();
+    ctx.restore();
+  }
+
+  function activeNow(chart) {
+    try { return chart.getActiveElements ? chart.getActiveElements() : []; } catch (e) { return []; }
+  }
+
+  function tick(chart) {
+    const fx = chart.$fosFx;
+    if (!fx) return;
+    fx.raf = 0;
+    if (!chart.ctx || !chart.canvas || !chart.canvas.isConnected) return;   // chart was destroyed / removed
+    const d = fx.target - fx.t;
+    fx.t = Math.abs(d) < 0.01 ? fx.target : fx.t + d * 0.22;
+    try { chart.draw(); } catch (e) { return; }
+    if (fx.t !== fx.target) fx.raf = requestAnimationFrame(() => tick(chart));
+    else if (fx.t === 0) fx.active = [];
+  }
+
+  const plugin = {
+    id: 'fosHoverFx',
+    defaults: { enabled: true },
+
+    beforeUpdate(chart, args, opts) {
+      if (opts && opts.enabled === false) return;
+      const t = chart.config.type;
+      if (t === 'doughnut' || t === 'pie' || t === 'polarArea') {          // slices pop out further
+        (chart.data.datasets || []).forEach(ds => {
+          if (typeof ds.hoverOffset !== 'function' && !(ds.hoverOffset >= 10)) ds.hoverOffset = 10;
+        });
+      }
+    },
+
+    afterEvent(chart, args, opts) {
+      if (opts && opts.enabled === false) return;
+      const type = args && args.event && args.event.type;
+      if (type !== 'mousemove' && type !== 'mouseout' && type !== 'touchstart' && type !== 'touchmove' && type !== 'click') return;
+      const fx = chart.$fosFx || (chart.$fosFx = { t: 0, target: 0, raf: 0, active: [] });
+      const act = activeNow(chart);
+      if (act.length) { fx.active = act.slice(); fx.target = 1; }
+      else fx.target = 0;
+      if (!fx.raf && fx.t !== fx.target) fx.raf = requestAnimationFrame(() => tick(chart));
+    },
+
+    beforeDatasetsDraw(chart, args, opts) {                                 // line-chart crosshair (behind the data)
+      const fx = chart.$fosFx;
+      if (!fx || fx.t < 0.02 || (opts && opts.enabled === false)) return;
+      if (document.body.classList.contains('pdf-export-mode')) return;
+      const it = fx.active.find(a => { const m = chart.getDatasetMeta(a.datasetIndex); return m && m.type === 'line'; });
+      if (!it) return;
+      const x = it.element.getProps(['x'], true).x, area = chart.chartArea;
+      if (x == null || isNaN(x) || !area) return;
+      const ctx = chart.ctx, g = ctx.createLinearGradient(0, area.top, 0, area.bottom);
+      g.addColorStop(0, fosBrandRgba(0)); g.addColorStop(0.5, fosBrandRgba(0.5 * fx.t)); g.addColorStop(1, fosBrandRgba(0));
+      ctx.save(); ctx.strokeStyle = g; ctx.lineWidth = 1; ctx.setLineDash([4, 4]);
+      ctx.beginPath(); ctx.moveTo(x, area.top); ctx.lineTo(x, area.bottom); ctx.stroke(); ctx.restore();
+    },
+
+    afterDatasetsDraw(chart, args, opts) {                                  // glow on the hovered element(s)
+      const fx = chart.$fosFx;
+      if (!fx || fx.t < 0.02 || !fx.active.length || (opts && opts.enabled === false)) return;
+      if (document.body.classList.contains('pdf-export-mode')) return;
+      const ctx = chart.ctx;
+      fx.active.forEach(item => {
+        try {
+          const meta = chart.getDatasetMeta(item.datasetIndex);
+          if (!meta || !item.element) return;
+          if (meta.type === 'bar') drawBar(ctx, chart, item, fx.t);
+          else if (meta.type === 'doughnut' || meta.type === 'pie' || meta.type === 'polarArea') drawArc(ctx, item, fx.t);
+          else drawPoint(ctx, item, fx.t);                                  // line / radar / bubble / scatter
+        } catch (e) { /* never let a hover effect break a chart */ }
+      });
+    },
+
+    beforeDestroy(chart) {
+      if (chart.$fosFx && chart.$fosFx.raf) cancelAnimationFrame(chart.$fosFx.raf);
+      chart.$fosFx = null;
+    }
+  };
+  Chart.register(plugin);
+
+  // 2) CSS hover animation for chart cards and the SVG-based charts
+  const css = document.createElement('style');
+  css.id = 'fos-chart-hover-css';
+  css.textContent = `
+  @media (prefers-reduced-motion: no-preference) {
+    .glass-panel:has(canvas) { transition: border-color .25s, transform .3s cubic-bezier(.22,1,.36,1), box-shadow .3s; }
+    .glass-panel:has(canvas):hover { transform: translateY(-3px); box-shadow: 0 16px 40px -14px rgba(var(--brand-rgb), .38), inset 0 1px 0 rgba(255,255,255,.05); }
+    .spark-canvas-wrap, .mc-spark { transition: transform .25s cubic-bezier(.22,1,.36,1); }
+    .spark-canvas-wrap:hover, .mc-spark:hover { transform: scale(1.05); }
+    /* score ring (FinAI) */
+    .finai-score-ring-wrap { transition: transform .35s cubic-bezier(.22,1,.36,1), filter .35s; }
+    .finai-score-ring-wrap:hover { transform: scale(1.07); filter: drop-shadow(0 0 10px rgba(var(--brand-rgb), .55)); }
+    .finai-ring-progress { transition: stroke-dashoffset .8s ease, stroke .8s ease, stroke-width .25s; }
+    .finai-score-ring-wrap:hover .finai-ring-progress { stroke-width: 12; }
+    /* credit-card utilisation ring */
+    .cc-face-ring-wrap { transition: transform .3s cubic-bezier(.22,1,.36,1), filter .3s; }
+    .cc-face-ring-wrap:hover { transform: scale(1.12); filter: drop-shadow(0 0 6px rgba(255,255,255,.5)); }
+    .cc-face-ring-fill { transition: stroke-dashoffset .9s cubic-bezier(.22,1,.36,1), stroke-width .25s; }
+    .cc-face-ring-wrap:hover .cc-face-ring-fill { stroke-width: 6.5; }
+    /* portfolio "pulse" rings: pause the spin so a segment can be hovered, then pop it */
+    svg[style*="pulseSpin"]:hover { animation-play-state: paused !important; }
+    svg[style*="pulseSpin"] path { transition: stroke-width .2s ease, filter .2s ease; cursor: pointer; }
+    svg[style*="pulseSpin"] path:hover { stroke-width: 5.6; filter: drop-shadow(0 0 4px rgba(255,255,255,.75)); }
+    /* credit-card trend line */
+    svg[style*="overflow:visible"] path[stroke="#f97316"] { transition: stroke-width .25s ease, filter .25s ease; }
+    svg[style*="overflow:visible"]:hover path[stroke="#f97316"] { stroke-width: 3.2; filter: drop-shadow(0 0 6px rgba(249,115,22,.65)); }
+  }`;
+  document.head.appendChild(css);
+})();
+
 // ── PDF EXPORT QUALITY BOOST ──
 let _pdfChartDefaultsBackup = null;
 function applyPdfChartQuality() {
