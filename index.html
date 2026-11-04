@@ -6784,10 +6784,17 @@ function passAppLockGate() {
         <div class="panel-title fxb-title"><span><i class="fas fa-chart-pie" style="margin-right:7px;color:var(--brand,#20CDB5)"></i>Expense Category Breakdown</span><small>Click a slice or category to inspect · drill into subcategories &amp; payees</small></div>
         <div id="dash-expbreak"></div>
       </div>
-      <!-- FINANCIAL HEALTH SCORE (30%) -->
+      <div class="fhs-side">
+      <!-- FINANCIAL HEALTH SCORE -->
       <div class="glass-panel txa-host" id="dash-fhs-panel">
         <div class="panel-title fhs-title"><span><i class="fas fa-heart-pulse" style="margin-right:7px;color:var(--brand,#20CDB5)"></i>Financial Health Score</span><small id="dash-fhs-scope"></small></div>
         <div id="dash-fhs"></div>
+      </div>
+      <!-- MONTH-END FORECAST -->
+      <div class="glass-panel txa-host" id="dash-fcs-panel">
+        <div class="panel-title fhs-title"><span><i class="fas fa-calendar-check" style="margin-right:7px;color:var(--brand,#20CDB5)"></i>Month-End Forecast</span><small id="dash-fcs-scope"></small></div>
+        <div id="dash-fcs"></div>
+      </div>
       </div>
       </div>
 
@@ -14608,6 +14615,7 @@ function renderDashboardImmediate() {
   // 2b. Expense Category Breakdown (interactive doughnut with subcategory / payee drill-down)
   try { if (typeof fosExpBreakRender === 'function') fosExpBreakRender('dash'); } catch (e) { console.error('Expense breakdown (dashboard) failed:', e); }
   try { if (typeof fhsRender === 'function') fhsRender(); } catch (e) { console.error('Financial health score failed:', e); }
+  try { if (typeof fcsRender === 'function') fcsRender(); } catch (e) { console.error('Month-end forecast failed:', e); }
 
  // Portfolio by asset type - Center-Stat Ring + Progress Legend
   const byType = {};
@@ -32100,6 +32108,130 @@ body.light-mode .txa-advhead h2 i{color:#0f766e}
         '<div class="fhs-sec"><div class="fhs-h"><i class="fas fa-lightbulb"></i>Smart Recommendations</div>' + (I.rec.length ? '<ol class="fhs-ol">' + I.rec.map(function (t) { return '<li>' + t + '</li>'; }).join('') + '</ol>' : '<div class="txa-note">Keep tracking: recommendations appear as more data comes in.</div>') + '</div>' : '') + how;
   }
   window.fhsRender = render;
+})();
+</script>
+<style id="fcs-style">
+/* right column = Financial Health Score + Month-End Forecast, stacked beside the doughnut */
+.fhs-side{display:flex;flex-direction:column;gap:1.3rem;min-width:0}
+.fhs-side>.glass-panel{margin:0 !important;min-width:0}
+.fhs-side>#dash-fhs-panel{flex:1 1 auto}
+#dash-fcs-panel .fhs-title small{display:block;margin-top:2px;font-size:.66rem;font-weight:600;color:var(--text-muted);letter-spacing:0;text-transform:none}
+.fcs-head{display:flex;align-items:baseline;gap:6px 12px;flex-wrap:wrap;margin:2px 0 10px}
+.fcs-k{flex:1 1 100%;font-size:.72rem;font-weight:600;color:var(--txa-mut)}
+.fcs-big{font-family:'DM Mono',monospace;font-size:1.7rem;font-weight:700;line-height:1.1;color:var(--txa-text)}
+.fcs-rng{font-size:.68rem;font-weight:600;color:var(--txa-mut)}
+.fcs-stack{display:flex;height:9px;border-radius:99px;overflow:hidden;background:var(--txa-track)}
+.fcs-stack i{display:block;height:100%;transition:width .5s cubic-bezier(.2,.8,.2,1)}
+.fcs-leg{display:flex;flex-wrap:wrap;gap:4px 14px;margin:8px 0 10px;font-size:.66rem;color:var(--txa-mut)}
+.fcs-leg b{color:var(--txa-text);font-family:'DM Mono',monospace;margin-left:3px}
+.fcs-leg s{display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:5px;vertical-align:baseline}
+.fcs-status{display:grid;grid-template-columns:18px minmax(0,1fr);gap:8px;align-items:start;padding:9px 11px;border-radius:11px;font-size:.76rem;line-height:1.4;color:var(--txa-text);background:color-mix(in srgb,var(--c) 11%,transparent);border:1px solid color-mix(in srgb,var(--c) 38%,transparent)}
+.fcs-status i{color:var(--c);margin-top:2px;text-align:center}
+.fcs-rows{display:flex;flex-direction:column;gap:7px;margin-top:9px}
+.fcs-r{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:3px 10px;align-items:center;font-size:.72rem}
+.fcs-r .n{font-weight:700;color:var(--txa-text);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.fcs-r .v{font-family:'DM Mono',monospace;font-weight:700;color:var(--txa-text);white-space:nowrap}
+.fcs-r .v em{font-style:normal;font-weight:600;color:var(--txa-mut)}
+.fcs-bar{grid-column:1/3;height:5px;border-radius:99px;background:var(--txa-track);overflow:hidden}
+.fcs-bar i{display:block;height:100%;border-radius:99px}
+#dash-fcs-panel .txa-note em{font-style:normal;opacity:.8}
+</style>
+<script id="fcs-script">
+/* Dashboard → Month-End Forecast (current calendar month).
+   projected month-end spend = spent so far + already-scheduled entries + recurring bills still due + expected remaining everyday spending.
+   Expected everyday spending = (blend of this month's pace and the last up-to-3 months' pace, per category) × remaining days,
+   weighted by your usual weekday pattern when there is enough history. Every input is a real record; nothing is invented. */
+(function () {
+  'use strict';
+  if (window.__fcs) return; window.__fcs = true;
+  var GREEN = '#34d399', AMBER = '#fbbf24', RED = '#f87171', MN = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+
+  function $(i) { return document.getElementById(i); }
+  function esc(s) { return typeof _esc === 'function' ? _esc(s) : String(s == null ? '' : s).replace(/[&<>"']/g, function (c) { return ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'})[c]; }); }
+  function m(n) { return fmt(n); }
+  function r0(n) { return Math.round(n); }
+  function p2(n) { return String(n).padStart(2, '0'); }
+  function dim(y, mo) { return new Date(y, mo + 1, 0).getDate(); }
+  function med(a) { a = a.slice().sort(function (x, y) { return x - y; }); var n = a.length; return n ? (n % 2 ? a[(n - 1) / 2] : (a[n / 2 - 1] + a[n / 2]) / 2) : 0; }
+  function isoD(d) { return d.getFullYear() + '-' + p2(d.getMonth() + 1) + '-' + p2(d.getDate()); }
+  function bcat(r) { var b = budgets || {}; if (Number(b[r.sub]) > 0) return r.sub; if (Number(b[r.name]) > 0) return r.name; return null; }
+
+  function compute() {
+    var now = new Date(), Y = now.getFullYear(), Mo = now.getMonth(), d = now.getDate(), D = dim(Y, Mo), mk = Y + '-' + p2(Mo + 1), today = mk + '-' + p2(d);
+    var E = (db || []).filter(function (r) { return r && r.type === 'Expense' && /^\d{4}-\d{2}-\d{2}/.test(String(r.date || '')); }).map(function (r) {
+      var dt = String(r.date).slice(0, 10); return { r: r, date: dt, mon: dt.slice(0, 7), amt: _amt(r.amount), k: bcat(r) || txCategory(r), rec: !!r.recurring };
+    });
+    var cur = E.filter(function (e) { return e.mon === mk; }), sofar = cur.filter(function (e) { return e.date <= today; }), sched = cur.filter(function (e) { return e.date > today; });
+    /* history: up to 3 previous calendar months that have expense data */
+    var hm = [], hk = {};
+    for (var i = 1; i <= 3; i++) { var t = new Date(Y, Mo - i, 1), k = t.getFullYear() + '-' + p2(t.getMonth() + 1); if (E.some(function (e) { return e.mon === k; })) { hm.push({ k: k, days: dim(t.getFullYear(), t.getMonth()), v: 0 }); hk[k] = hm[hm.length - 1]; } }
+    var histDays = hm.reduce(function (s, h) { return s + h.days; }, 0), H = {};
+    E.forEach(function (e) { if (hk[e.mon] && !e.rec) { H[e.k] = (H[e.k] || 0) + e.amt; hk[e.mon].v += e.amt; } });
+    /* recurring bills still due: flagged recurring, seen last month or the month before, nothing recorded yet this month */
+    var tpl = {}, firstPrev = isoD(new Date(Y, Mo - 1, 1)), recDue = [];
+    E.forEach(function (e) { if (!e.rec || (e.mon !== mk && !hk[e.mon])) return; var id = (txPayee(e.r) || String(e.r.name || '')).toLowerCase().trim() + '|' + e.k; (tpl[id] = tpl[id] || []).push(e); });
+    Object.keys(tpl).forEach(function (id) {
+      var a = tpl[id]; if (a.some(function (e) { return e.mon === mk; })) return;
+      var pv = a.filter(function (e) { return e.mon !== mk; }).sort(function (x, y) { return x.date < y.date ? 1 : -1; }); if (!pv.length || pv[0].date < firstPrev) return;
+      var top = pv.slice(0, 3), day = med(top.map(function (e) { return +e.date.slice(8, 10); }));
+      recDue.push({ name: txPayee(pv[0].r) || String(pv[0].r.name || '') || pv[0].k, cat: pv[0].k, amt: med(top.map(function (e) { return e.amt; })), day: day, late: day <= d });
+    });
+    /* usual weekday pattern (everyday spending, last 90 days) */
+    var nr = E.filter(function (e) { return !e.rec && e.date <= today; }), fac = [1, 1, 1, 1, 1, 1, 1], pattern = false;
+    if (nr.length) {
+      var t0 = new Date(Y, Mo, d - 89), first = nr.reduce(function (a, e) { return e.date < a ? e.date : a; }, today), fs = new Date(first.slice(0, 4), +first.slice(5, 7) - 1, +first.slice(8, 10)); if (fs > t0) t0 = fs;
+      var span = Math.round((new Date(Y, Mo, d) - t0) / 864e5) + 1;
+      if (span >= 42) {
+        var tot = [0, 0, 0, 0, 0, 0, 0], occ = [0, 0, 0, 0, 0, 0, 0], all = 0;
+        for (var j = 0; j < span; j++) occ[new Date(t0.getFullYear(), t0.getMonth(), t0.getDate() + j).getDay()]++;
+        var t0i = isoD(t0); nr.forEach(function (e) { if (e.date >= t0i) { tot[new Date(+e.date.slice(0, 4), +e.date.slice(5, 7) - 1, +e.date.slice(8, 10)).getDay()] += e.amt; all += e.amt; } });
+        if (all > 0) { pattern = true; for (var q = 0; q < 7; q++) fac[q] = occ[q] ? Math.max(0.5, Math.min(1.6, (tot[q] / occ[q]) / (all / span))) : 1; }
+      }
+    }
+    var W = 0; for (var dd = d + 1; dd <= D; dd++) W += fac[new Date(Y, Mo, dd).getDay()];
+    /* per category */
+    var C = {}; function c(k) { return C[k] || (C[k] = { k: k, sofar: 0, sched: 0, rec: 0, rem: 0, vs: 0, lim: Number((budgets || {})[k]) || 0 }); }
+    Object.keys(budgets || {}).forEach(function (k) { if (Number(budgets[k]) > 0) c(k); });
+    sofar.forEach(function (e) { var x = c(e.k); x.sofar += e.amt; if (!e.rec) x.vs += e.amt; });
+    sched.forEach(function (e) { c(e.k).sched += e.amt; }); recDue.forEach(function (x) { c(x.cat).rec += x.amt; });
+    Object.keys(H).forEach(function (k) { c(k); });
+    var w = d / D, T = { sofar: 0, sched: 0, rec: 0, rem: 0 };
+    Object.keys(C).forEach(function (k) {
+      var x = C[k], cr = x.vs / d, hr = histDays ? (H[k] || 0) / histDays : null, rate = hr != null ? w * cr + (1 - w) * hr : cr;
+      x.rem = rate * W; x.proj = x.sofar + x.sched + x.rec + x.rem; x.over = x.lim > 0 ? x.proj - x.lim : 0;
+      T.sofar += x.sofar; T.sched += x.sched; T.rec += x.rec; T.rem += x.rem;
+    });
+    var fixed = T.sofar + T.sched + T.rec, proj = fixed + T.rem, lo = null, hi = null;
+    if (hm.length >= 2) { var rs = hm.map(function (h) { return h.v / h.days; }), mean = rs.reduce(function (s, v) { return s + v; }, 0) / rs.length; if (mean > 0) { lo = fixed + T.rem * Math.max(0.5, Math.min.apply(null, rs) / mean); hi = fixed + T.rem * Math.min(2, Math.max.apply(null, rs) / mean); } }
+    var cats = Object.keys(C).map(function (k) { return C[k]; });
+    return { Y: Y, Mo: Mo, d: d, D: D, T: T, proj: proj, lo: lo, hi: hi, cats: cats, recDue: recDue, hist: hm.length, pattern: pattern, nSched: sched.length,
+      empty: !sofar.length && !sched.length && !recDue.length && !hm.length, early: d < 5 && !hm.length };
+  }
+
+  function render() {
+    var host = $('dash-fcs'); if (!host) return;
+    if (typeof activeView !== 'undefined' && activeView !== 'dashboard') return;
+    var F = compute(), sc = $('dash-fcs-scope'); if (sc) sc.textContent = MN[F.Mo] + ' ' + F.Y + ' · day ' + F.d + ' of ' + F.D;
+    if (F.empty) { host.innerHTML = '<div class="txa-muted-empty">No spending recorded this month yet, so there is nothing to forecast.</div>'; return; }
+    var T = F.T, fixedRec = T.rec + T.sched, pct = function (v) { return Math.max(0, v / (F.proj || 1) * 100); };
+    var budCats = F.cats.filter(function (x) { return x.lim > 0; }), overs = budCats.filter(function (x) { return x.over > 0; }).sort(function (a, b) { return b.over - a.over; });
+    var status;
+    if (!budCats.length) status = ['#64748b', 'fa-circle-info', 'Set category budgets to see projected overspend.'];
+    else if (overs.length) { var o = overs[0], sev = o.over >= o.lim * 0.2 ? RED : AMBER; status = [sev, 'fa-triangle-exclamation', '<b>' + m(o.over) + ' over budget in ' + esc(o.k) + '</b>' + (overs.length > 1 ? ' and ' + (overs.length - 1) + ' more categor' + (overs.length === 2 ? 'y' : 'ies') : '') + '.']; }
+    else status = [GREEN, 'fa-circle-check', '<b>On track:</b> all ' + budCats.length + ' budgeted categor' + (budCats.length === 1 ? 'y is' : 'ies are') + ' projected within limit.'];
+    var range = F.lo != null ? '<span class="fcs-rng">likely between ' + m(F.lo) + ' and ' + m(F.hi) + '</span>' : '<span class="fcs-rng">' + (F.early ? 'early estimate: only ' + F.d + ' day' + (F.d === 1 ? '' : 's') + ' of data' : 'estimate: more history narrows the range') + '</span>';
+    var rows = overs.slice(0, 3).map(function (x) {
+      var p = Math.min(100, x.proj / x.lim * 100); return '<div class="fcs-r"><span class="n" title="' + esc(x.k) + '">' + esc(x.k) + '</span><span class="v">' + m(x.proj) + ' <em>of ' + m(x.lim) + '</em></span><span class="fcs-bar"><i style="width:' + p + '%;background:' + (x.over >= x.lim * 0.2 ? RED : AMBER) + '"></i></span></div>';
+    }).join('');
+    var recTxt = F.recDue.length ? '<b>' + F.recDue.length + '</b> recurring bill' + (F.recDue.length === 1 ? '' : 's') + ' still due (' + m(T.rec) + '): ' + F.recDue.slice().sort(function (a, b) { return b.amt - a.amt; }).slice(0, 3).map(function (x) { return esc(x.name) + (x.late ? ' <em>(due, not recorded yet)</em>' : ' <em>(~day ' + r0(x.day) + ')</em>'); }).join(', ') + '.' : 'No recurring bills are still due this month.';
+    host.innerHTML = '<div class="fcs-head"><div class="fcs-k">You’ll likely end the month at</div><div class="fcs-big">' + m(F.proj) + '</div>' + range + '</div>' +
+      '<div class="fcs-stack" role="img" aria-label="Spent so far, committed, and expected spending"><i style="width:' + pct(T.sofar) + '%;background:var(--txa-acc)"></i><i style="width:' + pct(fixedRec) + '%;background:#a78bfa"></i><i style="width:' + pct(T.rem) + '%;background:rgba(var(--brand-rgb,32,205,181),.28)"></i></div>' +
+      '<div class="fcs-leg"><span><s style="background:var(--txa-acc)"></s>Spent so far <b>' + m(T.sofar) + '</b></span><span><s style="background:#a78bfa"></s>Bills &amp; scheduled <b>' + m(fixedRec) + '</b></span><span><s style="background:rgba(var(--brand-rgb,32,205,181),.28)"></s>Usual pattern <b>' + m(T.rem) + '</b></span></div>' +
+      '<div class="fcs-status" style="--c:' + status[0] + '"><i class="fas ' + status[1] + '"></i><span>' + status[2] + '</span></div>' + (rows ? '<div class="fcs-rows">' + rows + '</div>' : '') +
+      '<div class="txa-note" style="margin-top:8px">' + recTxt + '</div>' +
+      '<details class="fhs-how"><summary>How this is forecast</summary><div class="fhs-how-b txa-note">Projected spend = what you have spent (' + m(T.sofar) + ') + entries already dated later this month (' + m(T.sched) + ') + recurring bills not yet recorded (' + m(T.rec) + ') + expected everyday spending (' + m(T.rem) + '). Everyday spending uses, per category, a blend of this month’s daily pace and the average of your last ' + (F.hist || 0) + ' month' + (F.hist === 1 ? '' : 's') + ' (more weight on this month as it progresses), times the ' + (F.D - F.d) + ' days left' + (F.pattern ? ', weighted by your usual weekday pattern' : '') + '. Recurring bills are entries marked recurring that appeared last month. The range comes from how much your past months varied. Budgets are the monthly limits you set.</div></details>';
+  }
+  window.fcsRender = render;
 })();
 </script>
 </body>
