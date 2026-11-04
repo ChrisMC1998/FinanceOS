@@ -1464,6 +1464,13 @@ body.light-mode .budget-row-slider { background:linear-gradient(to right, var(--
 .budget-row-meta { display:flex; justify-content:space-between; font-size:0.66rem; color:var(--text-muted); }
 .budget-row-meta span:nth-child(2) { font-weight:600; color:var(--text-mid); }
 .budget-row-v2.has-limit { border-color:rgba(var(--brand-rgb),0.25); }
+.budget-suggest, .budget-suggest-bar { display:flex; align-items:center; justify-content:space-between; gap:8px; font-size:0.7rem; color:var(--text-mid); }
+.budget-suggest em { font-style:normal; color:var(--text-muted); }
+.budget-suggest-bar { padding:9px 12px; border-radius:12px; background:rgba(var(--brand-rgb),0.08); border:1px solid rgba(var(--brand-rgb),0.22); font-size:0.76rem; font-weight:600; }
+.budget-suggest-bar.muted { background:rgba(255,255,255,0.03); border-color:rgba(255,255,255,0.06); font-weight:500; color:var(--text-muted); }
+body.light-mode .budget-suggest-bar.muted { background:#f8fafc; border-color:#e2e8f0; }
+.budget-suggest-btn { flex-shrink:0; border:1px solid rgba(var(--brand-rgb),0.4); background:rgba(var(--brand-rgb),0.12); color:var(--accent); font-size:0.7rem; font-weight:700; padding:4px 10px; border-radius:8px; cursor:pointer; }
+.budget-suggest-btn:hover { background:rgba(var(--brand-rgb),0.22); }
 
 .input-group { margin-bottom:12px; }
 .input-group label { font-size:0.7rem; color:var(--text-muted); font-weight:600; text-transform:uppercase; letter-spacing:0.8px; }
@@ -9415,7 +9422,7 @@ function passAppLockGate() {
           <div class="set-row">
             <div class="set-label-block">
               <div class="set-lbl readable-white" style="font-size:0.8rem">Unusual Spending Pattern</div>
-              <div class="set-desc">Notify if a category spend spikes 50% above historical average.</div>
+              <div class="set-desc">Notify if a category spend spikes 50% above its average, or a recent transaction is far above that payee's or category's normal (including a new payee with a big amount).</div>
             </div>
             <label class="toggle-switch"><input type="checkbox" id="tog-unusual-spend" checked onchange="toggleSetting('unusual-spend','Unusual Spending Pattern',this)"><span class="toggle-slider"></span></label>
           </div>
@@ -14363,6 +14370,90 @@ function budgetMonthsInScope(data) {
   return Math.max(1, (b[0] - a[0]) * 12 + (b[1] - a[1]) + 1);
 }
 
+// ── SMART BUDGETS: suggested monthly limits from history ──────────────────
+// Looks at up to the last 6 COMPLETED calendar months (the current, partial month is excluded),
+// never reaching back before the first month that has expense data. Needs >= 3 such months.
+// Suggestion = average monthly spend per category + 10% buffer, rounded UP to a tidy figure.
+// A category must have spend in >= 2 of those months so a single one-off purchase doesn't set a limit.
+const BUDGET_SUGGEST_BUFFER = 0.10, BUDGET_SUGGEST_MAX_MONTHS = 6, BUDGET_SUGGEST_MIN_MONTHS = 3;
+function budgetSuggestRound(n) { const step = n >= 5000 ? 500 : n >= 1000 ? 100 : 50; return Math.ceil(n / step) * step; }
+function getBudgetSuggestions(rows, now) {
+  rows = Array.isArray(rows) ? rows : (typeof db !== 'undefined' && Array.isArray(db) ? db : []);
+  now = now || new Date();
+  const cur = localMonthKey(now);
+  const exp = rows.filter(r => r && r.type === 'Expense' && r.sub && /^\d{4}-\d{2}/.test(String(r.date || '')) && String(r.date).slice(0, 7) < cur);
+  const out = { months: 0, items: {} };
+  if (!exp.length) return out;
+  const first = exp.map(r => String(r.date).slice(0, 7)).sort()[0];
+  const keys = [];
+  for (let i = 1; i <= BUDGET_SUGGEST_MAX_MONTHS; i++) {
+    const k = localMonthKey(new Date(now.getFullYear(), now.getMonth() - i, 1));
+    if (k >= first) keys.push(k);
+  }
+  out.months = keys.length;
+  if (keys.length < BUDGET_SUGGEST_MIN_MONTHS) return out;
+  const win = new Set(keys), by = {};
+  exp.forEach(r => {
+    const mk = String(r.date).slice(0, 7);
+    if (!win.has(mk)) return;
+    const e = by[r.sub] || (by[r.sub] = { total: 0, active: {} });
+    const a = _amt(r.amount);
+    e.total += a; e.active[mk] = (e.active[mk] || 0) + a;
+  });
+  Object.keys(by).forEach(cat => {
+    const e = by[cat], activeMonths = Object.keys(e.active).filter(k => e.active[k] > 0).length;
+    // Average from the category's own first month in the window, so a newly added category isn't diluted by months before it existed.
+    const firstActive = Object.keys(e.active).sort()[0];
+    const avg = e.total / keys.filter(k => k >= firstActive).length;
+    if (activeMonths < 2 || !(avg > 0)) return;
+    out.items[cat] = { avg: Math.round(avg), limit: budgetSuggestRound(avg * (1 + BUDGET_SUGGEST_BUFFER)), activeMonths };
+  });
+  return out;
+}
+
+// ── UNUSUAL-SPEND DETECTION (per transaction) ─────────────────────────────
+// Same outlier rule as the Transactions Analytics "Unusually large transactions" insight:
+// amount > Q3 + 1.5 x IQR  AND  amount >= 2 x median. Differences: a minimum absolute amount so
+// small tickets never alert, and the baseline is that payee's own earlier payments (else the category's).
+// Only transactions from the last 7 days are checked; the baseline is every earlier expense (never later ones).
+const UNUSUAL_LOOKBACK_DAYS = 7, UNUSUAL_MIN_AMOUNT = 500, UNUSUAL_PAYEE_MIN_HISTORY = 4, UNUSUAL_CAT_MIN_HISTORY = 6;
+function _quantileSorted(s, q) { if (!s.length) return 0; const p = (s.length - 1) * q, lo = Math.floor(p), hi = Math.ceil(p); return s[lo] + (s[hi] - s[lo]) * (p - lo); }
+function spendOutlierStats(amounts, amount) {
+  const s = (amounts || []).map(_amt).filter(a => a > 0).sort((a, b) => a - b);
+  if (!s.length) return null;
+  const q1 = _quantileSorted(s, 0.25), q3 = _quantileSorted(s, 0.75), med = _quantileSorted(s, 0.5), fence = q3 + 1.5 * (q3 - q1);
+  return { n: s.length, median: med, fence, ratio: med > 0 ? amount / med : Infinity,
+           isOutlier: amount > fence && amount >= 2 * med && amount >= UNUSUAL_MIN_AMOUNT };
+}
+// Returns [{ row, amount, payee, category, kind: 'payee' | 'category' | 'new-payee', st }] sorted by how far above normal.
+function findUnusualTransactions(rows, now) {
+  rows = Array.isArray(rows) ? rows : (typeof db !== 'undefined' && Array.isArray(db) ? db : []);
+  now = now || new Date();
+  const today = localISO(now), since = localISO(new Date(now.getFullYear(), now.getMonth(), now.getDate() - (UNUSUAL_LOOKBACK_DAYS - 1)));
+  const dOf = r => String(r.date).slice(0, 10);
+  const exp = rows.filter(r => r && r.type === 'Expense' && /^\d{4}-\d{2}-\d{2}/.test(String(r.date || '')) && _amt(r.amount) > 0);
+  const out = [];
+  exp.filter(r => dOf(r) >= since && dOf(r) <= today).forEach(t => {
+    const amt = _amt(t.amount), d = dOf(t);
+    if (amt < UNUSUAL_MIN_AMOUNT) return;
+    const prior = exp.filter(r => r !== t && dOf(r) <= d);
+    const pk = _txKey(txPayee(t)), ck = _txKey(txCategory(t));
+    const payeePrior = pk ? prior.filter(r => _txKey(txPayee(r)) === pk) : [];
+    let st = null, kind = null;
+    if (payeePrior.length >= UNUSUAL_PAYEE_MIN_HISTORY) {
+      st = spendOutlierStats(payeePrior.map(r => r.amount), amt); kind = 'payee';
+    } else {
+      const catPrior = prior.filter(r => _txKey(txCategory(r)) === ck);
+      if (catPrior.length >= UNUSUAL_CAT_MIN_HISTORY) {
+        st = spendOutlierStats(catPrior.map(r => r.amount), amt);
+        kind = (pk && payeePrior.length === 0) ? 'new-payee' : 'category';
+      }
+    }
+    if (st && st.isOutlier) out.push({ row: t, amount: amt, payee: txPayee(t), category: txCategory(t), kind, st });
+  });
+  return out.sort((a, b) => b.st.ratio - a.st.ratio);
+}
+
 function sumType(type, data) {
   return (data || []).filter(r => r && r.type === type).reduce((a, b) => a + _amt(b.amount), 0);
 }
@@ -14864,11 +14955,13 @@ const NOTIF_COOLDOWN_HOURS = {
   'cc-warn':          12,
   'budget-over':      6,
   'budget-warn':      12,
+  'budget-pace':      48,    // mid-month pacing warning; id is per category per month
   'emi-due':          6,     // due-soon reminders can recur same day
   'high-interest':    48,
   'loan-ending':      48,
   'port-loss':        24,
   'unusual-spend':    24,
+  'unusual-txn':      168,   // per-transaction alert; id is per transaction and it only looks back 7 days
   'overspend':        6,
   'low-savings':      24,
   'no-income':        24,
@@ -15071,6 +15164,32 @@ function checkAlerts() {
     }
   });
 
+  // ── 2b. Budget Pacing (from day 15) ───────────────────────────────────
+  // Straight-line projection of THIS calendar month: spent so far / days elapsed x days in month.
+  // Fires once per category per month while still under the limit and projected to exceed it.
+  if (isNotifEnabled('budget-limits')) {
+    const _now = new Date(), _dom = _now.getDate();
+    if (_dom >= 15) {
+      const _mk = localMonthKey(_now), _dim = new Date(_now.getFullYear(), _now.getMonth() + 1, 0).getDate();
+      const _monthRows = db.filter(r => r && String(r.date || '').slice(0, 7) === _mk);
+      Object.entries(budgets).forEach(([cat, lim]) => {
+        lim = Number(lim);
+        if (!(lim > 0)) return;
+        const spent = budgetSpent(_monthRows, cat);
+        if (spent <= 0 || spent >= lim) return;   // nothing spent, or already over (the over-limit alert covers it)
+        const projected = spent / _dom * _dim;
+        if (projected <= lim) return;
+        addNotification(
+          `budget-pace-${cat}-${_mk}`,
+          'fa-chart-line', '#f59e0b',
+          `Pacing over budget: ${cat}`,
+          `You've spent ${fmt(spent)} of your ${fmt(lim)} "${cat}" budget by day ${_dom}. At this pace you'll reach about ${fmt(projected)} by month end.`,
+          'budget-pace'
+        );
+      });
+    }
+  }
+
   // ── 3. EMI Due Soon Alerts ────────────────────────────────────────────
   const todayDay = new Date().getDate();
   if (isNotifEnabled('bill-loan')) creditDb.forEach(loan => {
@@ -15200,6 +15319,32 @@ function checkAlerts() {
         );
       }
     });
+  }
+
+  // ── 6c. Unusual Transactions (far above that payee's / category's normal, or a new payee with a big amount) ──
+  // Uses the same 'Unusual Spending Pattern' toggle. Skips anything the fixed-limit Large Expense alert (section 9) already covers.
+  if (isNotifEnabled('unusual-spend')) {
+    const _bigLimit = Number(localStorage.getItem('fos_set_large-txn-limit')) || 10000, _bigOn = isNotifEnabled('large-txn'), _bigMonth = localMonthKey();
+    findUnusualTransactions(db)
+      .filter(u => !(_bigOn && u.amount > _bigLimit && String(u.row.date) >= _bigMonth))
+      // at most 3 of these showing at once: skip ones already showing or still snoozed, and fill only the free slots
+      .filter(u => { const _id = `unusual-txn-${u.row.id}`; return !notifications.some(n => n.id === _id) && !(notifDismissed[_id] && (Date.now() - notifDismissed[_id]) < getNotifCooldownMs('unusual-txn')); })
+      .slice(0, Math.max(0, 3 - notifications.filter(n => n.type === 'unusual-txn').length))
+      .forEach(u => {
+        const x = u.st.ratio.toFixed(1), P = _esc(u.payee), C = _esc(u.category), when = String(u.row.date).slice(0, 10);
+        let title, msg;
+        if (u.kind === 'payee') {
+          title = `Unusual expense: ${P}`;
+          msg = `${fmt(u.amount)} at "${P}" on ${when} is ${x}× your usual ${fmt(u.st.median)} there (based on ${u.st.n} earlier payments). Was this expected?`;
+        } else if (u.kind === 'new-payee') {
+          title = `New payee, big amount: ${P}`;
+          msg = `First payment to "${P}": ${fmt(u.amount)} on ${when} is ${x}× your typical "${C}" expense of ${fmt(u.st.median)}. Was this expected?`;
+        } else {
+          title = `Unusual expense in ${C}`;
+          msg = `${fmt(u.amount)}${u.payee ? ` at "${P}"` : ''} on ${when} is ${x}× your typical ${fmt(u.st.median)} for "${C}" (${u.st.n} earlier transactions). Was this expected?`;
+        }
+        addNotification(`unusual-txn-${u.row.id}`, 'fa-bolt', '#f59e0b', title, msg, 'unusual-txn');
+      });
   }
 
   // ── 7. Low Savings Rate Warning ───────────────────────────────────────
@@ -21135,6 +21280,7 @@ function deletePortItem(id) {
 // ── BUDGET MODAL ───────────────────────────────────────────────────────────
 function sanitizeId(str) { return str.replace(/[^a-zA-Z0-9]/g, '_'); }
 
+let _budgetSug = { months: 0, items: {} }, _budgetSugIds = {};
 function openBudgetModal() {
   const allSubs = [...new Set(db.map(d => d.sub).filter(Boolean))].sort((a,b) => a.localeCompare(b));
 
@@ -21175,6 +21321,15 @@ function openBudgetModal() {
   ));
   const globalStep = globalCeil <= 2000 ? 50 : globalCeil <= 10000 ? 100 : globalCeil <= 50000 ? 500 : 1000;
 
+  // Smart budgets: suggestions from the last 3–6 completed months (expense categories only)
+  _budgetSug = getBudgetSuggestions();
+  _budgetSugIds = {};
+  allSubs.forEach(sub => { if (_budgetSug.items[sub]) _budgetSugIds[sanitizeId(sub)] = sub; });
+  const _unsetIds = Object.keys(_budgetSugIds).filter(id => !(Number(budgets[_budgetSugIds[id]]) > 0));
+  const sugBar = _unsetIds.length
+    ? `<div class="budget-suggest-bar"><span>Smart budgets from your last ${_budgetSug.months} months</span><button type="button" class="budget-suggest-btn" onclick="acceptAllBudgetSuggestions()">Accept ${_unsetIds.length} new</button></div>`
+    : (Object.keys(_budgetSug.items).length ? '' : `<div class="budget-suggest-bar muted"><span>${_budgetSug.months < BUDGET_SUGGEST_MIN_MONTHS ? 'Smart budget suggestions appear once you have 3 completed months of expenses.' : 'No category has enough repeat spending for a suggestion yet.'}</span></div>`);
+
   document.getElementById('budget-modal-list').innerHTML = allSubs.map(sub => {
     const id = sanitizeId(sub);
     const existing = Number(budgets[sub] || 0);
@@ -21185,6 +21340,12 @@ function openBudgetModal() {
     const ceilVal = Math.max(globalCeil, niceCeil(Math.max(existing * 1.2, maxSpend * 1.5, 1)));
     const step = ceilVal === globalCeil ? globalStep : (ceilVal <= 2000 ? 50 : ceilVal <= 10000 ? 100 : ceilVal <= 50000 ? 500 : 1000);
     const metaText = existing > 0 ? `Alert at ${fmt(Math.round(existing * 0.8))}` : 'No limit set';
+    const sg = _budgetSug.items[sub];
+    const sugHtml = (sg && sg.limit !== existing) ? `
+      <div class="budget-suggest" id="bgtsug-${id}">
+        <span>Suggested <b>${fmt(sg.limit)}</b> <em>· avg ${fmt(sg.avg)}/mo + 10%</em></span>
+        <button type="button" class="budget-suggest-btn" onclick="acceptBudgetSuggestion('${id}')">${existing > 0 ? 'Use' : 'Accept'}</button>
+      </div>` : '';
     return `
     <div class="budget-row-v2 ${existing > 0 ? 'has-limit' : ''}" data-name="${sub.toLowerCase()}">
       <div class="budget-row-head">
@@ -21200,13 +21361,39 @@ function openBudgetModal() {
         <span>${userCurrency}0</span>
         <span id="bgtmeta-${id}">${metaText}</span>
         <span>${fmt(ceilVal)}</span>
-      </div>
+      </div>${sugHtml}
     </div>`;
   }).join('');
+  document.getElementById('budget-modal-list').insertAdjacentHTML('afterbegin', sugBar);
 
   document.getElementById('budget-search-input').value = '';
   document.querySelectorAll('.budget-row-slider').forEach(finaiFillBudgetSlider);
   document.getElementById('budget-modal').style.display = 'flex';
+}
+
+function _applyBudgetSuggestion(id) {
+  const sub = _budgetSugIds[id], sg = sub && _budgetSug.items[sub];
+  if (!sg) return false;
+  budgets[sub] = sg.limit;
+  const num = document.getElementById('bgtnum-' + id);
+  if (num) { num.value = sg.limit; finaiSyncBudgetNum(id); }
+  const chip = document.getElementById('bgtsug-' + id);
+  if (chip) chip.remove();
+  return true;
+}
+function _afterBudgetSuggestionsApplied() {
+  localStorage.setItem('fos_budgets', JSON.stringify(budgets));
+  scheduleSave();
+  if (activeView === 'dashboard') renderDashboard(); else { updateBudgetBadge(); checkAlerts(); }
+}
+function acceptBudgetSuggestion(id) { if (_applyBudgetSuggestion(id)) _afterBudgetSuggestionsApplied(); }
+// Only fills categories that have NO limit yet; existing limits are never overwritten in bulk.
+function acceptAllBudgetSuggestions() {
+  let n = 0;
+  Object.keys(_budgetSugIds).forEach(id => { if (!(Number(budgets[_budgetSugIds[id]]) > 0) && _applyBudgetSuggestion(id)) n++; });
+  if (n) _afterBudgetSuggestionsApplied();
+  const bar = document.querySelector('.budget-suggest-bar');
+  if (bar) { bar.classList.add('muted'); bar.innerHTML = `<span>${n} budget${n === 1 ? '' : 's'} set from your history</span>`; }
 }
 
 function finaiFillBudgetSlider(slider) {
