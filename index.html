@@ -8140,6 +8140,7 @@ function passAppLockGate() {
               <div class="finai-score-label">Financial Health Score</div>
               <div class="finai-score-sub" id="finai-score-sub">Analyzing your data…</div>
               <div class="finai-score-tags" id="finai-score-tags"></div>
+              <div id="finai-dq"></div>
             </div>
           </div>
 
@@ -11208,6 +11209,7 @@ const FINAI_DISCRETIONARY_KEYWORDS = [
   'salon','spa','beauty','makeup','smoking','tobacco','lottery','bet','betting','gambling'
 ];
 function finaiClassifyExpense(txn) {
+  try { const o = window.fosLabelOf && window.fosLabelOf(txn); if (o === 'essential' || o === 'discretionary') return o; } catch (e) {}
   const text = ((txn.sub || '') + ' ' + (txn.name || '')).toLowerCase();
   if (FINAI_ESSENTIAL_KEYWORDS.some(k => text.includes(k))) return 'essential';
   if (FINAI_DISCRETIONARY_KEYWORDS.some(k => text.includes(k))) return 'discretionary';
@@ -12572,6 +12574,7 @@ function renderFinAI() {
     if (empty) empty.style.display = 'block';
     document.getElementById('finai-score-num').textContent = '--';
     document.getElementById('finai-score-sub').textContent = 'Add transactions to get started.';
+    { const _dq = document.getElementById('finai-dq'); if (_dq) _dq.innerHTML = ''; }
     document.getElementById('finai-mini-savings').textContent = '--';
     document.getElementById('finai-mini-topcat').textContent = '--';
     document.getElementById('finai-mini-dti').textContent = '--';
@@ -12599,10 +12602,16 @@ function renderFinAI() {
     const diff = score - a.lastScore;
     subText += ` (${diff > 0 ? '+' : ''}${diff} vs last check)`;
   }
+  try {
+    const _q = fdqCompute();
+    if (_q.confidence !== 'high') subText += ' ' + (_q.confidence === 'low' ? 'Low' : 'Medium') + ' confidence' + (_q.headline ? ': ' + _q.headline : '') + '.';
+  } catch (e) { console.error('Data quality failed:', e); }
   document.getElementById('finai-score-sub').textContent = subText;
   document.getElementById('finai-score-tags').innerHTML = tags.map(([label, cls]) =>
     `<span class="finai-tag ${cls}">${label}</span>`).join('');
 
+  try { fdqRender(); } catch (e) { console.error('Data quality failed:', e); }
+  try { fosLabelsRender(); } catch (e) { console.error('Labels failed:', e); }
   document.getElementById('finai-mini-savings').textContent = a.monthSavingsRate !== null ? a.monthSavingsRate.toFixed(0) + '%' : '--';
   document.getElementById('finai-mini-topcat').textContent = a.topCatEntry ? a.topCatEntry[0] : '--';
   document.getElementById('finai-mini-dti').textContent = a.debtToIncome ? a.debtToIncome.toFixed(0) + '%' : '0%';
@@ -14569,9 +14578,9 @@ function budgetMonthsInScope(data) {
 // ── SMART BUDGETS: suggested monthly limits from history ──────────────────
 // Looks at up to the last 6 COMPLETED calendar months (the current, partial month is excluded),
 // never reaching back before the first month that has expense data. Needs >= 3 such months.
-// Suggestion = average monthly spend per category + 10% buffer, rounded UP to a tidy figure.
+// Suggestion = MEDIAN monthly spend per category over the last 3 completed months, rounded UP to a tidy figure.
 // A category must have spend in >= 2 of those months so a single one-off purchase doesn't set a limit.
-const BUDGET_SUGGEST_BUFFER = 0.10, BUDGET_SUGGEST_MAX_MONTHS = 6, BUDGET_SUGGEST_MIN_MONTHS = 3;
+const BUDGET_SUGGEST_BUFFER = 0, BUDGET_SUGGEST_MAX_MONTHS = 3, BUDGET_SUGGEST_MIN_MONTHS = 3;
 function budgetSuggestRound(n) { const step = n >= 5000 ? 500 : n >= 1000 ? 100 : 50; return Math.ceil(n / step) * step; }
 function getBudgetSuggestions(rows, now) {
   rows = Array.isArray(rows) ? rows : (typeof db !== 'undefined' && Array.isArray(db) ? db : []);
@@ -14600,7 +14609,8 @@ function getBudgetSuggestions(rows, now) {
     const e = by[cat], activeMonths = Object.keys(e.active).filter(k => e.active[k] > 0).length;
     // Average from the category's own first month in the window, so a newly added category isn't diluted by months before it existed.
     const firstActive = Object.keys(e.active).sort()[0];
-    const avg = e.total / keys.filter(k => k >= firstActive).length;
+    const vals = keys.filter(k => k >= firstActive).map(k => e.active[k] || 0).sort((x, y) => x - y), mid = vals.length >> 1;
+    const avg = vals.length % 2 ? vals[mid] : (vals[mid - 1] + vals[mid]) / 2;   // median of the last 3 completed months
     if (activeMonths < 2 || !(avg > 0)) return;
     out.items[cat] = { avg: Math.round(avg), limit: budgetSuggestRound(avg * (1 + BUDGET_SUGGEST_BUFFER)), activeMonths };
   });
@@ -21589,7 +21599,7 @@ function openBudgetModal() {
   allSubs.forEach(sub => { if (_budgetSug.items[sub]) _budgetSugIds[sanitizeId(sub)] = sub; });
   const _unsetIds = Object.keys(_budgetSugIds).filter(id => !(Number(budgets[_budgetSugIds[id]]) > 0));
   const sugBar = _unsetIds.length
-    ? `<div class="budget-suggest-bar"><span>Smart budgets from your last ${_budgetSug.months} months</span><button type="button" class="budget-suggest-btn" onclick="acceptAllBudgetSuggestions()">Accept ${_unsetIds.length} new</button></div>`
+    ? `<div class="budget-suggest-bar"><span>Smart budgets from your 3-month median</span><button type="button" class="budget-suggest-btn" onclick="acceptAllBudgetSuggestions()">Accept ${_unsetIds.length} new</button></div>`
     : (Object.keys(_budgetSug.items).length ? '' : `<div class="budget-suggest-bar muted"><span>${_budgetSug.months < BUDGET_SUGGEST_MIN_MONTHS ? 'Smart budget suggestions appear once you have 3 completed months of expenses.' : 'No category has enough repeat spending for a suggestion yet.'}</span></div>`);
 
   document.getElementById('budget-modal-list').innerHTML = allSubs.map(sub => {
@@ -21605,7 +21615,7 @@ function openBudgetModal() {
     const sg = _budgetSug.items[sub];
     const sugHtml = (sg && sg.limit !== existing) ? `
       <div class="budget-suggest" id="bgtsug-${id}">
-        <span>Suggested <b>${fmt(sg.limit)}</b> <em>· avg ${fmt(sg.avg)}/mo + 10%</em></span>
+        <span>Suggested <b>${fmt(sg.limit)}</b> <em>· 3-month median ${fmt(sg.avg)}/mo</em></span>
         <button type="button" class="budget-suggest-btn" onclick="acceptBudgetSuggestion('${id}')">${existing > 0 ? 'Use' : 'Accept'}</button>
       </div>` : '';
     return `
@@ -25029,6 +25039,19 @@ let gameStats = JSON.parse(localStorage.getItem('fos_game_stats')) || {
   streak:0,lastCheck:null,badges:[],networth:0,trackingDays:0,lastActivity:null
 };
 
+function fosFreezeOrReset(last, today) {
+  // A missed stretch (up to 7 days) is forgiven once per freeze token, for streaks of 7+ days; otherwise it resets.
+  if (typeof gameStats.freezes !== 'number') gameStats.freezes = 1;
+  const gap = Math.round((new Date(today + 'T00:00:00') - new Date(last + 'T00:00:00')) / 86400000) - 1;
+  if (last && gameStats.trackingDays >= 7 && gap >= 1 && gap <= 7 && gameStats.freezes > 0) {
+    gameStats.freezes--; gameStats.lastFreeze = today;
+    const n = gameStats.trackingDays;
+    setTimeout(() => { try { showSettingsToast('🧊 Freeze used: your ' + n + '-day streak survived ' + gap + ' missed day' + (gap > 1 ? 's' : '')); } catch (e) {} }, 900);
+    return gameStats.trackingDays + 1;
+  }
+  return 1;
+}
+
 function updateGameStats() {
   const totalInc=sumType('Income',db),totalExp=sumType('Expense',db),totalInv=sumType('Investment',db),totalLoan=sumType('Loan',db);
   const totalOutstandingDebt=creditDb.reduce((s,c)=>s+Number(c.outstandingBalance||0),0);
@@ -25036,12 +25059,13 @@ function updateGameStats() {
   // floored at 0) + the value of what's been invested, minus what's still owed on active loans/credit.
   const cashOnHand = totalInc - totalExp - totalInv - totalLoan;
   gameStats.networth = (cashOnHand>0 ? cashOnHand : 0) + totalInv - totalOutstandingDebt;
+  if (typeof gameStats.freezes !== 'number') gameStats.freezes = 1;
 
   const today = localISO();
   if (gameStats.lastActivity !== today) {
     const yesterday = (() => { const y = new Date(); y.setDate(y.getDate() - 1); return localISO(y); })();
     if (gameStats.lastActivity===yesterday) gameStats.trackingDays++;
-    else gameStats.trackingDays = gameStats.lastActivity ? 1 : 1;
+    else gameStats.trackingDays = gameStats.lastActivity ? fosFreezeOrReset(gameStats.lastActivity, today) : 1;
     gameStats.lastActivity = today;
   }
 
@@ -25063,6 +25087,11 @@ function updateGameStats() {
     // going over budget never broke it, so it wasn't tracking a real "streak" of good days.
     gameStats.streak = allUnder ? gameStats.streak + 1 : 0;
     gameStats.lastCheck = today;
+  }
+
+  // Earn a freeze token every 30 days of consistent tracking (max 3)
+  if (gameStats.trackingDays > 0 && gameStats.trackingDays % 30 === 0 && gameStats.freezeAwardAt !== gameStats.trackingDays) {
+    gameStats.freezes = Math.min(3, (gameStats.freezes || 0) + 1); gameStats.freezeAwardAt = gameStats.trackingDays;
   }
 
   // RE-VALIDATE ALL BADGES - Remove badges that no longer meet conditions
@@ -25092,7 +25121,7 @@ function updateGameStats() {
 
 function renderGameStats() {
   document.getElementById('game-streak').textContent=gameStats.streak;
-  document.getElementById('game-streak-sub').textContent=gameStats.streak===1?'day under budget':'days under budget';
+  document.getElementById('game-streak-sub').textContent=(gameStats.streak===1?'day under budget':'days under budget')+' · 🧊 '+(typeof gameStats.freezes==='number'?gameStats.freezes:1)+' freeze'+((typeof gameStats.freezes==='number'?gameStats.freezes:1)===1?'':'s');
   document.getElementById('game-badges-count').textContent=`${gameStats.badges.length}/${BADGES.length}`;
 
   const targets=[500000,1000000,2500000,5000000,10000000];
@@ -33273,6 +33302,12 @@ body.light-mode .txa-advhead h2 i{color:#0f766e}
       var day = Math.min(dim, Math.round(med(days.slice(0, 3)))), diff = td - day, pv = fosPayVote(rows);
       items.push({ key: g.key, type: g.type, name: label, cat: cat, sub: sub, amt: Math.round(med(amts.slice(0, 3)) * 100) / 100, lo: Math.min.apply(null, amts), hi: Math.max.apply(null, amts), day: day, diff: diff, status: diff >= 0 ? 'due' : (-diff <= 5 ? 'soon' : 'later'), pay: pv ? pv.v : '', n: win.length });
     });
+    try {                                                                          // schedule-based suggestions (loans, insurance, subscriptions, income, rent)
+      var sch = typeof window.fosSchedDue === 'function' ? window.fosSchedDue() : [];
+      learned += sch.length;
+      items = items.filter(function (x) { return !sch.some(function (s) { return finaiNameMatch(x.name, s.name); }); });
+      sch.forEach(function (s) { if (S.ignore.indexOf(s.key) >= 0 || snz.indexOf(s.key) >= 0) hidden++; else items.push(s); });
+    } catch (e) { console.error('Scheduled suggestions failed:', e); }
     var rank = { due: 0, soon: 1, later: 2 };
     items.sort(function (a, b) { return rank[a.status] - rank[b.status] || (a.status === 'due' ? b.diff - a.diff : a.day - b.day) || b.amt - a.amt; });
     return { items: items, learned: learned, hidden: hidden, Y: Y, M: M, td: td };
@@ -33280,9 +33315,9 @@ body.light-mode .txa-advhead h2 i{color:#0f766e}
   function dueText(it) { return it.status === 'due' ? 'Due ' + ord(it.day) + (it.diff > 0 ? ' · ' + it.diff + 'd late' : ' · today') : it.status === 'soon' ? 'Due ' + ord(it.day) + ' · in ' + (-it.diff) + 'd' : 'Usually the ' + ord(it.day); }
   function row(it, i) {
     var range = !(it.hi - it.lo <= Math.max(1, it.amt * 0.03));
-    return '<div class="frm-row ' + it.status + '"><div class="frm-main"><b title="' + _esc(it.name) + '">' + _esc(it.name) + '</b><span>' + _esc(it.cat || it.type) + (it.sub ? ' · ' + _esc(it.sub) : '') + ' · seen ' + it.n + ' of last 6 months' + (range ? ' · usually ' + fmt(it.lo) + '–' + fmt(it.hi) : '') + '</span></div>' +
+    return '<div class="frm-row ' + it.status + '"><div class="frm-main"><b title="' + _esc(it.name) + '">' + _esc(it.name) + '</b><span>' + _esc(it.cat || it.type) + (it.sub ? ' · ' + _esc(it.sub) : '') + (it.sched ? ' · ' + it.srcLabel : ' · seen ' + it.n + ' of last 6 months') + (range ? ' · usually ' + fmt(it.lo) + '–' + fmt(it.hi) : '') + '</span></div>' +
       '<div class="frm-amt">' + fmt(it.amt) + '<em>' + dueText(it) + '</em></div>' +
-      '<div class="frm-act"><button class="pri" onclick="fosRemAdd(' + i + ')"><i class="fas fa-plus" style="margin-right:5px"></i>Add now</button><button onclick="fosRemSnooze(' + i + ')">Skip this month</button><button onclick="fosRemIgnore(' + i + ')">Not recurring</button></div></div>';
+      '<div class="frm-act"><button class="pri" onclick="fosRemPaid(' + i + ')"><i class="fas fa-check" style="margin-right:5px"></i>' + (it.type === 'Income' ? 'Mark received' : 'Mark paid') + '</button><button onclick="fosRemAdd(' + i + ')">Edit &amp; add</button><button onclick="fosRemSnooze(' + i + ')">Skip this month</button><button onclick="fosRemIgnore(' + i + ')">Not recurring</button></div></div>';
   }
   function render() {
     var host = $('dash-rem'), panel = $('dash-rem-panel'); if (!host || !panel) return;
@@ -33290,7 +33325,7 @@ body.light-mode .txa-advhead h2 i{color:#0f766e}
     var R = compute(); LIST = R.items;
     if (!R.learned) { panel.style.display = 'none'; return; }
     panel.style.display = '';
-    var sc = $('dash-rem-scope'); if (sc) sc.textContent = MN[R.M] + ' ' + R.Y + ' · learned from your past months';
+    var sc = $('dash-rem-scope'); if (sc) sc.textContent = MN[R.M] + ' ' + R.Y + ' · from your schedules & past months';
     var foot = R.hidden ? '<div class="txa-note frm-foot">' + R.hidden + ' hidden · <a onclick="fosRemReset()">show again</a></div>' : '';
     if (!R.items.length) { host.innerHTML = '<div class="txa-muted-empty">✓ Everything you usually pay monthly is entered for ' + MN[R.M] + '.</div>' + foot; return; }
     var now = [], later = [], tot = 0;
@@ -33326,6 +33361,7 @@ body.light-mode .txa-advhead h2 i{color:#0f766e}
   function act(fn) { return function (i) { var it = LIST[i]; if (!it) return; fn(it); render(); }; }
   window.fosRemRender = render;
   window.fosRemChips = chips;
+  window.fosRemPaid = act(function (it) { if (typeof window.fosMarkPaid === 'function') window.fosMarkPaid(it); });
   window.fosRemAdd = function (i) { var it = LIST[i]; if (!it) return; openModal(); prefill(it); };
   window.fosRemPick = function (i) { var it = LIST[i]; if (it) prefill(it); };
   window.fosRemSnooze = act(function (it) { var s = st(), m = mk0(); (s.snooze[m] = s.snooze[m] || []).push(it.key); put(s); });
@@ -33764,5 +33800,297 @@ try{init();paint()}catch(e){}
 })();
 
 </script>
+<style id="fdq-style">
+.fdq{margin-top:10px}
+.fdq>summary{list-style:none;cursor:pointer;display:inline-flex;align-items:center;gap:7px;font-size:.74rem;font-weight:700;padding:4px 11px;border-radius:999px;border:1px solid rgba(128,128,128,.35);color:var(--text-main)}
+.fdq>summary::-webkit-details-marker{display:none}
+.fdq>summary i{width:8px;height:8px;border-radius:50%;background:var(--c)}
+.fdq>summary small{font-weight:600;color:var(--text-muted)}
+.fdq.c-high{--c:#34d399}.fdq.c-medium{--c:#fbbf24}.fdq.c-low{--c:#ef4444}
+.fdq-body{margin-top:8px;font-size:.76rem;color:var(--text-muted);line-height:1.5;max-width:520px}
+.fdq-row{display:flex;gap:10px;align-items:center;justify-content:space-between;padding:6px 0;border-top:1px solid rgba(128,128,128,.18)}
+.fdq-row.sub{padding-left:12px}
+.fdq-row b{color:var(--text-main);font-weight:600}
+.fdq-row button{flex:none;border:1px solid var(--accent,#20CDB5);background:transparent;color:var(--accent,#20CDB5);border-radius:8px;padding:3px 10px;font-size:.72rem;font-weight:700;cursor:pointer}
+.fdq-foot{margin-top:6px;font-size:.7rem;opacity:.8}
+</style>
+<script id="fdq-script">
+/* Schedule-based "suggested entries" (EMIs, insurance, subscriptions, repeating income & bills) with one-tap
+   Mark paid, plus the Data Quality score shown next to the Fin AI health score. */
+(function () {
+  'use strict';
+  var BAD_CAT = /^(uncategori[sz]ed|general|unknown|misc(ellaneous)?|none|n\/a)$/i;
+  var LOAN_CATS = ['Personal Loan', 'Home Loan', 'Vehicle Loan', 'Education Loan', 'Credit Card EMI', 'Other Loan'];
+  function p2(n) { return String(n).padStart(2, '0'); }
+  function today0() { var d = new Date(); d.setHours(0, 0, 0, 0); return d; }
+  function toast(m) { try { showSettingsToast(m); } catch (e) {} }
+  function dayOf(v) {
+    var s = String(v || '');
+    if (/^\d{4}-\d{2}-\d{2}/.test(s)) return parseInt(s.slice(8, 10), 10) || null;
+    var m = s.match(/\d+/); return m ? Math.min(31, Math.max(1, parseInt(m[0], 10))) : null;
+  }
+  function logged(name, types, mk) {
+    return (db || []).some(function (t) {
+      return t && types.indexOf(t.type) >= 0 && String(t.date || '').slice(0, 7) === mk && (finaiNameMatch(t.name, name) || finaiNameMatch(t.payee, name));
+    });
+  }
+
+  // Everything the app's own schedules say should be paid/received this month and is not logged yet
+  window.fosSchedDue = function () {
+    var out = [], known = [], now = today0(), Y = now.getFullYear(), M = now.getMonth(), td = now.getDate();
+    var mk = Y + '-' + p2(M + 1), dim = new Date(Y, M + 1, 0).getDate(), mS = new Date(Y, M, 1), mE = new Date(Y, M, dim);
+    function push(kind, type, name, cat, sub, amt, day, src, pay) {
+      day = Math.min(dim, Math.max(1, day)); var diff = td - day;
+      out.push({ key: 'sched|' + kind + '|' + finaiNorm(name), sched: true, kind: kind, srcLabel: src, type: type, name: name, cat: cat, sub: sub || '',
+        amt: Math.round(amt * 100) / 100, lo: amt, hi: amt, day: day, diff: diff, status: diff >= 0 ? 'due' : (-diff <= 5 ? 'soon' : 'later'), pay: pay || '', dueIso: mk + '-' + p2(day) });
+      known.push(name);
+    }
+    (creditDb || []).forEach(function (c) {
+      if (!c || c.status !== 'Active') return;
+      var emi = Number(c.monthlyEmi || 0); if (emi <= 0) return;
+      var nm = c.lenderName || 'Loan', day = dayOf(c.dueDate); known.push(nm); if (!day) return;
+      day = Math.min(dim, day); var endD = finaiParseISO(c.endDate);
+      if (endD && endD < new Date(Y, M, day)) return;
+      if (logged(nm, ['Loan', 'Expense'], mk)) return;
+      push('emi', 'Loan', nm, LOAN_CATS.indexOf(c.type) >= 0 ? c.type : 'Other Loan', '', emi, day, 'from your loans');
+    });
+    (insuranceDb || []).forEach(function (p) {
+      if (!p || ['Expired', 'Lapsed', 'Archived'].indexOf(p.status) >= 0) return;
+      var prem = Number(p.premium || 0); if (prem <= 0 || p.frequency === 'One-Time') return;
+      var nm = p.provider || p.insType || 'Insurance'; known.push(nm);
+      var occ = finaiOccurrences(finaiParseISO(p.startDate), finaiFreqStep(p.frequency), mS, mE);
+      if (!occ.length || logged(nm, ['Expense'], mk)) return;
+      push('insurance', 'Expense', nm, 'Insurance', p.insType || '', prem, occ[0].getDate(), 'from your insurance');
+    });
+    (subscriptionsDb || []).forEach(function (s) {
+      if (!s || s.status !== 'Active') return;
+      var amt = parseFloat(s.amount) || 0; if (amt <= 0) return;
+      var nm = s.name || s.provider || 'Subscription'; known.push(nm);
+      if (s.auto_renew === 'No' || (s.currency && s.currency !== '₹')) return;
+      var anchor = finaiParseISO(s.next_billing_date) || finaiParseISO(s.renewal_date) || finaiParseISO(s.start_date);
+      var occ = finaiOccurrences(anchor, finaiFreqStep(s.billing_frequency, s.custom_interval), mS, mE);
+      if (!occ.length || logged(nm, ['Expense'], mk)) return;
+      push('subscription', 'Expense', nm, 'Subscriptions', '', amt, occ[0].getDate(), 'from your subscriptions');
+    });
+    [['Income', 'income', 'from your income pattern'], ['Expense', 'bill', 'from your bill pattern']].forEach(function (cfg) {
+      finaiDetectRecurring(db || [], cfg[0], now).forEach(function (g) {
+        if (!g.day || !(g.amount > 0)) return;
+        var last = g.rows[g.rows.length - 1];
+        if (last.recurring) return;                                                   // the auto-add switch already handles it
+        if (g.rows.some(function (r) { return String(r.date || '').slice(0, 7) === mk; })) return;
+        if (cfg[0] === 'Expense' && known.some(function (n) { return finaiNameMatch(n, g.name); })) return;
+        push(cfg[1], cfg[0], g.name, fosClean(last.category || last.sub) || (cfg[0] === 'Income' ? 'Salary' : 'Other'), fosClean(last.subcategory), g.amount, g.day, cfg[2], last.pay);
+      });
+    });
+    return out;
+  };
+
+  function refresh() {
+    try { if (typeof fosRemRender === 'function') fosRemRender(); } catch (e) {}
+    try { if (typeof activeView !== 'undefined' && activeView === 'finai' && typeof renderFinAI === 'function') renderFinAI(); } catch (e) {}
+  }
+
+  // One tap: log the suggested entry (dated on its due day, or today if it is not due yet)
+  window.fosMarkPaid = function (it) {
+    try {
+      var now = today0(), Y = now.getFullYear(), M = now.getMonth(), dim = new Date(Y, M + 1, 0).getDate();
+      var iso = Y + '-' + p2(M + 1) + '-' + p2(Math.min(dim, it.day || now.getDate())), tIso = localISO();
+      var date = iso < tIso ? iso : tIso, amt = Number(it.amt);
+      if (!(amt > 0)) return false;
+      var R = fosResolve(it.type, it.cat || 'Other', it.sub || '', it.name), name = R.payee || R.cat;
+      if (_dupFind(it.type, name, amt, date)) { toast('Already logged: ' + name + ' on ' + date); return false; }
+      fosPersist(R, it.type);
+      db.push({ id: Date.now() + Math.floor(Math.random() * 1000), name: name, amount: amt, type: it.type, sub: R.cat, category: R.cat, payee: R.payee, subcategory: R.sub,
+        date: date, notes: 'Marked ' + (it.type === 'Income' ? 'received' : 'paid') + ' from reminder', recurring: false, tags: [], pay: it.pay || '' });
+      _afterEntrySaved();
+      toast('✓ ' + name + ' ' + fmt(amt) + ' ' + (it.type === 'Income' ? 'received' : 'paid') + ' · ' + date);
+      refresh();
+      return true;
+    } catch (e) { console.error('Mark paid failed:', e); return false; }
+  };
+  window.fosSchedPaid = function (key) {
+    var it = window.fosSchedDue().filter(function (x) { return x.key === key; })[0];
+    if (it) window.fosMarkPaid(it); else refresh();
+  };
+
+  // ── Data quality ────────────────────────────────────────────────────
+  window.fdqCompute = function () {
+    var now = today0(), mk = finaiLocalMonthKey(now), tIso = finaiLocalIso(now), td = now.getDate(), rows = (db || []).filter(Boolean);
+    var issues = [], ded = 0;
+    function add(key, label, detail, pts, sev) { issues.push({ key: key, label: label, detail: detail, pts: pts, sev: sev || 'warn' }); ded += pts; }
+    var month = rows.filter(function (r) { return String(r.date || '').slice(0, 7) === mk; });
+
+    // 1. EMIs logged vs what the loans expect by today
+    var missing = window.fosSchedDue().filter(function (x) { return x.kind === 'emi' && x.diff >= 0; });
+    var expected = 0;
+    (creditDb || []).forEach(function (c) {
+      if (!c || c.status !== 'Active' || !(Number(c.monthlyEmi) > 0)) return;
+      var d = dayOf(c.dueDate), endD = finaiParseISO(c.endDate);
+      if (d && d <= td && !(endD && endD < new Date(now.getFullYear(), now.getMonth(), d))) expected += Number(c.monthlyEmi);
+    });
+    var loanLogged = month.filter(function (r) { return r.type === 'Loan'; }).reduce(function (s, r) { return s + (Number(r.amount) || 0); }, 0);
+    if (missing.length && expected > 0 && loanLogged >= expected * 0.9) missing = [];           // logged as one combined entry
+    if (missing.length) add('emi', missing.length + ' EMI' + (missing.length > 1 ? 's' : '') + ' missing', 'Due by today per your loans, nothing logged this month.', Math.min(50, missing.length * 20), 'bad');
+
+    // 2. Income
+    if (!month.some(function (r) { return r.type === 'Income'; }))
+      add('income', 'No income logged yet', 'Nothing recorded as income this month' + (td < 7 ? ' (early in the month, so a small penalty).' : '.'), td >= 7 ? 25 : 8, td >= 7 ? 'bad' : 'info');
+
+    // 3. Uncategorised entries
+    var unc = month.filter(function (r) { var c = fosClean(r.category || r.sub); return !c || BAD_CAT.test(c); });
+    if (unc.length) add('unc', unc.length + ' uncategorised', 'Entries with no real category skew the category insights.', Math.min(15, 3 + Math.round(unc.length / Math.max(1, month.length) * 20)));
+
+    // 4. Future-dated entries
+    var fut = rows.filter(function (r) { return /^\d{4}-\d{2}-\d{2}/.test(String(r.date || '')) && String(r.date).slice(0, 10) > tIso; });
+    if (fut.length) add('fut', fut.length + ' future-dated', 'Dated after today, so they are not counted yet.', Math.min(10, fut.length * 3));
+
+    // 5. Likely duplicates (same type, date, payee and amount) this month
+    var seen = {}, dup = 0;
+    month.forEach(function (r) { var k = [r.type, r.date, finaiNorm(r.name), Number(r.amount)].join('|'); if (seen[k]) dup++; else seen[k] = 1; });
+    if (dup) add('dup', dup + ' likely duplicate' + (dup > 1 ? 's' : ''), 'Same type, date, payee and amount entered more than once.', Math.min(15, dup * 5));
+
+    issues.sort(function (a, b) { return b.pts - a.pts; });
+    var score = Math.max(0, 100 - ded), conf = score >= 85 ? 'high' : score >= 65 ? 'medium' : 'low';
+    return { score: score, confidence: conf, issues: issues, missingEmis: missing, headline: issues.slice(0, 2).map(function (i) { return i.label; }).join(', ') };
+  };
+
+  window.fdqRender = function () {
+    var host = document.getElementById('finai-dq'); if (!host) return;
+    var q = window.fdqCompute(), L = { high: 'High', medium: 'Medium', low: 'Low' }[q.confidence], h = '';
+    q.issues.forEach(function (i) {
+      h += '<div class="fdq-row"><span><b>' + _esc(i.label) + '</b> · ' + _esc(i.detail) + '</span></div>';
+      if (i.key === 'emi') q.missingEmis.forEach(function (m) {
+        h += '<div class="fdq-row sub"><span><b>' + _esc(m.name) + '</b> · ' + fmt(m.amt) + ' due on the ' + m.day + (m.day % 10 === 1 && m.day !== 11 ? 'st' : m.day % 10 === 2 && m.day !== 12 ? 'nd' : m.day % 10 === 3 && m.day !== 13 ? 'rd' : 'th') + '</span><button onclick="fosSchedPaid(\'' + m.key + '\')">Mark paid</button></div>';
+      });
+    });
+    if (!h) h = '<div class="fdq-row"><span>✓ This month’s data looks complete.</span></div>';
+    host.innerHTML = '<details class="fdq c-' + q.confidence + '"' + (window._fdqOpen ? ' open' : '') + ' ontoggle="window._fdqOpen=this.open"><summary><i></i>Data quality ' + q.score + '/100 <small>· ' + L + ' confidence</small></summary>' +
+      '<div class="fdq-body">' + h + '<div class="fdq-foot">The health score only reflects what you have logged. Fixing these raises confidence in it.</div></div></details>';
+  };
+})();
+</script>
+
+<style id="fosx-style">
+.fosx-lbl{margin-top:14px}
+.fosx-lbl>summary{cursor:pointer;font-size:.82rem;font-weight:700;color:var(--text-main);list-style:none}
+.fosx-lbl>summary small{font-weight:500;color:var(--text-muted);margin-left:6px}
+.fosx-row{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:7px 0;border-top:1px solid rgba(128,128,128,.18);font-size:.78rem;flex-wrap:wrap}
+.fosx-row b{font-weight:600;color:var(--text-main)}.fosx-row em{font-style:normal;color:var(--text-muted);margin-left:6px;font-size:.72rem}
+.fosx-seg{display:inline-flex;border:1px solid rgba(128,128,128,.35);border-radius:9px;overflow:hidden}
+.fosx-seg button{border:0;background:transparent;color:var(--text-muted);padding:4px 10px;font-size:.72rem;font-weight:700;cursor:pointer}
+.fosx-seg button.on{background:var(--accent,#20CDB5);color:#04110f}
+.fosx-close{margin:1.1rem 0;padding:14px 16px}
+.fosx-close .fosx-row button.act{border:1px solid var(--accent,#20CDB5);background:transparent;color:var(--accent,#20CDB5);border-radius:8px;padding:3px 10px;font-size:.72rem;font-weight:700;cursor:pointer;margin-left:6px}
+.fosx-ok{color:#34d399;font-weight:800;margin-right:8px}.fosx-no{color:var(--text-muted);margin-right:8px}
+</style>
+<script id="fosx-script">
+/* Learned essential/discretionary labels + month-end close checklist (rewards a streak-freeze token). */
+(function () {
+  'use strict';
+  function p2(n) { return String(n).padStart(2, '0'); }
+  function mkOf(d) { return d.getFullYear() + '-' + p2(d.getMonth() + 1); }
+  function G() { if (!gameStats || typeof gameStats !== 'object') gameStats = {}; return gameStats; }
+  function save() { try { localStorage.setItem('fos_game_stats', JSON.stringify(G())); } catch (e) {} try { if (typeof scheduleSave === 'function') scheduleSave(); } catch (e) {} }
+  function toast(m) { try { showSettingsToast(m); } catch (e) {} }
+  function dayOf(v) { var s = String(v || ''); if (/^\d{4}-\d{2}-\d{2}/.test(s)) return parseInt(s.slice(8, 10), 10) || null; var m = s.match(/\d+/); return m ? Math.min(31, Math.max(1, parseInt(m[0], 10))) : null; }
+
+  // ── 1. Learned labels ───────────────────────────────────────────────
+  function labels() { var g = G(); if (!g.labels || typeof g.labels !== 'object') g.labels = {}; return g.labels; }
+  window.fosLabelOf = function (txn) {
+    var L = G().labels; if (!L) return null;
+    return L['p:' + finaiNorm(txn.name)] || L['c:' + finaiNorm(txn.sub)] || null;
+  };
+  function guess(cat) {
+    var t = String(cat || '').toLowerCase();
+    if (FINAI_ESSENTIAL_KEYWORDS.some(function (k) { return t.indexOf(k) >= 0; })) return 'essential';
+    if (FINAI_DISCRETIONARY_KEYWORDS.some(function (k) { return t.indexOf(k) >= 0; })) return 'discretionary';
+    return 'unsure';
+  }
+  var LIST = [];
+  window.fosSetLabel = function (i, v) {
+    var c = LIST[i]; if (!c) return; var L = labels(), k = 'c:' + finaiNorm(c.cat);
+    if (v === 'auto') delete L[k]; else L[k] = v;
+    save(); try { renderFinAI(); } catch (e) {}
+  };
+  window.fosLabelsRender = function () {
+    var host = document.getElementById('finai-labels');
+    if (!host) {
+      var top = document.querySelector('#view-finai .finai-top-row'); if (!top) return;
+      host = document.createElement('div'); host.id = 'finai-labels'; top.insertAdjacentElement('afterend', host);
+    }
+    var now = new Date(), from = mkOf(new Date(now.getFullYear(), now.getMonth() - 3, 1)), by = {};
+    (db || []).forEach(function (r) {
+      if (!r || r.type !== 'Expense' || String(r.date || '').slice(0, 7) < from) return;
+      var c = r.sub || 'General'; by[c] = (by[c] || 0) + (Number(r.amount) || 0);
+    });
+    LIST = Object.keys(by).map(function (c) { return { cat: c, amt: by[c] }; }).sort(function (a, b) { return b.amt - a.amt; }).slice(0, 10);
+    if (!LIST.length) { host.innerHTML = ''; return; }
+    var L = labels(), mine = LIST.filter(function (c) { return L['c:' + finaiNorm(c.cat)]; }).length, open = window._fosLblOpen ? ' open' : '';
+    host.innerHTML = '<details class="glass-panel fosx-lbl"' + open + ' ontoggle="window._fosLblOpen=this.open" style="padding:12px 16px"><summary>Essential vs discretionary<small>' + mine + ' of ' + LIST.length + ' top categories set by you · tap to correct</small></summary>' +
+      LIST.map(function (c, i) {
+        var mineV = L['c:' + finaiNorm(c.cat)], g = guess(c.cat), cur = mineV || (g === 'unsure' ? 'auto' : 'auto');
+        var seg = ['essential', 'discretionary', 'auto'].map(function (v) {
+          var on = mineV ? mineV === v : v === 'auto';
+          return '<button class="' + (on ? 'on' : '') + '" onclick="fosSetLabel(' + i + ',\'' + v + '\')">' + (v === 'essential' ? 'Essential' : v === 'discretionary' ? 'Discretionary' : 'Auto') + '</button>';
+        }).join('');
+        return '<div class="fosx-row"><span><b>' + _esc(c.cat) + '</b><em>' + fmt(Math.round(c.amt)) + ' · ' + (mineV ? 'your label' : 'guessed: ' + g) + '</em></span><span class="fosx-seg">' + seg + '</span></div>';
+      }).join('') + '</details>';
+  };
+
+  // ── 2. Month-end close ──────────────────────────────────────────────
+  function target() {
+    var n = new Date(), dim = new Date(n.getFullYear(), n.getMonth() + 1, 0).getDate(), d = n.getDate();
+    if (dim - d <= 4) return mkOf(n);
+    if (d <= 5) return mkOf(new Date(n.getFullYear(), n.getMonth() - 1, 1));
+    return null;
+  }
+  function logged(name, T) {
+    return (db || []).some(function (t) { return t && (t.type === 'Loan' || t.type === 'Expense') && String(t.date || '').slice(0, 7) === T && (finaiNameMatch(t.name, name) || finaiNameMatch(t.payee, name)); });
+  }
+  function emiMissing(T) {
+    var y = +T.slice(0, 4), m = +T.slice(5, 7), dim = new Date(y, m, 0).getDate(), exp = 0, miss = [];
+    (creditDb || []).forEach(function (c) {
+      if (!c || c.status !== 'Active') return; var emi = Number(c.monthlyEmi || 0), day = dayOf(c.dueDate); if (emi <= 0 || !day) return;
+      var endD = finaiParseISO(c.endDate); if (endD && endD < new Date(y, m - 1, Math.min(dim, day))) return;
+      exp += emi; var nm = c.lenderName || 'Loan'; if (!logged(nm, T)) miss.push(nm);
+    });
+    var ll = (db || []).filter(function (r) { return r.type === 'Loan' && String(r.date || '').slice(0, 7) === T; }).reduce(function (s, r) { return s + (Number(r.amount) || 0); }, 0);
+    return miss.length && exp > 0 && ll >= exp * 0.9 ? [] : miss;
+  }
+  function st(T) { var g = G(); if (!g.close || typeof g.close !== 'object') g.close = {}; return g.close[T] || (g.close[T] = {}); }
+  window.fosCloseMarkBudget = function () { var T = target(); if (T) { st(T).budget = true; save(); fosCloseRender(); } };
+  window.fosCloseTick = function (k) { var T = target(); if (!T) return; st(T)[k] = true; save(); fosCloseRender(); };
+  window.fosCloseEmis = function () {
+    var T = target(), cur = T === mkOf(new Date());
+    var due = cur && typeof fosSchedDue === 'function' ? fosSchedDue().filter(function (x) { return x.kind === 'emi' && x.diff >= 0; }) : [];
+    if (due.length) due.forEach(function (x) { fosMarkPaid(x); }); else if (typeof openModal === 'function') openModal();
+    fosCloseRender();
+  };
+  window.fosCloseRender = function () {
+    var host = document.getElementById('fosx-close');
+    if (!host) { var strip = document.querySelector('.gamification-strip'); if (!strip) return; host = document.createElement('div'); host.id = 'fosx-close'; strip.insertAdjacentElement('afterend', host); }
+    var T = target(); if (!T || !(db || []).length) { host.innerHTML = ''; return; }
+    var s = st(T), miss = emiMissing(T), g = G(), month = new Date(+T.slice(0, 4), +T.slice(5, 7) - 1, 1).toLocaleDateString('en-IN', { month: 'long' });
+    var items = [
+      { ok: miss.length === 0, text: 'Log every EMI', sub: miss.length ? miss.length + ' missing: ' + miss.slice(0, 3).join(', ') : 'All EMIs logged', btn: miss.length ? '<button class="act" onclick="fosCloseEmis()">' + (T === mkOf(new Date()) ? 'Mark paid' : 'Add entry') + '</button>' : '' },
+      { ok: !!s.review, text: 'Review the month', sub: 'Check the Fin AI insights and data quality', btn: s.review ? '' : '<button class="act" onclick="switchView(\'finai\')">Open Fin AI</button><button class="act" onclick="fosCloseTick(\'review\')">Done</button>' },
+      { ok: !!s.budget, text: 'Set next month’s budgets', sub: 'Smart budgets use your 3-month median', btn: s.budget ? '' : '<button class="act" onclick="openBudgetModal()">Set budgets</button><button class="act" onclick="fosCloseTick(\'budget\')">Done</button>' }
+    ];
+    var all = items.every(function (i) { return i.ok; });
+    if (all && !s.done) {
+      s.done = true; if (typeof g.freezes !== 'number') g.freezes = 1; g.freezes = Math.min(3, g.freezes + 1); save();
+      toast('🎉 ' + month + ' closed · +1 🧊 streak freeze'); try { renderGameStats(); } catch (e) {}
+    }
+    var closedN = Object.keys(g.close || {}).filter(function (k) { return g.close[k] && g.close[k].done; }).length;
+    host.innerHTML = '<div class="glass-panel fosx-close"><div class="panel-title fhs-title"><span><i class="fas fa-flag-checkered" style="margin-right:7px;color:var(--brand,#20CDB5)"></i>Close out ' + month + '</span><small>' + (s.done ? '✓ Closed · ' : 'Finish all three for +1 🧊 freeze · ') + closedN + ' month' + (closedN === 1 ? '' : 's') + ' closed · 🧊 ' + (typeof g.freezes === 'number' ? g.freezes : 1) + '</small></div>' +
+      items.map(function (i) { return '<div class="fosx-row"><span><span class="' + (i.ok ? 'fosx-ok">✓' : 'fosx-no">○') + '</span><b>' + i.text + '</b><em>' + _esc(i.sub) + '</em></span><span>' + i.btn + '</span></div>'; }).join('') + '</div>';
+  };
+  // hooks: redraw the checklist with the game stats; saving budgets ticks the budget step
+  var _rgs = renderGameStats; renderGameStats = function () { _rgs.apply(this, arguments); try { fosCloseRender(); } catch (e) { console.error('Close checklist failed:', e); } };
+  window.addEventListener('load', function () { setTimeout(function () { try { fosCloseRender(); } catch (e) {} }, 1800); });
+  var _sb = saveBudgets; saveBudgets = function () { var r = _sb.apply(this, arguments); try { fosCloseMarkBudget(); } catch (e) {} return r; };
+})();
+</script>
+
 </body>
 </html>
