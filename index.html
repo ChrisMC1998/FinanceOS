@@ -33496,7 +33496,7 @@ function paintUnlock(id){var el=$(id);if(!el)return;var s=dataStats(),L=[];
     if(s.exp>0&&!s.pay)L.push('Add a <b>Payee</b> when you save expenses to unlock Payee Insights and “merge these?” clean-up.')}
   if(s.n&&s.span<4)L.push('<b>Trend watch</b> needs about 4 months of data ('+s.span+' so far).');
   if(s.n&&s.span<12)L.push('<b>Seasonality</b> (festival-month spending forecasts) unlocks after 12 months — '+(12-s.span)+' to go.');
-  L=L.slice(0,3).concat(msLines());
+  L=L.slice(0,3).concat(msLines()).concat(lhLines());
   el.style.display=L.length?'':'none';
   el.innerHTML=L.length?'<div class="pol-h"><i class="fas fa-unlock-alt"></i> What unlocks with more data</div><ul>'+L.map(function(x){return '<li>'+x+'</li>'}).join('')+'</ul>':''}
 
@@ -33535,6 +33535,66 @@ function paintMS(){var el=$('pol-ms');if(!el)return;var A=msAll(),R=A[0],S=A[1],
       '<li>Best month: <b>'+mLabel(S.bm)+'</b> at '+Math.round(S.rate)+'%. Average: '+Math.round(S.avg)+'%.</li>'+
       '<li>Next goal: '+S.tg+' months<span class="pol-pb"><i style="width:'+pb+'%"></i></span></li></ul></div>'}
   el.style.display=h?'':'none';el.innerHTML=h?'<div class="pol-h" style="margin-bottom:8px"><i class="fas fa-unlock"></i> Unlocked insights</div><div class="pol-two">'+h+'</div>':''}
+
+
+/* ── 4c. long-haul unlocks: streak-gated insights (4 weeks / 6 months / 12 months) ── */
+(function(){var st=document.createElement('style');st.textContent='.lh-row{display:flex;align-items:center;gap:10px;padding:8px 0;border-top:1px solid rgba(128,128,128,.18)}.lh-ic{width:30px;height:30px;border-radius:50%;display:flex;align-items:center;justify-content:center;background:rgba(128,128,128,.18);flex:none;font-size:.8rem}.lh-row.on .lh-ic{background:var(--accent);color:#06181a}.lh-b{flex:1;min-width:0}.lh-b b{display:block;font-size:.82rem}.lh-b small{display:block;opacity:.75;font-size:.7rem;line-height:1.35}.lh-s{font-size:.7rem;font-weight:700;white-space:nowrap}';document.head.appendChild(st)})();
+var LH_KEY='fos_lh_unlocked';
+var LH=[
+ {id:'pulse',unit:'week',need:4,name:'Weekly Pulse',ic:'fa-heart-pulse',how:'Log 2+ entries every week',tease:'your week-by-week spending rhythm, priciest and lightest weeks'},
+ {id:'half',unit:'month',need:6,name:'Half-Year Report',ic:'fa-chart-column',how:'Log income and expenses every month',tease:'6-month averages, savings stability and your typical month-end leftover'},
+ {id:'year',unit:'month',need:12,name:'Year in Review',ic:'fa-trophy',how:'Log income and expenses every month',tease:'full-year totals, top categories and your best and worst months'}];
+function lhPrevW(k){var p=k.split('-'),d=new Date(+p[0],+p[1]-1,+p[2]-7);return d.getFullYear()+'-'+pad(d.getMonth()+1)+'-'+pad(d.getDate())}
+function lhWeekKey(x){var p=String(x).slice(0,10).split('-'),d=new Date(+p[0],+p[1]-1,+p[2]);d.setDate(d.getDate()-((d.getDay()+6)%7));return d.getFullYear()+'-'+pad(d.getMonth()+1)+'-'+pad(d.getDate())}
+function lhStreaks(){var wk={},mo={};
+  db.forEach(function(r){if(!r||!r.date)return;var w=lhWeekKey(r.date),m=String(r.date).slice(0,7),o=mo[m]||(mo[m]={i:0,e:0});wk[w]=(wk[w]||0)+1;if(r.type==='Income')o.i++;else if(r.type==='Expense')o.e++});
+  var okW=function(k){return(wk[k]||0)>=2},okM=function(k){return !!(mo[k]&&mo[k].i>0&&mo[k].e>0)};
+  /* the week/month in progress never breaks a streak: it counts if it qualifies, otherwise the streak is read up to the previous one */
+  var cw=lhWeekKey(localISO()),w=okW(cw)?cw:lhPrevW(cw),sw=0;while(okW(w)){sw++;w=lhPrevW(w)}
+  var cm=ym(new Date()),m=okM(cm)?cm:addM(cm,-1),sm=0;while(okM(m)){sm++;m=addM(m,-1)}
+  var best=function(keys,prev,ok){var b=0,r=0,last=null;keys.sort().forEach(function(k){if(!ok(k)){r=0;last=null;return}r=(last&&prev(k)===last)?r+1:1;last=k;if(r>b)b=r});return b};
+  return{week:sw,month:sm,bestWeek:best(Object.keys(wk),lhPrevW,okW),bestMonth:best(Object.keys(mo),function(k){return addM(k,-1)},okM)}}
+function lhState(){var S=lhStreaks(),seen={},ch=0;try{seen=JSON.parse(localStorage.getItem(LH_KEY)||'{}')}catch(e){}
+  var out=LH.map(function(x){var cur=x.unit==='week'?S.week:S.month,best=x.unit==='week'?S.bestWeek:S.bestMonth;
+    if(cur>=x.need&&!seen[x.id]){seen[x.id]=localISO();ch=1;try{addNotification('lh-'+x.id,'fa-trophy','#fbbf24','🏆 Unlocked: '+x.name,'You stayed consistent for '+x.need+' '+x.unit+'s in a row. '+x.name+' is now on your dashboard.','goal-achievement')}catch(e){}}
+    return Object.assign({},x,{cur:cur,best:best,done:!!seen[x.id],on:seen[x.id]||'',p:Math.min(1,cur/x.need)})});
+  if(ch)try{localStorage.setItem(LH_KEY,JSON.stringify(seen))}catch(e){}
+  return out}
+function lhLines(){var n=lhState().filter(function(x){return !x.done})[0];if(!n)return[];
+  return['<b>'+n.name+'</b> ('+n.tease+') — '+n.cur+' of '+n.need+' '+n.unit+'s in a row.<span class="pol-pb"><i style="width:'+Math.round(n.p*100)+'%"></i></span>']}
+function lhAvg(a,f){return a.length?a.reduce(function(t,x){return t+f(x)},0)/a.length:0}
+function lhSd(v){if(v.length<2)return 0;var m=lhAvg(v,function(x){return x});return Math.sqrt(lhAvg(v,function(x){return (x-m)*(x-m)}))}
+function lhPulse(){var cw=lhWeekKey(localISO()),tot={};
+  db.forEach(function(r){if(r&&r.type==='Expense'&&r.date){var w=lhWeekKey(r.date);tot[w]=(tot[w]||0)+(Number(r.amount)||0)}});
+  var ks=[],w=lhPrevW(cw);for(var i=0;i<8;i++){ks.unshift(w);w=lhPrevW(w)}
+  var vals=ks.map(function(k){return tot[k]||0}),cur=tot[cw]||0,avg4=lhAvg(vals.slice(-4),function(x){return x}),used=ks.map(function(k,i){return{k:k,v:vals[i]}}).filter(function(x){return x.v>0});
+  if(!used.length)return '';
+  var hi=used.slice().sort(function(a,b){return b.v-a.v})[0],lo=used.slice().sort(function(a,b){return a.v-b.v})[0],mx=Math.max.apply(null,vals.concat([cur]))||1;
+  var lb=function(k){return +k.slice(8)+' '+MN[+k.slice(5,7)-1]};
+  var bars=ks.concat([cw]).map(function(k,i){var v=i<8?vals[i]:cur;return '<div'+(i===8?' class="pk"':'')+' title="Week of '+lb(k)+': '+fmt(v)+'"><i style="height:'+Math.max(3,Math.round(v/mx*38))+'px"></i>'+(+k.slice(8))+'</div>'}).join('');
+  return '<div><div class="pol-h"><i class="fas fa-heart-pulse"></i> Weekly pulse</div><div class="pol-rh">'+bars+'</div><ul><li>This week so far: <b>'+fmt(cur)+'</b> vs a usual <b>'+fmt(avg4)+'</b> a week (last 4 weeks).</li><li>Priciest week: '+lb(hi.k)+' ('+fmt(hi.v)+'). Lightest: '+lb(lo.k)+' ('+fmt(lo.v)+').</li></ul></div>'}
+function lhHalf(){var H=fosLedgerHistory(6);if(!H.length)return '';
+  var R=H.filter(function(h){return h.savingsRate!==null}),rt=R.map(function(h){return h.savingsRate}),sd=lhSd(rt),inc=H.map(function(h){return h.income}),im=lhAvg(inc,function(x){return x}),cv=im>0?lhSd(inc)/im:0;
+  var steady=sd<5?'very steady':sd<12?'fairly steady':'quite variable',ls=lhAvg(H,function(h){return h.cashLeft});
+  return '<div><div class="pol-h"><i class="fas fa-chart-column"></i> Half-year report ('+H.length+' months)</div><ul>'+
+   '<li>A typical month: income <b>'+fmt(Math.round(im))+'</b>, spent '+fmt(Math.round(lhAvg(H,function(h){return h.expense})))+', EMIs '+fmt(Math.round(lhAvg(H,function(h){return h.emi})))+', invested '+fmt(Math.round(lhAvg(H,function(h){return h.invest})))+'.</li>'+
+   '<li>You usually end a month with about <b style="color:'+(ls<0?'#f87171':'#34d399')+'">'+fmt(Math.round(ls))+'</b> left after all four.</li>'+
+   (R.length?'<li>Savings rate averages <b>'+Math.round(lhAvg(rt,function(x){return x}))+'%</b> ('+Math.round(Math.min.apply(null,rt))+'% to '+Math.round(Math.max.apply(null,rt))+'%) — '+steady+'.</li>':'')+
+   (cv>0.15?'<li>Your income swings about '+Math.round(cv*100)+'% month to month, so keep a buffer.</li>':'')+'</ul></div>'}
+function lhYear(){var H=fosLedgerHistory(12);if(!H.length)return '';
+  var T=function(k){return H.reduce(function(t,h){return t+h[k]},0)},inc=T('income'),sv=T('savings'),keys={};H.forEach(function(h){keys[h.month]=1});
+  var cats={},ex=0;db.forEach(function(r){if(r&&r.type==='Expense'&&keys[String(r.date||'').slice(0,7)]){var c=fosClean(r.category||r.sub)||'General',a=Number(r.amount)||0;cats[c]=(cats[c]||0)+a;ex+=a}});
+  var top=Object.keys(cats).map(function(k){return{k:k,v:cats[k]}}).sort(function(a,b){return b.v-a.v}).slice(0,3),R=H.filter(function(h){return h.savingsRate!==null}).sort(function(a,b){return b.savingsRate-a.savingsRate});
+  return '<div><div class="pol-h"><i class="fas fa-trophy"></i> Year in review ('+H.length+' months)</div><ul>'+
+   '<li>Earned <b>'+fmt(Math.round(inc))+'</b>, spent '+fmt(Math.round(T('expense')))+', paid '+fmt(Math.round(T('emi')))+' in EMIs, invested <b>'+fmt(Math.round(T('invest')))+'</b>.</li>'+
+   (inc>0?'<li>You kept <b>'+Math.round(sv/inc*100)+'%</b> of income over the period ('+fmt(Math.round(sv))+').</li>':'')+
+   (top.length&&ex>0?'<li>Top spending: '+top.map(function(t){return esc(t.k)+' '+Math.round(t.v/ex*100)+'%'}).join(', ')+'.</li>':'')+
+   (R.length>1?'<li>Best month: '+mLabel(R[0].month)+' ('+Math.round(R[0].savingsRate)+'%). Toughest: '+mLabel(R[R.length-1].month)+' ('+Math.round(R[R.length-1].savingsRate)+'%).</li>':'')+'</ul></div>'}
+function paintLH(){var el=$('pol-lh');if(!el)return;if(!db.length){el.style.display='none';return}var A=lhState();
+  var rows=A.map(function(x){return '<div class="lh-row'+(x.done?' on':'')+'"><span class="lh-ic"><i class="fas '+(x.done?'fa-check':x.ic)+'"></i></span><div class="lh-b"><b>'+x.name+'</b><small>'+(x.done?'Unlocked '+x.on:x.how+' · reveals '+x.tease+(x.best?' · best streak so far '+x.best:''))+'</small>'+(x.done?'':'<span class="pol-pb"><i style="width:'+Math.round(x.p*100)+'%"></i></span>')+'</div><span class="lh-s">'+(x.done?'✓ Unlocked':x.cur+' / '+x.need+' '+x.unit+'s')+'</span></div>'}).join('');
+  var b='';try{if(A[0].done)b+=lhPulse();if(A[1].done)b+=lhHalf();if(A[2].done)b+=lhYear()}catch(e){console.error('long-haul:',e)}
+  el.style.display='';
+  el.innerHTML='<div class="pol-h" style="margin-bottom:4px"><i class="fas fa-route"></i> Consistency journey — keep the streak alive</div>'+rows+(b?'<div class="pol-two" style="margin-top:12px">'+b+'</div>':'')+'<div style="margin-top:8px;font-size:.68rem;opacity:.7">A streak is a week with 2+ entries, or a month with income and expenses logged. Once unlocked, an insight stays unlocked.</div>'}
 
 /* ── 5. month-end summary card ── */
 var ME={m:null};
@@ -33577,16 +33637,16 @@ window.polMeStep=function(d){var s=dataStats(),ks=s.months.filter(function(m){re
 window.polMeToggle=function(){try{localStorage.setItem(LSM,localStorage.getItem(LSM)==='1'?'0':'1')}catch(e){}paintME()};
 
 /* ── wiring ── */
-function initDash(){var v=$('view-dashboard');if(v&&!$('pol-me'))v.insertAdjacentHTML('afterbegin','<div id="pol-me" class="glass-panel pol-card" style="display:none"></div><div id="pol-unlock-d" class="pol-card pol-un" style="display:none"></div><div id="pol-ms" class="glass-panel pol-card" style="display:none"></div>');
+function initDash(){var v=$('view-dashboard');if(v&&!$('pol-me'))v.insertAdjacentHTML('afterbegin','<div id="pol-me" class="glass-panel pol-card" style="display:none"></div><div id="pol-unlock-d" class="pol-card pol-un" style="display:none"></div><div id="pol-ms" class="glass-panel pol-card" style="display:none"></div><div id="pol-lh" class="glass-panel pol-card" style="display:none"></div>');
   var a=$('view-analytics');if(a&&!$('pol-unlock-a'))a.insertAdjacentHTML('afterbegin','<div id="pol-unlock-a" class="pol-card pol-un" style="display:none"></div>')}
 function wrap(n,after){var o=window[n];if(typeof o!=='function'||o.__pol)return;var w=function(){var r=o.apply(this,arguments);try{after()}catch(e){console.error('polish:',e)}return r};w.__pol=1;window[n]=w}
 wrap('renderTable',tableAfter);
-wrap('renderDashboard',function(){initDash();paintME();paintUnlock('pol-unlock-d');paintMS()});
+wrap('renderDashboard',function(){initDash();paintME();paintUnlock('pol-unlock-d');paintMS();paintLH()});
 wrap('renderAnalytics',function(){initDash();paintUnlock('pol-unlock-a')});
 wrap('buildQuickAdd',window.polQE);
 wrap('openModal',window.polQE);
 initDash();initBar();polSync();
-try{paintME();paintUnlock('pol-unlock-d');paintUnlock('pol-unlock-a');paintMS()}catch(e){}
+try{paintME();paintUnlock('pol-unlock-d');paintUnlock('pol-unlock-a');paintMS();paintLH()}catch(e){}
 })();
 
 </script>
