@@ -6779,7 +6779,7 @@ function passAppLockGate() {
             <div class="kpi-value" id="dash-port-gain" style="font-size:1.2rem">₹0</div>
           </div>
           <div>
-            <div class="kpi-label">Avg ROI %</div>
+            <div class="kpi-label">Portfolio ROI %</div>
             <div class="kpi-value" id="dash-port-roi" style="font-size:1.2rem">0%</div>
           </div>
         </div>
@@ -7509,11 +7509,11 @@ function passAppLockGate() {
           <div class="port-kpi-val" id="pk-gain">₹0</div>
         </div>
         <div class="port-kpi-card">
-          <div class="kpi-label">Avg ROI %</div>
+          <div class="kpi-label">Portfolio ROI %</div>
           <div class="port-kpi-val" id="pk-roi">0%</div>
         </div>
         <div class="port-kpi-card">
-          <div class="kpi-label">Avg Profit %</div>
+          <div class="kpi-label">Avg per Holding %</div>
           <div class="port-kpi-val" id="pk-profit">0%</div>
         </div>
         <div class="port-kpi-card">
@@ -16272,7 +16272,7 @@ function portAggStats(data) {
     totalInv:  calcs.reduce((a,c) => a+c.totalInvestment, 0),
     totalVal:  calcs.reduce((a,c) => a+c.currentValue, 0),
     totalGain: calcs.reduce((a,c) => a+c.gainLoss, 0),
-    avgRoi:    avg(calcs.map(c => c.roi)),
+    avgRoi:    calcs.reduce((a,c) => a+c.totalInvestment, 0) > 0 ? (calcs.reduce((a,c) => a+c.gainLoss, 0) / calcs.reduce((a,c) => a+c.totalInvestment, 0)) * 100 : 0,   // true portfolio return: total gain / total invested
     avgProfit: avg(calcs.map(c => c.profitPct)),
     totalQty:  data.reduce((a,e) => a+e.quantity, 0),
   };
@@ -19124,11 +19124,12 @@ function renderNetWorth() {
   const totalLoan = sumType('Loan', db);
   const portStats = portAggStats(getPortFiltered());
 
-  const cash   = totalInc - totalExp - totalInv + totalLoan;
+  const _debtNow = (creditDb || []).filter(c => c.status === 'Active').reduce((a, c) => a + (Number(c.outstandingBalance) || 0), 0);   // what is actually still owed
+  const cash   = totalInc - totalExp - totalInv - totalLoan;   // EMIs paid reduce cash
   const assets = Math.max(0, cash) + totalInv;
 
   document.getElementById('nw-assets').textContent   = fmt(assets);
-  document.getElementById('nw-liab').textContent     = fmt(totalLoan);
+  document.getElementById('nw-liab').textContent     = fmt(_debtNow);
   document.getElementById('nw-total').textContent    = fmt(totalInc - totalExp);
   document.getElementById('nw-port-val').textContent = fmt(portStats.totalVal);
 
@@ -19173,14 +19174,14 @@ function renderNetWorth() {
     // For the Financial Energy Meter (Assets vs Liab):
     // Assets = Liquid Cash + Investments
     // Liquid Cash = Income - Expense - Investment + Loan
-    const cash = cumInc - cumExp - cumInv + cumLoan;
+    const cash = cumInc - cumExp - cumInv - cumLoan;
     const assets = Math.max(0, cash) + cumInv;
     
     nwL.push(MONTHS[m-1]+' '+String(y).slice(2));
     nwD.push(nw); 
     incD.push(cumInc);
     aD.push(assets); 
-    lD.push(cumLoan);
+    lD.push(_debtNow);   // outstanding debt (EMIs paid so far is not a liability)
     deltaD.push(nw - prevNW);
     prevNW = nw;
   });
@@ -24156,7 +24157,7 @@ function runExport() {
       byType[k].inv+=c.totalInvestment; byType[k].val+=c.currentValue; byType[k].gain+=c.gainLoss; byType[k].qty+=e.quantity; byType[k].roi.push(c.roi);
     });
     Object.entries(byType).forEach(([k,v]) => {
-      const avgRoi = v.roi.length?(v.roi.reduce((a,b)=>a+b,0)/v.roi.length):0;
+      const avgRoi = v.inv > 0 ? (v.gain / v.inv) * 100 : 0;   // money-weighted
       csv += `"${assetTypeLabel(k)}",${v.inv.toFixed(0)},${v.val.toFixed(0)},${v.gain.toFixed(0)},${avgRoi.toFixed(1)},${v.qty}\n`;
     });
     csv += '\n';
@@ -24548,7 +24549,7 @@ async function runPDFExport() {
 
     if (Object.keys(byType).length > 0) {
       const tableData = Object.entries(byType).map(([k, v]) => {
-        const avgRoi = v.roi.length ? (v.roi.reduce((a, b) => a + b, 0) / v.roi.length) : 0;
+        const avgRoi = v.inv > 0 ? (v.gain / v.inv) * 100 : 0;   // money-weighted
         return [
           assetTypeLabel(k),
           `₹${v.inv.toLocaleString()}`,
@@ -33108,12 +33109,15 @@ body.light-mode .txa-advhead h2 i{color:#0f766e}
     var E = (db || []).filter(function (r) { return r && r.type === 'Expense' && /^\d{4}-\d{2}-\d{2}/.test(String(r.date || '')); }).map(function (r) {
       var dt = String(r.date).slice(0, 10); return { r: r, date: dt, mon: dt.slice(0, 7), amt: _amt(r.amount), k: bcat(r) || txCategory(r), rec: !!r.recurring };
     });
+    var _med = med(E.filter(function (e) { return !e.rec; }).map(function (e) { return e.amt; }));
+    E.forEach(function (e) { e.lump = !e.rec && _med > 0 && e.amt >= 5 * _med && e.amt >= 5000; });   /* big one-off purchases: counted once, not projected forward */
+    var _first = E.reduce(function (a, e) { return e.date < a ? e.date : a; }, '9999-99-99');
     var cur = E.filter(function (e) { return e.mon === mk; }), sofar = cur.filter(function (e) { return e.date <= today; }), sched = cur.filter(function (e) { return e.date > today; });
     /* history: up to 3 previous calendar months that have expense data */
     var hm = [], hk = {};
-    for (var i = 1; i <= 3; i++) { var t = new Date(Y, Mo - i, 1), k = t.getFullYear() + '-' + p2(t.getMonth() + 1); if (E.some(function (e) { return e.mon === k; })) { hm.push({ k: k, days: dim(t.getFullYear(), t.getMonth()), v: 0 }); hk[k] = hm[hm.length - 1]; } }
+    for (var i = 1; i <= 3; i++) { var t = new Date(Y, Mo - i, 1), k = t.getFullYear() + '-' + p2(t.getMonth() + 1); if (E.some(function (e) { return e.mon === k; })) { hm.push({ k: k, days: (k === _first.slice(0, 7) ? dim(t.getFullYear(), t.getMonth()) - (+_first.slice(8, 10)) + 1 : dim(t.getFullYear(), t.getMonth())), v: 0 }); hk[k] = hm[hm.length - 1]; } }
     var histDays = hm.reduce(function (s, h) { return s + h.days; }, 0), H = {};
-    E.forEach(function (e) { if (hk[e.mon] && !e.rec) { H[e.k] = (H[e.k] || 0) + e.amt; hk[e.mon].v += e.amt; } });
+    E.forEach(function (e) { if (hk[e.mon] && !e.rec && !e.lump) { H[e.k] = (H[e.k] || 0) + e.amt; hk[e.mon].v += e.amt; } });
     /* recurring bills still due: flagged recurring, seen last month or the month before, nothing recorded yet this month */
     var tpl = {}, firstPrev = isoD(new Date(Y, Mo - 1, 1)), recDue = [];
     E.forEach(function (e) { if (!e.rec || (e.mon !== mk && !hk[e.mon])) return; var id = (txPayee(e.r) || String(e.r.name || '')).toLowerCase().trim() + '|' + e.k; (tpl[id] = tpl[id] || []).push(e); });
@@ -33124,7 +33128,7 @@ body.light-mode .txa-advhead h2 i{color:#0f766e}
       recDue.push({ name: txPayee(pv[0].r) || String(pv[0].r.name || '') || pv[0].k, cat: pv[0].k, amt: med(top.map(function (e) { return e.amt; })), day: day, late: day <= d });
     });
     /* usual weekday pattern (everyday spending, last 90 days) */
-    var nr = E.filter(function (e) { return !e.rec && e.date <= today; }), fac = [1, 1, 1, 1, 1, 1, 1], pattern = false;
+    var nr = E.filter(function (e) { return !e.rec && !e.lump && e.date <= today; }), fac = [1, 1, 1, 1, 1, 1, 1], pattern = false;
     if (nr.length) {
       var t0 = new Date(Y, Mo, d - 89), first = nr.reduce(function (a, e) { return e.date < a ? e.date : a; }, today), fs = new Date(first.slice(0, 4), +first.slice(5, 7) - 1, +first.slice(8, 10)); if (fs > t0) t0 = fs;
       var span = Math.round((new Date(Y, Mo, d) - t0) / 864e5) + 1;
@@ -33139,7 +33143,7 @@ body.light-mode .txa-advhead h2 i{color:#0f766e}
     /* per category */
     var C = {}; function c(k) { return C[k] || (C[k] = { k: k, sofar: 0, sched: 0, rec: 0, rem: 0, vs: 0, lim: Number((budgets || {})[k]) || 0 }); }
     Object.keys(budgets || {}).forEach(function (k) { if (Number(budgets[k]) > 0) c(k); });
-    sofar.forEach(function (e) { var x = c(e.k); x.sofar += e.amt; if (!e.rec) x.vs += e.amt; });
+    sofar.forEach(function (e) { var x = c(e.k); x.sofar += e.amt; if (!e.rec && !e.lump) x.vs += e.amt; });
     sched.forEach(function (e) { c(e.k).sched += e.amt; }); recDue.forEach(function (x) { c(x.cat).rec += x.amt; });
     Object.keys(H).forEach(function (k) { c(k); });
     var w = d / D, T = { sofar: 0, sched: 0, rec: 0, rem: 0 };
@@ -33171,12 +33175,25 @@ body.light-mode .txa-advhead h2 i{color:#0f766e}
       var p = Math.min(100, x.proj / x.lim * 100); return '<div class="fcs-r"><span class="n" title="' + esc(x.k) + '">' + esc(x.k) + '</span><span class="v">' + m(x.proj) + ' <em>of ' + m(x.lim) + '</em></span><span class="fcs-bar"><i style="width:' + p + '%;background:' + (x.over >= x.lim * 0.2 ? RED : AMBER) + '"></i></span></div>';
     }).join('');
     var recTxt = F.recDue.length ? '<b>' + F.recDue.length + '</b> recurring bill' + (F.recDue.length === 1 ? '' : 's') + ' still due (' + m(T.rec) + '): ' + F.recDue.slice().sort(function (a, b) { return b.amt - a.amt; }).slice(0, 3).map(function (x) { return esc(x.name) + (x.late ? ' <em>(due, not recorded yet)</em>' : ' <em>(~day ' + r0(x.day) + ')</em>'); }).join(', ') + '.' : 'No recurring bills are still due this month.';
-    host.innerHTML = '<div class="fcs-head"><div class="fcs-k">You’ll likely end the month at</div><div class="fcs-big">' + m(F.proj) + '</div>' + range + '</div>' +
+    host.innerHTML = '<div class="fcs-head"><div class="fcs-k">Projected spending by month end</div><div class="fcs-big">' + m(F.proj) + '</div>' + range + netLine(F) + '</div>' +
       '<div class="fcs-stack" role="img" aria-label="Spent so far, committed, and expected spending"><i style="width:' + pct(T.sofar) + '%;background:var(--txa-acc)"></i><i style="width:' + pct(fixedRec) + '%;background:#a78bfa"></i><i style="width:' + pct(T.rem) + '%;background:rgba(var(--brand-rgb,32,205,181),.28)"></i></div>' +
       '<div class="fcs-leg"><span><s style="background:var(--txa-acc)"></s>Spent so far <b>' + m(T.sofar) + '</b></span><span><s style="background:#a78bfa"></s>Bills &amp; scheduled <b>' + m(fixedRec) + '</b></span><span><s style="background:rgba(var(--brand-rgb,32,205,181),.28)"></s>Usual pattern <b>' + m(T.rem) + '</b></span></div>' +
       '<div class="fcs-status" style="--c:' + status[0] + '"><i class="fas ' + status[1] + '"></i><span>' + status[2] + '</span></div>' + (rows ? '<div class="fcs-rows">' + rows + '</div>' : '') +
       '<div class="txa-note" style="margin-top:8px">' + recTxt + '</div>' +
-      '<details class="fhs-how"><summary>How this is forecast</summary><div class="fhs-how-b txa-note">Projected spend = what you have spent (' + m(T.sofar) + ') + entries already dated later this month (' + m(T.sched) + ') + recurring bills not yet recorded (' + m(T.rec) + ') + expected everyday spending (' + m(T.rem) + '). Everyday spending uses, per category, a blend of this month’s daily pace and the average of your last ' + (F.hist || 0) + ' month' + (F.hist === 1 ? '' : 's') + ' (more weight on this month as it progresses), times the ' + (F.D - F.d) + ' days left' + (F.pattern ? ', weighted by your usual weekday pattern' : '') + '. Recurring bills are entries marked recurring that appeared last month. The range comes from how much your past months varied. Budgets are the monthly limits you set.</div></details>';
+      '<details class="fhs-how"><summary>How this is forecast</summary><div class="fhs-how-b txa-note">Projected spend = what you have spent (' + m(T.sofar) + ') + entries already dated later this month (' + m(T.sched) + ') + recurring bills not yet recorded (' + m(T.rec) + ') + expected everyday spending (' + m(T.rem) + '). Everyday spending uses, per category, a blend of this month’s daily pace and the average of your last ' + (F.hist || 0) + ' month' + (F.hist === 1 ? '' : 's') + ' (more weight on this month as it progresses), times the ' + (F.D - F.d) + ' days left' + (F.pattern ? ', weighted by your usual weekday pattern' : '') + '. Recurring bills are entries marked recurring that appeared last month. Large one-off purchases are counted once and not repeated for the rest of the month. The range comes from how much your past months varied. Budgets are the monthly limits you set.</div></details>';
+  }
+  function netLine(F) {
+    try {
+      var mk = F.Y + '-' + p2(F.Mo + 1), L = fosLedger(mk), H = fosLedgerHistory(3), inc = L.income, est = false;
+      if (inc <= 0) {
+        var hi = H.filter(function (h) { return h.income > 0; });
+        if (!hi.length) return '<div class="fcs-rng" style="margin-top:6px">Add this month\u2019s income to see what you will have left after EMIs and investments.</div>';
+        inc = hi.reduce(function (a, h) { return a + h.income; }, 0) / hi.length; est = true;
+      }
+      var sched = 0; (creditDb || []).forEach(function (c) { if (c.status === 'Active') sched += Number(c.monthlyEmi || 0); });
+      var emi = Math.max(L.emi, sched), left = inc - F.proj - emi - L.invest;
+      return '<div class="fcs-rng" style="margin-top:6px">Expected left after spending, EMIs &amp; investments: <b style="color:' + (left < 0 ? RED : GREEN) + '">' + m(left) + '</b> <span style="opacity:.8">(income ' + m(inc) + (est ? ', estimated from recent months' : '') + ' - spending ' + m(F.proj) + ' - EMIs ' + m(emi) + ' - invested ' + m(L.invest) + ')</span></div>';
+    } catch (e) { return ''; }
   }
   window.fcsRender = render;
 })();
