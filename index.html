@@ -1604,6 +1604,111 @@ body.light-mode .toggle-switch input:checked + .toggle-slider { background:var(-
 .credit-status-active { background:rgba(52,211,153,0.12); color:#34d399; font-weight:700; }
 .credit-status-closed { background:rgba(100,116,139,0.15); color:#94a3b8; font-weight:700; }
 
+/* -- CREDIT INTELLIGENCE (analysis panels on the Credit Tracker page) -- */
+.cin-host { --cin-bg:rgba(255,255,255,.035); --cin-bd:rgba(255,255,255,.09); --cin-track:rgba(255,255,255,.08); }
+body.light-mode .cin-host { --cin-bg:rgba(15,23,42,.035); --cin-bd:rgba(15,23,42,.13); --cin-track:rgba(15,23,42,.09); }
+.cin-host .glass-panel { margin-bottom:1.3rem; }
+.cin-top { display:grid; grid-template-columns:minmax(0,4fr) minmax(0,6fr); gap:1.3rem; margin-bottom:1.3rem; }
+.cin-top > .glass-panel { margin-bottom:0 !important; }
+.cin-two { display:grid; grid-template-columns:minmax(0,1fr) minmax(0,1fr); gap:1.3rem; margin-bottom:1.3rem; }
+.cin-two > .glass-panel { margin-bottom:0 !important; }
+.cin-sub { font-size:.72rem; color:var(--text-muted); margin:-.45rem 0 .9rem; line-height:1.5; }
+
+/* score panel */
+.cin-score-head { display:flex; align-items:center; gap:16px; }
+.cin-gauge { flex:0 0 112px; width:112px; height:112px; }
+.cin-gauge .trk { fill:none; stroke:var(--cin-track); stroke-width:9; }
+.cin-gauge .arc { fill:none; stroke-width:9; stroke-linecap:round; transform:rotate(-90deg); transform-origin:50% 50%; transition:stroke-dashoffset .8s cubic-bezier(.2,.8,.2,1); }
+.cin-gauge text.n { font-family:'DM Mono',monospace; font-size:26px; font-weight:700; fill:var(--text-main); }
+.cin-gauge text.o { font-size:8.5px; font-weight:700; letter-spacing:.8px; text-transform:uppercase; fill:var(--text-muted); }
+.cin-grade { display:inline-block; padding:4px 12px; border-radius:999px; font-size:.74rem; font-weight:800; letter-spacing:.3px; color:var(--c); background:color-mix(in srgb,var(--c) 15%,transparent); border:1px solid color-mix(in srgb,var(--c) 40%,transparent); }
+.cin-verdict { font-size:.76rem; line-height:1.55; color:var(--text-mid); margin-top:8px; }
+.cin-fac-h { font-size:.64rem; font-weight:800; letter-spacing:1px; text-transform:uppercase; color:var(--text-muted); margin:14px 0 8px; padding-top:12px; border-top:1px solid var(--cin-bd); }
+.cin-fac { margin-bottom:9px; }
+.cin-fac-row { display:flex; justify-content:space-between; gap:10px; font-size:.74rem; color:var(--text-main); margin-bottom:4px; }
+.cin-fac-row span:last-child { font-family:'DM Mono',monospace; font-weight:700; flex-shrink:0; }
+.cin-fac-note { font-size:.66rem; color:var(--text-muted); margin-top:3px; line-height:1.4; }
+
+/* metric tiles */
+.cin-tiles { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:.8rem; }
+.cin-tile { background:var(--cin-bg); border:1px solid var(--cin-bd); border-radius:12px; padding:.9rem 1rem; display:flex; flex-direction:column; gap:5px; justify-content:center; min-width:0; }
+.cin-tile .l { font-size:.62rem; font-weight:800; letter-spacing:1px; text-transform:uppercase; color:var(--text-muted); }
+.cin-tile .v { font-family:'DM Mono',monospace; font-size:1.3rem; font-weight:700; line-height:1.15; overflow-wrap:anywhere; }
+.cin-tile .s { font-size:.68rem; color:var(--text-muted); line-height:1.4; }
+
+/* shared tracks / chips */
+.cin-track { height:7px; border-radius:99px; background:var(--cin-track); overflow:hidden; }
+.cin-track > i { display:block; height:100%; border-radius:99px; background:var(--c,#f97316); }
+.cin-chip { display:inline-flex; align-items:center; gap:5px; padding:3px 10px; border-radius:999px; font-size:.66rem; font-weight:800; letter-spacing:.3px; white-space:nowrap; color:var(--c); background:color-mix(in srgb,var(--c) 15%,transparent); border:1px solid color-mix(in srgb,var(--c) 40%,transparent); }
+
+/* EMI verdict mix + cards */
+.cin-mix { display:flex; height:12px; border-radius:99px; overflow:hidden; background:var(--cin-track); margin-bottom:10px; }
+.cin-mix > i { display:block; height:100%; }
+.cin-legend { display:flex; flex-wrap:wrap; gap:8px 16px; margin-bottom:1.1rem; }
+.cin-legend span { font-size:.72rem; color:var(--text-mid); display:inline-flex; align-items:center; gap:6px; }
+.cin-legend span b { color:var(--text-main); font-family:'DM Mono',monospace; }
+.cin-legend span::before { content:""; width:8px; height:8px; border-radius:50%; background:var(--c); }
+.cin-cards { display:grid; grid-template-columns:repeat(auto-fill,minmax(290px,1fr)); gap:.9rem; }
+.cin-card { background:var(--cin-bg); border:1px solid var(--cin-bd); border-left:3px solid var(--c); border-radius:12px; padding:.9rem 1rem; display:flex; flex-direction:column; gap:9px; min-width:0; }
+.cin-card-h { display:flex; justify-content:space-between; align-items:flex-start; gap:8px; }
+.cin-card-n { font-weight:700; font-size:.88rem; color:var(--text-main); min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.cin-meta { font-size:.68rem; color:var(--text-muted); margin-top:2px; }
+.cin-why { font-size:.74rem; line-height:1.5; color:var(--text-mid); }
+.cin-split { display:flex; height:7px; border-radius:99px; overflow:hidden; background:var(--cin-track); }
+.cin-split i { display:block; height:100%; }
+.cin-split i.i { background:#f43f5e; }
+.cin-split i.p { background:#34d399; }
+.cin-cap { display:flex; justify-content:space-between; gap:8px; font-size:.64rem; color:var(--text-muted); margin-top:4px; flex-wrap:wrap; }
+.cin-cap b { font-family:'DM Mono',monospace; font-weight:700; }
+.cin-facts { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:6px; }
+.cin-facts div { min-width:0; }
+.cin-facts small { display:block; font-size:.58rem; font-weight:800; letter-spacing:.8px; text-transform:uppercase; color:var(--text-muted); }
+.cin-facts b { font-family:'DM Mono',monospace; font-size:.76rem; color:var(--text-main); overflow-wrap:anywhere; }
+.cin-pur { display:flex; align-items:center; gap:8px; font-size:.64rem; color:var(--text-muted); padding-top:8px; border-top:1px dashed var(--cin-bd); }
+.cin-pur select { flex:1; min-width:0; background:var(--cin-bg); color:var(--text-main); border:1px solid var(--cin-bd); border-radius:8px; font-size:.7rem; padding:5px 6px; font-family:inherit; }
+.cin-pur select option { background:#0b1012; color:#e5e7eb; }
+body.light-mode .cin-pur select option { background:#fff; color:#0f172a; }
+.cin-det { font-size:.62rem; color:var(--text-muted); }
+
+/* drag-down panel */
+.cin-leak { display:flex; flex-direction:column; gap:12px; }
+.cin-leak-row { display:grid; grid-template-columns:24px minmax(0,1fr); gap:10px; align-items:center; }
+.cin-rank { width:24px; height:24px; border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:.68rem; font-weight:800; color:var(--c); background:color-mix(in srgb,var(--c) 16%,transparent); }
+.cin-leak-top { display:flex; justify-content:space-between; gap:10px; font-size:.78rem; margin-bottom:5px; }
+.cin-leak-top span:first-child { font-weight:700; color:var(--text-main); min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.cin-leak-top span:last-child { font-family:'DM Mono',monospace; font-weight:700; color:var(--c); flex-shrink:0; }
+.cin-leak-cap { font-size:.64rem; color:var(--text-muted); margin-top:4px; }
+.cin-order-h { font-size:.64rem; font-weight:800; letter-spacing:1px; text-transform:uppercase; color:var(--text-muted); margin:16px 0 8px; padding-top:12px; border-top:1px solid var(--cin-bd); }
+.cin-order { display:flex; flex-wrap:wrap; align-items:center; gap:6px; }
+.cin-pill { display:inline-flex; align-items:center; gap:6px; padding:4px 10px; border-radius:999px; font-size:.7rem; background:var(--cin-bg); border:1px solid var(--cin-bd); color:var(--text-main); max-width:100%; }
+.cin-pill b { width:16px; height:16px; border-radius:50%; display:inline-flex; align-items:center; justify-content:center; font-size:.6rem; background:var(--c); color:#07110f; }
+.cin-pill em { font-style:normal; color:var(--text-muted); font-family:'DM Mono',monospace; font-size:.64rem; }
+.cin-arrow { color:var(--text-muted); font-size:.7rem; }
+
+/* smart actions */
+.cin-ins { display:flex; flex-direction:column; gap:10px; }
+.cin-ins-i { display:grid; grid-template-columns:30px minmax(0,1fr); gap:10px; padding:10px 12px; border-radius:12px; background:var(--cin-bg); border:1px solid var(--cin-bd); border-left:3px solid var(--c); }
+.cin-ins-i .ic { width:30px; height:30px; border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:.78rem; color:var(--c); background:color-mix(in srgb,var(--c) 16%,transparent); }
+.cin-ins-i .t { font-size:.8rem; font-weight:700; color:var(--text-main); margin-bottom:2px; }
+.cin-ins-i .d { font-size:.73rem; line-height:1.5; color:var(--text-mid); }
+
+/* runway chart */
+.cin-chart { position:relative; height:270px; }
+.cin-empty { text-align:center; padding:1.6rem 1rem; color:var(--text-muted); font-size:.82rem; }
+
+@media (max-width:1100px) { .cin-top { grid-template-columns:minmax(0,1fr); } }
+@media (max-width:900px) {
+  .cin-two { grid-template-columns:minmax(0,1fr); }
+  .cin-tiles { grid-template-columns:repeat(2,minmax(0,1fr)); }
+  .cin-chart { height:240px; }
+}
+@media (max-width:600px) {
+  .cin-cards { grid-template-columns:minmax(0,1fr); }
+  .cin-tile .v { font-size:1.1rem; }
+  .cin-gauge { flex-basis:96px; width:96px; height:96px; }
+}
+
+
 /* ── LIVE MARKET PULSE ── */
 .market-pulse-grid {
   display: grid;
@@ -7712,6 +7817,9 @@ function passAppLockGate() {
         </div>
       </div>
 
+      <!-- Credit Intelligence: verdicts, drag-down analysis, runway (filled by renderCreditIntel) -->
+      <div id="credit-intel" class="cin-host"></div>
+
       <div class="glass-panel">
         <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:.9rem">
           <div class="panel-title" style="margin-bottom:0;color:#f97316">Credit Register</div>
@@ -8424,6 +8532,21 @@ function passAppLockGate() {
         <label>End Date</label>
         <input type="date" id="cr-enddate" class="input-field">
       </div>
+    </div>
+
+    <div class="input-group">
+      <label>What is this debt for? (helps judge Good / Bad / Unnecessary)</label>
+      <select id="cr-purpose" class="input-field">
+        <option value="auto">Auto-detect from name, type and remarks</option>
+        <option value="asset">Home / Vehicle / Asset</option>
+        <option value="edu">Education / Career</option>
+        <option value="invest">Business / Investment</option>
+        <option value="essential">Essential (medical / emergency)</option>
+        <option value="consumer">Gadget / Shopping purchase</option>
+        <option value="lifestyle">Lifestyle / Travel / Event</option>
+        <option value="rollover">Paying off other debt</option>
+        <option value="other">Other / Not sure</option>
+      </select>
     </div>
 
     <div class="input-group">
@@ -21532,6 +21655,7 @@ function renderCreditTracker() {
 
   renderCreditTable();
   renderCreditCharts();
+  try { renderCreditIntel(); } catch (e) { console.error('Credit intelligence failed:', e); }
 }
 
 function sortCreditTable(col) {
@@ -21727,6 +21851,374 @@ destroyChart('credit-bar');
   }
 }
 
+// -- CREDIT INTELLIGENCE ----------------------------------------------------
+// Rule-based analysis layered on top of creditDb. Read-only: it never changes
+// a credit entry (the only write is the optional "purpose" tag a user picks).
+const CIN_V = {
+  good:  { label:'Good',        color:'#34d399', icon:'fa-check-circle' },
+  okay:  { label:'Okay',        color:'#60a5fa', icon:'fa-info-circle' },
+  bad:   { label:'Bad',         color:'#f97316', icon:'fa-exclamation-triangle' },
+  waste: { label:'Unnecessary', color:'#f43f5e', icon:'fa-ban' }
+};
+const CIN_SEV = {
+  bad:  { c:'#f43f5e', i:'fa-exclamation-circle' },
+  warn: { c:'#fbbf24', i:'fa-exclamation-triangle' },
+  info: { c:'#60a5fa', i:'fa-info-circle' },
+  good: { c:'#34d399', i:'fa-check-circle' }
+};
+const CIN_PURPOSES = [
+  ['auto','Auto-detect'], ['asset','Home / Vehicle / Asset'], ['edu','Education / Career'],
+  ['invest','Business / Investment'], ['essential','Essential (medical / emergency)'],
+  ['consumer','Gadget / Shopping'], ['lifestyle','Lifestyle / Travel / Event'],
+  ['rollover','Paying off other debt'], ['other','Other / Not sure']
+];
+const CIN_PURPOSE_CLASS = { asset:'asset', edu:'asset', invest:'asset', essential:'essential', consumer:'consumer', lifestyle:'consumer', rollover:'rollover', other:'unknown' };
+const CIN_CLASS_LABEL = { asset:'asset / productive', essential:'essential need', consumer:'consumer or lifestyle spend', rollover:'debt used to repay debt', unknown:'purpose unclear' };
+
+function cinPurposeClass(c) {
+  const p = c.purpose || 'auto';
+  if (p !== 'auto' && CIN_PURPOSE_CLASS[p]) return { cls: CIN_PURPOSE_CLASS[p], src: 'you' };
+  const t = (String(c.lenderName || '') + ' ' + String(c.remarks || '')).toLowerCase();
+  if (/\bhome\s*loan\b|\bhousing\b|mortgage|\bproperty\b|\bflat\b|\bplot\b|\bhouse\b/.test(t)) return { cls:'asset', src:'auto' };
+  if (/\b(car|bike|vehicle|scooter|two.?wheeler|four.?wheeler|auto loan)\b/.test(t)) return { cls:'asset', src:'auto' };
+  if (/education|student|tuition|college|\bcourse\b|\bstudy\b/.test(t)) return { cls:'asset', src:'auto' };
+  if (/invest|business|\bgold\b|\bstock|mutual fund|working capital|\bmudra\b/.test(t)) return { cls:'asset', src:'auto' };
+  if (/medical|hospital|surgery|emergency|treatment|health/.test(t)) return { cls:'essential', src:'auto' };
+  if (/consolidat|balance transfer|rollover|top.?up|to (repay|clear|close)/.test(t)) return { cls:'rollover', src:'auto' };
+  if (/phone|mobile|iphone|samsung|laptop|\btv\b|gadget|shopping|amazon|flipkart|fridge|\bac\b|appliance|furniture|washing|watch|camera/.test(t)) return { cls:'consumer', src:'auto' };
+  if (/holiday|trip|travel|wedding|party|gift|festival|vacation|\btour\b/.test(t)) return { cls:'consumer', src:'auto' };
+  if (c.type === 'Assets') return { cls:'asset', src:'auto' };
+  if (c.type === 'CC EMI') return { cls:'consumer', src:'auto' };
+  return { cls:'unknown', src:'auto' };
+}
+
+// Months of EMIs still to pay (Infinity = EMI does not even cover the interest)
+function cinMonthsLeft(c) {
+  const bt = Number(c.balanceTenure || 0);
+  if (bt > 0) return bt;
+  const m = String(c.endDate || '').match(/^(\d{4})-(\d{2})/);
+  if (m) {
+    const now = new Date();
+    const left = (Number(m[1]) - now.getFullYear()) * 12 + (Number(m[2]) - 1 - now.getMonth()) + 1;
+    if (left > 0) return left;
+  }
+  const P = Number(c.outstandingBalance || 0), E = Number(c.monthlyEmi || 0), r = Number(c.interestRate || 0) / 1200;
+  if (P <= 0) return 0;
+  if (E <= 0) return Infinity;
+  if (r <= 0) return Math.ceil(P / E);
+  const x = 1 - (r * P) / E;
+  if (x <= 0) return Infinity;
+  return Math.ceil(-Math.log(x) / Math.log(1 + r));
+}
+
+function cinVerdict(cls, rate, monthlyInt, E) {
+  if (E > 0 && rate > 0 && monthlyInt >= E * 0.97) {
+    return { k:'bad', why:'Your EMI barely covers the interest, so the balance is not coming down. Pay extra, restructure, or move it to a cheaper loan.' };
+  }
+  if (cls === 'asset') {
+    if (rate <= 14) return { k:'good', why:'Builds an asset or earning power at a reasonable ' + rate + '% rate. Keep it running.' };
+    if (rate <= 24) return { k:'okay', why:'Good purpose, but ' + rate + '% is expensive. Ask for a rate cut or a balance transfer.' };
+    return { k:'bad', why:'Good purpose, but ' + rate + '% is eating into you. Refinance or prepay it early.' };
+  }
+  if (cls === 'essential') {
+    if (rate <= 18) return { k:'okay', why:'Taken for a genuine need. Fine to carry, just clear it steadily.' };
+    return { k:'bad', why:'Needed at the time, but ' + rate + '% is too costly. Prepay or refinance.' };
+  }
+  if (cls === 'consumer') {
+    if (rate <= 0) return { k:'okay', why:'No-cost EMI on a purchase. It does no harm, but it still locks your cash flow until it ends.' };
+    return { k:'waste', why:'You pay interest on something that will not earn or appreciate. Clear this first and avoid repeating it.' };
+  }
+  if (cls === 'rollover') return { k:'bad', why:'Debt used to repay debt. It carries the problem forward at ' + rate + '% instead of removing it.' };
+  if (rate >= 18) return { k:'bad', why:'High cost at ' + rate + '%. This is expensive money, so it should be among the first you clear.' };
+  if (rate >= 12) return { k:'okay', why:'Average cost at ' + rate + '%. Not urgent, but worth clearing after the costlier ones.' };
+  return { k:'good', why:rate <= 0 ? 'Interest-free, so it costs you nothing extra to carry.' : 'Cheap debt at ' + rate + '%. Low priority to prepay.' };
+}
+
+function cinIncome() {
+  const t = new Date();
+  const key = d => d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0');
+  const sum = k => (db || []).filter(r => r.type === 'Income' && String(r.date || '').slice(0, 7) === k).reduce((s, r) => s + Number(r.amount || 0), 0);
+  const prev = [1, 2, 3].map(i => sum(key(new Date(t.getFullYear(), t.getMonth() - i, 1)))).filter(x => x > 0);
+  if (prev.length) return prev.reduce((a, b) => a + b, 0) / prev.length;
+  return sum(key(t));
+}
+
+function cinBuild() {
+  const rows = (creditDb || [])
+    .filter(c => c.status === 'Active' && (Number(c.outstandingBalance || 0) > 0 || Number(c.monthlyEmi || 0) > 0))
+    .map(c => {
+      const P = Number(c.outstandingBalance || 0), E = Number(c.monthlyEmi || 0), rate = Number(c.interestRate || 0);
+      const monthlyInt = P * rate / 1200;
+      const n = cinMonthsLeft(c);
+      const pc = cinPurposeClass(c);
+      const v = cinVerdict(pc.cls, rate, monthlyInt, E);
+      const intPart = Math.min(E, monthlyInt);
+      const noCover = E > 0 && rate > 0 && monthlyInt >= E * 0.97;
+      let intLeft = null;
+      if (rate <= 0) intLeft = 0;
+      else if (isFinite(n)) intLeft = Math.max(0, E * n - P);
+      return { c, P, E, rate, monthlyInt, n, pc, v, intPart, prinPart: Math.max(0, E - intPart), intLeft, noCover };
+    });
+
+  const totalEmi = rows.reduce((s, r) => s + r.E, 0);
+  const totalOut = rows.reduce((s, r) => s + r.P, 0);
+  const totalInt = rows.reduce((s, r) => s + r.monthlyInt, 0);
+  const wRate = totalOut > 0 ? rows.reduce((s, r) => s + r.P * r.rate, 0) / totalOut : 0;
+  const intLeftTotal = rows.reduce((s, r) => s + (r.intLeft || 0), 0);
+  const income = cinIncome();
+  const foir = income > 0 ? (totalEmi / income) * 100 : null;
+  const byV = { good:0, okay:0, bad:0, waste:0 };
+  rows.forEach(r => { byV[r.v.k] += r.E; });
+  const badShare = totalEmi > 0 ? (byV.bad + byV.waste) / totalEmi : 0;
+  const finite = rows.filter(r => isFinite(r.n)).map(r => r.n);
+  const anyNever = rows.some(r => !isFinite(r.n) && r.E > 0);
+  const monthsToFree = finite.length ? Math.max(...finite) : 0;
+  const noCover = rows.filter(r => r.noCover);
+
+  // health score (100 = no worries) and the factors that pulled it down
+  let fE = 0;
+  if (foir !== null) fE = foir <= 20 ? 0 : foir <= 30 ? 5 : foir <= 40 ? 15 : foir <= 50 ? 28 : foir <= 60 ? 38 : 45;
+  const fR = wRate <= 10 ? 0 : wRate <= 14 ? 5 : wRate <= 18 ? 10 : wRate <= 24 ? 18 : wRate <= 30 ? 24 : 30;
+  const fB = Math.round(badShare * 25);
+  const fN = noCover.length ? 10 : 0;
+  const score = Math.max(0, Math.min(100, 100 - fE - fR - fB - fN));
+  return { rows, totalEmi, totalOut, totalInt, wRate, intLeftTotal, income, foir, byV, badShare, monthsToFree, anyNever, noCover, score, fE, fR, fB, fN };
+}
+
+function cinMonthsText(n) {
+  if (!isFinite(n)) return 'Never';
+  if (n <= 0) return '0';
+  const y = Math.floor(n / 12), m = n % 12;
+  if (y && m) return y + 'y ' + m + 'm';
+  if (y) return y + 'y';
+  return m + 'm';
+}
+function cinNames(arr, max) {
+  max = max || 3;
+  const nm = arr.map(r => _esc(r.c.lenderName));
+  return nm.slice(0, max).join(', ') + (nm.length > max ? ' +' + (nm.length - max) + ' more' : '');
+}
+
+function setCreditPurpose(id, val) {
+  const c = creditDb.find(x => x.id === id);
+  if (!c) return;
+  c.purpose = val;
+  scheduleSave();
+  renderCreditTracker();
+}
+
+function cinInsights(A) {
+  const out = [];
+  const R = A.rows;
+  const add = (sev, title, text) => out.push({ sev, title, text });
+
+  if (A.foir !== null) {
+    const over = A.totalEmi - A.income * 0.4;
+    if (A.foir > 50) add('bad', 'EMIs take ' + A.foir.toFixed(0) + '% of your income', 'The safe limit is 40% (ideal is under 30%). You are ' + fmt(over) + ' a month above the safe cap, which leaves very little room for savings or surprises.');
+    else if (A.foir > 40) add('warn', 'EMIs take ' + A.foir.toFixed(0) + '% of your income', 'That is above the 40% safe limit by ' + fmt(over) + ' a month. Avoid new EMIs until this comes down.');
+    else if (A.foir > 30) add('info', 'EMIs take ' + A.foir.toFixed(0) + '% of your income', 'Manageable, but tight. Under 30% is the comfortable zone.');
+    else add('good', 'EMI load is comfortable at ' + A.foir.toFixed(0) + '%', 'You are inside the 30% comfort zone, so your income is not being swallowed by debt.');
+  } else {
+    add('info', 'Add income to see your EMI-to-income ratio', 'No Income entries were found, so the EMI load part of the score is skipped.');
+  }
+
+  if (A.noCover.length) add('bad', 'EMI is not reducing the balance', cinNames(A.noCover) + ': the EMI is almost entirely interest, so the debt is barely shrinking. Pay a lump sum or restructure.');
+
+  const waste = R.filter(r => r.v.k === 'waste');
+  if (waste.length) {
+    const e = waste.reduce((s, r) => s + r.E, 0), i = waste.reduce((s, r) => s + r.monthlyInt, 0);
+    add('bad', fmt(e) + '/mo goes to unnecessary EMIs', cinNames(waste) + ' (' + (A.totalEmi ? Math.round(e / A.totalEmi * 100) : 0) + '% of your EMIs, ' + fmt(i) + ' a month in interest). Clear these first and avoid buying on EMI again.');
+  }
+
+  const bad = R.filter(r => r.v.k === 'bad' && !r.noCover);
+  if (bad.length) {
+    const e = bad.reduce((s, r) => s + r.E, 0);
+    add('warn', bad.length + ' costly EMI' + (bad.length > 1 ? 's' : '') + ' (' + fmt(e) + '/mo)', cinNames(bad) + '. High rate or debt-on-debt. Prepay, refinance or balance-transfer these.');
+  }
+
+  const top = R.filter(r => r.rate > 0 && r.P > 0).sort((a, b) => b.rate - a.rate)[0];
+  if (top) add('info', 'Prepay ' + _esc(top.c.lenderName) + ' first', 'It is your costliest debt at ' + top.rate + '%. Every extra ' + fmt(10000) + ' you put on it saves about ' + fmt(10000 * top.rate / 100) + ' a year in interest.');
+
+  if (A.totalInt > 0 && A.totalEmi > 0) {
+    const share = Math.round(A.totalInt / A.totalEmi * 100);
+    add(share >= 40 ? 'warn' : 'info', share + '% of your EMI is pure interest', fmt(A.totalInt) + ' a month (' + fmt(A.totalInt * 12) + ' a year) goes to the lender without reducing what you owe.');
+  }
+
+  const ending = R.filter(r => isFinite(r.n) && r.n > 0 && r.n <= 6 && r.E > 0);
+  if (ending.length) add('good', fmt(ending.reduce((s, r) => s + r.E, 0)) + '/mo frees up within 6 months', cinNames(ending) + ' will finish soon. Plan where that money goes (savings or prepaying the next debt) before it slips into spending.');
+
+  const goods = R.filter(r => r.v.k === 'good' && r.E > 0);
+  if (goods.length && !out.some(o => o.sev === 'good')) add('good', goods.length + ' healthy EMI' + (goods.length > 1 ? 's' : ''), cinNames(goods) + ': low-cost or productive debt. No need to rush these.');
+
+  const order = { bad:0, warn:1, info:2, good:3 };
+  return out.sort((a, b) => order[a.sev] - order[b.sev]).slice(0, 7);
+}
+
+function renderCreditIntel() {
+  const host = document.getElementById('credit-intel');
+  if (!host) return;
+  destroyChart('credit-runway');
+  const A = cinBuild();
+
+  if (!A.rows.length) {
+    host.innerHTML = '<div class="glass-panel"><div class="panel-title" style="color:#f97316">Debt Intelligence</div><div class="cin-empty"><i class="fas fa-shield-alt" style="font-size:1.6rem;opacity:.5;display:block;margin-bottom:8px"></i>No active credit entries to analyse. Add one in the register below and this section will show what is helping and hurting you.</div></div>';
+    return;
+  }
+
+  const gradeOf = s => s >= 80 ? { t:'Healthy', c:'#34d399', m:'Your debt is under control. Keep the good EMIs running and avoid new consumer debt.' }
+    : s >= 60 ? { t:'Manageable', c:'#60a5fa', m:'Debt is manageable, but a few EMIs are costing you more than they should.' }
+    : s >= 40 ? { t:'Stressed', c:'#fbbf24', m:'Debt is putting real pressure on your cash flow. Go after the costliest EMIs first.' }
+    : { t:'Critical', c:'#f43f5e', m:'Debt is dragging your finances down. Prioritise the high-interest and unnecessary EMIs now.' };
+  const G = gradeOf(A.score);
+  const CIRC = 2 * Math.PI * 42;
+  const off = CIRC * (1 - A.score / 100);
+
+  const fac = (label, loss, max, note) => {
+    const ratio = max ? loss / max : 0;
+    const col = loss === 0 ? '#34d399' : ratio > 0.6 ? '#f43f5e' : ratio > 0.3 ? '#fbbf24' : '#60a5fa';
+    return '<div class="cin-fac"><div class="cin-fac-row"><span>' + label + '</span><span style="color:' + col + '">' + (loss === 0 ? 'OK' : '-' + loss) + '</span></div>'
+      + '<div class="cin-track"><i style="--c:' + col + ';width:' + (loss === 0 ? 100 : Math.max(6, ratio * 100)) + '%"></i></div>'
+      + '<div class="cin-fac-note">' + note + '</div></div>';
+  };
+
+  const scoreHtml = '<div class="glass-panel cin-score">'
+    + '<div class="panel-title" style="color:#f97316">Debt Health</div>'
+    + '<div class="cin-score-head">'
+    +   '<svg class="cin-gauge" viewBox="0 0 100 100"><circle class="trk" cx="50" cy="50" r="42"/><circle class="arc" cx="50" cy="50" r="42" stroke="' + G.c + '" stroke-dasharray="' + CIRC.toFixed(1) + '" stroke-dashoffset="' + off.toFixed(1) + '"/>'
+    +   '<text class="n" x="50" y="54" text-anchor="middle">' + A.score + '</text><text class="o" x="50" y="68" text-anchor="middle">of 100</text></svg>'
+    +   '<div><span class="cin-grade" style="--c:' + G.c + '">' + G.t + '</span><div class="cin-verdict">' + G.m + '</div></div>'
+    + '</div>'
+    + '<div class="cin-fac-h">What pulled the score down</div>'
+    + fac('EMI load vs income', A.fE, 45, A.foir === null ? 'Add Income entries to include this' : A.foir.toFixed(0) + '% of income (safe limit 40%)')
+    + fac('Cost of borrowing', A.fR, 30, 'Weighted average rate ' + A.wRate.toFixed(1) + '%')
+    + fac('Bad and unnecessary EMIs', A.fB, 25, Math.round(A.badShare * 100) + '% of your EMI money')
+    + (A.fN ? fac('EMI not reducing balance', A.fN, 10, A.noCover.length + ' account' + (A.noCover.length > 1 ? 's' : '') + ' only paying interest') : '')
+    + '</div>';
+
+  const freeDate = A.monthsToFree > 0 ? new Date(new Date().getFullYear(), new Date().getMonth() + A.monthsToFree - 1, 1).toLocaleString('en-IN', { month:'short', year:'numeric' }) : '-';
+  const badEmi = A.byV.bad + A.byV.waste;
+  const foirCol = A.foir === null ? 'var(--text-muted)' : A.foir > 50 ? '#f43f5e' : A.foir > 40 ? '#f97316' : A.foir > 30 ? '#fbbf24' : '#34d399';
+  const tile = (l, v, s, col) => '<div class="cin-tile"><div class="l">' + l + '</div><div class="v" style="color:' + col + '">' + v + '</div><div class="s">' + s + '</div></div>';
+  const tilesHtml = '<div class="cin-tiles">'
+    + tile('EMI to income', A.foir === null ? '-' : A.foir.toFixed(0) + '%', A.foir === null ? 'Add income entries' : 'of income. Safe limit is 40%', foirCol)
+    + tile('Interest every month', fmt(A.totalInt), fmt(A.totalInt * 12) + ' a year', '#f43f5e')
+    + tile('Avg interest rate', A.wRate.toFixed(1) + '%', 'weighted by what you owe', A.wRate > 24 ? '#f43f5e' : A.wRate > 14 ? '#f97316' : '#34d399')
+    + tile('Interest still to pay', fmt(A.intLeftTotal), 'approx. over the remaining tenure', '#fbbf24')
+    + tile('Bad + unnecessary', fmt(badEmi) + '/mo', (A.totalEmi ? Math.round(badEmi / A.totalEmi * 100) : 0) + '% of your EMIs', badEmi > 0 ? '#f97316' : '#34d399')
+    + tile('Debt-free by', A.anyNever ? 'Not on track' : freeDate, A.anyNever ? 'an EMI does not cover its interest' : cinMonthsText(A.monthsToFree) + ' from now (at current EMIs)', A.anyNever ? '#f43f5e' : '#a78bfa')
+    + '</div>';
+
+  // EMI verdict mix + cards
+  const vk = ['good', 'okay', 'bad', 'waste'];
+  const mixBar = A.totalEmi > 0
+    ? '<div class="cin-mix">' + vk.map(k => A.byV[k] > 0 ? '<i style="width:' + (A.byV[k] / A.totalEmi * 100) + '%;background:' + CIN_V[k].color + '" title="' + CIN_V[k].label + '"></i>' : '').join('') + '</div>'
+      + '<div class="cin-legend">' + vk.map(k => '<span style="--c:' + CIN_V[k].color + '">' + CIN_V[k].label + ' <b>' + fmt(A.byV[k]) + '</b> (' + Math.round(A.byV[k] / A.totalEmi * 100) + '%)</span>').join('') + '</div>'
+    : '';
+  const vOrder = { waste:0, bad:1, okay:2, good:3 };
+  const sorted = [...A.rows].sort((a, b) => vOrder[a.v.k] - vOrder[b.v.k] || b.monthlyInt - a.monthlyInt);
+  const cards = sorted.map(r => {
+    const V = CIN_V[r.v.k];
+    const sel = r.c.purpose || 'auto';
+    const opts = CIN_PURPOSES.map(p => '<option value="' + p[0] + '"' + (p[0] === sel ? ' selected' : '') + '>' + p[1] + '</option>').join('');
+    const tot = r.intPart + r.prinPart;
+    const split = tot > 0
+      ? '<div><div class="cin-split"><i class="i" style="width:' + (r.intPart / tot * 100) + '%"></i><i class="p" style="width:' + (r.prinPart / tot * 100) + '%"></i></div>'
+        + '<div class="cin-cap"><span>Interest <b>' + fmt(r.intPart) + '</b></span><span>Reduces debt <b>' + fmt(r.prinPart) + '</b></span></div></div>'
+      : '';
+    return '<div class="cin-card" style="--c:' + V.color + '">'
+      + '<div class="cin-card-h"><div style="min-width:0"><div class="cin-card-n" title="' + _esc(r.c.lenderName) + '">' + _esc(r.c.lenderName) + '</div>'
+      + '<div class="cin-meta">' + _esc(r.c.type) + ' &middot; ' + r.rate + '% &middot; EMI ' + fmt(r.E) + '</div></div>'
+      + '<span class="cin-chip" style="--c:' + V.color + '"><i class="fas ' + V.icon + '"></i>' + V.label + '</span></div>'
+      + '<div class="cin-why">' + r.v.why + '</div>'
+      + split
+      + '<div class="cin-facts"><div><small>Outstanding</small><b>' + fmt(r.P) + '</b></div><div><small>Months left</small><b>' + cinMonthsText(r.n) + '</b></div><div><small>Interest left</small><b>' + (r.intLeft === null ? '-' : fmt(r.intLeft)) + '</b></div></div>'
+      + '<label class="cin-pur"><span>Purpose</span><select onchange="setCreditPurpose(' + r.c.id + ',this.value)">' + opts + '</select></label>'
+      + (sel === 'auto' ? '<div class="cin-det">Auto-detected as ' + CIN_CLASS_LABEL[r.pc.cls] + '. Change the purpose if that is wrong.</div>' : '')
+      + '</div>';
+  }).join('');
+  const verdictHtml = '<div class="glass-panel"><div class="panel-title" style="color:#f97316">EMI Verdicts: Good, Bad or Unnecessary</div>'
+    + '<div class="cin-sub">Each active debt is judged on its purpose and interest rate. Worst first. Pick the purpose on a card if the auto-detection is off.</div>'
+    + mixBar + '<div class="cin-cards">' + cards + '</div></div>';
+
+  // what is dragging you down: interest leak ranking + payoff order
+  // rank by AVOIDABLE interest: the part above a fair 10% rate (what a cheaper loan or early closure would save)
+  const FAIR = 10;
+  const leakRows = A.rows.map(r => ({ r, x: r.P * Math.max(0, r.rate - FAIR) / 1200 })).filter(o => o.x > 0).sort((a, b) => b.x - a.x);
+  const totalX = leakRows.reduce((s, o) => s + o.x, 0);
+  const maxX = leakRows.length ? leakRows[0].x : 1;
+  const cheap = A.rows.filter(r => r.monthlyInt > 0 && r.rate <= FAIR);
+  const leakHtml = leakRows.length
+    ? '<div class="cin-leak">' + leakRows.slice(0, 6).map((o, i) => {
+        const r = o.r, V = CIN_V[r.v.k];
+        return '<div class="cin-leak-row" style="--c:' + V.color + '"><div class="cin-rank">' + (i + 1) + '</div><div style="min-width:0">'
+          + '<div class="cin-leak-top"><span>' + _esc(r.c.lenderName) + '</span><span>' + fmt(o.x) + '/mo</span></div>'
+          + '<div class="cin-track"><i style="width:' + Math.max(4, o.x / maxX * 100) + '%"></i></div>'
+          + '<div class="cin-leak-cap">' + r.rate + '% on ' + fmt(r.P) + ' &middot; total interest ' + fmt(r.monthlyInt) + '/mo &middot; ' + Math.round(o.x / totalX * 100) + '% of avoidable</div></div></div>';
+      }).join('') + (leakRows.length > 6 ? '<div class="cin-leak-cap">+' + (leakRows.length - 6) + ' more costly accounts</div>' : '')
+      + (cheap.length ? '<div class="cin-leak-cap">Low-cost debt (' + cinNames(cheap) + ') costs ' + fmt(cheap.reduce((s, r) => s + r.monthlyInt, 0)) + '/mo in interest, but it is not the problem.</div>' : '') + '</div>'
+    : '<div class="cin-empty">None of your debt costs much above a fair ' + FAIR + '% rate.</div>';
+  const payOrder = A.rows.filter(r => r.rate > 0 && r.P > 0).sort((a, b) => b.rate - a.rate || a.P - b.P).slice(0, 6);
+  const orderHtml = payOrder.length > 1
+    ? '<div class="cin-order-h">Suggested payoff order (costliest first)</div><div class="cin-order">'
+      + payOrder.map((r, i) => (i ? '<span class="cin-arrow">&rsaquo;</span>' : '') + '<span class="cin-pill" style="--c:' + CIN_V[r.v.k].color + '"><b>' + (i + 1) + '</b>' + _esc(r.c.lenderName) + ' <em>' + r.rate + '%</em></span>').join('')
+      + '</div><div class="cin-leak-cap" style="margin-top:8px">Keep paying every EMI on time, put any extra money on #1, and when it closes add its EMI to #2.</div>'
+    : '';
+  const dragHtml = '<div class="glass-panel"><div class="panel-title" style="color:#f97316">What Is Dragging You Down</div>'
+    + '<div class="cin-sub">Interest above a fair ' + FAIR + '% rate is what a cheaper loan or early closure would save. ' + (totalX > 0 ? 'Avoidable now: ' + fmt(totalX) + ' a month (' + fmt(totalX * 12) + ' a year).' : '') + '</div>' + leakHtml + orderHtml + '</div>';
+
+  const ins = cinInsights(A);
+  const insHtml = '<div class="glass-panel"><div class="panel-title" style="color:#f97316">Smart Actions</div>'
+    + '<div class="cin-sub">What to do about it, most important first.</div><div class="cin-ins">'
+    + ins.map(o => '<div class="cin-ins-i" style="--c:' + CIN_SEV[o.sev].c + '"><div class="ic"><i class="fas ' + CIN_SEV[o.sev].i + '"></i></div><div><div class="t">' + o.title + '</div><div class="d">' + o.text + '</div></div></div>').join('')
+    + '</div></div>';
+
+  const runHtml = '<div class="glass-panel"><div class="panel-title" style="color:#f97316">EMI Runway</div>'
+    + '<div class="cin-sub">How your monthly EMI load falls as each debt ends' + (A.income > 0 ? ', against the 40% safe cap of your income.' : '.') + '</div>'
+    + '<div class="cin-chart"><canvas id="credit-runway-canvas"></canvas></div></div>';
+
+  host.innerHTML = '<div class="cin-top">' + scoreHtml + tilesHtml + '</div>' + verdictHtml + '<div class="cin-two">' + dragHtml + insHtml + '</div>' + runHtml;
+
+  // runway chart
+  const cv = document.getElementById('credit-runway-canvas');
+  if (!cv || typeof Chart === 'undefined') return;
+  let H = A.monthsToFree;
+  if (A.anyNever) H = Math.max(H, 24);
+  H = Math.max(6, Math.min(48, H));
+  const t0 = new Date();
+  const labels = Array.from({ length: H }, (_, m) => new Date(t0.getFullYear(), t0.getMonth() + m, 1).toLocaleString('en-IN', { month:'short', year:'2-digit' }));
+  const sets = vk.map(k => ({
+    label: CIN_V[k].label,
+    data: Array.from({ length: H }, (_, m) => A.rows.filter(r => r.v.k === k && m < r.n).reduce((s, r) => s + r.E, 0)),
+    backgroundColor: CIN_V[k].color, borderRadius: 3, borderSkipped: false, stack: 'emi'
+  })).filter(s => s.data.some(x => x > 0));
+  if (A.income > 0) {
+    sets.push({ type:'line', label:'Safe EMI cap (40% of income)', data: labels.map(() => A.income * 0.4), borderColor:'#fbbf24', borderDash:[6, 4], borderWidth:2, pointRadius:0, fill:false, order:0 });
+  }
+  charts['credit-runway'] = new Chart(cv.getContext('2d'), {
+    type: 'bar',
+    data: { labels, datasets: sets },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      interaction: { mode:'index', intersect:false },
+      plugins: {
+        legend: { labels: { color: chartTextColor(), boxWidth: 10, font: { size: 11 } } },
+        tooltip: {
+          backgroundColor: fosTipBg(),
+          filter: it => Number(it.raw) > 0,
+          callbacks: {
+            label: it => '  ' + it.dataset.label + ': ' + fmt(it.raw),
+            footer: items => 'Total EMI: ' + fmt(items.filter(i => i.dataset.type !== 'line').reduce((s, i) => s + Number(i.raw), 0))
+          }
+        }
+      },
+      scales: {
+        x: { stacked:true, ticks: { color: chartTextColor(), maxRotation:0, autoSkip:true, maxTicksLimit:12 }, grid: { display:false } },
+        y: { stacked:true, beginAtZero:true, ticks: { color: chartTextColor(), callback: v => fmt(v) }, grid: { color: chartGridColor() } }
+      }
+    }
+  });
+}
+
 // Credit CRUD
 function openCreditModal() {
   editingCreditId = null;
@@ -21738,6 +22230,7 @@ function openCreditModal() {
     const el = document.getElementById(id); if (el) el.value = '';
   });
   document.getElementById('cr-type').value = 'CC Loan';
+  document.getElementById('cr-purpose').value = 'auto';
   document.getElementById('cr-status').value = 'Active';
   document.getElementById('credit-modal').style.display = 'flex';
 }
@@ -21764,6 +22257,7 @@ function editCreditEntry(id) {
   document.getElementById('cr-enddate').value      = c.endDate || '';
   document.getElementById('cr-status').value       = c.status;
   document.getElementById('cr-remarks').value      = c.remarks || '';
+  document.getElementById('cr-purpose').value      = c.purpose || 'auto';
   document.getElementById('credit-modal').style.display = 'flex';
 }
 
@@ -21781,10 +22275,11 @@ function saveCreditEntry() {
   const endDate           = document.getElementById('cr-enddate').value;
   const status            = document.getElementById('cr-status').value;
   const remarks           = document.getElementById('cr-remarks').value.trim();
+  const purpose           = document.getElementById('cr-purpose').value || 'auto';
 
   if (!lenderName) { alert('Please enter a Lender / Card Name'); return; }
 
-  const entry = { lenderName, type, principalAmount, outstandingBalance, interestRate, monthlyEmi, dueDate, tenureMonths, balanceTenure, startDate, endDate, status, remarks };
+  const entry = { lenderName, type, principalAmount, outstandingBalance, interestRate, monthlyEmi, dueDate, tenureMonths, balanceTenure, startDate, endDate, status, remarks, purpose };
 
   if (editingCreditId) {
     const idx = creditDb.findIndex(x => x.id === editingCreditId);
