@@ -4116,6 +4116,33 @@ body:not(.light-mode) .onboard-summary-card { background: rgba(var(--t-accent-rg
   body:not(.light-mode) .login-btn { transition: none !important; }
   body:not(.light-mode) .kpi-card:hover, body:not(.light-mode) .btn-add:hover, body:not(.light-mode) .login-btn:hover { transform: none; }
 }
+
+/* ------------------------------------------------------------------------
+   UNIFORM CONTAINER HOVER GLOW (FinOS + Portfolio OS)
+   Before: the green glow came from ONE rule, .glass-panel:has(canvas):hover,
+   so only panels containing a <canvas> lit up. HTML/SVG-chart panels, table
+   panels and every KPI / spark / net-worth / portfolio / credit / insurance
+   card did not, and light mode blocked it with an !important shadow.
+   Now every individual panel and card inside a page view gets the same glow.
+   Border colours are left alone so coloured accent borders stay intact.
+   ------------------------------------------------------------------------ */
+@media (hover: hover) and (pointer: fine) {
+  html body .view-section :is(.glass-panel, .finai-panel, .cc-panel-box, .finai-score-card, .kpi-card, .port-kpi-card, .nw-card, .credit-kpi-card, .spark-card, .insight-kpi-card, .game-card, .market-card, .ins-kpi-card, .ins-expiry-card, .insight-rec-card, .nw-milestone, .finai-mini-stat, .finai-card, .finai-strat, .cin-card, .cin-tile, .cin-ins-i, .ins-card, .sub-card, .emi-card, .cca-sum-card):not(.dragging):not([onmouseover]):hover {
+    box-shadow: 0 14px 36px -14px rgba(var(--brand-rgb, 32,205,181), .38), inset 0 1px 0 rgba(255,255,255,.05) !important;
+  }
+  html body.light-mode .view-section :is(.glass-panel, .finai-panel, .cc-panel-box, .finai-score-card, .kpi-card, .port-kpi-card, .nw-card, .credit-kpi-card, .spark-card, .insight-kpi-card, .game-card, .market-card, .ins-kpi-card, .ins-expiry-card, .insight-rec-card, .nw-milestone, .finai-mini-stat, .finai-card, .finai-strat, .cin-card, .cin-tile, .cin-ins-i, .ins-card, .sub-card, .emi-card, .cca-sum-card):not(.dragging):not([onmouseover]):hover {
+    box-shadow: 0 14px 32px -14px rgba(var(--brand-rgb, 32,205,181), .32), 0 1px 3px rgba(15,23,42,.08) !important;
+  }
+  /* let the hovered section (and its glow) paint above the sections below it */
+  html body .view-section .draggable-section:hover { z-index: 2; }
+}
+@media (hover: hover) and (pointer: fine) and (prefers-reduced-motion: no-preference) {
+  html body .view-section :is(.glass-panel, .finai-panel, .cc-panel-box, .finai-score-card, .kpi-card, .port-kpi-card, .nw-card, .credit-kpi-card, .spark-card, .insight-kpi-card, .game-card, .market-card, .ins-kpi-card, .ins-expiry-card, .insight-rec-card, .nw-milestone, .finai-mini-stat, .finai-card, .finai-strat, .cin-card, .cin-tile, .cin-ins-i, .ins-card, .sub-card, .emi-card, .cca-sum-card) {
+    transition: transform .3s cubic-bezier(.22,1,.36,1), box-shadow .3s ease, border-color .25s ease, opacity .2s ease;
+  }
+  html body .view-section :is(.glass-panel, .finai-panel, .cc-panel-box, .finai-score-card):not(.dragging):not([onmouseover]):hover { transform: translateY(-3px) !important; }
+  html body .view-section :is(.kpi-card, .port-kpi-card, .nw-card, .credit-kpi-card, .spark-card, .insight-kpi-card, .game-card, .market-card, .ins-kpi-card, .ins-expiry-card, .insight-rec-card, .nw-milestone, .finai-mini-stat, .finai-card, .finai-strat, .cin-card, .cin-tile, .cin-ins-i, .ins-card, .sub-card, .emi-card, .cca-sum-card):not(.dragging):not([onmouseover]):hover { transform: translateY(-2px) !important; }
+}
 @media (hover: none) {
   body:not(.light-mode) .kpi-card:hover { transform: none; }
 }
