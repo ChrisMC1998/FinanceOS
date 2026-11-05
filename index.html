@@ -11156,6 +11156,37 @@ function switchView(viewName, btn, group) {
 
 function finaiMonthKey(d) { return (d || '').slice(0, 7); }
 
+// ── ONE source of truth for money maths ─────────────────────────────────
+// Every score, insight, chart and chat answer should read these numbers.
+//   income    = money in
+//   expense   = day-to-day spending
+//   emi       = loan / EMI payments actually logged as 'Loan' transactions
+//   invest    = money moved into investments
+//   savings   = income - expense - emi        (money NOT consumed; investing counts as saving)
+//   cashLeft  = savings - invest              (what is left in hand after all four)
+function fosLedger(mk, rows) {
+  const o = { month: mk || 'all', income: 0, expense: 0, emi: 0, invest: 0, n: 0 };
+  (rows || db || []).forEach(r => {
+    if (!r || (mk && finaiMonthKey(r.date) !== mk)) return;
+    const a = Number(r.amount) || 0; o.n++;
+    if (r.type === 'Income') o.income += a;
+    else if (r.type === 'Expense') o.expense += a;
+    else if (r.type === 'Loan') o.emi += a;
+    else if (r.type === 'Investment') o.invest += a;
+  });
+  o.savings = o.income - o.expense - o.emi;
+  o.cashLeft = o.savings - o.invest;
+  const pc = v => o.income > 0 ? v / o.income * 100 : null;
+  o.savingsRate = pc(o.savings); o.investRate = pc(o.invest); o.emiRatio = pc(o.emi); o.expenseRatio = pc(o.expense);
+  return o;
+}
+// Last n COMPLETED months that have any data (oldest first); the in-progress month is excluded.
+function fosLedgerHistory(n) {
+  const cur = localMonthKey(new Date()), ks = {};
+  (db || []).forEach(r => { const k = finaiMonthKey(r && r.date); if (k && k < cur) ks[k] = 1; });
+  return Object.keys(ks).sort().slice(-n).map(k => fosLedger(k));
+}
+
 // ── Essential vs Discretionary classifier ──────────────────────────────
 // Real rule-based classification using category (sub) + transaction name,
 // so the agent can tell "needs" apart from "wants" instead of treating
@@ -11208,8 +11239,15 @@ function finaiBuildAnalysis() {
   const prevMonthIncome = sum(incomeAll.filter(r => finaiMonthKey(r.date) === prevMonth));
   const prevMonthExpense = sum(expenseAll.filter(r => finaiMonthKey(r.date) === prevMonth));
 
-  const overallSavingsRate = totalIncome > 0 ? ((totalIncome - totalExpense - totalLoanOut - totalInvestOut) / totalIncome) * 100 : null;
-  const monthSavingsRate = thisMonthIncome > 0 ? ((thisMonthIncome - thisMonthExpense) / thisMonthIncome) * 100 : null;
+  const overallSavingsRate = totalIncome > 0 ? ((totalIncome - totalExpense - totalLoanOut) / totalIncome) * 100 : null;
+  const ledThis = fosLedger(thisMonth), ledPrev = fosLedger(prevMonth), hist = fosLedgerHistory(6);
+  // Before salary is logged this month, judge the month on last month's full picture instead of a half-empty one.
+  const usingPrevBasis = ledThis.income <= 0 && ledPrev.income > 0;
+  const basisLed = usingPrevBasis ? ledPrev : ledThis;
+  const monthSavingsRate = basisLed.savingsRate;   // (income - expenses - EMIs) / income
+  const _rates = hist.filter(h => h.savingsRate !== null).map(h => h.savingsRate);
+  let trend = null;
+  if (_rates.length >= 3) { const d = _rates[_rates.length - 1] - _rates[_rates.length - 3]; trend = d >= 5 ? 'up' : d <= -5 ? 'down' : 'flat'; }
 
   // Category breakdown (this month vs historical average, using `sub` as category)
   const catThisMonth = {};
@@ -11250,7 +11288,9 @@ function finaiBuildAnalysis() {
   const totalOutstandingDebt = activeCredit.reduce((s, c) => s + Number(c.outstandingBalance || 0), 0);
   const highInterestDebt = activeCredit.filter(c => Number(c.interestRate) >= 24).sort((a, b) => Number(b.interestRate) - Number(a.interestRate));
   const totalMonthlyEmi = activeCredit.reduce((s, c) => s + Number(c.monthlyEmi || 0), 0);
-  const debtToIncome = thisMonthIncome > 0 ? (totalMonthlyEmi / thisMonthIncome) * 100 : (totalMonthlyEmi > 0 ? 999 : 0);
+  const emiCommitment = Math.max(totalMonthlyEmi, basisLed.emi);   // scheduled OR actually paid, whichever is higher
+  const debtToIncome = basisLed.income > 0 ? (emiCommitment / basisLed.income) * 100 : 0;   // no income logged yet = unknown, not 999%
+  const emiShortfall = (!usingPrevBasis && today.getDate() >= 10 && ledThis.emi < totalMonthlyEmi * 0.9) ? totalMonthlyEmi - ledThis.emi : 0;
 
   // EMIs due in the next 5 days
   const upcomingEmis = activeCredit.map(c => {
@@ -11278,8 +11318,8 @@ function finaiBuildAnalysis() {
   const portPLPct = portInvested > 0 ? (portPL / portInvested) * 100 : null;
 
   // Net worth trend (income - expense, cumulative by month) this vs prev month
-  const nwThis = thisMonthIncome - thisMonthExpense;
-  const nwPrev = prevMonthIncome - prevMonthExpense;
+  const nwThis = ledThis.savings;
+  const nwPrev = ledPrev.savings;
 
   // ── Essential vs discretionary spend split (real classification, this month) ─
   const thisMonthExpenseTxns = expenseAll.filter(r => finaiMonthKey(r.date) === thisMonth);
@@ -11305,7 +11345,8 @@ function finaiBuildAnalysis() {
 
 // Emergency fund proxy: liquid-ish net position vs avg monthly expense
   const monthsWithExpense = new Set(expenseAll.map(r => finaiMonthKey(r.date)));
-  const avgMonthlyExpense = monthsWithExpense.size ? sum(expenseAll) / monthsWithExpense.size : 0;
+  const avgMonthlyExpense = hist.length ? hist.reduce((x, h) => x + h.expense, 0) / hist.length : (monthsWithExpense.size ? sum(expenseAll) / monthsWithExpense.size : 0);   // completed months only
+  const avgMonthlyOutgo = hist.length ? hist.reduce((x, h) => x + h.expense + h.emi, 0) / hist.length : avgMonthlyExpense;   // spending + EMIs
 
   // ── Credit Card Utilization (real, live from ccCards) ─────────────────
   const ccAnalysis = (ccCards || []).map(card => {
@@ -11342,7 +11383,8 @@ function finaiBuildAnalysis() {
     if (!recurGroups[key]) recurGroups[key] = { name: r.name || 'Unnamed', amount: Number(r.amount || 0), months: new Set() };
     recurGroups[key].months.add(finaiMonthKey(r.date));
   });
-  const recurringCharges = Object.values(recurGroups).filter(g => g.months.size >= 3)
+  const _recentCut = localMonthKey(new Date(today.getFullYear(), today.getMonth() - 2, 1));
+  const recurringCharges = Object.values(recurGroups).filter(g => g.months.size >= 3 && Array.from(g.months).some(m => m >= _recentCut))
     .sort((a, b) => b.amount - a.amount);
   const recurringMonthlyTotal = recurringCharges.reduce((s, g) => s + g.amount, 0);
 
@@ -11368,6 +11410,7 @@ function finaiBuildAnalysis() {
 
   return {
     thisMonth, prevMonth, totalIncome, totalExpense, totalLoanOut, totalInvestOut,
+    ledThis, ledPrev, hist, basisLed, usingPrevBasis, trend, emiShortfall, avgMonthlyOutgo,
     thisMonthIncome, thisMonthExpense, prevMonthIncome, prevMonthExpense,
     overallSavingsRate, monthSavingsRate, topCatEntry, spikes, budgetOverruns,
     totalOutstandingDebt, highInterestDebt, totalMonthlyEmi, debtToIncome, upcomingEmis,
@@ -11393,6 +11436,14 @@ function finaiComputeScore(a) {
     else { score -= 20; tags.push(['Overspending', 'bad']); }
   }
 
+  if (a.basisLed && a.basisLed.income > 0) {
+    const Lg = a.basisLed;
+    if (Lg.investRate >= 20) { score += 6; tags.push(['Strong Investor', 'good']); }
+    else if (Lg.investRate >= 10) { score += 4; tags.push(['Investing Regularly', 'good']); }
+    if (Lg.cashLeft < 0 && Lg.savings >= 0) { score -= 4; tags.push(['Investing Beyond Cash Flow', 'warn']); }
+  }
+  if (a.emiShortfall > 0) tags.push(['EMI Not Logged', 'warn']);
+
   if (a.debtToIncome > 0) {
     if (a.debtToIncome >= 50) { score -= 20; tags.push(['High EMI Load', 'bad']); }
     else if (a.debtToIncome >= 30) { score -= 8; tags.push(['Moderate EMI Load', 'warn']); }
@@ -11408,8 +11459,8 @@ function finaiComputeScore(a) {
     else if (a.portPLPct <= -5) { score -= 5; tags.push(['Portfolio Down', 'warn']); }
   }
 
-  if (a.nwPrev !== 0 && a.nwThis < a.nwPrev) { score -= 5; }
-  else if (a.nwThis > a.nwPrev) { score += 5; }
+  if (a.trend === 'down') { score -= 5; tags.push(['Worsening Trend', 'warn']); }
+  else if (a.trend === 'up') { score += 5; tags.push(['Improving Trend', 'good']); }
 
   if (a.overallCCUtilPct !== null) {
     if (a.overallCCUtilPct >= 75) { score -= 15; tags.push(['Critical CC Usage', 'bad']); }
@@ -11651,6 +11702,34 @@ function finaiBuildInsights(a) {
       'No red flags found in your current data — income, spending and debt all look balanced.',
       'Keep logging transactions regularly so future suggestions stay accurate.');
   }
+
+  // ── Ledger guidance: Income + Expense + EMI + Investment together ──────
+  try {
+    const L = a.basisLed, H = a.hist || [], lbl = a.usingPrevBasis ? 'last month' : 'this month', R0 = v => fmt(Math.round(v));
+    if (a.emiShortfall > 0) push('fa-calendar-check', '#f59e0b', 'warn', 'EMIs not fully recorded',
+      'Your loan accounts show about ' + R0(a.totalMonthlyEmi) + ' in monthly EMIs, but only ' + R0(a.ledThis.emi) + ' is logged as Loan payments this month. Until the rest is recorded, your savings rate and score look better than they really are.',
+      'Log each EMI as a Loan transaction on the day it is paid.', Math.round(a.emiShortfall));
+    if (L && L.income > 0) {
+      const gap = L.income * 0.2 - L.savings;
+      const line = lbl.charAt(0).toUpperCase() + lbl.slice(1) + ': income ' + R0(L.income) + ', spent ' + R0(L.expense) + ', EMIs ' + R0(L.emi) + ', invested ' + R0(L.invest) + '.';
+      if (L.savings < 0) push('fa-triangle-exclamation', '#ef4444', 'bad', 'Best action ' + lbl + ': close a ' + R0(-L.savings) + ' gap',
+        line + ' Spending plus EMIs is higher than income.', a.topCatEntry ? 'Start with ' + a.topCatEntry[0] + ' (' + R0(a.topCatEntry[1]) + '), your largest category.' : 'Cut discretionary spending first.', Math.round(-L.savings));
+      else if (L.savingsRate < 20) push('fa-bullseye', '#f59e0b', 'warn', 'Best action ' + lbl + ': keep ' + R0(gap) + ' more',
+        line + ' You keep ' + Math.round(L.savingsRate) + '% of income; 20% is the target.',
+        L.emiRatio >= 35 ? 'EMIs take ' + Math.round(L.emiRatio) + '% of income - prepaying the highest-rate loan frees the most.' : (a.topDiscretionaryCat ? 'Trim ' + a.topDiscretionaryCat[0] + ' (' + R0(a.topDiscretionaryCat[1]) + ') first.' : 'Trim your largest flexible category.'), Math.round(gap));
+      else if (L.investRate < 10) push('fa-seedling', '#34d399', 'info', 'Best action ' + lbl + ': put the surplus to work',
+        line + ' You keep ' + Math.round(L.savingsRate) + '% but invest only ' + Math.round(L.investRate) + '%.', 'Move about ' + R0(Math.max(0, L.income * 0.1 - L.invest)) + ' into investments to reach 10% of income.', Math.round(Math.max(0, L.income * 0.1 - L.invest)));
+      else push('fa-circle-check', '#34d399', 'good', 'On track ' + lbl, line + ' You keep ' + Math.round(L.savingsRate) + '% and invest ' + Math.round(L.investRate) + '%.', 'Keep this pattern and review it at month end.', 0);
+    }
+    const R = H.filter(h => h.savingsRate !== null);
+    if (R.length >= 3) {
+      const avg = R.reduce((x, h) => x + h.savingsRate, 0) / R.length, srt = R.slice().sort((x, y) => y.savingsRate - x.savingsRate), best = srt[0], worst = srt[srt.length - 1], mean = k => H.reduce((x, h) => x + h[k], 0) / H.length;
+      push('fa-chart-line', a.trend === 'down' ? '#f59e0b' : '#34d399', a.trend === 'down' ? 'warn' : a.trend === 'up' ? 'good' : 'info',
+        'Last ' + R.length + ' months: ' + Math.round(avg) + '% saved on average' + (a.trend === 'up' ? ' and rising' : a.trend === 'down' ? ' but slipping' : ''),
+        'Best month ' + best.month + ' (' + Math.round(best.savingsRate) + '%), weakest ' + worst.month + ' (' + Math.round(worst.savingsRate) + '%). A typical month: ' + R0(mean('expense')) + ' spent, ' + R0(mean('emi')) + ' in EMIs, ' + R0(mean('invest')) + ' invested.',
+        a.trend === 'down' ? 'Compare ' + worst.month + ' with ' + best.month + ' to see which category changed.' : 'Keep logging every month so this trend stays reliable.', 0);
+    }
+  } catch (e) { console.error('ledger insights failed:', e); }
 
   // Rank by real-world impact so the most urgent/consequential call surfaces first:
   // bad decisions/risks > warnings > positive reinforcement > general info, and
@@ -12117,7 +12196,7 @@ function finaiSavingsRates() {
   const t = new Date(), y = t.getFullYear(), m = t.getMonth();
   const rate = k => {
     const inc = (db || []).filter(r => r.type === 'Income' && finaiMonthKey(r.date) === k).reduce((s, r) => s + Number(r.amount || 0), 0);
-    const exp = (db || []).filter(r => r.type === 'Expense' && finaiMonthKey(r.date) === k).reduce((s, r) => s + Number(r.amount || 0), 0);
+    const exp = (db || []).filter(r => (r.type === 'Expense' || r.type === 'Loan') && finaiMonthKey(r.date) === k).reduce((s, r) => s + Number(r.amount || 0), 0);
     return inc > 0 ? ((inc - exp) / inc) * 100 : null;
   };
   return { recent: rate(finaiLocalMonthKey(new Date(y, m - 1, 1))), older: rate(finaiLocalMonthKey(new Date(y, m - 3, 1))) };
@@ -12618,7 +12697,7 @@ function finaiAnswerForMetric(metric, category, period, a) {
   }
   if (metric === 'save') {
     const inc = period === 'prev' ? a.prevMonthIncome : a.thisMonthIncome;
-    const exp = period === 'prev' ? a.prevMonthExpense : a.thisMonthExpense;
+    const exp = period === 'prev' ? (a.ledPrev.expense + a.ledPrev.emi) : (a.ledThis.expense + a.ledThis.emi);   // spending + EMIs
     return inc > 0
       ? `You saved ${(((inc - exp) / inc) * 100).toFixed(0)}% of your income ${label} (${fmt(inc - exp)} out of ${fmt(inc)}).`
       : `No income was logged ${label}, so I can't compute a savings rate.`;
@@ -13546,9 +13625,9 @@ function finaiRemember(o) { finaiCtx = Object.assign({}, finaiCtx, o); }
 // ══════════════════════════════════════════════════════════════════════════
 function finaiMonthStats() {
   const t = new Date(), pad = n => String(n).padStart(2, '0'), cur = t.getFullYear() + '-' + pad(t.getMonth() + 1), byM = {};
-  (db || []).forEach(r => { if (!r || !/^\d{4}-\d{2}/.test(String(r.date || ''))) return; const k = String(r.date).slice(0, 7), x = byM[k] || (byM[k] = { inc: 0, exp: 0 }), v = Number(r.amount) || 0; if (r.type === 'Income') x.inc += v; else if (r.type === 'Expense') x.exp += v; });
+  (db || []).forEach(r => { if (!r || !/^\d{4}-\d{2}/.test(String(r.date || ''))) return; const k = String(r.date).slice(0, 7), x = byM[k] || (byM[k] = { inc: 0, exp: 0, emi: 0 }), v = Number(r.amount) || 0; if (r.type === 'Income') x.inc += v; else if (r.type === 'Expense') x.exp += v; else if (r.type === 'Loan') x.emi += v; });
   const full = Object.keys(byM).filter(k => k < cur).sort(), n = full.length, lastKey = full[n - 1] || null, sum = f => full.reduce((s, k) => s + byM[k][f], 0), all = Object.keys(byM);
-  return { cur: byM[cur] || { inc: 0, exp: 0 }, day: t.getDate(), fullKeys: full, n, last: lastKey ? byM[lastKey] : null, avgInc: n ? sum('inc') / n : null, avgExp: n ? sum('exp') / n : null, totalInc: all.reduce((s, k) => s + byM[k].inc, 0), totalExp: all.reduce((s, k) => s + byM[k].exp, 0), months: all.length };
+  return { cur: byM[cur] || { inc: 0, exp: 0, emi: 0 }, day: t.getDate(), fullKeys: full, n, last: lastKey ? byM[lastKey] : null, avgInc: n ? sum('inc') / n : null, avgExp: n ? sum('exp') / n : null, avgEmi: n ? sum('emi') / n : 0, totalInc: all.reduce((s, k) => s + byM[k].inc, 0), totalExp: all.reduce((s, k) => s + byM[k].exp, 0), months: all.length };
 }
 const finaiQNote = t => `<span class="finai-pv-note">${t}</span>`;
 const finaiQRate = (inc, exp) => inc > 0 ? Math.round((inc - exp) / inc * 100) : null;
@@ -13577,10 +13656,10 @@ function finaiSpendAnswer() {
 }
 function finaiSavingsRateAnswer() {
   const m = finaiMonthStats(); if (!m.totalInc) return finaiQNoData('income');
-  const L = [], sr = (x) => { const r = finaiQRate(x.inc, x.exp); return r === null ? null : r < 0 ? `spending ${fmt(x.exp - x.inc)} more than you earned (${r}%)` : `saving ${r}% (${fmt(x.inc - x.exp)} of ${fmt(x.inc)})`; };
+  const L = [], sr = (x) => { const r = finaiQRate(x.inc, x.exp + (x.emi || 0)); return r === null ? null : r < 0 ? `spending ${fmt(x.exp + (x.emi || 0) - x.inc)} more than you earned (incl. EMIs) (${r}%)` : `saving ${r}% (${fmt(x.inc - x.exp - (x.emi || 0))} of ${fmt(x.inc)} after spending and EMIs)`; };
   if (m.last) L.push(`Last full month you were ${sr(m.last)}.`);
   L.push(m.cur.inc > 0 ? `So far this month you're ${sr(m.cur)} — partial, because bills and income can still land.` : `No income is logged this month yet, so this month's savings rate can't be computed.`);
-  if (m.n > 1) { const r = finaiQRate(m.avgInc, m.avgExp); if (r !== null) L.push(`Your average over ${m.n} full months is ${r}%.`); }
+  if (m.n > 1) { const r = finaiQRate(m.avgInc, m.avgExp + (m.avgEmi || 0)); if (r !== null) L.push(`Your average over ${m.n} full months is ${r}%.`); }
   finaiChatState = { lastMetric: 'save', lastCategory: null };
   return L.join('<br>');
 }
@@ -13612,8 +13691,8 @@ function finaiExplainAnswer(metric) {
   if (metric === 'savings') {
     if (!m.totalInc) return finaiQNoData('income');
     L.push(`<b>How your savings rate is worked out:</b> (income − spending) ÷ income, using only recorded transactions.`);
-    L.push(`This month so far: income ${fmt(m.cur.inc)}, spending ${fmt(m.cur.exp)} → ${finaiQRate(m.cur.inc, m.cur.exp) === null ? 'no income yet, so no rate' : finaiQRate(m.cur.inc, m.cur.exp) + '%'}.`);
-    if (m.last) L.push(`Last full month: income ${fmt(m.last.inc)}, spending ${fmt(m.last.exp)} → ${finaiQRate(m.last.inc, m.last.exp)}%.`);
+    L.push(`This month so far: income ${fmt(m.cur.inc)}, spending ${fmt(m.cur.exp)} → ${finaiQRate(m.cur.inc, m.cur.exp + (m.cur.emi || 0)) === null ? 'no income yet, so no rate' : finaiQRate(m.cur.inc, m.cur.exp + (m.cur.emi || 0)) + '%'}.`);
+    if (m.last) L.push(`Last full month: income ${fmt(m.last.inc)}, spending ${fmt(m.last.exp)} → ${finaiQRate(m.last.inc, m.last.exp + (m.last.emi || 0))}%.`);
     L.push(finaiQNote('It can look unusually high or low early in a month, before salary or big bills are logged. Investments and loan repayments are not counted as spending here.'));
     return L.join('<br>');
   }
@@ -14705,7 +14784,7 @@ function renderDashboardImmediate() {
   const totalLoan = sumType('Loan', data);
   const totalInv  = sumType('Investment', data);
   const balance   = totalInc - totalExp - totalLoan - totalInv;
-  const savingsRate = totalInc > 0 ? Math.round((balance / totalInc) * 100) : 0;
+  const savingsRate = totalInc > 0 ? Math.round(((totalInc - totalExp - totalLoan) / totalInc) * 100) : 0;   // investing counts as saving
 
   document.getElementById('kpi-balance').textContent      = fmt(balance);
   document.getElementById('kpi-income').textContent       = fmt(totalInc);
@@ -15469,7 +15548,7 @@ function checkAlerts() {
   const totalExp  = sumType('Expense', data);
   const totalLoan = sumType('Loan', data);
   const totalInv  = sumType('Investment', data);
-  const totalOut  = totalExp + totalLoan + totalInv;
+  const totalOut  = totalExp + totalLoan;   // investments are savings, not spending
   if (totalInc > 0) {
     const savingsRate = ((totalInc - totalOut) / totalInc) * 100;
     if (savingsRate < 0) {
@@ -18796,7 +18875,7 @@ function analyticsGenerateInsights(data) {
   const netFlow   = totalInc - totalOut;
 
   // ── DEEP METRICS ──────────────────────────────────────────────────────
-  const savingsRate     = totalInc > 0 ? (netFlow / totalInc) * 100 : 0;
+  const savingsRate     = totalInc > 0 ? ((totalInc - totalExp - totalLoan) / totalInc) * 100 : 0;   // after expenses + EMIs; investing counts as saving
   const debtRatio       = totalInc > 0 ? (totalLoan / totalInc) * 100 : 0;
   const invRatio        = totalInc > 0 ? (totalInv / totalInc) * 100 : 0;
   const expRatio        = totalInc > 0 ? (totalExp / totalInc) * 100 : 0;
@@ -18825,7 +18904,7 @@ function analyticsGenerateInsights(data) {
 
   const monthlyInc  = last6Months.map(mo => db.filter(r => r.type==='Income' && new Date(r.date).getFullYear()===mo.y && new Date(r.date).getMonth()+1===mo.m).reduce((a,b)=>a+b.amount,0));
   const monthlyExp  = last6Months.map(mo => db.filter(r => r.type==='Expense' && new Date(r.date).getFullYear()===mo.y && new Date(r.date).getMonth()+1===mo.m).reduce((a,b)=>a+b.amount,0));
-  const monthlySav  = monthlyInc.map((v,i) => v - monthlyExp[i]);
+  const monthlySav  = monthlyInc.map((v,i) => v - monthlyExp[i] - last6Months.map(mo => db.filter(r => r.type==='Loan' && new Date(r.date).getFullYear()===mo.y && new Date(r.date).getMonth()+1===mo.m).reduce((a,b)=>a+b.amount,0))[i]);
   const incTrend    = monthlyInc.length >= 2 ? monthlyInc[monthlyInc.length-1] - monthlyInc[0] : 0;
   const expTrend    = monthlyExp.length >= 2 ? monthlyExp[monthlyExp.length-1] - monthlyExp[0] : 0;
   const savVolatility = monthlySav.length > 1
@@ -24189,7 +24268,7 @@ async function runPDFExport() {
 
   const totalIncome = db.filter(r => r.type === 'Income' && inRange(r.date)).reduce((sum, r) => sum + r.amount, 0);
   const totalExpenses = db.filter(r => r.type === 'Expense' && inRange(r.date)).reduce((sum, r) => sum + r.amount, 0);
-  const netBalance = totalIncome - totalExpenses;
+  const netBalance = totalIncome - totalExpenses - db.filter(r => (r.type === 'Loan' || r.type === 'Investment') && inRange(r.date)).reduce((sum, r) => sum + r.amount, 0);   // after EMIs and investments
 
   const summaryData = [
     ['Total Income', `₹${totalIncome.toLocaleString()}`],
@@ -24858,9 +24937,10 @@ function renderHealthRadar() {
   const totalLoan = sumType('Loan', db);
   
   // Calculate 5 financial health metrics (0-100 scale)
-  const savingsRate = totalInc > 0 ? Math.min(((totalInc - totalExp) / totalInc) * 100, 100) : 0;
+  const savingsRate = totalInc > 0 ? Math.max(0, Math.min(((totalInc - totalExp - totalLoan) / totalInc) * 100, 100)) : 0;
   const debtToIncome = totalInc > 0 ? Math.max(100 - (totalLoan / totalInc) * 100, 0) : 0;
-  const emergencyFund = totalExp > 0 ? Math.min((totalInv / (totalExp * 6)) * 100, 100) : (totalInv > 0 ? 100 : 0); // 6 months expenses
+  const _spanM = Math.max(1, new Set((db || []).map(r => String(r.date || '').slice(0, 7)).filter(Boolean)).size), _monthlyOut = (totalExp + totalLoan) / _spanM;
+  const emergencyFund = _monthlyOut > 0 ? Math.min((totalInv / (_monthlyOut * 6)) * 100, 100) : (totalInv > 0 ? 100 : 0); // invested corpus vs 6 months of spending + EMIs
   const investmentDiversity = portDb.length > 0 ? Math.min((new Set(portDb.map(p => normalizeAssetType(p.assetType))).size / 5) * 100, 100) : 0;
   
   // Budget adherence
@@ -33399,9 +33479,45 @@ function paintUnlock(id){var el=$(id);if(!el)return;var s=dataStats(),L=[];
     if(s.exp>0&&!s.pay)L.push('Add a <b>Payee</b> when you save expenses to unlock Payee Insights and “merge these?” clean-up.')}
   if(s.n&&s.span<4)L.push('<b>Trend watch</b> needs about 4 months of data ('+s.span+' so far).');
   if(s.n&&s.span<12)L.push('<b>Seasonality</b> (festival-month spending forecasts) unlocks after 12 months — '+(12-s.span)+' to go.');
-  L=L.slice(0,3);
+  L=L.slice(0,3).concat(msLines());
   el.style.display=L.length?'':'none';
   el.innerHTML=L.length?'<div class="pol-h"><i class="fas fa-unlock-alt"></i> What unlocks with more data</div><ul>'+L.map(function(x){return '<li>'+x+'</li>'}).join('')+'</ul>':''}
+
+
+/* ── 4b. milestone-gated insights: Spending Rhythm + Savings Streak ── */
+(function(){var st=document.createElement('style');st.textContent='.pol-pb{display:block;height:5px;border-radius:5px;background:rgba(128,128,128,.25);margin-top:4px;overflow:hidden}.pol-pb i{display:block;height:100%;border-radius:5px;background:var(--accent)}.pol-rh{display:flex;gap:6px;align-items:flex-end;height:54px;margin:4px 0 2px}.pol-rh div{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:flex-end;height:100%;font-size:.62rem;opacity:.9}.pol-rh i{display:block;width:100%;border-radius:4px 4px 0 0;background:rgba(128,128,128,.45)}.pol-rh .pk i{background:var(--accent)}';document.head.appendChild(st)})();
+var MS_RATE=20, DN=['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
+function msRhythm(){var e=0,t=0,by=[0,0,0,0,0,0,0],days={};
+  db.forEach(function(r){if(r.type!=='Expense'||!r.date)return;var a=Number(r.amount)||0,d=new Date(r.date+'T00:00:00').getDay();if(isNaN(d))return;e++;t+=a;by[d]+=a;days[r.date]=1});
+  var nd=Object.keys(days).length,ready=e>=25&&nd>=10,pk=by.indexOf(Math.max.apply(null,by)),we=t?(by[0]+by[6])/t*100:0;
+  return{id:'rhythm',name:'Spending Rhythm',ready:ready,p:Math.min(1,Math.min(e/25,nd/10)),
+    togo:e<25?(25-e)+' more expense'+(25-e>1?'s':''):(10-nd)+' more day'+(10-nd>1?'s':'')+' with spending',
+    what:'priciest weekday, weekend vs weekday split',e:e,t:t,by:by,pk:pk,we:we}}
+function msStreak(){var n=new Date(),cur=ym(n),end=(n.getDate()>=26)?cur:addM(cur,-1),ok={},q=0;
+  dataStats().months.forEach(function(m){var c=mStats(m);if(c.inc>0&&c.exp>0){q++;ok[m]=c.rate}});
+  var ms=Object.keys(ok).sort(),streak=0,m=end;while(ok[m]!=null&&ok[m]>=MS_RATE){streak++;m=addM(m,-1)}
+  var best=0,run=0,prev=null;ms.forEach(function(k){if(ok[k]>=MS_RATE){run=(prev&&addM(prev,1)===k&&run>0)?run+1:1}else run=0;prev=k;if(run>best)best=run});
+  var tg=[3,6,12].filter(function(x){return x>streak})[0]||(Math.ceil((streak+1)/12)*12);
+  var avg=ms.length?ms.reduce(function(a,k){return a+ok[k]},0)/ms.length:0,bm=ms.slice().sort(function(a,b){return ok[b]-ok[a]})[0];
+  return{id:'streak',name:'Savings Streak',ready:q>=3,p:Math.min(1,q/3),togo:(3-q)+' more month'+(3-q>1?'s':'')+' with both income and expenses',
+    what:'how many months in a row you save '+MS_RATE+'%+',streak:streak,best:best,tg:tg,avg:avg,bm:bm,rate:ok[bm],end:end,q:q}}
+function msAll(){return[msRhythm(),msStreak()]}
+function msLines(){return msAll().filter(function(x){return !x.ready}).map(function(x){
+  return '<b>'+x.name+'</b> ('+x.what+') — '+x.togo+' to unlock.<span class="pol-pb"><i style="width:'+Math.round(x.p*100)+'%"></i></span>'})}
+function msCelebrate(A){var seen={};try{seen=JSON.parse(localStorage.getItem('pol_ms_seen')||'{}')}catch(e){}var ch=0;
+  A.forEach(function(x){if(x.ready&&!seen[x.id]){seen[x.id]=1;ch=1;try{addNotification('ms-'+x.id,'fa-unlock-alt','#34d399','🔓 Unlocked: '+x.name,'You\'ve logged enough data to unlock '+x.name+' ('+x.what+'). Find it on your dashboard.','goal-achievement')}catch(e){}}});
+  if(ch)try{localStorage.setItem('pol_ms_seen',JSON.stringify(seen))}catch(e){}}
+function paintMS(){var el=$('pol-ms');if(!el)return;var A=msAll(),R=A[0],S=A[1],h='';msCelebrate(A);
+  if(R.ready){var mx=Math.max.apply(null,R.by)||1;
+    h+='<div><div class="pol-h"><i class="fas fa-wave-square"></i> Spending rhythm</div><div class="pol-rh">'+R.by.map(function(v,i){return '<div'+(i===R.pk?' class="pk"':'')+'><i style="height:'+Math.max(3,Math.round(v/mx*38))+'px"></i>'+DN[i].slice(0,1)+'</div>'}).join('')+'</div>'+
+      '<ul><li><b>'+DN[R.pk]+'</b> is your priciest day — '+Math.round(R.by[R.pk]/R.t*100)+'% of all spending ('+fmt(R.by[R.pk])+').</li>'+
+      '<li>Weekends take <b>'+Math.round(R.we)+'%</b> of spend'+(R.we>35?' — noticeably more than an even split (29%).':R.we<22?' — lighter than an even split (29%).':', close to an even split (29%).')+'</li></ul></div>'}
+  if(S.ready){var pb=Math.round(Math.min(1,S.streak/S.tg)*100);
+    h+='<div><div class="pol-h"><i class="fas fa-fire"></i> Savings streak</div>'+
+      '<ul><li><b>'+S.streak+' month'+(S.streak===1?'':'s')+'</b> in a row at '+MS_RATE+'%+ savings'+(S.streak?'':' — hit '+MS_RATE+'% in '+mLabel(S.end)+' to start one')+'. Best run: '+S.best+'.</li>'+
+      '<li>Best month: <b>'+mLabel(S.bm)+'</b> at '+Math.round(S.rate)+'%. Average: '+Math.round(S.avg)+'%.</li>'+
+      '<li>Next goal: '+S.tg+' months<span class="pol-pb"><i style="width:'+pb+'%"></i></span></li></ul></div>'}
+  el.style.display=h?'':'none';el.innerHTML=h?'<div class="pol-h" style="margin-bottom:8px"><i class="fas fa-unlock"></i> Unlocked insights</div><div class="pol-two">'+h+'</div>':''}
 
 /* ── 5. month-end summary card ── */
 var ME={m:null};
@@ -33410,7 +33526,7 @@ function mStats(m){var o={m:m,inc:0,exp:0,loan:0,inv:0,cats:{},pays:{},uncat:0,n
     if(r.type==='Income')o.inc+=a;else if(r.type==='Loan')o.loan+=a;else if(r.type==='Investment')o.inv+=a;
     else if(r.type==='Expense'){o.exp+=a;var c=fosClean(r.category||r.sub);if(!c)o.uncat++;var ck=fosKey(c)||'general';(o.cats[ck]=o.cats[ck]||{name:c||'General',t:0}).t+=a;
       var p=fosPayeeOf(r);if(p){var pk=fosKey(p);(o.pays[pk]=o.pays[pk]||{name:p,t:0}).t+=a}}});
-  o.bal=o.inc-o.exp-o.loan-o.inv;o.rate=o.inc>0?o.bal/o.inc*100:null;return o}
+  o.bal=o.inc-o.exp-o.loan-o.inv;o.rate=o.inc>0?(o.inc-o.exp-o.loan)/o.inc*100:null;return o}
 function link(kind,name,m,extra){return '<a class="pol-lnk" data-pol="'+kind+'|'+encodeURIComponent(name)+'|Expense|'+(extra||'')+'|'+m+'">'+esc(name)+'</a>'}
 function paintME(){var el=$('pol-me');if(!el)return;var s=dataStats();
   var ks=s.months.filter(function(m){return db.some(function(r){return r.type==='Expense'&&(r.date||'').slice(0,7)===m})});
@@ -33444,16 +33560,16 @@ window.polMeStep=function(d){var s=dataStats(),ks=s.months.filter(function(m){re
 window.polMeToggle=function(){try{localStorage.setItem(LSM,localStorage.getItem(LSM)==='1'?'0':'1')}catch(e){}paintME()};
 
 /* ── wiring ── */
-function initDash(){var v=$('view-dashboard');if(v&&!$('pol-me'))v.insertAdjacentHTML('afterbegin','<div id="pol-me" class="glass-panel pol-card" style="display:none"></div><div id="pol-unlock-d" class="pol-card pol-un" style="display:none"></div>');
+function initDash(){var v=$('view-dashboard');if(v&&!$('pol-me'))v.insertAdjacentHTML('afterbegin','<div id="pol-me" class="glass-panel pol-card" style="display:none"></div><div id="pol-unlock-d" class="pol-card pol-un" style="display:none"></div><div id="pol-ms" class="glass-panel pol-card" style="display:none"></div>');
   var a=$('view-analytics');if(a&&!$('pol-unlock-a'))a.insertAdjacentHTML('afterbegin','<div id="pol-unlock-a" class="pol-card pol-un" style="display:none"></div>')}
 function wrap(n,after){var o=window[n];if(typeof o!=='function'||o.__pol)return;var w=function(){var r=o.apply(this,arguments);try{after()}catch(e){console.error('polish:',e)}return r};w.__pol=1;window[n]=w}
 wrap('renderTable',tableAfter);
-wrap('renderDashboard',function(){initDash();paintME();paintUnlock('pol-unlock-d')});
+wrap('renderDashboard',function(){initDash();paintME();paintUnlock('pol-unlock-d');paintMS()});
 wrap('renderAnalytics',function(){initDash();paintUnlock('pol-unlock-a')});
 wrap('buildQuickAdd',window.polQE);
 wrap('openModal',window.polQE);
 initDash();initBar();polSync();
-try{paintME();paintUnlock('pol-unlock-d');paintUnlock('pol-unlock-a')}catch(e){}
+try{paintME();paintUnlock('pol-unlock-d');paintUnlock('pol-unlock-a');paintMS()}catch(e){}
 })();
 
 </script>
