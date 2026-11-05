@@ -2441,49 +2441,14 @@ body.light-mode .backup-stat { background:rgba(0,0,0,0.03); }
     -webkit-overflow-scrolling:touch;
   }
 
-  /* ── Mobile Mode: a simple, glanceable dashboard, not the full desktop
-     control panel. Advanced/deep-dive sections are hidden by default here;
-     everything is still one tap away via "More (Desktop)" in the drawer, and
-     nothing is removed — this is purely visual on small screens. */
-  [data-drag-id="view-dashboard-section-2"],  /* Badge Showcase */
-  [data-drag-id="view-dashboard-section-3"],  /* Portfolio Snapshot */
-  [data-drag-id="view-dashboard-section-5"],  /* Live Market Overview ticker */
-  [data-drag-id="view-dashboard-section-6"],  /* TradingView chart */
-  [data-drag-id="view-dashboard-section-8"],  /* Sparkline row */
-  [data-drag-id="view-dashboard-section-9"],  /* Cash Flow + Spending Mix */
-  [data-drag-id="view-dashboard-section-10"], /* Portfolio charts */
-  [data-drag-id="view-dashboard-section-12"]  /* Credit charts */
-  {
-    /* NOT display:none — the dashboard's chart code waits for these elements
-       to report a real width before it will render ANY of the KPI numbers,
-       and display:none makes that wait never end. visibility:hidden keeps
-       their layout box "real" (so that check passes immediately) while still
-       taking them out of view and collapsing the space they'd occupy. */
-    visibility:hidden !important;
-    height:0 !important;
-    min-height:0 !important;
-    overflow:hidden !important;
-    margin:0 !important;
-    padding:0 !important;
-    pointer-events:none !important;
-  }
-  body.mobile-full-view [data-drag-id="view-dashboard-section-2"],
-  body.mobile-full-view [data-drag-id="view-dashboard-section-3"],
-  body.mobile-full-view [data-drag-id="view-dashboard-section-5"],
-  body.mobile-full-view [data-drag-id="view-dashboard-section-6"],
-  body.mobile-full-view [data-drag-id="view-dashboard-section-8"],
-  body.mobile-full-view [data-drag-id="view-dashboard-section-9"],
-  body.mobile-full-view [data-drag-id="view-dashboard-section-10"],
-  body.mobile-full-view [data-drag-id="view-dashboard-section-12"]
-  {
-    visibility:visible !important;
-    height:auto !important;
-    min-height:unset !important;
-    overflow:visible !important;
-    margin:revert !important;
-    padding:revert !important;
-    pointer-events:auto !important;
-  }
+  /* ── Mobile: show the FULL dashboard (all charts + containers) by default.
+     The old "simple dashboard" mode hid Badge Showcase, Portfolio Snapshot,
+     Live Market ticker, Sparklines, Cash Flow + Spending Mix, Portfolio charts
+     and Credit charts on phones. Those rules are removed; the now-redundant
+     "Show Full Dashboard" drawer toggle is hidden. (TradingView stays hidden
+     on ≤640px via .tv-mobile-hide, further down.) */
+  #mob-full-dash-toggle { display:none !important; }
+
 
   .mobile-fab {
     display:flex; align-items:center; justify-content:center;
