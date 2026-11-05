@@ -15612,7 +15612,7 @@ function checkAlerts() {
   // ── 9b. Net Worth Milestone Achieved ──────────────────────────────────
   if (isNotifEnabled('goal-achievements')) {
     const nwMilestoneTargets = [500000,1000000,2500000,5000000,10000000];
-    const curNetWorth = sumType('Income', db) - sumType('Expense', db);
+    const curNetWorth = (typeof fosNW === 'function') ? fosNW().net : sumType('Income', db) - sumType('Expense', db);
     const lastCelebrated = Number(localStorage.getItem('fos_last_nw_milestone') || 0);
     const justCrossed = nwMilestoneTargets.filter(t => curNetWorth >= t && t > lastCelebrated);
     if (justCrossed.length) {
@@ -19133,15 +19133,17 @@ function renderNetWorth() {
   const totalExp  = sumType('Expense', db);
   const totalLoan = sumType('Loan', db);
   const portStats = portAggStats(getPortFiltered());
+  const NW = (typeof fosNW === 'function') ? fosNW() : null;   // proper net worth: assets - what you owe
 
   const _debtNow = (creditDb || []).filter(c => c.status === 'Active').reduce((a, c) => a + (Number(c.outstandingBalance) || 0), 0);   // what is actually still owed
   const cash   = totalInc - totalExp - totalInv - totalLoan;   // EMIs paid reduce cash
   const assets = Math.max(0, cash) + totalInv;
 
-  document.getElementById('nw-assets').textContent   = fmt(assets);
-  document.getElementById('nw-liab').textContent     = fmt(_debtNow);
-  document.getElementById('nw-total').textContent    = fmt(totalInc - totalExp);
+  document.getElementById('nw-assets').textContent   = fmt(NW ? NW.assets : assets);
+  document.getElementById('nw-liab').textContent     = fmt(NW ? NW.debt : _debtNow);
+  document.getElementById('nw-total').textContent    = fmt(NW ? NW.net : totalInc - totalExp);
   document.getElementById('nw-port-val').textContent = fmt(portStats.totalVal);
+  if (NW) { try { fosNWRender(NW); } catch (e) { console.error('Net worth breakdown failed:', e); } }
 
   let sortedM = [...new Set(db.map(d => d.date.slice(0,7)))].sort();
   if (!sortedM.length) return;
@@ -19166,7 +19168,8 @@ function renderNetWorth() {
   });
 
   const nwL=[], nwD=[], incD=[], aD=[], lD=[], deltaD=[];
-  let prevNW = cumInc - cumExp;
+  let prevNW = NW ? fosNW.at(sortedM[0], cumInc - cumExp - cumInv - cumLoan, cumInv) : cumInc - cumExp;
+  const _nwStart = prevNW;
   
   sortedM.forEach(ym => {
     const [y,m] = ym.split('-').map(Number);
@@ -19179,7 +19182,7 @@ function renderNetWorth() {
     
     // MATHEMATICAL FIX: True Net Worth = Total Income - Total Expense.
     // Moving cash to an investment or taking a loan doesn't change bottom-line net worth.
-    const nw = cumInc - cumExp;
+    const nw = NW ? fosNW.at(ym, cumInc - cumExp - cumInv - cumLoan, cumInv) : cumInc - cumExp;   // cash + invested - debt
     
     // For the Financial Energy Meter (Assets vs Liab):
     // Assets = Liquid Cash + Investments
@@ -19191,10 +19194,16 @@ function renderNetWorth() {
     nwD.push(nw); 
     incD.push(cumInc);
     aD.push(assets); 
-    lD.push(_debtNow);   // outstanding debt (EMIs paid so far is not a liability)
+    lD.push(NW ? fosNW.histDebt(ym) : _debtNow);   // outstanding debt (EMIs paid so far is not a liability)
     deltaD.push(nw - prevNW);
     prevNW = nw;
   });
+
+  // The latest point is today's exact figure (portfolio at market value, loans with accrued interest, card dues)
+  if (NW && nwD.length) {
+    nwD[nwD.length - 1] = NW.net; aD[aD.length - 1] = NW.assets; lD[lD.length - 1] = NW.debt;
+    deltaD[deltaD.length - 1] = NW.net - (nwD.length > 1 ? nwD[nwD.length - 2] : _nwStart);
+  }
 
   // --- NEW ANALYTIC MATH ---
   const retentionD = [];
@@ -22397,6 +22406,8 @@ function saveCreditEntry() {
   if (!lenderName) { alert('Please enter a Lender / Card Name'); return; }
 
   const entry = { lenderName, type, principalAmount, outstandingBalance, interestRate, monthlyEmi, dueDate, tenureMonths, balanceTenure, startDate, endDate, status, remarks, purpose };
+  const _prevLoan = editingCreditId ? creditDb.find(x => x.id === editingCreditId) : null;   // net worth rolls the balance forward from this date
+  entry.balanceAsOf = (_prevLoan && _prevLoan.balanceAsOf && Number(_prevLoan.outstandingBalance) === outstandingBalance) ? _prevLoan.balanceAsOf : localISO();
 
   if (editingCreditId) {
     const idx = creditDb.findIndex(x => x.id === editingCreditId);
@@ -25058,7 +25069,7 @@ function updateGameStats() {
   // Net worth = cash on hand (income minus expenses, investments, and loan/EMI payments already made,
   // floored at 0) + the value of what's been invested, minus what's still owed on active loans/credit.
   const cashOnHand = totalInc - totalExp - totalInv - totalLoan;
-  gameStats.networth = (cashOnHand>0 ? cashOnHand : 0) + totalInv - totalOutstandingDebt;
+  gameStats.networth = (typeof fosNW === 'function') ? fosNW().net : (cashOnHand>0 ? cashOnHand : 0) + totalInv - totalOutstandingDebt;
   if (typeof gameStats.freezes !== 'number') gameStats.freezes = 1;
 
   const today = localISO();
@@ -34089,6 +34100,92 @@ try{init();paint()}catch(e){}
   var _rgs = renderGameStats; renderGameStats = function () { _rgs.apply(this, arguments); try { fosCloseRender(); } catch (e) { console.error('Close checklist failed:', e); } };
   window.addEventListener('load', function () { setTimeout(function () { try { fosCloseRender(); } catch (e) {} }, 1800); });
   var _sb = saveBudgets; saveBudgets = function () { var r = _sb.apply(this, arguments); try { fosCloseMarkBudget(); } catch (e) {} return r; };
+})();
+</script>
+
+<style id="fosnw-style">
+.fosnw{margin:0 0 1rem;padding:12px 16px}
+.fosnw>summary{cursor:pointer;font-size:.82rem;font-weight:700;color:var(--text-main);list-style:none}
+.fosnw>summary small{font-weight:500;color:var(--text-muted);margin-left:6px}
+.fosnw-row{display:flex;justify-content:space-between;gap:10px;padding:6px 0;border-top:1px solid rgba(128,128,128,.18);font-size:.78rem;flex-wrap:wrap}
+.fosnw-row b{font-weight:600;color:var(--text-main)}.fosnw-row em{font-style:normal;color:var(--text-muted);font-size:.72rem;margin-left:6px}
+.fosnw-row.tot{font-weight:800;border-top:1px solid rgba(128,128,128,.4)}
+.fosnw-note{margin-top:8px;font-size:.72rem;color:var(--text-muted);line-height:1.55}
+</style>
+<script id="fosnw-script">
+/* Net worth = cash + current portfolio value − what you still owe (loans incl. interest, credit-card dues).
+   Loan balances are rolled forward from the date the balance was entered: interest accrues monthly and each
+   EMI you logged reduces the balance. Lenders with no matching Loan entries are assumed to be paid on schedule. */
+(function () {
+  'use strict';
+  var STAMP = 'fos_loan_asof', cache = null;
+  function p2(n) { return String(n).padStart(2, '0'); }
+  function iso(d) { return d.getFullYear() + '-' + p2(d.getMonth() + 1) + '-' + p2(d.getDate()); }
+  function dayOf(v) { var s = String(v || ''); if (/^\d{4}-\d{2}-\d{2}/.test(s)) return parseInt(s.slice(8, 10), 10) || null; var m = s.match(/\d+/); return m ? Math.min(31, Math.max(1, parseInt(m[0], 10))) : null; }
+  function stamps() { try { return JSON.parse(localStorage.getItem(STAMP) || '{}') || {}; } catch (e) { return {}; } }
+  function asOfOf(c, S, tIso) {
+    if (c.balanceAsOf) return c.balanceAsOf;
+    if (!S[c.id]) { S[c.id] = tIso; S.__dirty = true; }          // first time seen: today, so today's numbers don't jump
+    return S[c.id];
+  }
+  function loanEstimate(c, today, S) {
+    var tIso = iso(today), P = Number(c.outstandingBalance) || 0, rate = Number(c.interestRate) || 0, r = rate / 1200, emi = Number(c.monthlyEmi) || 0;
+    var asOfIso = asOfOf(c, S, tIso), asOf = finaiParseISO(asOfIso) || today, day = dayOf(c.dueDate) || asOf.getDate();
+    var nm = c.lenderName || 'Loan', bal = P, assumed = 0, lastDue = null;
+    var pays = (db || []).filter(function (t) { return t && t.type === 'Loan' && String(t.date || '').slice(0, 10) > asOfIso && String(t.date || '').slice(0, 10) <= tIso && (finaiNameMatch(t.name, nm) || finaiNameMatch(t.payee, nm)); });
+    var tracked = (db || []).some(function (t) { return t && t.type === 'Loan' && (finaiNameMatch(t.name, nm) || finaiNameMatch(t.payee, nm)); });
+    if (P > 0) for (var k = 0; k < 240; k++) {
+      var m = new Date(asOf.getFullYear(), asOf.getMonth() + k, 1); if (m > today) break;
+      var dd = new Date(m.getFullYear(), m.getMonth(), Math.min(day, finaiDim(m.getFullYear(), m.getMonth())));
+      if (dd <= asOf || dd > today) continue;
+      var mk = iso(dd).slice(0, 7), intr = bal * r, pay;
+      if (tracked) pay = pays.filter(function (t) { return String(t.date).slice(0, 7) === mk; }).reduce(function (s, t) { return s + (Number(t.amount) || 0); }, 0);
+      else { pay = Math.min(emi, bal + intr); assumed += pay; }
+      bal = Math.max(0, bal + intr - pay); lastDue = dd;
+    }
+    var from = lastDue || asOf, days = Math.max(0, Math.round((today - from) / 86400000));
+    var accrued = bal > 0 && rate > 0 ? bal * rate / 36500 * days : 0;
+    return { name: nm, start: c.startDate || '', balance: Math.round(bal), accrued: Math.round(accrued), assumed: Math.round(assumed), tracked: tracked, liab: Math.round(bal + accrued) };
+  }
+  window.fosNW = function () {
+    var today = new Date(); today.setHours(0, 0, 0, 0); var tIso = iso(today), S = stamps(), notes = [];
+    var sum = function (type) { return (db || []).reduce(function (s, r) { return s + (r && r.type === type && String(r.date || '').slice(0, 10) <= tIso ? (Number(r.amount) || 0) : 0); }, 0); };
+    var inc = sum('Income'), exp = sum('Expense'), inv = sum('Investment'), emiPaid = sum('Loan');
+    var loans = (creditDb || []).filter(function (c) { return c && c.status === 'Active'; }).map(function (c) { return loanEstimate(c, today, S); });
+    if (S.__dirty) { delete S.__dirty; try { localStorage.setItem(STAMP, JSON.stringify(S)); } catch (e) {} }
+    var assumed = loans.reduce(function (s, l) { return s + l.assumed; }, 0);
+    var cashRaw = inc - exp - inv - emiPaid - assumed, cash = Math.max(0, cashRaw);
+    var port = portAggStats((portDb || []).filter(function (e) { return e && e.status !== 'sold'; }));
+    var loanBal = loans.reduce(function (s, l) { return s + l.balance; }, 0), accrued = loans.reduce(function (s, l) { return s + l.accrued; }, 0);
+    var cc = (ccCards || []).reduce(function (s, c) { return s + (Number(c.used) || 0); }, 0);
+    var assets = cash + port.totalVal, debt = loanBal + accrued + cc;
+    if (cashRaw < 0) notes.push('Cash shows ₹0: logged outflows exceed logged income by ' + fmt(Math.round(-cashRaw)) + ', usually a missing opening balance.');
+    if (port.totalInv > inv * 1.1 + 1) notes.push('Your portfolio cost (' + fmt(Math.round(port.totalInv)) + ') is higher than your Investment entries (' + fmt(Math.round(inv)) + '). The difference is assumed to have been funded outside this ledger.');
+    var un = loans.filter(function (l) { return !l.tracked && l.assumed > 0; });
+    if (un.length) notes.push(un.length + ' loan' + (un.length > 1 ? 's have' : ' has') + ' no matching Loan entries, so scheduled EMIs are assumed paid (' + un.map(function (l) { return l.name; }).slice(0, 3).join(', ') + ').');
+    notes.push('Sold holdings are excluded; log sale proceeds as income to count them. Edit a loan’s outstanding balance to re-anchor its estimate.');
+    cache = { cash: cash, cashRaw: cashRaw, portfolio: port.totalVal, portCost: port.totalInv, invested: inv, assets: assets, loanBal: loanBal, accrued: accrued, cc: cc, debt: debt, net: assets - debt, loans: loans, notes: notes };
+    return cache;
+  };
+  // month-by-month history: cash + invested at cost − today's balance of loans that had started by then (approximate)
+  window.fosNW.histDebt = function (ym) { if (!cache) fosNW(); return cache.loans.filter(function (l) { return !l.start || String(l.start).slice(0, 7) <= ym; }).reduce(function (s, l) { return s + l.liab; }, 0); };
+  window.fosNW.at = function (ym, cash, inv) { return Math.max(0, cash) + inv - fosNW.histDebt(ym); };
+
+  window.fosNWRender = function (N) {
+    var host = document.getElementById('fosnw-explain');
+    if (!host) { var row = document.querySelector('#view-networth .nw-row'); if (!row) return; host = document.createElement('div'); host.id = 'fosnw-explain'; row.insertAdjacentElement('afterend', host); }
+    var R = function (label, val, sub, cls) { return '<div class="fosnw-row ' + (cls || '') + '"><span><b>' + label + '</b>' + (sub ? '<em>' + sub + '</em>' : '') + '</span><span>' + val + '</span></div>'; };
+    var loanRows = N.loans.filter(function (l) { return l.liab > 0; }).map(function (l) { return R(_esc(l.name), fmt(l.liab), l.accrued ? 'incl. ' + fmt(l.accrued) + ' accrued interest' + (l.tracked ? '' : ' · EMIs assumed') : (l.tracked ? '' : 'EMIs assumed'), ''); }).join('');
+    host.innerHTML = '<details class="glass-panel fosnw"' + (window._fosNWOpen ? ' open' : '') + ' ontoggle="window._fosNWOpen=this.open"><summary>How net worth is calculated<small>assets ' + fmt(Math.round(N.assets)) + ' − liabilities ' + fmt(Math.round(N.debt)) + ' = ' + fmt(Math.round(N.net)) + '</small></summary>' +
+      R('Cash on hand', fmt(Math.round(N.cash)), 'income − expenses − investments − EMIs paid') +
+      R('Portfolio, current value', fmt(Math.round(N.portfolio)), 'cost ' + fmt(Math.round(N.portCost))) +
+      R('Total assets', fmt(Math.round(N.assets)), '', 'tot') +
+      R('Loans outstanding (est.)', fmt(Math.round(N.loanBal)), 'rolled forward with interest and your logged EMIs') +
+      R('Accrued interest', fmt(Math.round(N.accrued)), 'since each loan’s last due date') +
+      R('Credit-card dues', fmt(Math.round(N.cc))) + loanRows +
+      R('Total liabilities', fmt(Math.round(N.debt)), '', 'tot') + R('Net worth', fmt(Math.round(N.net)), '', 'tot') +
+      '<div class="fosnw-note">' + N.notes.map(_esc).join('<br>') + '</div></details>';
+  };
 })();
 </script>
 
