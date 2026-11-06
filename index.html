@@ -14,6 +14,351 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="FinanceOS">
 <title>FinanceOS</title>
+<script id="fos-admin-core">
+/* ═══════════════════════════════════════════════════════════════════════
+   FOS ADMIN · BLOCK 1 — CONFIG LAYER  (FOS_CONFIG / FOSC)
+   DEFAULTS are built from SCHEMA and never mutated. OVERRIDES live in
+   localStorage 'fos_admin_config_v1'. Effective value = override if present
+   and valid, else default. Every read is try/catch-guarded and happens at
+   call time, so a change applies instantly without a reload.
+   ═══════════════════════════════════════════════════════════════════════ */
+(function () {
+  'use strict';
+  if (window.FOS_CONFIG) return;
+  var KEY = 'fos_admin_config_v1', AUD = 'fos_admin_audit_v1', SNAP = 'fos_admin_snapshots_v1', BOOT = 'fos_admin_boot_v1', SAFE = 'fos_admin_safe_v1';
+  function lsGet(k) { try { return localStorage.getItem(k); } catch (e) { return null; } }
+  function lsSet(k, v) { try { localStorage.setItem(k, v); return true; } catch (e) { return false; } }
+  function jget(k, d) { try { var v = JSON.parse(lsGet(k)); return v == null ? d : v; } catch (e) { return d; } }
+  function same(a, b) { return JSON.stringify(a) === JSON.stringify(b); }
+
+  /* ── SCHEMA: one row per editable setting ─────────────────────────── */
+  var SCHEMA = [], BYPATH = {};
+  function add(o) { SCHEMA.push(o); BYPATH[o.p] = o; }
+  function N(p, d, min, max, step, g, l, h, aff, rec, int) { add({ p: p, t: int ? 'int' : 'num', d: d, min: min, max: max, step: step, g: g, l: l, h: h, aff: aff, rec: rec }); }
+  function B(p, d, g, l, h, aff) { add({ p: p, t: 'bool', d: d, g: g, l: l, h: h, aff: aff }); }
+  function L(p, d, g, l, h, aff) { add({ p: p, t: 'list', d: d, g: g, l: l, h: h, aff: aff }); }
+  var SC = 'Score engine (FinAI 0–100)', GO = 'Targets & rules', MD = 'Money definitions', FC = 'Month-end forecast', CL = 'Essential vs discretionary', UN = 'Unlocks & streaks', NT = 'Notifications';
+  var AS = ['FinAI score', 'Dashboard'], AF = ['Dashboard forecast', 'FinAI chat'];
+  N('score.base', 50, 0, 100, 1, SC, 'Starting score', 'Every score starts here before bonuses and penalties.', AS, '40–60', true);
+  N('score.min', 5, 0, 50, 1, SC, 'Lowest possible score', 'Score is never shown below this.', AS, '0–10', true);
+  N('score.max', 100, 50, 100, 1, SC, 'Highest possible score', 'Score is never shown above this.', AS, '90–100', true);
+  N('score.sr.great', 30, 0, 100, 1, SC, 'Savings rate: "great" from (%)', 'Savings rate at or above this earns the biggest bonus.', AS, '25–40');
+  N('score.sr.good', 20, 0, 100, 1, SC, 'Savings rate: "healthy" from (%)', 'Savings rate at or above this earns the healthy bonus.', AS, '15–25');
+  N('score.sr.low', 0, -50, 100, 1, SC, 'Savings rate: "low but positive" from (%)', 'Below this the month counts as overspending.', AS, '0–5');
+  N('score.sr.greatPts', 20, -50, 50, 1, SC, 'Points: great saver', 'Points added when savings rate reaches the "great" band.', AS, '10–25', true);
+  N('score.sr.goodPts', 12, -50, 50, 1, SC, 'Points: healthy savings', 'Points added in the healthy band.', AS, '5–15', true);
+  N('score.sr.lowPts', 2, -50, 50, 1, SC, 'Points: low savings', 'Points added in the low-but-positive band.', AS, '0–5', true);
+  N('score.sr.negPts', -20, -50, 50, 1, SC, 'Points: overspending', 'Points applied when savings rate is negative.', AS, '−10 to −25', true);
+  N('score.inv.strong', 20, 0, 100, 1, SC, 'Investment rate: "strong" from (%)', 'Share of income invested that counts as a strong investor.', AS, '15–25');
+  N('score.inv.regular', 10, 0, 100, 1, SC, 'Investment rate: "regular" from (%)', 'Share of income invested that counts as regular investing.', AS, '5–15');
+  N('score.inv.strongPts', 6, -30, 30, 1, SC, 'Points: strong investor', '', AS, '3–8', true);
+  N('score.inv.regularPts', 4, -30, 30, 1, SC, 'Points: regular investing', '', AS, '2–6', true);
+  N('score.inv.beyondCashPts', -4, -30, 30, 1, SC, 'Points: investing beyond cash flow', 'Applied when investing leaves cash in hand negative.', AS, '−2 to −8', true);
+  N('score.emi.high', 50, 0, 100, 1, SC, 'EMI load: "high" from (% of income)', 'EMI burden at or above this is penalised heavily.', AS, '40–50');
+  N('score.emi.mod', 30, 0, 100, 1, SC, 'EMI load: "moderate" from (% of income)', 'EMI burden at or above this is penalised lightly.', AS, '25–35');
+  N('score.emi.highPts', -20, -50, 30, 1, SC, 'Points: high EMI load', '', AS, '−15 to −25', true);
+  N('score.emi.modPts', -8, -50, 30, 1, SC, 'Points: moderate EMI load', '', AS, '−5 to −10', true);
+  N('score.emi.okPts', 6, -30, 30, 1, SC, 'Points: EMI under control', '', AS, '3–8', true);
+  N('score.hiIntRate', 24, 0, 100, 0.5, SC, 'High-interest debt: rate from (% a year)', 'Loans or cards at or above this rate count as high-interest. Also used by insights.', AS.concat(['Debt insights']), '18–24');
+  N('score.hiIntPts', -10, -50, 30, 1, SC, 'Points: any high-interest debt', '', AS, '−5 to −15', true);
+  N('score.overBudgetEach', 5, 0, 30, 1, SC, 'Over-budget penalty per category', 'Points taken off for each category over its budget.', AS, '3–6', true);
+  N('score.overBudgetCap', 15, 0, 50, 1, SC, 'Over-budget penalty cap', 'Most that over-budget categories can take off in total.', AS, '10–20', true);
+  N('score.spikeEach', 4, 0, 30, 1, SC, 'Spending-spike penalty per category', '', AS, '2–5', true);
+  N('score.spikeCap', 10, 0, 50, 1, SC, 'Spending-spike penalty cap', '', AS, '6–12', true);
+  N('score.port.up', 5, 0, 100, 1, SC, 'Portfolio "up" from (% gain)', '', AS, '3–10');
+  N('score.port.down', -5, -100, 0, 1, SC, 'Portfolio "down" at or below (% loss)', '', AS, '−3 to −10');
+  N('score.port.downPts', -5, -30, 30, 1, SC, 'Points: portfolio down', '', AS, '−3 to −8', true);
+  N('score.trendPts', 5, 1, 50, 1, SC, 'Trend: savings-rate change that counts (points)', 'Change in savings rate over 3 months that counts as up/down.', AS, '3–8');
+  N('score.trendBonus', 5, 0, 30, 1, SC, 'Points: improving / worsening trend', 'Added for an improving trend, taken off for a worsening one.', AS, '3–8', true);
+  N('score.cc.crit', 75, 0, 100, 1, SC, 'Card utilisation: "critical" from (%)', '', AS, '70–90');
+  N('score.cc.high', 30, 0, 100, 1, SC, 'Card utilisation: "high" from (%)', '', AS, '30–50');
+  N('score.cc.critPts', -15, -50, 30, 1, SC, 'Points: critical card usage', '', AS, '−10 to −20', true);
+  N('score.cc.highPts', -5, -50, 30, 1, SC, 'Points: high card usage', '', AS, '−3 to −8', true);
+  N('score.cc.okPts', 4, -30, 30, 1, SC, 'Points: healthy card usage', '', AS, '2–6', true);
+  N('score.noHealthPts', -6, -30, 0, 1, SC, 'Points: no health cover', '', AS, '−4 to −8', true);
+  N('score.noLifePts', -4, -30, 0, 1, SC, 'Points: no life cover', '', AS, '−2 to −6', true);
+  N('score.subs.count', 4, 1, 50, 1, SC, 'Many subscriptions: from (count)', '', AS, '4–8', true);
+  N('score.subs.pts', -4, -30, 0, 1, SC, 'Points: many subscriptions', '', AS, '−2 to −6', true);
+  N('score.conc.pct', 70, 10, 100, 1, SC, 'Concentrated portfolio: from (% in one type)', '', AS, '60–80');
+  N('score.conc.pts', -6, -30, 0, 1, SC, 'Points: concentrated portfolio', '', AS, '−3 to −8', true);
+  N('score.disc.over', 50, 0, 100, 1, SC, 'Discretionary: "overspend" above (% of income)', '', AS, '40–60');
+  N('score.disc.high', 30, 0, 100, 1, SC, 'Discretionary: "high" above (% of income)', '', AS, '25–35');
+  N('score.disc.good', 15, 0, 100, 1, SC, 'Discretionary: "disciplined" up to (% of income)', '', AS, '10–20');
+  N('score.disc.overPts', -14, -50, 30, 1, SC, 'Points: discretionary overspend', '', AS, '−10 to −18', true);
+  N('score.disc.highPts', -6, -50, 30, 1, SC, 'Points: high discretionary spend', '', AS, '−4 to −8', true);
+  N('score.disc.goodPts', 4, -30, 30, 1, SC, 'Points: disciplined spender', '', AS, '2–6', true);
+  N('score.bonus.investHiDebt', -10, -50, 0, 1, SC, 'Points: investing while in high-interest debt', '', AS, '−5 to −12', true);
+  N('score.bonus.wantsDeficit', -8, -50, 0, 1, SC, 'Points: wants funded by a deficit', '', AS, '−5 to −10', true);
+  N('score.bonus.debtFirst', 6, 0, 30, 1, SC, 'Points: paying debt before investing', '', AS, '4–8', true);
+  N('score.bonus.discipline', 6, 0, 30, 1, SC, 'Points: strong discipline streak', '', AS, '4–8', true);
+  N('goals.savingsRate', 20, 0, 100, 1, GO, 'Savings-rate target (%)', 'Used by the Savings Streak, month-end "fix next month" tips and insights.', ['Dashboard', 'Unlocks', 'Month-end card'], '15–30');
+  N('goals.investRate', 10, 0, 100, 1, GO, 'Investment-rate target (%)', 'Share of income you aim to invest.', ['FinAI insights'], '10–20');
+  N('goals.spikePct', 40, 5, 500, 1, GO, 'Spending-spike threshold (%)', 'A category is a "spike" when it is this much above its usual month.', ['FinAI score', 'Insights'], '30–60');
+  N('goals.recurringMonths', 3, 2, 12, 1, GO, 'Recurring charge: seen in at least (months)', 'A charge repeating in this many months is treated as recurring.', ['Subscriptions', 'FinAI score'], '3–4', true);
+  N('goals.recurringWindow', 3, 1, 12, 1, GO, 'Recurring charge: must appear in last (months)', 'It must also have appeared inside this recent window.', ['Subscriptions', 'FinAI score'], '2–4', true);
+  B('ledger.investCountsAsSaving', true, MD, 'Investing counts as saving', 'On: savings = income − expenses − EMIs. Off: investments are also subtracted, so savings and cash-left become the same number.', ['Dashboard', 'FinAI', 'Month-end card']);
+  L('ledger.types.income', ['Income'], MD, 'Transaction types counted as income', 'Comma-separated. A type can be in only one role.', ['Ledger']);
+  L('ledger.types.expense', ['Expense'], MD, 'Transaction types counted as expense', 'Comma-separated.', ['Ledger']);
+  L('ledger.types.emi', ['Loan'], MD, 'Transaction types counted as EMI', 'Comma-separated.', ['Ledger']);
+  L('ledger.types.invest', ['Investment'], MD, 'Transaction types counted as investment', 'Comma-separated.', ['Ledger']);
+  N('forecast.historyMonths', 3, 1, 12, 1, FC, 'History months used', 'How many earlier months shape the expected daily pace.', AF, '3–6', true);
+  N('forecast.lumpMult', 5, 1.5, 50, 0.5, FC, 'Lump purchase: times the median', 'A one-off expense this many times your median expense counts as a lump purchase and is not projected forward.', AF, '4–8');
+  N('forecast.lumpFloor', 5000, 0, 10000000, 100, FC, 'Lump purchase: minimum amount', 'It must also be at least this amount.', AF, '3,000–10,000');
+  B('forecast.weekdayPattern', true, FC, 'Use weekday spending pattern', 'Weights the remaining days by how much you usually spend on each weekday.', AF);
+  N('forecast.minSpan', 42, 7, 90, 1, FC, 'Minimum days of data for weekday pattern', '', AF, '28–60', true);
+  L('classify.essential', function () { try { return FINAI_ESSENTIAL_KEYWORDS.slice(); } catch (e) { return []; } }, CL, 'Essential keywords', 'Matched against the sub-category and name of each expense.', ['FinAI score', 'Insights']);
+  L('classify.discretionary', function () { try { return FINAI_DISCRETIONARY_KEYWORDS.slice(); } catch (e) { return []; } }, CL, 'Discretionary keywords', 'Matched against the sub-category and name of each expense.', ['FinAI score', 'Insights']);
+  N('unlocks.entriesPerWeek', 2, 1, 30, 1, UN, 'Entries needed for a qualifying week', 'A week counts toward the Weekly Pulse streak with at least this many entries.', ['Consistency journey'], '2–3', true);
+  N('unlocks.lh.pulse.need', 4, 1, 52, 1, UN, 'Weekly Pulse: weeks in a row', '', ['Consistency journey'], '3–6', true);
+  N('unlocks.lh.half.need', 6, 1, 24, 1, UN, 'Half-Year Report: months in a row', '', ['Consistency journey'], '4–6', true);
+  N('unlocks.lh.year.need', 12, 1, 60, 1, UN, 'Year in Review: months in a row', '', ['Consistency journey'], '9–12', true);
+  B('notify.quietEnabled', false, NT, 'Quiet hours: mute notification sound', 'Alerts still appear in the bell, but make no sound during quiet hours.', ['Notifications']);
+  add({ p: 'notify.quietFrom', t: 'time', d: '22:00', g: NT, l: 'Quiet hours start', h: '', aff: ['Notifications'] });
+  add({ p: 'notify.quietTo', t: 'time', d: '07:00', g: NT, l: 'Quiet hours end', h: '', aff: ['Notifications'] });
+  var dyn = false;
+  function ensureDyn() { /* one cooldown + one on/off row per notification type, read from the app's own table */
+    if (dyn) return; var T; try { T = NOTIF_COOLDOWN_HOURS; } catch (e) { return; } if (!T) return; dyn = true;
+    Object.keys(T).forEach(function (k) {
+      N('notify.cooldown.' + k, T[k], 0, 8760, 1, NT, 'Cooldown after dismissing "' + k + '" (hours)', 'How long a dismissed alert of this type stays quiet.', ['Notifications'], '', true);
+      B('notify.off.' + k, false, NT, 'Turn off "' + k + '" alerts', 'Stops this alert type from being created at all.', ['Notifications']);
+    });
+  }
+
+  /* ── state ─────────────────────────────────────────────────────────── */
+  var ov = null, draft = {}, bypass = 0, undoStack = [], listeners = [];
+  var boot = jget(BOOT, { pending: false, n: 0 }), autoSafe = false;
+  if (boot.pending) boot.n = (boot.n || 0) + 1; else boot.n = 0;
+  if (boot.n >= 2 && lsGet(SAFE) !== '1') { lsSet(SAFE, '1'); autoSafe = true; }
+  boot.pending = true; lsSet(BOOT, JSON.stringify(boot));
+  window.addEventListener('load', function () { setTimeout(function () { lsSet(BOOT, JSON.stringify({ pending: false, n: 0 })); }, 2500); });
+
+  function load() { var o = jget(KEY, {}); ov = (o && typeof o === 'object' && !Array.isArray(o)) ? o : {}; }
+  function save() { return lsSet(KEY, JSON.stringify(ov)); }
+  function safe() { return lsGet(SAFE) === '1'; }
+  function def(p) { var s = BYPATH[p]; if (!s) { ensureDyn(); s = BYPATH[p]; } if (!s) return undefined; return typeof s.d === 'function' ? s.d() : s.d; }
+  function get(p) {
+    try {
+      if (!bypass && !safe()) {
+        if (Object.prototype.hasOwnProperty.call(draft, p)) return draft[p];
+        if (ov === null) load();
+        if (Object.prototype.hasOwnProperty.call(ov, p)) { var s = BYPATH[p] || (ensureDyn(), BYPATH[p]); if (s && validate(p, ov[p]).ok) return ov[p]; }
+      }
+    } catch (e) { }
+    return def(p);
+  }
+
+  /* ── validation: type, range, required ─────────────────────────────── */
+  function validate(p, v) {
+    var s = BYPATH[p] || (ensureDyn(), BYPATH[p]); if (!s) return { ok: false, msg: 'Unknown setting.' };
+    if (s.t === 'num' || s.t === 'int') {
+      if (v === '' || v === null || v === undefined || typeof v === 'boolean') return { ok: false, msg: 'A number is required.' };
+      var n = Number(v); if (!isFinite(n)) return { ok: false, msg: 'Enter a valid number.' };
+      if (s.t === 'int' && Math.floor(n) !== n) return { ok: false, msg: 'Whole numbers only.' };
+      if (n < s.min || n > s.max) return { ok: false, msg: 'Must be between ' + s.min + ' and ' + s.max + '.' };
+      return { ok: true, val: n };
+    }
+    if (s.t === 'bool') return typeof v === 'boolean' ? { ok: true, val: v } : { ok: false, msg: 'Must be on or off.' };
+    if (s.t === 'time') return (typeof v === 'string' && /^([01]\d|2[0-3]):[0-5]\d$/.test(v)) ? { ok: true, val: v } : { ok: false, msg: 'Use HH:MM (24-hour).' };
+    if (s.t === 'list') {
+      var a = Array.isArray(v) ? v : String(v == null ? '' : v).split(',');
+      a = a.map(function (x) { return String(x).trim(); }).filter(Boolean);
+      if (!/^classify\./.test(p)) { /* type lists keep their case; keyword lists are lower-cased */ } else a = a.map(function (x) { return x.toLowerCase(); });
+      var seen = {}, out = []; a.forEach(function (x) { if (!seen[x]) { seen[x] = 1; out.push(x); } });
+      if (out.length > 500) return { ok: false, msg: 'Too many entries (max 500).' };
+      if (out.some(function (x) { return x.length > 60; })) return { ok: false, msg: 'Each entry must be 60 characters or fewer.' };
+      if (/^ledger\.types\./.test(p)) {
+        if (!out.length) return { ok: false, msg: 'At least one transaction type is required.' };
+        var roles = ['income', 'expense', 'emi', 'invest'], me = p.split('.')[2], clash = '';
+        roles.forEach(function (r) { if (r === me || clash) return; var o = draft['ledger.types.' + r] || get('ledger.types.' + r); out.forEach(function (x) { if (!clash && o.indexOf(x) >= 0) clash = x + ' is already used as ' + r; }); });
+        if (clash) return { ok: false, msg: clash + '. A type can be in one role only.' };
+      }
+      if (/^classify\./.test(p) && !out.length) return { ok: false, msg: 'Keep at least one keyword (or use Reset to restore the defaults).' };
+      return { ok: true, val: Object.freeze(out) };
+    }
+    return { ok: false, msg: 'Unsupported setting type.' };
+  }
+
+  /* ── audit + snapshots ─────────────────────────────────────────────── */
+  function audit(e) { var a = jget(AUD, []); if (!Array.isArray(a)) a = []; e.id = Date.now().toString(36) + Math.random().toString(36).slice(2, 6); e.ts = new Date().toISOString(); e.who = 'You'; a.push(e); lsSet(AUD, JSON.stringify(a.slice(-500))); return e; }
+  function snapshot(name, auto) { var s = jget(SNAP, []); if (!Array.isArray(s)) s = []; load(); s.push({ id: Date.now().toString(36), ts: new Date().toISOString(), name: name || (auto ? 'Auto' : 'Snapshot'), auto: !!auto, cfg: JSON.parse(JSON.stringify(ov)) }); var autos = s.filter(function (x) { return x.auto; }); while (autos.length > 15) { var d = autos.shift(); s.splice(s.indexOf(d), 1); } lsSet(SNAP, JSON.stringify(s.slice(-40))); }
+
+  function notify(paths) { listeners.forEach(function (f) { try { f(paths); } catch (e) { console.error('fos-config listener:', e); } }); rerender(); }
+  var rt = null;
+  function rerender() {
+    clearTimeout(rt); rt = setTimeout(function () {
+      var vis = function (id) { var e = document.getElementById(id); return !!(e && e.offsetParent !== null); };
+      try { if (typeof renderDashboard === 'function') renderDashboard(); } catch (e) { }
+      try { if (vis('view-finai') && typeof renderFinAI === 'function') renderFinAI(); } catch (e) { }
+      try { if (vis('view-analytics') && typeof renderAnalytics === 'function') renderAnalytics(); } catch (e) { }
+      try { if (typeof renderNotifList === 'function') renderNotifList(); } catch (e) { }
+    }, 60);
+  }
+
+  function setOv(p, v, opts) {
+    opts = opts || {}; var r = validate(p, v); if (!r.ok) return r;
+    load(); var had = Object.prototype.hasOwnProperty.call(ov, p), old = had ? ov[p] : undefined, d = def(p);
+    if (!opts.noSnap && !had && Object.keys(ov).length === 0) snapshot('Before first override', true);
+    if (same(r.val, d)) delete ov[p]; else ov[p] = r.val;
+    if (!save()) return { ok: false, msg: 'Could not save (browser storage is full).' };
+    var e = audit({ path: p, old: had ? old : null, hadOld: had, val: same(r.val, d) ? null : r.val, reset: same(r.val, d), note: opts.note || '' });
+    if (!opts.fromUndo) undoStack.push({ p: p, had: had, old: old });
+    if (undoStack.length > 50) undoStack.shift();
+    notify([p]); return { ok: true, val: r.val, auditId: e.id };
+  }
+  function undo() { var u = undoStack.pop(); if (!u) return { ok: false, msg: 'Nothing to undo.' }; load(); if (u.had) return setOv(u.p, u.old, { fromUndo: 1, note: 'undo' }); delete ov[u.p]; save(); audit({ path: u.p, old: null, hadOld: false, val: null, reset: true, note: 'undo' }); notify([u.p]); return { ok: true }; }
+  function revert(auditId) { var a = jget(AUD, []).filter(function (x) { return x.id === auditId; })[0]; if (!a) return { ok: false, msg: 'Entry not found.' }; if (!a.hadOld) { return setOv(a.path, def(a.path), { note: 'revert ' + auditId }); } return setOv(a.path, a.old, { note: 'revert ' + auditId }); }
+  function resetAll() { load(); var n = Object.keys(ov).length; if (!n) return { ok: true, n: 0 }; snapshot('Before reset-all', true); var keys = Object.keys(ov); ov = {}; save(); audit({ path: '*', old: keys.length + ' overrides', val: null, reset: true, note: 'reset all' }); notify(keys); return { ok: true, n: n }; }
+  function restore(snapId) { var s = jget(SNAP, []).filter(function (x) { return x.id === snapId; })[0]; if (!s) return { ok: false, msg: 'Snapshot not found.' }; snapshot('Before restore', true); ov = {}; var bad = 0; Object.keys(s.cfg || {}).forEach(function (p) { var r = validate(p, s.cfg[p]); if (r.ok) ov[p] = r.val; else bad++; }); save(); audit({ path: '*', old: null, val: Object.keys(ov).length + ' overrides', note: 'restore "' + s.name + '"' }); notify(Object.keys(ov)); return { ok: true, skipped: bad }; }
+  function exportCfg() { load(); return JSON.stringify({ app: 'FinanceOS', kind: 'admin-config', version: 1, exportedAt: new Date().toISOString(), overrides: ov }, null, 2); }
+  function importCfg(txt) {
+    var o; try { o = JSON.parse(txt); } catch (e) { return { ok: false, msg: 'That file is not valid JSON.' }; }
+    if (!o || o.kind !== 'admin-config' || !o.overrides || typeof o.overrides !== 'object') return { ok: false, msg: 'Not a FinanceOS admin-config file.' };
+    ensureDyn(); var good = {}, bad = [];
+    Object.keys(o.overrides).forEach(function (p) { var r = validate(p, o.overrides[p]); if (r.ok) good[p] = r.val; else bad.push(p + ': ' + r.msg); });
+    return { ok: true, good: good, bad: bad };
+  }
+  function applyImport(good) { snapshot('Before import', true); ov = {}; Object.keys(good).forEach(function (p) { if (!same(good[p], def(p))) ov[p] = good[p]; }); save(); audit({ path: '*', old: null, val: Object.keys(ov).length + ' overrides', note: 'import' }); notify(Object.keys(ov)); }
+
+  /* quiet hours: used by addNotification to mute the sound only */
+  function quiet() {
+    try {
+      if (!get('notify.quietEnabled')) return false;
+      var n = new Date(), m = n.getHours() * 60 + n.getMinutes(), f = get('notify.quietFrom').split(':'), t = get('notify.quietTo').split(':');
+      var a = +f[0] * 60 + +f[1], b = +t[0] * 60 + +t[1];
+      return a === b ? false : (a < b ? (m >= a && m < b) : (m >= a || m < b));
+    } catch (e) { return false; }
+  }
+
+  var API = {
+    SCHEMA: function () { ensureDyn(); return SCHEMA; }, schemaOf: function (p) { return BYPATH[p] || (ensureDyn(), BYPATH[p]); },
+    get: get, def: def, validate: validate, set: setOv, reset: function (p) { return setOv(p, def(p), { note: 'reset' }); },
+    overrides: function () { load(); var o = {}; Object.keys(ov).forEach(function (p) { if (BYPATH[p] || (ensureDyn(), BYPATH[p])) o[p] = ov[p]; }); return o; },
+    isModified: function (p) { load(); return Object.prototype.hasOwnProperty.call(ov, p); },
+    setDraft: function (p, v) { var r = validate(p, v); if (!r.ok) return r; draft[p] = r.val; return r; }, clearDraft: function (p) { if (p) delete draft[p]; else draft = {}; },
+    withDefaults: function (fn) { bypass++; try { return fn(); } finally { bypass--; } },
+    undo: undo, undoDepth: function () { return undoStack.length; }, revert: revert, resetAll: resetAll,
+    audit: function () { return jget(AUD, []); }, snapshots: function () { return jget(SNAP, []); }, snapshot: function (n) { snapshot(n || 'Snapshot', false); }, restore: restore,
+    exportCfg: exportCfg, importCfg: importCfg, applyImport: applyImport,
+    safe: safe, setSafe: function (on) { lsSet(SAFE, on ? '1' : '0'); audit({ path: 'safe-mode', old: null, val: on, note: on ? 'safe mode on' : 'safe mode off' }); notify(['*']); },
+    autoSafe: function () { return autoSafe; }, quiet: quiet, onChange: function (f) { listeners.push(f); }, ensureDyn: ensureDyn
+  };
+  window.FOS_CONFIG = API;
+  window.FOSC = function (p) { return get(p); };
+})();
+
+/* ═══════════════════════════════════════════════════════════════════════
+   FOS ADMIN · BLOCK 2 — SAFE EXPRESSION ENGINE  (no eval, no new Function)
+   Hand-written tokenizer + recursive-descent parser + tree-walking evaluator.
+   Variables and functions are whitelisted; anything else is a clear error.
+   ═══════════════════════════════════════════════════════════════════════ */
+(function () {
+  'use strict';
+  if (window.FOS_EXPR) return;
+  var VARS = ['income', 'expense', 'emi', 'invest', 'savings', 'cashLeft', 'month', 'avg3', 'avg6'];
+  var FUNCS = { min: 1, max: 1, avg: 1, sum: 1, round: 1, abs: 1, 'if': 1 };
+  var MAX_LEN = 500, MAX_DEPTH = 40, MAX_NODES = 400;
+  function err(msg, pos) { var e = new Error(msg); e.pos = pos; e.isExpr = true; return e; }
+
+  function tokenize(src) {
+    var t = [], i = 0, n = src.length, c;
+    while (i < n) {
+      c = src[i];
+      if (c === ' ' || c === '\t' || c === '\n' || c === '\r') { i++; continue; }
+      if ((c >= '0' && c <= '9') || (c === '.' && src[i + 1] >= '0' && src[i + 1] <= '9')) {
+        var s = i, dots = 0; while (i < n && ((src[i] >= '0' && src[i] <= '9') || src[i] === '.')) { if (src[i] === '.') dots++; i++; }
+        if (dots > 1) throw err('Malformed number "' + src.slice(s, i) + '"', s);
+        t.push({ k: 'num', v: parseFloat(src.slice(s, i)), p: s }); continue;
+      }
+      if ((c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z') || c === '_') { var s2 = i; while (i < n && /[A-Za-z0-9_]/.test(src[i])) i++; t.push({ k: 'id', v: src.slice(s2, i), p: s2 }); continue; }
+      var two = src.substr(i, 2);
+      if (two === '<=' || two === '>=' || two === '==' || two === '!=' || two === '&&' || two === '||') { t.push({ k: 'op', v: two, p: i }); i += 2; continue; }
+      if ('+-*/%^()<>,!'.indexOf(c) >= 0) { t.push({ k: 'op', v: c, p: i }); i++; continue; }
+      throw err('Unexpected character "' + c + '"', i);
+    }
+    t.push({ k: 'end', p: n }); return t;
+  }
+
+  function parse(src) {
+    if (typeof src !== 'string') throw err('Formula must be text', 0);
+    if (!src.trim()) throw err('Formula is empty', 0);
+    if (src.length > MAX_LEN) throw err('Formula is too long (max ' + MAX_LEN + ' characters)', MAX_LEN);
+    var T = tokenize(src), i = 0, nodes = 0;
+    function peek() { return T[i]; }
+    function eat(v) { var x = T[i]; if (x.k === 'op' && x.v === v) { i++; return true; } return false; }
+    function need(v) { if (!eat(v)) throw err('Expected "' + v + '"', T[i].p); }
+    function mk(o) { if (++nodes > MAX_NODES) throw err('Formula is too complex', T[i].p); return o; }
+    function bin(next, ops) { return function (d) { var l = next(d); while (peek().k === 'op' && ops.indexOf(peek().v) >= 0) { var o = T[i++].v; l = mk({ t: 'bin', o: o, l: l, r: next(d) }); } return l; }; }
+    function guard(d) { if (d > MAX_DEPTH) throw err('Formula is nested too deeply', T[i].p); }
+    var pOr, pAnd, pCmp, pAdd, pMul, pUn, pPow, pPrim;
+    pPrim = function (d) {
+      guard(d); var x = T[i];
+      if (x.k === 'num') { i++; return mk({ t: 'num', v: x.v }); }
+      if (x.k === 'id') {
+        i++;
+        if (peek().k === 'op' && peek().v === '(') {
+          if (!FUNCS.hasOwnProperty(x.v)) throw err('Unknown function "' + x.v + '". Allowed: ' + Object.keys(FUNCS).join(', '), x.p);
+          i++; var a = []; if (!eat(')')) { do { a.push(pOr(d + 1)); } while (eat(',')); need(')'); }
+          return mk({ t: 'call', f: x.v, a: a, p: x.p });
+        }
+        if (VARS.indexOf(x.v) < 0) throw err('Unknown variable "' + x.v + '". Allowed: ' + VARS.join(', '), x.p);
+        return mk({ t: 'var', v: x.v, p: x.p });
+      }
+      if (eat('(')) { var e = pOr(d + 1); need(')'); return e; }
+      if (x.k === 'end') throw err('Formula ends unexpectedly', x.p);
+      throw err('Unexpected "' + x.v + '"', x.p);
+    };
+    pPow = function (d) { var b = pPrim(d); if (eat('^')) return mk({ t: 'bin', o: '^', l: b, r: pUn(d + 1) }); return b; };
+    pUn = function (d) { guard(d); if (peek().k === 'op' && (peek().v === '-' || peek().v === '+' || peek().v === '!')) { var o = T[i++].v; return mk({ t: 'un', o: o, a: pUn(d + 1) }); } return pPow(d); };
+    pMul = bin(pUn, ['*', '/', '%']); pAdd = bin(pMul, ['+', '-']); pCmp = bin(pAdd, ['<', '>', '<=', '>=', '==', '!=']); pAnd = bin(pCmp, ['&&']); pOr = bin(pAnd, ['||']);
+    var ast = pOr(0); if (peek().k !== 'end') throw err('Unexpected "' + (peek().v === undefined ? '' : peek().v) + '"', peek().p);
+    return ast;
+  }
+
+  function evalAst(n, env) {
+    switch (n.t) {
+      case 'num': return n.v;
+      case 'var': var v = env[n.v]; if (v === null || v === undefined || !isFinite(v)) throw err('"' + n.v + '" has no value for this month', n.p); return v;
+      case 'un': var a = evalAst(n.a, env); return n.o === '-' ? -a : n.o === '!' ? (a ? 0 : 1) : a;
+      case 'bin':
+        if (n.o === '&&') return (evalAst(n.l, env) && evalAst(n.r, env)) ? 1 : 0;
+        if (n.o === '||') return (evalAst(n.l, env) || evalAst(n.r, env)) ? 1 : 0;
+        var l = evalAst(n.l, env), r = evalAst(n.r, env);
+        switch (n.o) {
+          case '+': return l + r; case '-': return l - r; case '*': return l * r;
+          case '/': if (r === 0) throw err('Division by zero (guard it with if(...))', 0); return l / r;
+          case '%': if (r === 0) throw err('Modulo by zero', 0); return l % r;
+          case '^': var p = Math.pow(l, r); if (!isFinite(p)) throw err('Power overflow', 0); return p;
+          case '<': return l < r ? 1 : 0; case '>': return l > r ? 1 : 0; case '<=': return l <= r ? 1 : 0; case '>=': return l >= r ? 1 : 0;
+          case '==': return l === r ? 1 : 0; case '!=': return l !== r ? 1 : 0;
+        }
+        throw err('Bad operator', 0);
+      case 'call':
+        if (n.f === 'if') { if (n.a.length !== 3) throw err('if(condition, then, else) needs 3 arguments', n.p); return evalAst(n.a[0], env) ? evalAst(n.a[1], env) : evalAst(n.a[2], env); } /* lazy: only the chosen branch runs */
+        var args = n.a.map(function (x) { return evalAst(x, env); });
+        if (n.f === 'round') { if (args.length < 1 || args.length > 2) throw err('round(x) or round(x, digits)', n.p); var dg = args.length === 2 ? Math.max(0, Math.min(6, Math.floor(args[1]))) : 0, m = Math.pow(10, dg); return Math.round(args[0] * m) / m; }
+        if (n.f === 'abs') { if (args.length !== 1) throw err('abs(x) takes 1 argument', n.p); return Math.abs(args[0]); }
+        if (!args.length) throw err(n.f + '() needs at least 1 argument', n.p);
+        if (n.f === 'min') return Math.min.apply(null, args); if (n.f === 'max') return Math.max.apply(null, args);
+        var s = args.reduce(function (x, y) { return x + y; }, 0); return n.f === 'sum' ? s : s / args.length;
+    }
+    throw err('Bad expression', 0);
+  }
+
+  /* variables for a month ('YYYY-MM'), read from the app's single source of truth */
+  function varsFor(mk) {
+    var L = fosLedger(mk), H3 = fosLedgerHistory(3), H6 = fosLedgerHistory(6);
+    var avgExp = function (H) { return H.length ? H.reduce(function (s, h) { return s + h.expense; }, 0) / H.length : null; };
+    return { income: L.income, expense: L.expense, emi: L.emi, invest: L.invest, savings: L.savings, cashLeft: L.cashLeft, month: +String(mk).slice(5, 7), avg3: avgExp(H3), avg6: avgExp(H6) };
+  }
+  window.FOS_EXPR = {
+    VARS: VARS, FUNCS: Object.keys(FUNCS), parse: parse,
+    evaluate: function (src, env) { return evalAst(parse(src), env); },
+    check: function (src) { try { parse(src); return { ok: true }; } catch (e) { return { ok: false, msg: e.message, pos: e.pos }; } },
+    run: function (src, env) { try { var v = evalAst(parse(src), env); if (!isFinite(v)) return { ok: false, msg: 'Result is not a finite number' }; return { ok: true, value: v }; } catch (e) { if (e.isExpr) return { ok: false, msg: e.message, pos: e.pos }; return { ok: false, msg: 'Could not evaluate' }; } },
+    varsFor: varsFor
+  };
+})();
+</script>
 <script>
 /* FinanceOS brand colour helpers (canvas/Chart.js can't read CSS var() directly) */
 function fosBrandRgb(){try{var v=getComputedStyle(document.body).getPropertyValue('--brand-rgb');return (v&&v.trim())||'32,205,181';}catch(e){return '32,205,181';}}
@@ -9118,6 +9463,9 @@ function passAppLockGate() {
       <div class="set-nav-item" onclick="switchSettingsTab('appinfo', this)">
         <i class="fas fa-circle-info"></i> About
       </div>
+      <div class="set-nav-item set-nav-admin" role="button" tabindex="0" onclick="switchSettingsTab('admin', this)" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();switchSettingsTab('admin', this)}">
+        <i class="fas fa-user-shield"></i> Admin Panel
+      </div>
     </div>
 
     <div class="set-content">
@@ -9707,6 +10055,8 @@ function passAppLockGate() {
         <div id="custom-shortcuts-list" style="display:flex; flex-direction:column; gap:1.2rem;"></div>
 
       </div>
+
+      <div id="set-tab-admin" class="set-tab-pane"><div id="adm-root"></div></div>
 
       <div id="set-tab-appinfo" class="set-tab-pane">
 
@@ -11167,16 +11517,18 @@ function finaiMonthKey(d) { return (d || '').slice(0, 7); }
 //   cashLeft  = savings - invest              (what is left in hand after all four)
 function fosLedger(mk, rows) {
   const o = { month: mk || 'all', income: 0, expense: 0, emi: 0, invest: 0, n: 0 };
+  // Admin Panel: which transaction types count as what (defaults = Income / Expense / Loan / Investment)
+  const T = { income: FOSC('ledger.types.income'), expense: FOSC('ledger.types.expense'), emi: FOSC('ledger.types.emi'), invest: FOSC('ledger.types.invest') }, ICS = FOSC('ledger.investCountsAsSaving') !== false;
   (rows || db || []).forEach(r => {
     if (!r || (mk && finaiMonthKey(r.date) !== mk)) return;
     const a = Number(r.amount) || 0; o.n++;
-    if (r.type === 'Income') o.income += a;
-    else if (r.type === 'Expense') o.expense += a;
-    else if (r.type === 'Loan') o.emi += a;
-    else if (r.type === 'Investment') o.invest += a;
+    if (T.income.indexOf(r.type) >= 0) o.income += a;
+    else if (T.expense.indexOf(r.type) >= 0) o.expense += a;
+    else if (T.emi.indexOf(r.type) >= 0) o.emi += a;
+    else if (T.invest.indexOf(r.type) >= 0) o.invest += a;
   });
-  o.savings = o.income - o.expense - o.emi;
-  o.cashLeft = o.savings - o.invest;
+  o.savings = o.income - o.expense - o.emi - (ICS ? 0 : o.invest);
+  o.cashLeft = ICS ? o.savings - o.invest : o.savings;
   const pc = v => o.income > 0 ? v / o.income * 100 : null;
   o.savingsRate = pc(o.savings); o.investRate = pc(o.invest); o.emiRatio = pc(o.emi); o.expenseRatio = pc(o.expense);
   return o;
@@ -11211,8 +11563,8 @@ const FINAI_DISCRETIONARY_KEYWORDS = [
 function finaiClassifyExpense(txn) {
   try { const o = window.fosLabelOf && window.fosLabelOf(txn); if (o === 'essential' || o === 'discretionary') return o; } catch (e) {}
   const text = ((txn.sub || '') + ' ' + (txn.name || '')).toLowerCase();
-  if (FINAI_ESSENTIAL_KEYWORDS.some(k => text.includes(k))) return 'essential';
-  if (FINAI_DISCRETIONARY_KEYWORDS.some(k => text.includes(k))) return 'discretionary';
+  if (FOSC('classify.essential').some(k => text.includes(k))) return 'essential';
+  if (FOSC('classify.discretionary').some(k => text.includes(k))) return 'discretionary';
   return 'uncertain';
 }
 
@@ -11241,7 +11593,7 @@ function finaiBuildAnalysis() {
   const prevMonthIncome = sum(incomeAll.filter(r => finaiMonthKey(r.date) === prevMonth));
   const prevMonthExpense = sum(expenseAll.filter(r => finaiMonthKey(r.date) === prevMonth));
 
-  const overallSavingsRate = totalIncome > 0 ? ((totalIncome - totalExpense - totalLoanOut) / totalIncome) * 100 : null;
+  const overallSavingsRate = totalIncome > 0 ? ((totalIncome - totalExpense - totalLoanOut - (FOSC('ledger.investCountsAsSaving') ? 0 : totalInvestOut)) / totalIncome) * 100 : null;
   const ledThis = fosLedger(thisMonth), ledPrev = fosLedger(prevMonth), hist = fosLedgerHistory(6);
   // Before salary is logged this month, judge the month on last month's full picture instead of a half-empty one.
   const usingPrevBasis = ledThis.income <= 0 && ledPrev.income > 0;
@@ -11249,7 +11601,7 @@ function finaiBuildAnalysis() {
   const monthSavingsRate = basisLed.savingsRate;   // (income - expenses - EMIs) / income
   const _rates = hist.filter(h => h.savingsRate !== null).map(h => h.savingsRate);
   let trend = null;
-  if (_rates.length >= 3) { const d = _rates[_rates.length - 1] - _rates[_rates.length - 3]; trend = d >= 5 ? 'up' : d <= -5 ? 'down' : 'flat'; }
+  if (_rates.length >= 3) { const d = _rates[_rates.length - 1] - _rates[_rates.length - 3]; trend = d >= FOSC('score.trendPts') ? 'up' : d <= -FOSC('score.trendPts') ? 'down' : 'flat'; }
 
   // Category breakdown (this month vs historical average, using `sub` as category)
   const catThisMonth = {};
@@ -11274,7 +11626,7 @@ function finaiBuildAnalysis() {
     if (avg <= 0) return null;
     const pct = ((spent - avg) / avg) * 100;
     return { cat, spent, avg, pct };
-  }).filter(Boolean).filter(s => s.pct >= 40).sort((a, b) => b.pct - a.pct);
+  }).filter(Boolean).filter(s => s.pct >= FOSC('goals.spikePct')).sort((a, b) => b.pct - a.pct);
 
   // Budgets vs actual (this month)
   const budgetOverruns = Object.keys(budgets || {}).map(cat => {
@@ -11288,7 +11640,7 @@ function finaiBuildAnalysis() {
   // Credit / debt analysis
   const activeCredit = (creditDb || []).filter(c => c.status === 'Active');
   const totalOutstandingDebt = activeCredit.reduce((s, c) => s + Number(c.outstandingBalance || 0), 0);
-  const highInterestDebt = activeCredit.filter(c => Number(c.interestRate) >= 24).sort((a, b) => Number(b.interestRate) - Number(a.interestRate));
+  const highInterestDebt = activeCredit.filter(c => Number(c.interestRate) >= FOSC('score.hiIntRate')).sort((a, b) => Number(b.interestRate) - Number(a.interestRate));
   const totalMonthlyEmi = activeCredit.reduce((s, c) => s + Number(c.monthlyEmi || 0), 0);
   const emiCommitment = Math.max(totalMonthlyEmi, basisLed.emi);   // scheduled OR actually paid, whichever is higher
   const debtToIncome = basisLed.income > 0 ? (emiCommitment / basisLed.income) * 100 : 0;   // no income logged yet = unknown, not 999%
@@ -11385,8 +11737,8 @@ function finaiBuildAnalysis() {
     if (!recurGroups[key]) recurGroups[key] = { name: r.name || 'Unnamed', amount: Number(r.amount || 0), months: new Set() };
     recurGroups[key].months.add(finaiMonthKey(r.date));
   });
-  const _recentCut = localMonthKey(new Date(today.getFullYear(), today.getMonth() - 2, 1));
-  const recurringCharges = Object.values(recurGroups).filter(g => g.months.size >= 3 && Array.from(g.months).some(m => m >= _recentCut))
+  const _recentCut = localMonthKey(new Date(today.getFullYear(), today.getMonth() - (FOSC('goals.recurringWindow') - 1), 1));
+  const recurringCharges = Object.values(recurGroups).filter(g => g.months.size >= FOSC('goals.recurringMonths') && Array.from(g.months).some(m => m >= _recentCut))
     .sort((a, b) => b.amount - a.amount);
   const recurringMonthlyTotal = recurringCharges.reduce((s, g) => s + g.amount, 0);
 
@@ -11427,71 +11779,72 @@ function finaiBuildAnalysis() {
   };
 }
 
-function finaiComputeScore(a) {
-  let score = 50;
+function finaiComputeScore(a, _noSave) {
+  const C = FOSC;   // Admin Panel: every weight/threshold below is read at call time (defaults reproduce the original numbers)
+  let score = C('score.base');
   const tags = [];
 
   if (a.monthSavingsRate !== null) {
-    if (a.monthSavingsRate >= 30) { score += 20; tags.push(['Great Saver', 'good']); }
-    else if (a.monthSavingsRate >= 20) { score += 12; tags.push(['Healthy Savings', 'good']); }
-    else if (a.monthSavingsRate >= 0) { score += 2; tags.push(['Low Savings', 'warn']); }
-    else { score -= 20; tags.push(['Overspending', 'bad']); }
+    if (a.monthSavingsRate >= C('score.sr.great')) { score += C('score.sr.greatPts'); tags.push(['Great Saver', 'good']); }
+    else if (a.monthSavingsRate >= C('score.sr.good')) { score += C('score.sr.goodPts'); tags.push(['Healthy Savings', 'good']); }
+    else if (a.monthSavingsRate >= C('score.sr.low')) { score += C('score.sr.lowPts'); tags.push(['Low Savings', 'warn']); }
+    else { score += C('score.sr.negPts'); tags.push(['Overspending', 'bad']); }
   }
 
   if (a.basisLed && a.basisLed.income > 0) {
     const Lg = a.basisLed;
-    if (Lg.investRate >= 20) { score += 6; tags.push(['Strong Investor', 'good']); }
-    else if (Lg.investRate >= 10) { score += 4; tags.push(['Investing Regularly', 'good']); }
-    if (Lg.cashLeft < 0 && Lg.savings >= 0) { score -= 4; tags.push(['Investing Beyond Cash Flow', 'warn']); }
+    if (Lg.investRate >= C('score.inv.strong')) { score += C('score.inv.strongPts'); tags.push(['Strong Investor', 'good']); }
+    else if (Lg.investRate >= C('score.inv.regular')) { score += C('score.inv.regularPts'); tags.push(['Investing Regularly', 'good']); }
+    if (Lg.cashLeft < 0 && Lg.savings >= 0) { score += C('score.inv.beyondCashPts'); tags.push(['Investing Beyond Cash Flow', 'warn']); }
   }
   if (a.emiShortfall > 0) tags.push(['EMI Not Logged', 'warn']);
 
   if (a.debtToIncome > 0) {
-    if (a.debtToIncome >= 50) { score -= 20; tags.push(['High EMI Load', 'bad']); }
-    else if (a.debtToIncome >= 30) { score -= 8; tags.push(['Moderate EMI Load', 'warn']); }
-    else { score += 6; tags.push(['EMI Under Control', 'good']); }
+    if (a.debtToIncome >= C('score.emi.high')) { score += C('score.emi.highPts'); tags.push(['High EMI Load', 'bad']); }
+    else if (a.debtToIncome >= C('score.emi.mod')) { score += C('score.emi.modPts'); tags.push(['Moderate EMI Load', 'warn']); }
+    else { score += C('score.emi.okPts'); tags.push(['EMI Under Control', 'good']); }
   }
 
-  if (a.highInterestDebt.length) { score -= 10; tags.push(['High-Interest Debt', 'bad']); }
-  if (a.budgetOverruns.length) { score -= Math.min(15, a.budgetOverruns.length * 5); tags.push(['Over Budget', 'warn']); }
-  if (a.spikes.length) { score -= Math.min(10, a.spikes.length * 4); tags.push(['Spending Spike', 'warn']); }
+  if (a.highInterestDebt.length) { score += C('score.hiIntPts'); tags.push(['High-Interest Debt', 'bad']); }
+  if (a.budgetOverruns.length) { score -= Math.min(C('score.overBudgetCap'), a.budgetOverruns.length * C('score.overBudgetEach')); tags.push(['Over Budget', 'warn']); }
+  if (a.spikes.length) { score -= Math.min(C('score.spikeCap'), a.spikes.length * C('score.spikeEach')); tags.push(['Spending Spike', 'warn']); }
 
   if (a.portPLPct !== null) {
-    if (a.portPLPct >= 5) tags.push(['Portfolio Up', 'good']);
-    else if (a.portPLPct <= -5) { score -= 5; tags.push(['Portfolio Down', 'warn']); }
+    if (a.portPLPct >= C('score.port.up')) tags.push(['Portfolio Up', 'good']);
+    else if (a.portPLPct <= C('score.port.down')) { score += C('score.port.downPts'); tags.push(['Portfolio Down', 'warn']); }
   }
 
-  if (a.trend === 'down') { score -= 5; tags.push(['Worsening Trend', 'warn']); }
-  else if (a.trend === 'up') { score += 5; tags.push(['Improving Trend', 'good']); }
+  if (a.trend === 'down') { score -= C('score.trendBonus'); tags.push(['Worsening Trend', 'warn']); }
+  else if (a.trend === 'up') { score += C('score.trendBonus'); tags.push(['Improving Trend', 'good']); }
 
   if (a.overallCCUtilPct !== null) {
-    if (a.overallCCUtilPct >= 75) { score -= 15; tags.push(['Critical CC Usage', 'bad']); }
-    else if (a.overallCCUtilPct >= 30) { score -= 5; tags.push(['High CC Usage', 'warn']); }
-    else { score += 4; tags.push(['CC Usage Healthy', 'good']); }
+    if (a.overallCCUtilPct >= C('score.cc.crit')) { score += C('score.cc.critPts'); tags.push(['Critical CC Usage', 'bad']); }
+    else if (a.overallCCUtilPct >= C('score.cc.high')) { score += C('score.cc.highPts'); tags.push(['High CC Usage', 'warn']); }
+    else { score += C('score.cc.okPts'); tags.push(['CC Usage Healthy', 'good']); }
   }
 
-  if (!a.hasHealthCover) { score -= 6; tags.push(['No Health Cover', 'bad']); }
-  if (!a.hasLifeCover) { score -= 4; tags.push(['No Life Cover', 'warn']); }
+  if (!a.hasHealthCover) { score += C('score.noHealthPts'); tags.push(['No Health Cover', 'bad']); }
+  if (!a.hasLifeCover) { score += C('score.noLifePts'); tags.push(['No Life Cover', 'warn']); }
 
-  if (a.recurringCharges.length >= 4) { score -= 4; tags.push(['Many Subscriptions', 'warn']); }
+  if (a.recurringCharges.length >= C('score.subs.count')) { score += C('score.subs.pts'); tags.push(['Many Subscriptions', 'warn']); }
 
-  if (a.topConcentration && a.topConcentration.pct >= 70) { score -= 6; tags.push(['Concentrated Portfolio', 'warn']); }
+  if (a.topConcentration && a.topConcentration.pct >= C('score.conc.pct')) { score += C('score.conc.pts'); tags.push(['Concentrated Portfolio', 'warn']); }
 
   // ── Decision-quality scoring (essential vs discretionary, good/bad calls) ─
   if (a.discretionaryPctOfIncome !== null) {
-    if (a.discretionaryPctOfIncome > 50) { score -= 14; tags.push(['Discretionary Overspend', 'bad']); }
-    else if (a.discretionaryPctOfIncome > 30) { score -= 6; tags.push(['High Discretionary Spend', 'warn']); }
-    else if (a.discretionaryPctOfIncome <= 15) { score += 4; tags.push(['Disciplined Spender', 'good']); }
+    if (a.discretionaryPctOfIncome > C('score.disc.over')) { score += C('score.disc.overPts'); tags.push(['Discretionary Overspend', 'bad']); }
+    else if (a.discretionaryPctOfIncome > C('score.disc.high')) { score += C('score.disc.highPts'); tags.push(['High Discretionary Spend', 'warn']); }
+    else if (a.discretionaryPctOfIncome <= C('score.disc.good')) { score += C('score.disc.goodPts'); tags.push(['Disciplined Spender', 'good']); }
   }
-  if (a.investingWhileHighInterestDebt) { score -= 10; tags.push(['Investing Before Debt Cleared', 'bad']); }
-  if (a.bigDiscretionaryWhileNegative) { score -= 8; tags.push(['Wants Funded By Deficit', 'bad']); }
-  if (a.prioritizingDebtPayoff) { score += 6; tags.push(['Good Call: Debt First', 'good']); }
-  if (a.goodDisciplineStreak) { score += 6; tags.push(['Strong Financial Discipline', 'good']); }
+  if (a.investingWhileHighInterestDebt) { score += C('score.bonus.investHiDebt'); tags.push(['Investing Before Debt Cleared', 'bad']); }
+  if (a.bigDiscretionaryWhileNegative) { score += C('score.bonus.wantsDeficit'); tags.push(['Wants Funded By Deficit', 'bad']); }
+  if (a.prioritizingDebtPayoff) { score += C('score.bonus.debtFirst'); tags.push(['Good Call: Debt First', 'good']); }
+  if (a.goodDisciplineStreak) { score += C('score.bonus.discipline'); tags.push(['Strong Financial Discipline', 'good']); }
 
-  score = Math.max(5, Math.min(100, Math.round(score)));
+  score = Math.max(C('score.min'), Math.min(C('score.max'), Math.round(score)));
 
-  // Persist score history so future visits can show a real trend
-  try {
+  // Persist score history so future visits can show a real trend (skipped for Admin Panel previews)
+  if (!_noSave) try {
     let hist = JSON.parse(localStorage.getItem('fos_finai_score_history') || '[]');
     const today = localISO();
     if (!hist.length || hist[hist.length - 1].date !== today) {
@@ -15178,7 +15531,8 @@ const NOTIF_COOLDOWN_HOURS = {
 };
 
 function getNotifCooldownMs(type) {
-  const hours = NOTIF_COOLDOWN_HOURS[type];
+  let hours = NOTIF_COOLDOWN_HOURS[type];
+  try { const o = FOSC('notify.cooldown.' + type); if (typeof o === 'number') hours = o; } catch (e) {}
   return (hours === undefined ? 12 : hours) * 60 * 60 * 1000; // default 12h for unlisted types
 }
 
@@ -15219,6 +15573,7 @@ function addCustomAlert() {
 
 function addNotification(id, icon, color, title, message, type) {
   if (notifications.find(n => n.id === id)) return; // already showing, don't duplicate
+  try { if (FOSC('notify.off.' + type) === true) return; } catch (e) {}   // Admin Panel: alert type switched off
 
   // Respect the snooze: if this exact alert was dismissed recently, stay quiet.
   const dismissedAt = notifDismissed[id];
@@ -15234,8 +15589,9 @@ function addNotification(id, icon, color, title, message, type) {
   saveNotifications();
   updateNotifBadge();
 
-  // NEW: Play sound whenever a new notification is added
-  playNotificationSound();
+  // NEW: Play sound whenever a new notification is added (muted during Admin Panel quiet hours)
+  let _q = false; try { _q = FOS_CONFIG.quiet(); } catch (e) {}
+  if (!_q) playNotificationSound();
 }
 
 // Dismiss ONE notification — snoozes just this alert for its type's cooldown.
@@ -24100,13 +24456,15 @@ function switchSettingsTab(tabId, el) {
 'shortcuts': { title: 'Shortcuts', desc: 'Global hotkeys and automation' },
 'about': { title: 'Privacy & Updates', desc: 'Data storage, cloud security, and version info' },
 'appinfo': { title: 'About FinanceOS', desc: 'What it is, what it does, and the user guide' },
-'tags': { title: 'Transaction Tags', desc: 'Manage custom tags for tracking' }
+'tags': { title: 'Transaction Tags', desc: 'Manage custom tags for tracking' },
+'admin': { title: 'Admin Panel', desc: 'Control how existing features calculate, alert and unlock' }
 };
   
   document.getElementById('set-tab-title').textContent = titles[tabId].title;
   document.getElementById('set-tab-desc').textContent = titles[tabId].desc;
 
   if (tabId === 'about' && typeof renderPrivacyAboutTab === 'function') renderPrivacyAboutTab();
+  if (tabId === 'admin' && typeof window.fosAdminOpen === 'function') { try { window.fosAdminOpen(); } catch (e) { console.error('Admin Panel:', e); } }
 }
 
 
@@ -33150,12 +33508,12 @@ body.light-mode .txa-advhead h2 i{color:#0f766e}
       var dt = String(r.date).slice(0, 10); return { r: r, date: dt, mon: dt.slice(0, 7), amt: _amt(r.amount), k: bcat(r) || txCategory(r), rec: !!r.recurring };
     });
     var _med = med(E.filter(function (e) { return !e.rec; }).map(function (e) { return e.amt; }));
-    E.forEach(function (e) { e.lump = !e.rec && _med > 0 && e.amt >= 5 * _med && e.amt >= 5000; });   /* big one-off purchases: counted once, not projected forward */
+    E.forEach(function (e) { e.lump = !e.rec && _med > 0 && e.amt >= FOSC('forecast.lumpMult') * _med && e.amt >= FOSC('forecast.lumpFloor'); });   /* big one-off purchases: counted once, not projected forward */
     var _first = E.reduce(function (a, e) { return e.date < a ? e.date : a; }, '9999-99-99');
     var cur = E.filter(function (e) { return e.mon === mk; }), sofar = cur.filter(function (e) { return e.date <= today; }), sched = cur.filter(function (e) { return e.date > today; });
     /* history: up to 3 previous calendar months that have expense data */
     var hm = [], hk = {};
-    for (var i = 1; i <= 3; i++) { var t = new Date(Y, Mo - i, 1), k = t.getFullYear() + '-' + p2(t.getMonth() + 1); if (E.some(function (e) { return e.mon === k; })) { hm.push({ k: k, days: (k === _first.slice(0, 7) ? dim(t.getFullYear(), t.getMonth()) - (+_first.slice(8, 10)) + 1 : dim(t.getFullYear(), t.getMonth())), v: 0 }); hk[k] = hm[hm.length - 1]; } }
+    for (var i = 1; i <= FOSC('forecast.historyMonths'); i++) { var t = new Date(Y, Mo - i, 1), k = t.getFullYear() + '-' + p2(t.getMonth() + 1); if (E.some(function (e) { return e.mon === k; })) { hm.push({ k: k, days: (k === _first.slice(0, 7) ? dim(t.getFullYear(), t.getMonth()) - (+_first.slice(8, 10)) + 1 : dim(t.getFullYear(), t.getMonth())), v: 0 }); hk[k] = hm[hm.length - 1]; } }
     var histDays = hm.reduce(function (s, h) { return s + h.days; }, 0), H = {};
     E.forEach(function (e) { if (hk[e.mon] && !e.rec && !e.lump) { H[e.k] = (H[e.k] || 0) + e.amt; hk[e.mon].v += e.amt; } });
     /* recurring bills still due: flagged recurring, seen last month or the month before, nothing recorded yet this month */
@@ -33172,7 +33530,7 @@ body.light-mode .txa-advhead h2 i{color:#0f766e}
     if (nr.length) {
       var t0 = new Date(Y, Mo, d - 89), first = nr.reduce(function (a, e) { return e.date < a ? e.date : a; }, today), fs = new Date(first.slice(0, 4), +first.slice(5, 7) - 1, +first.slice(8, 10)); if (fs > t0) t0 = fs;
       var span = Math.round((new Date(Y, Mo, d) - t0) / 864e5) + 1;
-      if (span >= 42) {
+      if (FOSC('forecast.weekdayPattern') && span >= FOSC('forecast.minSpan')) {
         var tot = [0, 0, 0, 0, 0, 0, 0], occ = [0, 0, 0, 0, 0, 0, 0], all = 0;
         for (var j = 0; j < span; j++) occ[new Date(t0.getFullYear(), t0.getMonth(), t0.getDate() + j).getDay()]++;
         var t0i = isoD(t0); nr.forEach(function (e) { if (e.date >= t0i) { tot[new Date(+e.date.slice(0, 4), +e.date.slice(5, 7) - 1, +e.date.slice(8, 10)).getDay()] += e.amt; all += e.amt; } });
@@ -33235,7 +33593,7 @@ body.light-mode .txa-advhead h2 i{color:#0f766e}
       return '<div class="fcs-rng" style="margin-top:6px">Expected left after spending, EMIs &amp; investments: <b style="color:' + (left < 0 ? RED : GREEN) + '">' + m(left) + '</b> <span style="opacity:.8">(income ' + m(inc) + (est ? ', estimated from recent months' : '') + ' - spending ' + m(F.proj) + ' - EMIs ' + m(emi) + ' - invested ' + m(L.invest) + ')</span></div>';
     } catch (e) { return ''; }
   }
-  window.fcsRender = render;
+  window.fcsRender = render; window.fcsCompute = compute;
 })();
 </script>
 <style id="frm-style">
@@ -33550,7 +33908,7 @@ function paintUnlock(id){var el=$(id);if(!el)return;var s=dataStats(),L=[];
 
 /* ── 4b. milestone-gated insights: Spending Rhythm + Savings Streak ── */
 (function(){var st=document.createElement('style');st.textContent='.pol-pb{display:block;height:5px;border-radius:5px;background:rgba(128,128,128,.25);margin-top:4px;overflow:hidden}.pol-pb i{display:block;height:100%;border-radius:5px;background:var(--accent)}.pol-rh{display:flex;gap:6px;align-items:flex-end;height:54px;margin:4px 0 2px}.pol-rh div{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:flex-end;height:100%;font-size:.62rem;opacity:.9}.pol-rh i{display:block;width:100%;border-radius:4px 4px 0 0;background:rgba(128,128,128,.45)}.pol-rh .pk i{background:var(--accent)}';document.head.appendChild(st)})();
-var MS_RATE=20, DN=['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
+var DN=['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
 function msRhythm(){var e=0,t=0,by=[0,0,0,0,0,0,0],days={};
   db.forEach(function(r){if(r.type!=='Expense'||!r.date)return;var a=Number(r.amount)||0,d=new Date(r.date+'T00:00:00').getDay();if(isNaN(d))return;e++;t+=a;by[d]+=a;days[r.date]=1});
   var nd=Object.keys(days).length,ready=e>=25&&nd>=10,pk=by.indexOf(Math.max.apply(null,by)),we=t?(by[0]+by[6])/t*100:0;
@@ -33559,12 +33917,12 @@ function msRhythm(){var e=0,t=0,by=[0,0,0,0,0,0,0],days={};
     what:'priciest weekday, weekend vs weekday split',e:e,t:t,by:by,pk:pk,we:we}}
 function msStreak(){var n=new Date(),cur=ym(n),end=(n.getDate()>=26)?cur:addM(cur,-1),ok={},q=0;
   dataStats().months.forEach(function(m){var c=mStats(m);if(c.inc>0&&c.exp>0){q++;ok[m]=c.rate}});
-  var ms=Object.keys(ok).sort(),streak=0,m=end;while(ok[m]!=null&&ok[m]>=MS_RATE){streak++;m=addM(m,-1)}
-  var best=0,run=0,prev=null;ms.forEach(function(k){if(ok[k]>=MS_RATE){run=(prev&&addM(prev,1)===k&&run>0)?run+1:1}else run=0;prev=k;if(run>best)best=run});
+  var ms=Object.keys(ok).sort(),streak=0,m=end;while(ok[m]!=null&&ok[m]>=FOSC('goals.savingsRate')){streak++;m=addM(m,-1)}
+  var best=0,run=0,prev=null;ms.forEach(function(k){if(ok[k]>=FOSC('goals.savingsRate')){run=(prev&&addM(prev,1)===k&&run>0)?run+1:1}else run=0;prev=k;if(run>best)best=run});
   var tg=[3,6,12].filter(function(x){return x>streak})[0]||(Math.ceil((streak+1)/12)*12);
   var avg=ms.length?ms.reduce(function(a,k){return a+ok[k]},0)/ms.length:0,bm=ms.slice().sort(function(a,b){return ok[b]-ok[a]})[0];
   return{id:'streak',name:'Savings Streak',ready:q>=3,p:Math.min(1,q/3),togo:(3-q)+' more month'+(3-q>1?'s':'')+' with both income and expenses',
-    what:'how many months in a row you save '+MS_RATE+'%+',streak:streak,best:best,tg:tg,avg:avg,bm:bm,rate:ok[bm],end:end,q:q}}
+    what:'how many months in a row you save '+FOSC('goals.savingsRate')+'%+',streak:streak,best:best,tg:tg,avg:avg,bm:bm,rate:ok[bm],end:end,q:q}}
 function msAll(){return[msRhythm(),msStreak()]}
 function msLines(){return msAll().filter(function(x){return !x.ready}).map(function(x){
   return '<b>'+x.name+'</b> ('+x.what+') — '+x.togo+' to unlock.<span class="pol-pb"><i style="width:'+Math.round(x.p*100)+'%"></i></span>'})}
@@ -33578,7 +33936,7 @@ function paintMS(){var el=$('pol-ms');if(!el)return;var A=msAll(),R=A[0],S=A[1],
       '<li>Weekends take <b>'+Math.round(R.we)+'%</b> of spend'+(R.we>35?' — noticeably more than an even split (29%).':R.we<22?' — lighter than an even split (29%).':', close to an even split (29%).')+'</li></ul></div>'}
   if(S.ready){var pb=Math.round(Math.min(1,S.streak/S.tg)*100);
     h+='<div><div class="pol-h"><i class="fas fa-fire"></i> Savings streak</div>'+
-      '<ul><li><b>'+S.streak+' month'+(S.streak===1?'':'s')+'</b> in a row at '+MS_RATE+'%+ savings'+(S.streak?'':' — hit '+MS_RATE+'% in '+mLabel(S.end)+' to start one')+'. Best run: '+S.best+'.</li>'+
+      '<ul><li><b>'+S.streak+' month'+(S.streak===1?'':'s')+'</b> in a row at '+FOSC('goals.savingsRate')+'%+ savings'+(S.streak?'':' — hit '+FOSC('goals.savingsRate')+'% in '+mLabel(S.end)+' to start one')+'. Best run: '+S.best+'.</li>'+
       '<li>Best month: <b>'+mLabel(S.bm)+'</b> at '+Math.round(S.rate)+'%. Average: '+Math.round(S.avg)+'%.</li>'+
       '<li>Next goal: '+S.tg+' months<span class="pol-pb"><i style="width:'+pb+'%"></i></span></li></ul></div>'}
   el.style.display=h?'':'none';el.innerHTML=h?'<div class="pol-h" style="margin-bottom:8px"><i class="fas fa-unlock"></i> Unlocked insights</div><div class="pol-two">'+h+'</div>':''}
@@ -33595,14 +33953,14 @@ function lhPrevW(k){var p=k.split('-'),d=new Date(+p[0],+p[1]-1,+p[2]-7);return 
 function lhWeekKey(x){var p=String(x).slice(0,10).split('-'),d=new Date(+p[0],+p[1]-1,+p[2]);d.setDate(d.getDate()-((d.getDay()+6)%7));return d.getFullYear()+'-'+pad(d.getMonth()+1)+'-'+pad(d.getDate())}
 function lhStreaks(){var wk={},mo={};
   db.forEach(function(r){if(!r||!r.date)return;var w=lhWeekKey(r.date),m=String(r.date).slice(0,7),o=mo[m]||(mo[m]={i:0,e:0});wk[w]=(wk[w]||0)+1;if(r.type==='Income')o.i++;else if(r.type==='Expense')o.e++});
-  var okW=function(k){return(wk[k]||0)>=2},okM=function(k){return !!(mo[k]&&mo[k].i>0&&mo[k].e>0)};
+  var okW=function(k){return(wk[k]||0)>=FOSC('unlocks.entriesPerWeek')},okM=function(k){return !!(mo[k]&&mo[k].i>0&&mo[k].e>0)};
   /* the week/month in progress never breaks a streak: it counts if it qualifies, otherwise the streak is read up to the previous one */
   var cw=lhWeekKey(localISO()),w=okW(cw)?cw:lhPrevW(cw),sw=0;while(okW(w)){sw++;w=lhPrevW(w)}
   var cm=ym(new Date()),m=okM(cm)?cm:addM(cm,-1),sm=0;while(okM(m)){sm++;m=addM(m,-1)}
   var best=function(keys,prev,ok){var b=0,r=0,last=null;keys.sort().forEach(function(k){if(!ok(k)){r=0;last=null;return}r=(last&&prev(k)===last)?r+1:1;last=k;if(r>b)b=r});return b};
   return{week:sw,month:sm,bestWeek:best(Object.keys(wk),lhPrevW,okW),bestMonth:best(Object.keys(mo),function(k){return addM(k,-1)},okM)}}
 function lhState(){var S=lhStreaks(),seen={},ch=0;try{seen=JSON.parse(localStorage.getItem(LH_KEY)||'{}')}catch(e){}
-  var out=LH.map(function(x){var cur=x.unit==='week'?S.week:S.month,best=x.unit==='week'?S.bestWeek:S.bestMonth;
+  var out=LH.map(function(x0){var x=Object.assign({},x0,{need:FOSC('unlocks.lh.'+x0.id+'.need')});var cur=x.unit==='week'?S.week:S.month,best=x.unit==='week'?S.bestWeek:S.bestMonth;
     if(cur>=x.need&&!seen[x.id]){seen[x.id]=localISO();ch=1;try{addNotification('lh-'+x.id,'fa-trophy','#fbbf24','🏆 Unlocked: '+x.name,'You stayed consistent for '+x.need+' '+x.unit+'s in a row. '+x.name+' is now on your dashboard.','goal-achievement')}catch(e){}}
     return Object.assign({},x,{cur:cur,best:best,done:!!seen[x.id],on:seen[x.id]||'',p:Math.min(1,cur/x.need)})});
   if(ch)try{localStorage.setItem(LH_KEY,JSON.stringify(seen))}catch(e){}
@@ -33650,7 +34008,7 @@ function mStats(m){var o={m:m,inc:0,exp:0,loan:0,inv:0,cats:{},pays:{},uncat:0,n
     if(r.type==='Income')o.inc+=a;else if(r.type==='Loan')o.loan+=a;else if(r.type==='Investment')o.inv+=a;
     else if(r.type==='Expense'){o.exp+=a;var c=fosClean(r.category||r.sub);if(!c)o.uncat++;var ck=fosKey(c)||'general';(o.cats[ck]=o.cats[ck]||{name:c||'General',t:0}).t+=a;
       var p=fosPayeeOf(r);if(p){var pk=fosKey(p);(o.pays[pk]=o.pays[pk]||{name:p,t:0}).t+=a}}});
-  o.bal=o.inc-o.exp-o.loan-o.inv;o.rate=o.inc>0?(o.inc-o.exp-o.loan)/o.inc*100:null;return o}
+  o.bal=o.inc-o.exp-o.loan-o.inv;o.rate=o.inc>0?(o.inc-o.exp-o.loan-(FOSC('ledger.investCountsAsSaving')?0:o.inv))/o.inc*100:null;return o}
 function link(kind,name,m,extra){return '<a class="pol-lnk" data-pol="'+kind+'|'+encodeURIComponent(name)+'|Expense|'+(extra||'')+'|'+m+'">'+esc(name)+'</a>'}
 function paintME(){var el=$('pol-me');if(!el)return;var s=dataStats();
   var ks=s.months.filter(function(m){return db.some(function(r){return r.type==='Expense'&&(r.date||'').slice(0,7)===m})});
@@ -33673,7 +34031,7 @@ function paintME(){var el=$('pol-me');if(!el)return;var s=dataStats();
   var fix=[],avgOf=function(k){var v=[];for(var j=1;j<=3;j++){var q=mStats(addM(m,-j));if(q.cats[k])v.push(q.cats[k].t)}return v.length?v.reduce(function(a,b){return a+b},0)/v.length:0};
   var up=ch.filter(function(x){return x.d>0}).map(function(x){var k=fosKey(x.name)||'general';return{x:x,ref:avgOf(k)||x.b}}).filter(function(o){return o.x.a>o.ref*1.15&&o.x.a-o.ref>=300})[0];
   if(up)fix.push(link('c',up.x.name,m)+' ran '+fmt(up.x.a-up.ref)+' above its usual '+fmt(up.ref)+' — try capping it near that.');
-  if(c.inc>0&&c.rate<20)fix.push('Savings rate was '+Math.round(c.rate)+'% — reaching 20% would keep about '+fmt(Math.max(0,c.inc*0.2-c.bal))+' more.');
+  if(c.inc>0&&c.rate<FOSC('goals.savingsRate'))fix.push('Savings rate was '+Math.round(c.rate)+'% — reaching '+FOSC('goals.savingsRate')+'% would keep about '+fmt(Math.max(0,c.inc*FOSC('goals.savingsRate')/100-c.bal))+' more.');
   else if(!c.inc&&c.exp)fix.push('No income recorded for '+mLabel(m)+' — add it to see your savings rate.');
   if(c.uncat)fix.push(c.uncat+' expense'+(c.uncat>1?'s have':' has')+' no category — <a class="pol-lnk2" onclick="fosOpenManager(\'clean\')">fix them in one screen</a>.');
   var dg=0;try{dg=fosCUGroups().length}catch(e){}if(dg)fix.push(dg+' payee group'+(dg>1?'s look':' looks')+' like duplicates — <a class="pol-lnk2" onclick="fosOpenManager(\'clean\')">review merges</a>.');
@@ -34189,5 +34547,356 @@ try{init();paint()}catch(e){}
 })();
 </script>
 
+<style id="fos-admin-style">
+/* ── FOS ADMIN: cyan-blue accent, scoped. The app's teal theme is untouched. ── */
+:root{--adm-a:#22d3ee;--adm-b:#0ea5e9;--adm-g:linear-gradient(135deg,#22d3ee,#0ea5e9);--adm-line:rgba(34,211,238,.28);--adm-soft:rgba(34,211,238,.10)}
+body.light-mode{--adm-a:#0891b2;--adm-b:#0369a1;--adm-g:linear-gradient(135deg,#06b6d4,#0284c7);--adm-line:rgba(2,132,199,.30);--adm-soft:rgba(14,165,233,.10)}
+.set-nav-item.set-nav-admin{position:relative;color:var(--adm-a);margin-top:6px;border:1px solid var(--adm-line);background:var(--adm-soft)}
+.set-nav-item.set-nav-admin i{color:var(--adm-a)}
+.set-nav-item.set-nav-admin:hover{background:rgba(34,211,238,.16)}
+.set-nav-item.set-nav-admin.active,body:not(.light-mode) .set-nav-item.set-nav-admin.active,body.light-mode .set-nav-item.set-nav-admin.active{background:var(--adm-g);color:#04202a;font-weight:700;border-color:transparent}
+.set-nav-item.set-nav-admin.active i{color:#04202a}
+.set-nav-admin:focus-visible,#adm-root :focus-visible{outline:2px solid var(--adm-a);outline-offset:2px}
+#adm-root{display:block;min-width:0}
+.adm-top{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;padding:12px 14px;border-radius:14px;background:var(--adm-soft);border:1px solid var(--adm-line);margin-bottom:10px}
+.adm-ttl{display:flex;gap:10px;align-items:center}.adm-ttl>i{width:34px;height:34px;border-radius:10px;background:var(--adm-g);color:#04202a;display:flex;align-items:center;justify-content:center}
+.adm-ttl b{display:block;font-size:.95rem;background:var(--adm-g);-webkit-background-clip:text;background-clip:text;color:transparent}.adm-ttl small{display:block;font-size:.7rem;color:var(--text-muted)}
+.adm-top-r{display:flex;gap:6px}
+.adm-btn{border:0;cursor:pointer;border-radius:10px;padding:8px 14px;font-weight:700;font-size:.78rem;background:var(--adm-g);color:#04202a;font-family:inherit}
+.adm-btn.sm{padding:5px 10px;font-size:.72rem}.adm-btn.ghost{background:transparent;color:var(--adm-a);border:1px solid var(--adm-line)}.adm-btn.danger{background:transparent;color:#f87171;border:1px solid rgba(248,113,113,.45)}.adm-btn.link{background:none;color:var(--adm-a);text-decoration:underline;padding-left:6px}
+.adm-btn:hover{filter:brightness(1.08)}.adm-btn:disabled{opacity:.5;cursor:not-allowed}
+.adm-tabs{display:flex;gap:6px;overflow-x:auto;padding:2px 0 10px;scrollbar-width:thin}
+.adm-tab{flex:none;border:1px solid var(--adm-line);background:transparent;color:var(--text-muted);border-radius:99px;padding:6px 12px;font-size:.74rem;font-weight:600;cursor:pointer;font-family:inherit;white-space:nowrap}
+.adm-tab.on{background:var(--adm-g);color:#04202a;border-color:transparent}.adm-tab.soon{opacity:.55}.adm-tab em{font-style:normal;font-size:.58rem;margin-left:5px;opacity:.8;text-transform:uppercase}
+.adm-tb{display:inline-block;margin-left:6px;min-width:17px;padding:0 5px;border-radius:99px;background:#fbbf24;color:#3b2a00;font-size:.64rem;font-weight:800;text-align:center}
+.adm-banner{padding:9px 12px;border-radius:10px;background:rgba(251,191,36,.14);border:1px solid rgba(251,191,36,.5);font-size:.78rem;margin-bottom:10px}
+.adm-gate{max-width:420px;margin:18px auto;text-align:center}.adm-gate p{font-size:.78rem;color:var(--text-muted)}.adm-gico{width:48px;height:48px;border-radius:14px;margin:0 auto 8px;background:var(--adm-g);color:#04202a;display:flex;align-items:center;justify-content:center;font-size:1.2rem}
+.adm-lbl{display:block;text-align:left;font-size:.72rem;font-weight:700;margin:10px 0 4px}.adm-in{width:100%;margin-bottom:6px}.adm-gnote{font-size:.76rem;color:var(--adm-a);margin:6px 0}
+.adm-err{color:#f87171;font-size:.72rem;min-height:0}.adm-err:empty{display:none}.adm-ok{color:#34d399;font-size:.78rem}
+.adm-stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:8px;margin-bottom:10px}
+.adm-stat{padding:10px 12px;border-radius:12px;border:1px solid var(--adm-line);background:var(--adm-soft)}.adm-stat span{display:block;font-size:.66rem;color:var(--text-muted)}.adm-stat b{font-size:1.15rem;font-family:'DM Mono',monospace}
+.adm-h{font-weight:800;font-size:.84rem;margin-bottom:6px}.adm-h small{font-weight:500;color:var(--text-muted);font-size:.68rem;margin-left:4px}
+.adm-muted{font-size:.72rem;color:var(--text-muted);line-height:1.45}.adm-actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}
+.adm-bar{height:8px;border-radius:99px;background:rgba(128,128,128,.25);overflow:hidden;margin:6px 0}.adm-bar i{display:block;height:100%;background:var(--adm-g)}
+.adm-chk{font-size:.78rem;padding:3px 0}.adm-chk.bad i{color:#f87171}.adm-chk.ok i{color:#34d399}
+.adm-lab{display:grid;grid-template-columns:minmax(0,1fr) 350px;gap:12px;align-items:start}.adm-pv{position:sticky;top:0}
+@media(max-width:900px){.adm-lab{grid-template-columns:1fr}.adm-pv{position:static;order:-1}}
+.adm-bar2{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:8px}.adm-bar2 .set-input{flex:1;min-width:140px}.adm-chk2{font-size:.74rem;white-space:nowrap}
+.adm-grp{border:1px solid var(--adm-line);border-radius:12px;margin-bottom:8px;overflow:hidden}.adm-grp>summary{cursor:pointer;padding:10px 12px;font-weight:800;font-size:.8rem;background:var(--adm-soft);list-style:none}.adm-grp>summary em{font-style:normal;font-weight:600;color:var(--text-muted);margin-left:6px}
+.adm-row{padding:10px 12px;border-top:1px solid rgba(128,128,128,.16)}.adm-row.mod{box-shadow:inset 3px 0 0 var(--adm-a)}
+.adm-rl{display:flex;gap:8px;align-items:center}.adm-rl label{font-weight:700;font-size:.78rem}.adm-badge{display:none;font-size:.6rem;font-weight:800;padding:1px 7px;border-radius:99px;background:var(--adm-g);color:#04202a}.adm-row.mod .adm-badge{display:inline-block}
+.adm-help{font-size:.68rem;color:var(--text-muted);margin:2px 0 6px}.adm-help span{opacity:.85}
+.adm-ctl{display:flex;gap:8px;align-items:center}.adm-ctl .adm-num{width:110px;flex:none}.adm-ctl .adm-rng{flex:1;accent-color:var(--adm-a);min-width:0}.adm-ctl .adm-list{width:100%}.adm-ctl .adm-time{width:130px}
+.adm-ic{border:1px solid var(--adm-line);background:transparent;color:var(--adm-a);width:30px;height:30px;border-radius:8px;cursor:pointer;flex:none}.adm-ic[hidden]{display:none}
+.adm-meta{font-size:.68rem;color:var(--text-muted);margin-top:4px}.adm-meta b{color:var(--text-main);font-family:'DM Mono',monospace}
+.adm-sw{position:relative;display:inline-block;width:42px;height:24px}.adm-sw input{opacity:0;width:100%;height:100%;position:absolute;margin:0;cursor:pointer;z-index:1}.adm-sw span{position:absolute;inset:0;border-radius:99px;background:rgba(128,128,128,.4);transition:.15s}.adm-sw span:before{content:"";position:absolute;left:3px;top:3px;width:18px;height:18px;border-radius:50%;background:#fff;transition:.15s}.adm-sw input:checked+span{background:var(--adm-g)}.adm-sw input:checked+span:before{transform:translateX(18px)}.adm-sw input:focus-visible+span{outline:2px solid var(--adm-a);outline-offset:2px}
+.adm-tbl{width:100%;border-collapse:collapse;font-size:.74rem}.adm-tbl th,.adm-tbl td{padding:5px 6px;text-align:right;border-bottom:1px solid rgba(128,128,128,.16)}.adm-tbl th:first-child,.adm-tbl td:first-child,.adm-tbl tbody th{text-align:left}.adm-tbl td.up{color:#34d399}.adm-tbl td.dn{color:#f87171}
+.adm-scroll{max-height:240px;overflow:auto;margin-top:8px}.adm-mono{font-family:'DM Mono',monospace;width:100%;margin:6px 0}
+.adm-li{display:flex;justify-content:space-between;gap:10px;align-items:center;padding:8px 0;border-bottom:1px solid rgba(128,128,128,.16)}.adm-li:last-child{border:0}.adm-auto{font-size:.6rem;font-style:normal;padding:1px 6px;border-radius:99px;border:1px solid var(--adm-line);color:var(--adm-a)}
+.adm-soon{text-align:center;color:var(--text-muted)}.adm-soon i{font-size:1.6rem;color:var(--adm-a);display:block;margin-bottom:6px}
+.adm-toast{position:sticky;bottom:8px;margin-top:10px;display:none;padding:9px 12px;border-radius:12px;background:#0b2a35;color:#d8f6fd;border:1px solid var(--adm-line);font-size:.78rem;align-items:center;gap:10px;justify-content:space-between}.adm-toast.show{display:flex}
+.adm-pal{position:fixed;inset:0;z-index:200000;background:rgba(0,0,0,.5);display:flex;align-items:flex-start;justify-content:center;padding-top:12vh}.adm-pal-box{width:min(520px,92vw);background:var(--bg-card,#0f1b24);border:1px solid var(--adm-line);border-radius:14px;padding:10px;box-shadow:0 20px 60px rgba(0,0,0,.5)}.adm-pal-i{padding:8px 10px;border-radius:8px;cursor:pointer;font-size:.82rem}.adm-pal-i.on,.adm-pal-i:hover{background:var(--adm-soft);color:var(--adm-a)}
+body.light-mode .adm-toast{background:#e0f7fc;color:#06303c}body.light-mode .adm-pal-box{background:#fff}
+@media(prefers-reduced-motion:reduce){.adm-sw span,.adm-sw span:before{transition:none}}
+
+.adm-pv{overflow-x:auto;min-width:0}.adm-tbl{table-layout:auto}.adm-tbl th{text-transform:none!important;letter-spacing:0!important;font-size:.68rem!important;white-space:nowrap}.adm-tbl td{white-space:nowrap;font-size:.72rem}.adm-pv .adm-tbl tbody th{white-space:normal;font-weight:600}
+@media(max-width:900px){.adm-pv .adm-tbl{width:100%}.adm-pv .adm-tbl tbody th{max-width:84px;font-size:.68rem}.adm-pv .adm-tbl th,.adm-pv .adm-tbl td{padding:5px 3px;font-size:.66rem!important}}
+.adm-tbl td,.adm-tbl th{color:inherit!important;background:transparent!important}.adm-tbl td.up{color:#059669!important}.adm-tbl td.dn{color:#dc2626!important}.adm-tbl thead th{color:var(--text-muted)!important}
+@media(max-width:900px){.adm-pv .adm-tbl{table-layout:fixed}.adm-pv .adm-tbl th:nth-child(4),.adm-pv .adm-tbl td:nth-child(4){display:none}.adm-pv .adm-tbl th:first-child{width:40%}.adm-pv .adm-tbl tbody th{max-width:none}}
+.adm-tbl{min-width:0!important;width:100%!important}.adm-tbl th,.adm-tbl td{min-width:0!important}
+</style>
+<script id="fos-admin-ui">
+/* ═══════════════════════════════════════════════════════════════════════
+   FOS ADMIN · BLOCK 3 — ADMIN SHELL  (placement, PIN gate, tabs, lazy render)
+   BLOCK 4 — OVERVIEW · BLOCK 5 — CALCULATION LAB · BLOCK 6 — AUDIT & VERSIONS
+   Everything is lazy: nothing below runs until the Admin Panel tab is opened.
+   ═══════════════════════════════════════════════════════════════════════ */
+(function () {
+  'use strict';
+  if (window.__fosAdminUI) return; window.__fosAdminUI = true;
+  var C = window.FOS_CONFIG, X = window.FOS_EXPR;
+  var E = function (s) { return _esc(s); };
+  var PK = 'fos_admin_pin_v1', SS = 'fos_admin_sess', IDLE = 10 * 60 * 1000;
+  var S = { tab: 'overview', filter: '', modOnly: false, gate: null, fails: 0, until: 0, last: Date.now(), ok: false, built: {}, pv: null, month: null, openG: {} };
+  var TABS = [
+    ['overview', 'Overview', 'fa-gauge-high', 1], ['lab', 'Calculation Lab', 'fa-flask', 1], ['formula', 'Formula Studio', 'fa-square-root-variable', 0], ['chart', 'Chart Studio', 'fa-chart-pie', 0],
+    ['rules', 'Insight & Alert Rules', 'fa-bell', 0], ['unlocks', 'Unlocks & Streaks', 'fa-unlock', 0], ['data', 'Data Manager', 'fa-table', 0], ['tax', 'Taxonomy', 'fa-tags', 0],
+    ['port', 'Portfolio & Credit', 'fa-briefcase', 0], ['theme', 'Layout & Theme', 'fa-palette', 0], ['flags', 'Feature Flags', 'fa-toggle-on', 0], ['integrity', 'Integrity Checker', 'fa-shield-halved', 0],
+    ['backups', 'Backups & Versions', 'fa-clock-rotate-left', 1], ['audit', 'Audit Log', 'fa-list-check', 1], ['dev', 'Developer Tools', 'fa-terminal', 0]
+  ];
+  function root() { return document.getElementById('adm-root'); }
+  function pane() { return document.getElementById('set-tab-admin'); }
+  function visible() { var p = pane(); return !!(p && p.classList.contains('active') && p.offsetParent !== null); }
+  function $q(s, r) { return (r || root()).querySelector(s); }
+  function $a(s, r) { return Array.prototype.slice.call((r || root()).querySelectorAll(s)); }
+  function fv(v) { if (typeof v === 'boolean') return v ? 'On' : 'Off'; if (Array.isArray(v)) return v.length + ' items'; return String(v); }
+
+  /* ── PIN: salted PBKDF2-SHA256 hash only, never the PIN ───────────── */
+  function b64(buf) { var s = ''; new Uint8Array(buf).forEach(function (b) { s += String.fromCharCode(b); }); return btoa(s); }
+  async function hashPin(pin, salt, iter) {
+    var k = await crypto.subtle.importKey('raw', new TextEncoder().encode(pin), 'PBKDF2', false, ['deriveBits']);
+    return b64(await crypto.subtle.deriveBits({ name: 'PBKDF2', hash: 'SHA-256', salt: Uint8Array.from(atob(salt), function (c) { return c.charCodeAt(0); }), iterations: iter }, k, 256));
+  }
+  function pinRec() { try { return JSON.parse(localStorage.getItem(PK)); } catch (e) { return null; } }
+  function sessOk() { try { var t = +sessionStorage.getItem(SS); return t && Date.now() - t < IDLE; } catch (e) { return S.ok && Date.now() - S.last < IDLE; } }
+  function touch() { S.last = Date.now(); try { if (S.ok) sessionStorage.setItem(SS, String(S.last)); } catch (e) { } }
+  function lock(msg) { S.ok = false; try { sessionStorage.removeItem(SS); } catch (e) { } S.gate = pinRec() ? 'enter' : 'setup'; S.note = msg || ''; if (visible()) render(); }
+  setInterval(function () { if (S.ok && Date.now() - S.last > IDLE) lock('Locked after 10 minutes without activity.'); }, 15000);
+
+  /* ── shell ─────────────────────────────────────────────────────────── */
+  window.fosAdminOpen = function () {
+    if (!root()) return; S.ok = sessOk(); if (S.ok) touch(); else if (!S.gate || S.gate === 'ok') S.gate = pinRec() ? 'enter' : 'setup';
+    render();
+  };
+  function render() {
+    var r = root(); if (!r) return;
+    if (!S.ok) { r.innerHTML = gateHtml(); var i = $q('input', r); if (i) setTimeout(function () { try { i.focus(); } catch (e) { } }, 30); return; }
+    var n = Object.keys(C.overrides()).length;
+    var banner = C.safe() ? '<div class="adm-banner" role="alert"><i class="fas fa-triangle-exclamation"></i> <b>Safe mode is on.</b> All overrides are ignored and the app uses built-in defaults. ' + (C.autoSafe() ? 'It was switched on automatically because the app failed to start twice in a row. ' : '') + '<button class="adm-btn sm" data-a="safe-off">Turn off safe mode</button></div>' : '';
+    var tabs = TABS.map(function (t) {
+      var badge = (t[0] === 'lab' && n) ? '<span class="adm-tb" title="' + n + ' changed setting' + (n > 1 ? 's' : '') + '">' + n + '</span>' : '';
+      return '<button role="tab" class="adm-tab' + (S.tab === t[0] ? ' on' : '') + (t[3] ? '' : ' soon') + '" id="adm-t-' + t[0] + '" aria-selected="' + (S.tab === t[0]) + '" aria-controls="adm-body" data-tab="' + t[0] + '"><i class="fas ' + t[2] + '"></i> ' + E(t[1]) + badge + (t[3] ? '' : '<em>soon</em>') + '</button>';
+    }).join('');
+    r.innerHTML = '<div class="adm-top"><div class="adm-ttl"><i class="fas fa-user-shield"></i><div><b>Admin Panel</b><small>Control room for how existing features behave. Changes apply instantly.</small></div></div>' +
+      '<div class="adm-top-r"><button class="adm-btn ghost sm" data-a="palette" title="Jump to any setting (Ctrl+K)"><i class="fas fa-magnifying-glass"></i> Ctrl+K</button><button class="adm-btn ghost sm" data-a="lock"><i class="fas fa-lock"></i> Lock</button></div></div>' + banner +
+      '<div class="adm-tabs" role="tablist" aria-label="Admin Panel sections">' + tabs + '</div><div id="adm-body" role="tabpanel" aria-labelledby="adm-t-' + S.tab + '" tabindex="-1"></div><div class="adm-toast" id="adm-toast" role="status" aria-live="polite"></div>';
+    body();
+  }
+  function body() {
+    var b = document.getElementById('adm-body'); if (!b) return; var t = S.tab;
+    try { b.innerHTML = t === 'overview' ? overview() : t === 'lab' ? lab() : t === 'backups' ? backups() : t === 'audit' ? auditTab() : planned(t); } catch (e) { console.error('Admin tab failed:', e); b.innerHTML = '<div class="set-card"><b>This tab failed to load.</b><div class="adm-muted">' + E(e.message) + '</div></div>'; }
+    if (t === 'lab') labPreview();
+  }
+  function planned(t) { var n = TABS.filter(function (x) { return x[0] === t; })[0]; return '<div class="set-card adm-soon"><i class="fas ' + n[2] + '"></i><b>' + E(n[1]) + '</b><p>Not built yet. This tab is planned for a later stage and does nothing today.</p></div>'; }
+
+  /* ── gate html + handlers ──────────────────────────────────────────── */
+  function gateHtml() {
+    var g = S.gate, note = S.note ? '<div class="adm-gnote">' + E(S.note) + '</div>' : '';
+    if (typeof crypto === 'undefined' || !crypto.subtle) return '<div class="adm-gate set-card"><i class="fas fa-lock"></i><b>Admin Panel unavailable</b><p>This browser context cannot hash a PIN safely (it needs HTTPS or localhost).</p></div>';
+    var head = '<div class="adm-gate set-card"><div class="adm-gico"><i class="fas fa-user-shield"></i></div>';
+    if (g === 'setup' || g === 'newpin') return head + '<b>' + (g === 'setup' ? 'Create an Admin PIN' : 'Set a new Admin PIN') + '</b><p>Separate from the app lock. Only a salted hash is stored. It guards this panel on this device; it is not strong security against someone with access to your browser.</p>' + note +
+      '<label class="adm-lbl" for="adm-pin1">PIN (4–12 characters)</label><input id="adm-pin1" type="password" class="set-input adm-in" autocomplete="new-password" maxlength="12"><label class="adm-lbl" for="adm-pin2">Confirm PIN</label><input id="adm-pin2" type="password" class="set-input adm-in" autocomplete="new-password" maxlength="12"><div class="adm-err" id="adm-gerr" role="alert"></div><button class="adm-btn" data-a="pin-save">Save PIN and open</button></div>';
+    if (g === 'forgot') {
+      var em = ''; try { em = (cloudSession && cloudSession.user && cloudSession.user.email) || ''; } catch (e) { }
+      if (em) return head + '<b>Forgot PIN</b><p>Confirm it is you by entering the password for <b>' + E(em) + '</b>, the account you sign in with.</p><label class="adm-lbl" for="adm-acct">Account password</label><input id="adm-acct" type="password" class="set-input adm-in" autocomplete="current-password"><div class="adm-err" id="adm-gerr" role="alert"></div><button class="adm-btn" data-a="forgot-verify">Verify and set a new PIN</button> <button class="adm-btn ghost" data-a="gate-back">Back</button></div>';
+      return head + '<b>Forgot PIN</b><p>You are not signed in to a cloud account, so your identity cannot be checked. As a last resort you can erase the Admin PIN <b>and all admin overrides</b> on this device. Your transactions and other data are not touched.</p><label class="adm-lbl" for="adm-reset">Type RESET to confirm</label><input id="adm-reset" class="set-input adm-in" autocomplete="off"><div class="adm-err" id="adm-gerr" role="alert"></div><button class="adm-btn danger" data-a="forgot-local">Erase PIN and overrides</button> <button class="adm-btn ghost" data-a="gate-back">Back</button></div>';
+    }
+    return head + '<b>Enter Admin PIN</b>' + note + '<label class="adm-lbl" for="adm-pin1">PIN</label><input id="adm-pin1" type="password" class="set-input adm-in" autocomplete="current-password" maxlength="12"><div class="adm-err" id="adm-gerr" role="alert"></div><button class="adm-btn" data-a="pin-enter">Unlock</button> <button class="adm-btn link" data-a="gate-forgot">Forgot PIN?</button></div>';
+  }
+  function gerr(m) { var e = document.getElementById('adm-gerr'); if (e) e.textContent = m || ''; }
+  async function act(a, el) {
+    var v = function (id) { var x = document.getElementById(id); return x ? x.value : ''; };
+    if (a === 'pin-save') {
+      var p1 = v('adm-pin1'), p2 = v('adm-pin2'); if (p1.length < 4 || p1.length > 12) return gerr('PIN must be 4–12 characters.'); if (p1 !== p2) return gerr('The two PINs do not match.');
+      var salt = b64(crypto.getRandomValues(new Uint8Array(16))), it = 150000;
+      try { localStorage.setItem(PK, JSON.stringify({ v: 1, salt: salt, iter: it, hash: await hashPin(p1, salt, it) })); } catch (e) { return gerr('Could not save the PIN.'); }
+      S.ok = true; S.gate = 'ok'; S.note = ''; touch(); return render();
+    }
+    if (a === 'pin-enter') {
+      if (Date.now() < S.until) return gerr('Too many attempts. Try again in ' + Math.ceil((S.until - Date.now()) / 1000) + 's.');
+      var rec = pinRec(); if (!rec) { S.gate = 'setup'; return render(); }
+      var h = await hashPin(v('adm-pin1'), rec.salt, rec.iter);
+      if (h === rec.hash) { S.ok = true; S.fails = 0; S.gate = 'ok'; S.note = ''; touch(); return render(); }
+      S.fails++; if (S.fails >= 5) { S.until = Date.now() + 30000; S.fails = 0; return gerr('Too many attempts. Locked for 30 seconds.'); } return gerr('Incorrect PIN.');
+    }
+    if (a === 'gate-forgot') { S.gate = 'forgot'; S.note = ''; return render(); }
+    if (a === 'gate-back') { S.gate = pinRec() ? 'enter' : 'setup'; return render(); }
+    if (a === 'forgot-verify') {
+      var pw = v('adm-acct'); if (!pw) return gerr('Enter your account password.');
+      try {
+        var tmp = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY, { auth: { persistSession: false, autoRefreshToken: false, detectSessionInUrl: false } }); /* throwaway client: does not touch the app's session */
+        var res = await tmp.auth.signInWithPassword({ email: cloudSession.user.email, password: pw });
+        if (res.error) return gerr(res.error.message === 'Invalid login credentials' ? 'Incorrect account password.' : res.error.message);
+        S.gate = 'newpin'; S.note = 'Identity confirmed. Choose a new PIN.'; return render();
+      } catch (e) { return gerr('Could not reach the sign-in service. Check your connection.'); }
+    }
+    if (a === 'forgot-local') {
+      if (v('adm-reset').trim() !== 'RESET') return gerr('Type RESET exactly to confirm.');
+      try { localStorage.removeItem(PK); } catch (e) { } C.resetAll(); S.gate = 'setup'; S.note = 'PIN and admin overrides were erased. Create a new PIN.'; return render();
+    }
+    if (a === 'lock') return lock('Locked.');
+    if (a === 'safe-off') { C.setSafe(false); return render(); }
+    if (a === 'safe-on') { if (!confirm('Turn on safe mode? All your overrides will be ignored (not deleted) until you turn it off.')) return; C.setSafe(true); return render(); }
+    if (a === 'palette') return palette();
+    if (a === 'reset-all') {
+      var n = Object.keys(C.overrides()).length; if (!n) return toast('Nothing to reset. No settings are changed.');
+      if (!confirm('Reset ALL ' + n + ' changed setting' + (n > 1 ? 's' : '') + ' to defaults?\n\nNo transactions or other data are affected. A snapshot is taken first so you can restore.')) return;
+      C.resetAll(); S.built = {}; render(); return toast('All settings reset. A snapshot was saved.');
+    }
+    if (a === 'undo') { var u = C.undo(); if (!u.ok) return toast(u.msg); S.built = {}; body(); badgeUpdate(); return toast('Undone.'); }
+    if (a === 'snap') { var nm = prompt('Name this snapshot:', 'Snapshot ' + new Date().toLocaleDateString()); if (nm === null) return; C.snapshot((nm || '').trim().slice(0, 60) || 'Snapshot'); return body(); }
+    if (a === 'restore') { var id = el.getAttribute('data-id'), sn = C.snapshots().filter(function (x) { return x.id === id; })[0]; if (!sn) return; if (!confirm('Restore "' + sn.name + '"?\n\nThis replaces your current ' + Object.keys(C.overrides()).length + ' changed setting(s) with the ' + Object.keys(sn.cfg || {}).length + ' in the snapshot. A snapshot of the current state is taken first. Transactions are not affected.')) return; var rr = C.restore(id); S.built = {}; render(); return toast('Restored' + (rr.skipped ? ' (' + rr.skipped + ' invalid value(s) skipped)' : '') + '.'); }
+    if (a === 'revert') { var rv = C.revert(el.getAttribute('data-id')); if (!rv.ok) return toast(rv.msg); body(); badgeUpdate(); return toast('Change reverted.'); }
+    if (a === 'export') { var blob = new Blob([C.exportCfg()], { type: 'application/json' }), u2 = URL.createObjectURL(blob), l = document.createElement('a'); l.href = u2; l.download = 'financeos-admin-config.json'; document.body.appendChild(l); l.click(); l.remove(); setTimeout(function () { URL.revokeObjectURL(u2); }, 1000); return; }
+    if (a === 'import') { var f = document.getElementById('adm-file'); if (f) f.click(); return; }
+    if (a === 'explain') return explain(el.getAttribute('data-m'));
+    if (a === 'run-expr') return runExpr();
+  }
+
+  function toast(msg, undo) {
+    var t = document.getElementById('adm-toast'); if (!t) return;
+    t.innerHTML = '<span>' + E(msg) + '</span>' + (undo ? ' <button class="adm-btn sm" data-a="undo">Undo</button>' : ''); t.classList.add('show');
+    clearTimeout(toast._t); toast._t = setTimeout(function () { t.classList.remove('show'); }, 6500);
+  }
+  function badgeUpdate() { var n = Object.keys(C.overrides()).length, t = document.getElementById('adm-t-lab'); if (!t) return; var b = t.querySelector('.adm-tb'); if (n) { if (!b) { b = document.createElement('span'); b.className = 'adm-tb'; t.appendChild(b); } b.textContent = n; } else if (b) b.remove(); }
+
+  /* ── OVERVIEW ──────────────────────────────────────────────────────── */
+  function overview() {
+    var cats = {}, fut = 0, neg = 0, nocat = 0, today = localISO(), bad = 0;
+    (db || []).forEach(function (r) { if (!r) return; var c = r.category || r.sub; if (c) cats[c] = 1; var d = String(r.date || '').slice(0, 10); if (!/^\d{4}-\d{2}-\d{2}$/.test(d)) bad++; else if (d > today) fut++; if (Number(r.amount) < 0) neg++; if (r.type === 'Expense' && !c) nocat++; });
+    var tags = 0; try { tags = (JSON.parse(localStorage.getItem('fos_custom_tags') || '[]') || []).length; } catch (e) { }
+    var used = 0; try { for (var i = 0; i < localStorage.length; i++) { var k = localStorage.key(i); used += (k.length + (localStorage.getItem(k) || '').length) * 2; } } catch (e) { }
+    var kb = Math.round(used / 1024), pct = Math.min(100, used / (5 * 1024 * 1024) * 100);
+    var ovn = Object.keys(C.overrides()).length, snaps = C.snapshots(), last = snaps.length ? snaps[snaps.length - 1] : null;
+    var checks = [['Future-dated entries', fut], ['Negative amounts', neg], ['Expenses with no category', nocat], ['Entries with an invalid date', bad]];
+    var failing = checks.filter(function (c) { return c[1] > 0; });
+    var st = function (l, v) { return '<div class="adm-stat"><span>' + E(l) + '</span><b>' + E(v) + '</b></div>'; };
+    return '<div class="adm-stats">' + st('Transactions', (db || []).length) + st('Categories in use', Object.keys(cats).length) + st('Custom tags', tags) + st('Loans & credit', (creditDb || []).length) + st('Holdings', (portDb || []).length) + st('Changed settings', ovn) + '</div>' +
+      '<div class="set-card"><div class="adm-h">Browser storage</div><div class="adm-bar" role="img" aria-label="Storage used ' + Math.round(pct) + ' percent"><i style="width:' + pct.toFixed(1) + '%"></i></div><div class="adm-muted">About ' + kb.toLocaleString() + ' KB used of roughly 5,000 KB. The real limit varies by browser, so treat this as an estimate.</div></div>' +
+      '<div class="set-card"><div class="adm-h">Quick checks <small>(the full Integrity Checker is a later stage)</small></div>' + (failing.length ? failing.map(function (c) { return '<div class="adm-chk bad"><i class="fas fa-circle-exclamation"></i> ' + E(c[0]) + ': <b>' + c[1] + '</b></div>'; }).join('') : '<div class="adm-chk ok"><i class="fas fa-circle-check"></i> No problems found by these 4 checks.</div>') + '</div>' +
+      '<div class="set-card"><div class="adm-h">Admin state</div><div class="adm-muted">Last config snapshot: ' + (last ? E(new Date(last.ts).toLocaleString()) + ' (' + E(last.name) + ')' : 'none yet') + '. Safe mode: <b>' + (C.safe() ? 'ON' : 'off') + '</b>.</div><div class="adm-actions">' +
+      '<button class="adm-btn" data-a="snap"><i class="fas fa-camera"></i> Save snapshot</button><button class="adm-btn ghost" data-a="' + (C.safe() ? 'safe-off' : 'safe-on') + '"><i class="fas fa-life-ring"></i> ' + (C.safe() ? 'Turn off safe mode' : 'Turn on safe mode') + '</button><button class="adm-btn danger" data-a="reset-all">Reset all settings</button></div></div>';
+  }
+
+  /* ── CALCULATION LAB ───────────────────────────────────────────────── */
+  function groups() { var g = {}, o = []; C.SCHEMA().forEach(function (s) { if (!g[s.g]) { g[s.g] = []; o.push(s.g); } g[s.g].push(s); }); return o.map(function (n) { return { n: n, items: g[n] }; }); }
+  function months() { var m = {}; (db || []).forEach(function (r) { var k = String(r && r.date || '').slice(0, 7); if (/^\d{4}-\d{2}$/.test(k)) m[k] = 1; }); return Object.keys(m).sort().reverse(); }
+  function rowHtml(s) {
+    var cur = C.get(s.p), d = C.def(s.p), mod = C.isModified(s.p), id = 'adm-in-' + s.p.replace(/[^a-z0-9]/gi, '-'), ctl = '';
+    if (s.t === 'bool') ctl = '<label class="adm-sw"><input type="checkbox" id="' + id + '" class="adm-bool"' + (cur ? ' checked' : '') + '><span></span></label>';
+    else if (s.t === 'list') ctl = '<textarea id="' + id + '" class="set-input adm-list" rows="3" aria-label="' + E(s.l) + '">' + E((cur || []).join(', ')) + '</textarea>';
+    else if (s.t === 'time') ctl = '<input type="time" id="' + id + '" class="set-input adm-time" value="' + E(cur) + '">';
+    else ctl = ((s.max - s.min) <= 1000 ? '<input type="range" class="adm-rng" min="' + s.min + '" max="' + s.max + '" step="' + (s.step || 1) + '" value="' + E(cur) + '" aria-label="' + E(s.l) + ' slider">' : '') + '<input type="number" id="' + id + '" class="set-input adm-num" min="' + s.min + '" max="' + s.max + '" step="' + (s.step || 1) + '" value="' + E(cur) + '">';
+    return '<div class="adm-row' + (mod ? ' mod' : '') + '" data-p="' + E(s.p) + '"><div class="adm-rl"><label for="' + id + '">' + E(s.l) + '</label><span class="adm-badge">Changed</span></div>' +
+      '<div class="adm-help">' + E(s.h || '') + (s.aff ? ' <span>Affects: ' + E(s.aff.join(', ')) + '.</span>' : '') + (s.rec ? ' <span>Typical: ' + E(s.rec) + '.</span>' : '') + '</div>' +
+      '<div class="adm-ctl">' + ctl + '<button class="adm-ic adm-rst" aria-label="Reset ' + E(s.l) + ' to default" title="Reset to default"' + (mod ? '' : ' hidden') + '><i class="fas fa-rotate-left"></i></button></div>' +
+      '<div class="adm-meta">Default <b>' + E(s.t === 'list' ? fv(d) : d) + '</b> · Now <b class="adm-cur">' + E(s.t === 'list' ? fv(cur) : fv(cur)) + '</b></div><div class="adm-err" role="alert"></div></div>';
+  }
+  function lab() {
+    var mo = months(); if (!S.month || mo.indexOf(S.month) < 0) S.month = mo.indexOf(localMonthKey(new Date())) >= 0 ? localMonthKey(new Date()) : (mo[0] || localMonthKey(new Date()));
+    var gs = groups().map(function (g) {
+      var open = S.openG[g.n] === true || (S.openG[g.n] === undefined && g.n === groups()[0].n) || !!S.filter || S.modOnly;
+      return '<details class="adm-grp" data-g="' + E(g.n) + '"' + (open ? ' open' : '') + '><summary>' + E(g.n) + ' <em>' + g.items.length + '</em></summary>' + g.items.map(rowHtml).join('') + '</details>';
+    }).join('');
+    var ex = ['income', 'expense', 'emi', 'invest', 'savings'].map(function (m) { return '<button class="adm-btn ghost sm" data-a="explain" data-m="' + m + '">' + m + '</button>'; }).join(' ');
+    return '<div class="adm-lab"><div class="adm-lab-main"><div class="adm-bar2"><input type="search" id="adm-filter" class="set-input" placeholder="Filter settings…" aria-label="Filter settings" value="' + E(S.filter) + '"><label class="adm-chk2"><input type="checkbox" id="adm-mod"' + (S.modOnly ? ' checked' : '') + '> Modified only</label></div>' + gs +
+      '<div class="set-card"><div class="adm-h">Explain this number</div><div class="adm-bar2"><select id="adm-month" class="set-input" aria-label="Month">' + (mo.length ? mo : [S.month]).map(function (m) { return '<option value="' + m + '"' + (m === S.month ? ' selected' : '') + '>' + E(m) + '</option>'; }).join('') + '</select>' + ex + '</div><div id="adm-explain" class="adm-muted">Pick a figure to see the formula and the exact transactions behind it.</div></div>' +
+      '<div class="set-card"><div class="adm-h">Formula tester <small>safe expression engine · no eval</small></div><input id="adm-expr" class="set-input adm-mono" value="(income - expense - emi) / income * 100" aria-label="Formula" spellcheck="false" autocomplete="off"><div id="adm-expr-out" class="adm-muted"></div><div class="adm-muted">Variables: ' + X.VARS.join(', ') + '. Functions: ' + X.FUNCS.join(', ') + '. <b>avg3 / avg6</b> are your average monthly expense over the last 3 / 6 completed months; <b>month</b> is 1–12. Uses the month chosen above.</div><button class="adm-btn sm" data-a="run-expr">Run on my data</button></div></div>' +
+      '<aside class="adm-pv set-card" aria-label="Live preview"><div class="adm-h">Live preview</div><div id="adm-pv"></div><div class="adm-actions"><button class="adm-btn ghost sm" data-a="undo"><i class="fas fa-rotate-left"></i> Undo last</button></div></aside></div>';
+  }
+  function applyFilter() {
+    var q = (S.filter || '').toLowerCase();
+    $a('.adm-row').forEach(function (r) { var s = C.schemaOf(r.getAttribute('data-p')), t = (s.l + ' ' + s.h + ' ' + s.g).toLowerCase(); r.style.display = ((!q || t.indexOf(q) >= 0) && (!S.modOnly || C.isModified(s.p))) ? '' : 'none'; });
+    $a('.adm-grp').forEach(function (g) { var any = $a('.adm-row', g).some(function (r) { return r.style.display !== 'none'; }); g.style.display = any ? '' : 'none'; if ((q || S.modOnly) && any) g.open = true; });
+  }
+  function pvCalc() {
+    var o = {}; try { var a = finaiBuildAnalysis(); o.score = finaiComputeScore(a, true).score; o.sr = a.monthSavingsRate; o.nw = a.nwThis; } catch (e) { o.err = 1; }
+    try { o.fc = (typeof fcsCompute === 'function') ? fcsCompute().proj : null; } catch (e) { o.fc = null; } return o;
+  }
+  function labPreview() {
+    var box = document.getElementById('adm-pv'); if (!box) return; applyFilter();
+    var d = C.withDefaults(pvCalc), n = pvCalc();
+    function row(l, a, b, f, pts) { var diff = (a == null || b == null) ? '–' : (b - a === 0 ? 'no change' : ((b - a > 0 ? '+' : '−') + f(Math.abs(b - a)))); return '<tr><th scope="row">' + l + '</th><td>' + (a == null ? '–' : f(a)) + '</td><td><b>' + (b == null ? '–' : f(b)) + '</b></td><td class="' + (a != null && b != null && b !== a ? (b > a ? 'up' : 'dn') : '') + '">' + diff + '</td></tr>'; }
+    var pc = function (v) { return (Math.round(v * 10) / 10) + '%'; }, f0 = function (v) { return String(Math.round(v)); }, mny = function (v) { return fmt(Math.round(v)); };
+    box.innerHTML = n.err ? '<div class="adm-muted">Preview needs transactions to compute.</div>' : '<table class="adm-tbl"><thead><tr><th></th><th>Defaults</th><th>Now</th><th>Change</th></tr></thead><tbody>' + row('FinAI score', d.score, n.score, f0) + row('Savings rate', d.sr, n.sr, pc) + row('Month-end spend forecast', d.fc, n.fc, mny) + row('Net worth', d.nw, n.nw, mny) + '</tbody></table><div class="adm-muted">Updates as you drag. Nothing is saved until you release the slider or leave the field.</div>';
+  }
+  var pvT = null; function schedulePv() { clearTimeout(pvT); pvT = setTimeout(labPreview, 120); }
+
+  function explain(m) {
+    var el = document.getElementById('adm-explain'); if (!el) return; var mk = S.month, T = { income: C.get('ledger.types.income'), expense: C.get('ledger.types.expense'), emi: C.get('ledger.types.emi'), invest: C.get('ledger.types.invest') }, ics = C.get('ledger.investCountsAsSaving');
+    var rows = (db || []).filter(function (r) { return r && String(r.date || '').slice(0, 7) === mk; });
+    var L = fosLedger(mk), fml = { income: 'Sum of amounts where type is ' + T.income.join(' or '), expense: 'Sum of amounts where type is ' + T.expense.join(' or '), emi: 'Sum of amounts where type is ' + T.emi.join(' or '), invest: 'Sum of amounts where type is ' + T.invest.join(' or '), savings: 'income − expense − EMI' + (ics ? '' : ' − investments') + ' (investing ' + (ics ? 'counts' : 'does not count') + ' as saving)' };
+    var role = m === 'savings' ? null : T[m], list = role ? rows.filter(function (r) { return role.indexOf(r.type) >= 0; }) : [];
+    var val = L[m], shown = list.slice(0, 40);
+    el.innerHTML = '<div><b>' + E(m) + '</b> for ' + E(mk) + ' = <b>' + E(fmt(val)) + '</b></div><div class="adm-muted">' + E(fml[m]) + '.' + (m === 'savings' ? ' = ' + E(fmt(L.income)) + ' − ' + E(fmt(L.expense)) + ' − ' + E(fmt(L.emi)) + (ics ? '' : ' − ' + E(fmt(L.invest))) + (L.income > 0 ? ' · rate ' + (Math.round(L.savingsRate * 10) / 10) + '%' : '') : '') + '</div>' +
+      (role ? '<div class="adm-scroll"><table class="adm-tbl"><thead><tr><th>Date</th><th>Name</th><th>Type</th><th>Amount</th></tr></thead><tbody>' + (shown.length ? shown.map(function (r) { return '<tr><td>' + E(String(r.date || '').slice(0, 10)) + '</td><td>' + E(r.name || r.sub || '') + '</td><td>' + E(r.type) + '</td><td>' + E(fmt(Number(r.amount) || 0)) + '</td></tr>'; }).join('') : '<tr><td colspan="4">No matching transactions.</td></tr>') + '</tbody></table></div>' + (list.length > shown.length ? '<div class="adm-muted">Showing 40 of ' + list.length + ' transactions.</div>' : '') : '');
+  }
+  function runExpr() {
+    var i = document.getElementById('adm-expr'), o = document.getElementById('adm-expr-out'); if (!i || !o) return; var chk = X.check(i.value);
+    if (!chk.ok) { o.className = 'adm-err'; o.textContent = chk.msg + (chk.pos != null ? ' (at character ' + (chk.pos + 1) + ')' : ''); return; }
+    var r = X.run(i.value, X.varsFor(S.month)); if (!r.ok) { o.className = 'adm-err'; o.textContent = r.msg; return; } o.className = 'adm-ok'; o.textContent = '= ' + (Math.round(r.value * 1e6) / 1e6) + '   (for ' + S.month + ')';
+  }
+
+  /* ── input handling (delegated) ────────────────────────────────────── */
+  function rowOf(el) { return el.closest ? el.closest('.adm-row') : null; }
+  function readVal(row) { var s = C.schemaOf(row.getAttribute('data-p')); if (s.t === 'bool') return $q('.adm-bool', row).checked; if (s.t === 'list') return $q('.adm-list', row).value; if (s.t === 'time') return $q('.adm-time', row).value; return $q('.adm-num', row).value; }
+  function refreshRow(row) { var p = row.getAttribute('data-p'), s = C.schemaOf(p), cur = C.get(p), mod = C.isModified(p); row.classList.toggle('mod', mod); var rb = $q('.adm-rst', row); if (rb) rb.hidden = !mod; var c = $q('.adm-cur', row); if (c) c.textContent = fv(cur); var n = $q('.adm-num', row), g = $q('.adm-rng', row); if (n && document.activeElement !== n) n.value = cur; if (g) g.value = cur; var b = $q('.adm-bool', row); if (b) b.checked = !!cur; var l = $q('.adm-list', row); if (l && document.activeElement !== l) l.value = (cur || []).join(', '); }
+  function onInput(e) {
+    var t = e.target; touch(); if (t.id === 'adm-filter') { S.filter = t.value; return applyFilter(); }
+    if (t.id === 'adm-expr') { var o = document.getElementById('adm-expr-out'), c = X.check(t.value); o.className = c.ok ? 'adm-ok' : 'adm-err'; o.textContent = c.ok ? 'Formula is valid.' : c.msg + (c.pos != null ? ' (at character ' + (c.pos + 1) + ')' : ''); return; }
+    var row = rowOf(t); if (!row || !(t.classList.contains('adm-rng') || t.classList.contains('adm-num'))) return;
+    var p = row.getAttribute('data-p'), n = $q('.adm-num', row), g = $q('.adm-rng', row), er = $q('.adm-err', row);
+    if (t.classList.contains('adm-rng')) n.value = t.value; else if (g && n.value !== '') g.value = n.value;
+    var r = C.validate(p, n.value); er.textContent = r.ok ? '' : r.msg; if (!r.ok) return; C.setDraft(p, r.val); var c = $q('.adm-cur', row); if (c) c.textContent = fv(r.val); schedulePv();
+  }
+  function onChange(e) {
+    var t = e.target; touch();
+    if (t.id === 'adm-mod') { S.modOnly = t.checked; return applyFilter(); }
+    if (t.id === 'adm-month') { S.month = t.value; return; }
+    if (t.id === 'adm-file') return doImport(t);
+    var row = rowOf(t); if (!row) return; var p = row.getAttribute('data-p'), er = $q('.adm-err', row); C.clearDraft(p);
+    var r = C.set(p, readVal(row)); if (!r.ok) { er.textContent = r.msg; refreshRow(row); return schedulePv(); } er.textContent = ''; refreshRow(row); badgeUpdate(); toast('Saved: ' + C.schemaOf(p).l, true); labPreviewSoon();
+  }
+  function labPreviewSoon() { setTimeout(function () { if (S.tab === 'lab') labPreview(); }, 150); }
+  function doImport(inp) {
+    var f = inp.files && inp.files[0]; if (!f) return; var fr = new FileReader();
+    fr.onload = function () {
+      var r = C.importCfg(String(fr.result)); inp.value = ''; if (!r.ok) return toast(r.msg); var n = Object.keys(r.good).length;
+      if (!n) return toast('Nothing valid to import.' + (r.bad.length ? ' ' + r.bad.length + ' value(s) rejected.' : ''));
+      if (!confirm('Import ' + n + ' setting(s) from "' + f.name + '"?' + (r.bad.length ? '\n' + r.bad.length + ' invalid value(s) will be skipped.' : '') + '\n\nThis replaces your current ' + Object.keys(C.overrides()).length + ' changed setting(s). A snapshot is taken first. Transactions are not affected.')) return;
+      C.applyImport(r.good); S.built = {}; render(); toast('Imported ' + n + ' setting(s).');
+    }; fr.onerror = function () { toast('Could not read that file.'); }; fr.readAsText(f);
+  }
+  function onClick(e) {
+    var t = e.target; var rb = t.closest && t.closest('.adm-rst'); if (rb) { touch(); var row = rowOf(rb), p = row.getAttribute('data-p'); var r = C.reset(p); if (r.ok) { refreshRow(row); badgeUpdate(); toast('Reset: ' + C.schemaOf(p).l, true); labPreviewSoon(); } return; }
+    var tb = t.closest && t.closest('[data-tab]'); if (tb) { touch(); S.tab = tb.getAttribute('data-tab'); return render(); }
+    var ab = t.closest && t.closest('[data-a]'); if (ab) { touch(); act(ab.getAttribute('data-a'), ab); }
+  }
+  function onKey(e) {
+    if (!visible() || !S.ok) { if (e.key === 'Enter' && e.target && e.target.tagName === 'INPUT' && e.target.closest && e.target.closest('.adm-gate')) { var b = $q('.adm-gate [data-a^="pin-"],.adm-gate [data-a^="forgot-v"],.adm-gate [data-a="forgot-local"]'); if (b) b.click(); } return; }
+    touch(); if ((e.ctrlKey || e.metaKey) && (e.key === 'k' || e.key === 'K')) { e.preventDefault(); palette(); }
+    if (e.key === 'Enter' && e.target && e.target.id === 'adm-expr') runExpr();
+    if (e.key === 'ArrowRight' || e.key === 'ArrowLeft') { var tb = e.target.closest && e.target.closest('.adm-tab'); if (tb) { var all = $a('.adm-tab'), i = all.indexOf(tb) + (e.key === 'ArrowRight' ? 1 : -1); if (all[i]) { all[i].focus(); e.preventDefault(); } } }
+  }
+
+  /* ── COMMAND PALETTE (Ctrl+K) ──────────────────────────────────────── */
+  function palette() {
+    if (!S.ok) return; var old = document.getElementById('adm-pal'); if (old) old.remove();
+    var el = document.createElement('div'); el.id = 'adm-pal'; el.className = 'adm-pal'; el.setAttribute('role', 'dialog'); el.setAttribute('aria-label', 'Jump to a setting');
+    el.innerHTML = '<div class="adm-pal-box"><input id="adm-pal-in" class="set-input" placeholder="Type a setting or tab name…" aria-label="Search settings" autocomplete="off"><div id="adm-pal-l" role="listbox"></div></div>'; document.body.appendChild(el);
+    var inp = el.querySelector('input'), lst = el.querySelector('#adm-pal-l'), sel = 0, hits = [];
+    function close() { el.remove(); }
+    function go(h) { close(); if (h.tab) { S.tab = h.tab; render(); } else { S.tab = 'lab'; S.filter = h.label; S.openG[h.group] = true; render(); var r = $a('.adm-row').filter(function (x) { return x.getAttribute('data-p') === h.p; })[0]; if (r) { r.scrollIntoView({ block: 'center' }); var i = $q('input,textarea', r); if (i) i.focus(); } } }
+    function draw() { var q = inp.value.toLowerCase().trim(); hits = TABS.filter(function (t) { return !q || t[1].toLowerCase().indexOf(q) >= 0; }).map(function (t) { return { tab: t[0], label: t[1] + ' (tab)' }; }).concat(C.SCHEMA().filter(function (s) { return q && (s.l.toLowerCase().indexOf(q) >= 0 || s.p.toLowerCase().indexOf(q) >= 0); }).slice(0, 12).map(function (s) { return { p: s.p, label: s.l, group: s.g }; })).slice(0, 14); sel = Math.min(sel, Math.max(0, hits.length - 1)); lst.innerHTML = hits.map(function (h, i) { return '<div class="adm-pal-i' + (i === sel ? ' on' : '') + '" role="option" aria-selected="' + (i === sel) + '" data-i="' + i + '">' + E(h.label) + '</div>'; }).join('') || '<div class="adm-muted" style="padding:10px">No match.</div>'; }
+    inp.addEventListener('input', function () { sel = 0; draw(); });
+    el.addEventListener('keydown', function (e) { if (e.key === 'Escape') { close(); } else if (e.key === 'ArrowDown') { sel = Math.min(sel + 1, hits.length - 1); draw(); e.preventDefault(); } else if (e.key === 'ArrowUp') { sel = Math.max(sel - 1, 0); draw(); e.preventDefault(); } else if (e.key === 'Enter' && hits[sel]) go(hits[sel]); });
+    el.addEventListener('mousedown', function (e) { var i = e.target.closest && e.target.closest('.adm-pal-i'); if (i) go(hits[+i.getAttribute('data-i')]); else if (e.target === el) close(); });
+    draw(); inp.focus();
+  }
+
+  /* ── BACKUPS & VERSIONS (config) and AUDIT LOG ─────────────────────── */
+  function diffSnap(a, b) { var k = {}; Object.keys(a || {}).concat(Object.keys(b || {})).forEach(function (x) { k[x] = 1; }); return Object.keys(k).filter(function (x) { return JSON.stringify((a || {})[x]) !== JSON.stringify((b || {})[x]); }); }
+  function backups() {
+    var s = C.snapshots().slice().reverse(), cur = C.overrides();
+    return '<div class="set-card"><div class="adm-h">Config snapshots</div><div class="adm-muted">A snapshot is saved automatically before your first change, before any reset-all, restore or import. These cover your <b>admin settings only</b>. Backing up transactions comes with the Data Manager stage.</div><div class="adm-actions"><button class="adm-btn" data-a="snap"><i class="fas fa-camera"></i> Save named snapshot</button><button class="adm-btn ghost" data-a="export"><i class="fas fa-file-export"></i> Export config (JSON)</button><button class="adm-btn ghost" data-a="import"><i class="fas fa-file-import"></i> Import config</button><input type="file" id="adm-file" accept="application/json,.json" hidden></div></div>' +
+      '<div class="set-card">' + (s.length ? s.map(function (x) { var d = diffSnap(x.cfg, cur); return '<div class="adm-li"><div><b>' + E(x.name) + '</b>' + (x.auto ? ' <em class="adm-auto">auto</em>' : '') + '<div class="adm-muted">' + E(new Date(x.ts).toLocaleString()) + ' · ' + Object.keys(x.cfg || {}).length + ' setting(s) · ' + (d.length ? 'differs from now in ' + d.length + ': ' + E(d.slice(0, 4).join(', ')) + (d.length > 4 ? '…' : '') : 'same as now') + '</div></div><button class="adm-btn sm ghost" data-a="restore" data-id="' + E(x.id) + '">Restore</button></div>'; }).join('') : '<div class="adm-muted">No snapshots yet.</div>') + '</div>';
+  }
+  function auditTab() {
+    var a = C.audit().slice().reverse().slice(0, 150), q = '';
+    return '<div class="set-card"><div class="adm-h">Audit log <small>every change made in this panel</small></div>' + (a.length ? a.map(function (x) { var s = C.schemaOf(x.path), nm = s ? s.l : x.path; return '<div class="adm-li"><div><b>' + E(nm) + '</b> <span class="adm-muted">' + E(x.note || '') + '</span><div class="adm-muted">' + E(new Date(x.ts).toLocaleString()) + ' · ' + E(x.who) + ' · ' + E(x.hadOld === false || x.old === null ? 'default' : fv(x.old)) + ' → ' + E(x.val === null ? 'default' : fv(x.val)) + '</div></div>' + (x.path !== '*' && x.path !== 'safe-mode' && s ? '<button class="adm-btn sm ghost" data-a="revert" data-id="' + E(x.id) + '">Revert</button>' : '') + '</div>'; }).join('') : '<div class="adm-muted">No changes yet.</div>') + '</div>';
+  }
+
+  /* ── wiring: one delegated listener set, attached once ─────────────── */
+  function wire() {
+    var r = root(); if (!r || r.__w) return; r.__w = 1;
+    r.addEventListener('input', onInput); r.addEventListener('change', onChange); r.addEventListener('click', onClick);
+    r.addEventListener('pointerdown', touch); r.addEventListener('scroll', touch, true);
+    document.addEventListener('keydown', onKey);
+    r.addEventListener('toggle', function (e) { var g = e.target && e.target.getAttribute && e.target.getAttribute('data-g'); if (g) S.openG[g] = e.target.open; }, true);
+  }
+  wire();
+  C.onChange(function () { if (S.ok && visible() && (S.tab === 'overview' || S.tab === 'backups' || S.tab === 'audit')) body(); });
+})();
+</script>
 </body>
 </html>
