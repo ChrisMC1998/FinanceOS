@@ -9474,7 +9474,7 @@ function passAppLockGate() {
           <div class="modal-title readable-white" id="set-tab-title" style="margin-bottom:2px">General</div>
           <div style="font-size:0.75rem; color:var(--text-muted)" id="set-tab-desc">Appearance, window, date & time</div>
         </div>
-        <button onclick="closeSettingsModal()" class="btn-secondary" style="padding: 5px 10px;">✕</button>
+        <button onclick="closeSettingsModal()" class="btn-secondary set-close-x" aria-label="Close settings" title="Close (Esc)" style="padding: 5px 10px;"><i class="fas fa-times"></i></button>
       </div>
 
       <div id="set-tab-general" class="set-tab-pane active">
@@ -34628,6 +34628,12 @@ body.light-mode .adm-toast{background:#e0f7fc;color:#06303c}body.light-mode .adm
 #settings-modal.fos-closing{animation:fosSetFadeOut .18s ease forwards;pointer-events:none}
 #settings-modal.fos-closing .settings-modal-box{animation:fosSetOut .18s ease-in forwards}
 @media(prefers-reduced-motion:reduce){#settings-modal.fos-open,#settings-modal.fos-open .settings-modal-box,#settings-modal.fos-closing,#settings-modal.fos-closing .settings-modal-box{animation:none!important}}
+
+/* Settings close button: same turn-and-turn-red hover as the Analytics close icon */
+#settings-modal .set-close-x{display:inline-flex;align-items:center;justify-content:center;width:40px;height:40px;padding:0!important;border-radius:12px;font-size:1rem;cursor:pointer;transition:all .16s ease}
+#settings-modal .set-close-x:hover,#settings-modal .set-close-x:focus-visible{color:#fff;background:rgba(239,68,68,.85);border-color:transparent;transform:rotate(90deg)}
+#settings-modal .set-close-x:active{transform:rotate(90deg) scale(.92)}
+@media(prefers-reduced-motion:reduce){#settings-modal .set-close-x{transition:none}#settings-modal .set-close-x:hover,#settings-modal .set-close-x:focus-visible{transform:none}}
 </style>
 <script id="fos-admin-ui">
 /* ═══════════════════════════════════════════════════════════════════════
