@@ -24380,7 +24380,7 @@ function setNumberSystem(system, el) {
 }
 
 function openSettingsModal() {
-  document.getElementById('settings-modal').style.display = 'flex';
+  { const m = document.getElementById('settings-modal'); clearTimeout(_fosSetCloseT); m.classList.remove('fos-closing'); m.style.display = 'flex'; m.classList.remove('fos-open'); void m.offsetWidth; m.classList.add('fos-open'); }
   if (typeof renderSecurityQuestionStatus === 'function') renderSecurityQuestionStatus();
   if (typeof refreshDeviceLockFlagsFromCloud === 'function') {
     refreshDeviceLockFlagsFromCloud().then(() => { if (typeof renderDeviceLockSettings === 'function') renderDeviceLockSettings(); });
@@ -24388,8 +24388,14 @@ function openSettingsModal() {
   if (typeof renderDeviceLockSettings === 'function') renderDeviceLockSettings();
 }
 
+var _fosSetCloseT = null;
 function closeSettingsModal() {
-  document.getElementById('settings-modal').style.display = 'none';
+  const m = document.getElementById('settings-modal'); if (!m || m.style.display === 'none') return;
+  clearTimeout(_fosSetCloseT); m.classList.remove('fos-open');
+  const reduce = window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches;
+  if (reduce) { m.style.display = 'none'; return; }
+  m.classList.add('fos-closing');   // plays the close animation, then hides
+  _fosSetCloseT = setTimeout(() => { m.style.display = 'none'; m.classList.remove('fos-closing'); }, 180);
 }
 
 // ── REGIONAL FORMATTING LOGIC ──
@@ -24464,6 +24470,7 @@ function switchSettingsTab(tabId, el) {
   document.getElementById('set-tab-desc').textContent = titles[tabId].desc;
 
   if (tabId === 'about' && typeof renderPrivacyAboutTab === 'function') renderPrivacyAboutTab();
+  try { const _b = document.querySelector('#settings-modal .settings-modal-box'); if (_b) _b.classList.toggle('adm-wide', tabId === 'admin'); } catch (e) {}
   if (tabId === 'admin' && typeof window.fosAdminOpen === 'function') { try { window.fosAdminOpen(); } catch (e) { console.error('Admin Panel:', e); } }
 }
 
@@ -34604,6 +34611,23 @@ body.light-mode .adm-toast{background:#e0f7fc;color:#06303c}body.light-mode .adm
 .adm-tbl td,.adm-tbl th{color:inherit!important;background:transparent!important}.adm-tbl td.up{color:#059669!important}.adm-tbl td.dn{color:#dc2626!important}.adm-tbl thead th{color:var(--text-muted)!important}
 @media(max-width:900px){.adm-pv .adm-tbl{table-layout:fixed}.adm-pv .adm-tbl th:nth-child(4),.adm-pv .adm-tbl td:nth-child(4){display:none}.adm-pv .adm-tbl th:first-child{width:40%}.adm-pv .adm-tbl tbody th{max-width:none}}
 .adm-tbl{min-width:0!important;width:100%!important}.adm-tbl th,.adm-tbl td{min-width:0!important}
+/* Admin Panel gets a roomier Settings window (other tabs keep the original size) */
+@media(min-width:901px){#settings-modal .settings-modal-box:has(#set-tab-admin.active){width:min(1500px,96vw)!important;max-width:96vw!important;height:92vh!important;height:92dvh!important;transition:width .2s ease,height .2s ease}
+#settings-modal .settings-modal-box:has(#set-tab-admin.active) .set-sidebar{width:200px}
+.adm-lab{grid-template-columns:minmax(0,1fr) 420px}}
+@media(prefers-reduced-motion:reduce){#settings-modal .settings-modal-box{transition:none!important}}
+
+/* Same roomy window via a class, for browsers without :has() */
+@media(min-width:901px){#settings-modal .settings-modal-box.adm-wide{width:min(1500px,96vw)!important;max-width:96vw!important;height:92vh!important;height:92dvh!important}}
+/* Settings popup: open + close animation (fade the backdrop, lift/scale the window) */
+@keyframes fosSetFadeIn{from{opacity:0}to{opacity:1}}@keyframes fosSetFadeOut{to{opacity:0}}
+@keyframes fosSetIn{from{opacity:0;transform:translateY(12px) scale(.97)}to{opacity:1;transform:none}}
+@keyframes fosSetOut{to{opacity:0;transform:translateY(10px) scale(.97)}}
+#settings-modal.fos-open{animation:fosSetFadeIn .18s ease backwards}
+#settings-modal.fos-open .settings-modal-box{animation:fosSetIn .24s cubic-bezier(.2,.8,.2,1) backwards}
+#settings-modal.fos-closing{animation:fosSetFadeOut .18s ease forwards;pointer-events:none}
+#settings-modal.fos-closing .settings-modal-box{animation:fosSetOut .18s ease-in forwards}
+@media(prefers-reduced-motion:reduce){#settings-modal.fos-open,#settings-modal.fos-open .settings-modal-box,#settings-modal.fos-closing,#settings-modal.fos-closing .settings-modal-box{animation:none!important}}
 </style>
 <script id="fos-admin-ui">
 /* ═══════════════════════════════════════════════════════════════════════
