@@ -17087,10 +17087,10 @@ function renderPortOverview() {
 // ── INVENTORY PILL STRIP (Quantity Breakdown) ──
   const invStrip = document.getElementById('port-inventory-strip');
   if (invStrip) {
-    // 1. Force the 9 core assets to ALWAYS exist
-    const coreAssets = ['Gold', 'Silver', 'RealEstate', 'MutualFund', 'Bonds', 'Stocks', 'Crypto', 'FixedDeposit', 'RecurringDeposit'];
-    // 2. If you added a custom "Other" asset, append it so we don't lose it
-    typeKeys.forEach(k => { if (!coreAssets.includes(k)) coreAssets.push(k); });
+    // Only asset types that actually have data get a pill (all 19 classes + custom types); new ones appear as you add holdings
+    const catOrder = Object.keys(ASSET_CATALOG);
+    const coreAssets = typeKeys.slice().sort((a, b) => { const ia = catOrder.indexOf(a), ib = catOrder.indexOf(b); return ((ia < 0 ? 99 : ia) - (ib < 0 ? 99 : ib)) || (byTypeVal[b] - byTypeVal[a]); });
+    invStrip.style.display = coreAssets.length ? '' : 'none';
 
     invStrip.innerHTML = coreAssets.map(k => {
       const hex = assetColor(k);
@@ -17104,15 +17104,19 @@ function renderPortOverview() {
       else if (k === 'RealEstate') unitStr = 'Sqft';
       else if (k === 'Stocks') unitStr = 'Shares';
       else if (k === 'Crypto') unitStr = 'Tokens';
+      else if (ASSET_CATALOG[k] && ASSET_CATALOG[k].unit) unitStr = ASSET_CATALOG[k].unit.charAt(0).toUpperCase() + ASSET_CATALOG[k].unit.slice(1);
+      // classes priced by total amount (cash, retirement, collectibles…) have no meaningful quantity — show how many holdings instead
+      let shown = formattedQty;
+      if (!isQtyBased(k) && PORT_QTY_LEGACY.indexOf(k) < 0) { shown = String(cntMap[k] || 0); unitStr = cntMap[k] === 1 ? 'Holding' : 'Holdings'; }
       
       // If qty is 0, we dim the pill slightly so the ones you DO own stand out more
-      const dimOp = qty === 0 ? '0.4' : '1';
+      const dimOp = '1';
       
       return `
         <div class="inventory-pill" style="opacity:${dimOp}; background:linear-gradient(135deg, rgba(255,255,255,0.06), rgba(0,0,0,0.3)); border:1px solid ${hex}30; border-top:1px solid ${hex}70; box-shadow:0 6px 16px rgba(0,0,0,0.3), inset 0 2px 4px rgba(255,255,255,0.05); padding: 8px 16px;">
           <span style="width:8px;height:8px;border-radius:50%;background:${hex};box-shadow:0 0 10px ${hex}"></span>
           <span style="font-size:0.72rem;color:var(--text-mid);font-weight:700;letter-spacing:1px;text-transform:uppercase">${label}</span>
-          <span style="font-family:'DM Mono',monospace;font-size:1.05rem;font-weight:700;color:white;margin-left:4px">${formattedQty} <span style="font-size:0.65rem;color:${hex}">${unitStr}</span></span>
+          <span style="font-family:'DM Mono',monospace;font-size:1.05rem;font-weight:700;color:white;margin-left:4px">${shown} <span style="font-size:0.65rem;color:${hex}">${unitStr}</span></span>
         </div>
       `;
     }).join('');
