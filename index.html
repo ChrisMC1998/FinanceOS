@@ -6767,6 +6767,7 @@ function passAppLockGate() {
     <div class="drawer-item" id="mob-port-analytics" onclick="mobNav('port-analytics','portfolio')"><i class="fas fa-chart-bar" style="color:#a78bfa;width:16px;text-align:center"></i> Port. Analytics</div>
     <div class="drawer-item" id="mob-port-intel" onclick="mobNav('port-intel','portfolio')"><i class="fas fa-brain" style="color:#a78bfa;width:16px;text-align:center"></i> Intelligence</div>
     <div class="drawer-item" id="mob-port-tax" onclick="mobNav('port-tax','portfolio')"><i class="fas fa-file-invoice-dollar" style="color:#a78bfa;width:16px;text-align:center"></i> Tax</div>
+    <div class="drawer-item" id="mob-port-stress" onclick="mobNav('port-stress','portfolio')"><i class="fas fa-bolt" style="color:#a78bfa;width:16px;text-align:center"></i> Stress Test</div>
 
     <div class="drawer-section-label" style="color:#7c6eb3">By Asset</div>
     <div class="drawer-item" onclick="filterPortAsset('Gold');closeMobileDrawer()"><i class="fas fa-circle" style="color:var(--c-gold);font-size:0.55rem;width:16px;text-align:center"></i> Gold</div>
@@ -6799,6 +6800,7 @@ function passAppLockGate() {
     </div>
     <button class="export-btn" style="width:100%;justify-content:center;min-height:44px" onclick="openExportModal();closeMobileDrawer()"><i class="fas fa-file-csv"></i> Export</button>
     <button class="export-btn" style="width:100%;justify-content:center;min-height:44px;color:var(--c-inc);border-color:rgba(52,211,153,0.25)" onclick="openBackupModal();closeMobileDrawer()"><i class="fas fa-database"></i> Backup / Restore</button>
+    <button class="export-btn" style="width:100%;justify-content:center;min-height:44px;color:#a78bfa;border-color:rgba(167,139,250,0.25)" onclick="rfOpen();closeMobileDrawer()"><i class="fas fa-bolt"></i> Live prices</button>
     <button class="export-btn" style="width:100%;justify-content:center;min-height:44px;color:var(--brand-2);border-color:rgba(var(--brand-rgb),0.25)" onclick="openSettingsModal();closeMobileDrawer()"><i class="fas fa-cog"></i> Settings</button>
     <button class="export-btn" style="width:100%;justify-content:center;min-height:44px;color:#ef4444;border-color:rgba(239,68,68,0.25)" onclick="closeMobileDrawer();handleLogout()"><i class="fas fa-sign-out-alt"></i> Log Out</button>
   </div>
@@ -6954,6 +6956,9 @@ function passAppLockGate() {
   <button class="export-btn" onclick="openBackupModal()" style="color:var(--c-inc);border-color:rgba(52,211,153,0.25)">
     <i class="fas fa-database"></i> Backup / Restore
   </button>
+  <button class="export-btn" onclick="rfOpen()" style="color:#a78bfa;border-color:rgba(167,139,250,0.25)">
+    <i class="fas fa-bolt"></i> Live prices
+  </button>
 <button class="export-btn" onclick="openSettingsModal()" style="color:var(--c-mf);border-color:rgba(var(--brand-rgb),0.25);margin-top:2px">
     <i class="fas fa-cog"></i> Settings
   </button>
@@ -7006,6 +7011,10 @@ function passAppLockGate() {
   <div class="port-nav-item" id="port-nav-tax" onclick="switchView('port-tax',this,'portfolio')">
     <div class="nav-icon"><i class="fas fa-file-invoice-dollar" style="color:#a78bfa"></i></div>
     <span class="nav-label">Tax</span>
+  </div>
+  <div class="port-nav-item" id="port-nav-stress" onclick="switchView('port-stress',this,'portfolio')">
+    <div class="nav-icon"><i class="fas fa-bolt" style="color:#a78bfa"></i></div>
+    <span class="nav-label">Stress Test</span>
   </div>
   </div></div>
 
@@ -8229,6 +8238,7 @@ function passAppLockGate() {
     <!-- PORTFOLIO: INTELLIGENCE -->
     <div id="view-port-intel" class="view-section"><div id="pi-root"></div></div>
     <div id="view-port-tax" class="view-section"><div id="tx-root"></div></div>
+    <div id="view-port-stress" class="view-section"><div id="st-root"></div></div>
 
     <!-- CREDIT TRACKER -->
 <!-- CC UTILIZATION VIEW -->
@@ -10637,6 +10647,18 @@ function passAppLockGate() {
         <input type="checkbox" id="exp-assets" checked>
         <div class="export-check-label"><i class="fas fa-layer-group" style="color:#34d399;margin-right:7px"></i>All Assets</div>
       </label>
+      <label class="export-check-row">
+        <input type="checkbox" id="exp-goals" checked>
+        <div class="export-check-label"><i class="fas fa-bullseye" style="color:#a78bfa;margin-right:7px"></i>Goal funding (holdings tagged to goals)</div>
+      </label>
+      <label class="export-check-row">
+        <input type="checkbox" id="exp-tax" checked>
+        <div class="export-check-label"><i class="fas fa-file-invoice-dollar" style="color:#f59e0b;margin-right:7px"></i>Tax summary (realised gains)</div>
+      </label>
+      <label class="export-check-row">
+        <input type="checkbox" id="exp-stress" checked>
+        <div class="export-check-label"><i class="fas fa-bolt" style="color:#ef4444;margin-right:7px"></i>Stress test (current scenario)</div>
+      </label>
     </div>
 
     <div class="panel-title" style="margin-bottom:8px">Date Range (optional)</div>
@@ -10807,7 +10829,7 @@ const ASSET_CATALOG = {
     fields: [_F('location', 'Location / address', 'text', 'City, locality'), _F('registrationNo', 'Registration / document no.', 'text'), _F('monthlyRent', 'Monthly rent received', 'number', '0'), _F('loanLinked', 'Linked loan', 'loan', 'Lender, if any')] },
   MutualFund: { label: 'Mutual Funds', short: 'Mutual Funds', icon: 'fa-chart-pie', mode: 'total', unit: 'units', blurb: 'Equity, debt and hybrid mutual funds.',
     subs: ['Equity Fund', 'Debt Fund', 'Hybrid Fund', 'Index Fund', 'ELSS (Tax Saver)', 'Liquid Fund'],
-    fields: [_F('amc', 'Fund house (AMC)', 'text'), _F('folio', 'Folio number', 'text'), _F('plan', 'Plan', 'select', ['Direct', 'Regular']), _F('sipAmount', 'Monthly SIP', 'number', '0')] },
+    fields: [_F('amc', 'Fund house (AMC)', 'text'), _F('folio', 'Folio number', 'text'), _F('plan', 'Plan', 'select', ['Direct', 'Regular']), _F('sipAmount', 'Monthly SIP', 'number', '0'), _F('schemeCode', 'AMFI scheme code (optional, for live NAV)', 'text', 'e.g. 120503')] },
   Bonds: { label: 'Bonds', short: 'Bonds', icon: 'fa-file-invoice-dollar', mode: 'total', unit: 'units', blurb: 'Government and corporate bonds, debentures.',
     subs: ['Government Bond (G-Sec)', 'Treasury Bill', 'Corporate Bond', 'Tax-Free Bond', 'Debenture'],
     fields: [_F('issuer', 'Issuer', 'text'), _F('couponRate', 'Coupon rate (%)', 'number', '0.00'), _F('maturityDate', 'Maturity date', 'date'), _F('faceValue', 'Face value / unit', 'number'), _F('payout', 'Interest payout', 'select', ['Monthly', 'Quarterly', 'Half-yearly', 'Annual', 'At maturity']), _F('rating', 'Credit rating', 'text', 'AAA, AA+ …')] },
@@ -10816,7 +10838,7 @@ const ASSET_CATALOG = {
     fields: [_F('exchange', 'Exchange', 'select', ['NSE', 'BSE']), _F('ticker', 'Ticker / symbol', 'text'), _F('broker', 'Broker / demat', 'text'), _F('dividendYield', 'Dividend yield (%)', 'number', '0.00')] },
   Crypto: { label: 'Crypto', short: 'Crypto', icon: 'fa-bitcoin', iconFab: true, mode: 'total', unit: 'tokens', blurb: 'Coins, tokens and staked crypto.',
     subs: ['Bitcoin', 'Ethereum', 'Stablecoin', 'Altcoin', 'Staked / DeFi', 'NFT'],
-    fields: [_F('wallet', 'Exchange / wallet', 'text'), _F('walletType', 'Custody', 'select', ['Exchange', 'Hot wallet', 'Cold wallet']), _F('network', 'Network / chain', 'text')] },
+    fields: [_F('wallet', 'Exchange / wallet', 'text'), _F('walletType', 'Custody', 'select', ['Exchange', 'Hot wallet', 'Cold wallet']), _F('network', 'Network / chain', 'text'), _F('coinId', 'CoinGecko id (optional, for live price)', 'text', 'e.g. bitcoin')] },
   FixedDeposit: { label: 'Fixed Deposit', short: 'Fixed Deposit', icon: 'fa-piggy-bank', mode: 'total', unit: 'units', blurb: 'Bank, post-office and corporate deposits.',
     subs: ['Bank FD', 'Tax-Saver FD', 'Corporate FD', 'Post Office Time Deposit', 'Senior Citizen FD'],
     fields: [_F('bank', 'Bank / institution', 'text'), _F('interestRate', 'Interest rate (%)', 'number', '0.00'), _F('maturityDate', 'Maturity date', 'date'), _F('payout', 'Interest payout', 'select', ['Cumulative', 'Monthly', 'Quarterly', 'Annual']), _F('accountRef', 'Receipt / account ref.', 'text'), _F('autoRenew', 'Auto-renew', 'select', ['No', 'Yes'])] },
@@ -11042,7 +11064,7 @@ function wipeLocalFinancialData() {
   ['fos_db_v3','fos_port_v3','fos_credit_v1','fos_insurance_v1','fos_notes_v1','fos_subscriptions_v1',
    'fos_budgets','financeOS_ccCards','fos_notifications','fos_game_stats',
    'fos_dashboard_layout_v4','fos_onboarding_goal','fos_last_active_view','fos_finai_goals_v1',
-   'fos_master_v1','fos_last_nw_milestone','fos_last_portfolio_update','fos_finai_score_history','fos_notif_dismissed','fos_fx_v1','fos_port_customsubs_v1','fos_pi_bench','fos_port_targets_v1','fos_port_tgtband','fos_port_tgtnew'
+   'fos_master_v1','fos_last_nw_milestone','fos_last_portfolio_update','fos_finai_score_history','fos_notif_dismissed','fos_fx_v1','fos_port_customsubs_v1','fos_pi_bench','fos_port_targets_v1','fos_port_tgtband','fos_port_tgtnew','fos_tax_cls_v1','fos_tax_slab','fos_tax_fy','fos_refresh_v1','fos_stress_v1'
   ].forEach(k => localStorage.removeItem(k));
   try { if (typeof fosDocClear === 'function') fosDocClear().catch(() => {}); } catch (e) {}   // attachments live in IndexedDB on this device
 }
@@ -11517,7 +11539,8 @@ async function doAutoSave() {
         onboardingGoal: localStorage.getItem('fos_onboarding_goal') || '',
         lastActiveView: JSON.parse(localStorage.getItem('fos_last_active_view') || 'null'),
         lastNetWorthMilestone: localStorage.getItem('fos_last_nw_milestone') || '',
-        lastPortfolioUpdate: localStorage.getItem('fos_last_portfolio_update') || ''
+        lastPortfolioUpdate: localStorage.getItem('fos_last_portfolio_update') || '',
+        ...fosExtraState()
       };
       
       const writable = await localFileHandle.createWritable();
@@ -11820,6 +11843,7 @@ function switchView(viewName, btn, group) {
     'port-analytics': '<span>Portfolio</span> <b>Analytics</b>',
     'port-intel':     '<span>Portfolio</span> <b>Intelligence</b>',
     'port-tax':       '<span>Portfolio</span> <b>Tax</b>',
+    'port-stress':    '<span>Portfolio</span> <b>Stress Test</b>',
     'roughboard':     '<span>Playbook</span> <b>Rough Board</b>',
     'calculator':     '<span>Playbook</span> <b>Calculator</b>',
           'ccutil':         '<span>Credit Card</span> <b>Utilization</b>',
@@ -11845,6 +11869,7 @@ function switchView(viewName, btn, group) {
     'port-analytics': 'view-port-analytics',
     'port-intel':     'view-port-intel',
     'port-tax':       'view-port-tax',
+    'port-stress':    'view-port-stress',
     'roughboard':     'view-roughboard',
     'calculator':     'view-calculator',
     'insurance':      'view-insurance',
@@ -11870,6 +11895,7 @@ function switchView(viewName, btn, group) {
   else if (viewName === 'port-analytics') { buildPortDropdowns(); renderPortAnalytics(); }
   else if (viewName === 'port-intel')     { renderPortIntel(); }
   else if (viewName === 'port-tax')       { renderPortTax(); }
+  else if (viewName === 'port-stress')    { renderPortStress(); }
   else if (viewName === 'ccutil') { setTimeout(initCCView, 50); }
   else if (viewName === 'roughboard') { setTimeout(initRoughBoard, 100); }
   else if (viewName === 'calculator') { setTimeout(initCalculator, 100); }
@@ -25424,10 +25450,10 @@ function runExport() {
     csv += '\n';
   }
   if (wantHoldings) {
-    csv += 'HOLDINGS TABLE\nAssetType,Date,Quantity,Unit,BuyPrice,CurrentPrice,TotalInvested,CurrentValue,GainLoss,ROI%,Notes\n';
+    csv += 'HOLDINGS TABLE\nAssetType,Date,Quantity,Unit,BuyPrice,CurrentPrice,TotalInvested,CurrentValue,GainLoss,ROI%,Notes,Goal,GoalShare%,LinkedLoan,NetEquity,TaxRule\n';
     portDb.filter(e=>inRange(e.date)).forEach(e => {
       const c = portCalc(e);
-      csv += `"${e.assetType}","${e.date}",${e.quantity},"${e.unit}",${e.purchasePrice},${e.currentPrice},${c.totalInvestment.toFixed(0)},${c.currentValue.toFixed(0)},${c.gainLoss.toFixed(0)},${c.roi.toFixed(1)},"${e.notes||''}"\n`;
+      csv += `"${e.assetType}","${e.date}",${e.quantity},"${e.unit}",${e.purchasePrice},${e.currentPrice},${c.totalInvestment.toFixed(0)},${c.currentValue.toFixed(0)},${c.gainLoss.toFixed(0)},${c.roi.toFixed(1)},"${e.notes||''}",${fosHoldingPlanCols(e)}\n`;
     });
     csv += '\n';
   }
@@ -25445,6 +25471,7 @@ function runExport() {
     });
     csv += '\n';
   }
+  try { csv += fosPlanCsv({ goals: !!(document.getElementById('exp-goals') || {}).checked, tax: !!(document.getElementById('exp-tax') || {}).checked, stress: !!(document.getElementById('exp-stress') || {}).checked }); } catch (e) { console.warn('Planning export skipped', e); }
   if (!csv.trim()) { alert('Please select at least one export type.'); return; }
   const blob = new Blob([csv], {type:'text/csv'});
   const url  = window.URL.createObjectURL(blob);
@@ -25474,7 +25501,7 @@ async function runPDFExport() {
     return true;
   }
 
-  if (!wantTransactions && !wantLoans && !wantCredit && !wantInvestments && !wantHoldings && !wantAssets) {
+  if (!wantTransactions && !wantLoans && !wantCredit && !wantInvestments && !wantHoldings && !wantAssets && !(document.getElementById('exp-goals') || {}).checked && !(document.getElementById('exp-tax') || {}).checked && !(document.getElementById('exp-stress') || {}).checked) {
     alert('Please select at least one export type.');
     return;
   }
@@ -25866,6 +25893,25 @@ async function runPDFExport() {
       yPos += 10;
     }
   }
+
+  // PLANNING SECTIONS: goal funding, tax summary, stress test
+  try {
+    const pk = (typeof fosPlanPack === 'function') ? fosPlanPack() : {};
+    [['exp-goals', pk.goals, [167, 139, 250]], ['exp-tax', pk.tax, [245, 158, 11]], ['exp-stress', pk.stress, [239, 68, 68]], ['exp-stress', pk.props, [239, 68, 68]]].forEach(function (s) {
+      const t = s[1], rgb = s[2];
+      if (!t || !t.body.length || !(document.getElementById(s[0]) || {}).checked) return;
+      checkNewPage(50);
+      doc.setFontSize(16); doc.setFont('helvetica', 'bold'); doc.setTextColor(rgb[0], rgb[1], rgb[2]);
+      doc.text(t.title, margin, yPos); yPos += 8;
+      doc.autoTable({
+        startY: yPos, head: [t.head],
+        body: t.body.map(function (r) { return r.map(function (c) { return typeof c === 'number' ? Math.round(c).toLocaleString('en-IN') : String(c); }); }),
+        theme: 'grid', headStyles: { fillColor: rgb, textColor: 255, fontStyle: 'bold', fontSize: 8 },
+        styles: { fontSize: 8, cellPadding: 2 }, margin: { left: margin, right: margin }
+      });
+      yPos = doc.lastAutoTable.finalY + 12;
+    });
+  } catch (e) { console.warn('Planning PDF sections skipped', e); }
 
   // Footer on last page
   checkNewPage(30);
@@ -26591,7 +26637,7 @@ function getAllSettingsToggles() {
 
 function downloadBackup() {
   const payload = {
-    version: 3,
+    version: 4,
     exportedAt: new Date().toISOString(),
     db, portDb, creditDb, budgets,
     insuranceDb,
@@ -26619,7 +26665,8 @@ function downloadBackup() {
     onboardingGoal: localStorage.getItem('fos_onboarding_goal') || '',
     lastActiveView: JSON.parse(localStorage.getItem('fos_last_active_view') || 'null'),
     lastNetWorthMilestone: localStorage.getItem('fos_last_nw_milestone') || '',
-    lastPortfolioUpdate: localStorage.getItem('fos_last_portfolio_update') || ''
+    lastPortfolioUpdate: localStorage.getItem('fos_last_portfolio_update') || '',
+    ...fosExtraState()
   };
 
   const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' });
@@ -26786,6 +26833,9 @@ async function confirmRestore() {
   if (pendingRestoreData.lastPortfolioUpdate) {
     localStorage.setItem('fos_last_portfolio_update', pendingRestoreData.lastPortfolioUpdate);
   }
+
+  // Tax overrides, Admin Panel rules, exchange-rate table, price-refresh and stress-test settings
+  try { fosRestoreExtra(pendingRestoreData); } catch (e) { console.warn('Extra settings not restored', e); }
 
   pendingRestoreData = null;
 
@@ -27376,7 +27426,7 @@ window.onload = () => {
       const lastView = JSON.parse(localStorage.getItem('fos_last_active_view') || 'null');
       if (lastView && lastView.view && lastView.view !== 'dashboard') {
         const idMap = lastView.group === 'portfolio'
-          ? { 'port-overview':'port-nav-overview', 'port-table':'port-nav-table', 'port-analytics':'port-nav-analytics', 'port-intel':'port-nav-intel', 'port-tax':'port-nav-tax' }
+          ? { 'port-overview':'port-nav-overview', 'port-table':'port-nav-table', 'port-analytics':'port-nav-analytics', 'port-intel':'port-nav-intel', 'port-tax':'port-nav-tax', 'port-stress':'port-nav-stress' }
           : { 'dashboard':'fin-nav-dashboard', 'transactions':'fin-nav-transactions', 'loans':'fin-nav-loans',
               'investments':'fin-nav-investments', 'credit':'fin-nav-credit', 'ccutil':'fin-nav-ccutil',
               'scenario':'fin-nav-scenario', 'roughboard':'fin-nav-roughboard', 'calculator':'fin-nav-calculator',
@@ -36559,7 +36609,425 @@ body.light-mode .tx-bar select option,body.light-mode .tx-cls option{color:#111}
     setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 500);
   };
 
+  /* ── hooks for the export pack and the Stress Test ── */
+  window.fosTaxClass = e => { const k = clsOf(e); return { k: k, n: NAME[k] }; };
+  window.fosTaxSummary = fy => {
+    const y = +fy || fySel || fyOf(todayISO()), fyS = y + '-04-01', fyE = (y + 1) + '-03-31';
+    const real = rowsFor((e, sold) => sold && e.sellDate && e.sellDate >= fyS && e.sellDate <= fyE).filter(r => r.k !== 'exm');
+    return { fy: y, label: fyLbl(y), real: real, calc: compute(real), names: NAME, order: CLS.map(c => c[0]) };
+  };
+
   try { FOS_CONFIG.onChange(() => { const v = $('view-port-tax'); if (v && v.classList.contains('active')) renderPortTax(); }); } catch (e) { }
+})();
+</script>
+<style id="fos-st-style">
+/* ── Live price refresh + Stress test (Portfolio OS) ── */
+.st-in{width:68px;background:transparent;color:inherit;border:1px solid rgba(167,139,250,.3);border-radius:8px;padding:.2rem .35rem;font-size:.76rem;text-align:right}
+.st-sub{font-size:.72rem;opacity:.7;margin-top:2px}
+.rf-box{width:calc(100vw - 24px);max-width:560px;max-height:88vh;overflow-y:auto}
+.rf-row{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:.55rem 0;border-top:1px solid rgba(148,163,184,.18);font-size:.8rem}
+.rf-row:first-of-type{border-top:0}
+.rf-row small{display:block;opacity:.7;font-size:.7rem;margin-top:2px;line-height:1.4}
+.rf-sel{background:transparent;color:inherit;border:1px solid rgba(167,139,250,.3);border-radius:8px;padding:.25rem .45rem;font-size:.76rem}
+.rf-sel option{color:#111}
+.rf-ok{color:#34d399}.rf-bad{color:#f59e0b}
+</style>
+<script id="fos-refresh-stress">
+/* ═══════════════════════════════════════════════════════════════════════
+   1) LIVE PRICE REFRESH — opt-in, free keyless sources, manual entry stays the fallback
+      · Exchange rates  → open.er-api.com   (foreign-currency holdings)
+      · Mutual fund NAV → api.mfapi.in      (needs the AMFI scheme code on the holding)
+      · Crypto price    → CoinGecko         (needs the CoinGecko id on the holding)
+      Gold and silver already follow the Market Pulse feed. Stocks and ETFs stay manual
+      (no reliable keyless source works from a browser page).
+   2) STRESS TEST view (Portfolio › Intelligence › Stress Test)
+   3) Planning pack for the CSV / PDF export and the JSON backup
+   ═══════════════════════════════════════════════════════════════════════ */
+(function () {
+  'use strict';
+  const $ = id => document.getElementById(id);
+  const num = v => Number(v) || 0;
+  const esc = s => (typeof _esc === 'function' ? _esc(s) : String(s == null ? '' : s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c])));
+  const money = n => fmt(Math.round(n));
+  const sgn = n => (n < 0 ? '−' : n > 0 ? '+' : '') + money(Math.abs(n));
+  const pcs = n => (n < 0 ? '−' : n > 0 ? '+' : '') + Math.abs(n).toFixed(1) + '%';
+  const col = n => n >= 0 ? 'pi-up' : 'pi-dn';
+  const jget = (k, d) => { try { const v = JSON.parse(localStorage.getItem(k)); return v == null ? d : v; } catch (e) { return d; } };
+  const jset = (k, v) => { try { localStorage.setItem(k, JSON.stringify(v)); } catch (e) { } };
+
+  /* ════════════════════ 1. LIVE PRICE REFRESH ════════════════════ */
+  const RK = 'fos_refresh_v1';
+  const RDEF = { on: false, mins: 60, fx: true, mf: true, crypto: true, last: 0, run: null };
+  const rcfg = () => { const o = jget(RK, null); return Object.assign({}, RDEF, o && typeof o === 'object' ? o : {}); };
+  const rsave = c => jset(RK, c);
+  let busy = false;
+
+  function getJSON(url, ms) {
+    const ctl = typeof AbortController === 'function' ? new AbortController() : null;
+    const t = ctl ? setTimeout(() => ctl.abort(), ms || 9000) : null;
+    return fetch(url, ctl ? { signal: ctl.signal } : {})
+      .then(r => { if (!r.ok) throw new Error('HTTP ' + r.status); return r.json(); })
+      .finally(() => { if (t) clearTimeout(t); });
+  }
+  const errMsg = e => (e && e.name === 'AbortError') ? 'timed out' : (e && e.message) ? e.message : 'request failed';
+  const activeHoldings = () => (typeof portDb !== 'undefined' ? portDb : []).filter(e => e && e.status !== 'sold');
+  const typeOf = e => normalizeAssetType(e.assetType);
+  const metaOf = e => (e && e.meta) || {};
+  const unitsOf = e => num(e.quantity) + (Array.isArray(e.lots) ? e.lots.reduce((s, l) => s + num(l.qty), 0) : 0);
+  const hasCode = e => !!String(metaOf(e).schemeCode || '').trim();
+  const hasCoin = e => !!String(metaOf(e).coinId || '').trim();
+
+  function rfTargets() {
+    const A = activeHoldings(), base = portBaseCode();
+    const fxCodes = Array.from(new Set(A.filter(portIsForeign).map(e => String(e.currency).toUpperCase())));
+    const mfAll = A.filter(e => typeOf(e) === 'MutualFund'), crAll = A.filter(e => typeOf(e) === 'Crypto');
+    return {
+      base, fxCodes,
+      mf: mfAll.filter(e => hasCode(e) && !portIsForeign(e)), mfMissing: mfAll.filter(e => !hasCode(e)).length,
+      cr: crAll.filter(e => hasCoin(e) && !portIsForeign(e)), crMissing: crAll.filter(e => !hasCoin(e)).length,
+      metals: A.filter(e => ['Gold', 'Silver'].indexOf(typeOf(e)) >= 0).length,
+      total: A.length
+    };
+  }
+
+  function repaint() {
+    try { portRefreshViews(); } catch (e) { }
+    try {
+      if (activeView === 'port-intel' && typeof renderPortIntel === 'function') renderPortIntel();
+      else if (activeView === 'port-tax' && typeof renderPortTax === 'function') renderPortTax();
+      else if (activeView === 'port-stress') renderStress();
+      else if (activeView === 'networth' && typeof renderNetWorth === 'function') renderNetWorth();
+    } catch (e) { }
+  }
+
+  async function runRefresh(why) {
+    if (busy) return;
+    if (typeof portDb === 'undefined') return;
+    busy = true; rfPaint();
+    const c = rcfg(), T = rfTargets(), res = []; let changed = 0;
+    const stamp = (e, src, asOf) => { e.priceSync = { src: src, asOf: asOf || '', at: new Date().toISOString() }; };
+
+    if (c.fx && T.fxCodes.length) {
+      try {
+        const j = await getJSON('https://open.er-api.com/v6/latest/' + encodeURIComponent(T.base));
+        if (!j || j.result !== 'success' || !j.rates) throw new Error('unexpected reply');
+        let n = 0;
+        T.fxCodes.forEach(code => { const r = num(j.rates[code]); if (r > 0) { portSetFxRate(code, Number((1 / r).toFixed(4)), true); n++; } });
+        changed += n;
+        res.push({ src: 'Exchange rates', ok: n > 0, msg: n + ' of ' + T.fxCodes.length + ' currenc' + (T.fxCodes.length === 1 ? 'y' : 'ies') + ' updated' });
+      } catch (err) { res.push({ src: 'Exchange rates', ok: false, msg: errMsg(err) + ' — kept your last rates' }); }
+    }
+
+    if (c.mf && T.mf.length) {
+      const codes = Array.from(new Set(T.mf.map(e => String(metaOf(e).schemeCode).trim()))).slice(0, 30), navs = {};
+      let fail = 0, firstErr = '';
+      for (const code of codes) {
+        try {
+          const j = await getJSON('https://api.mfapi.in/mf/' + encodeURIComponent(code) + '/latest');
+          const d = j && j.data && j.data[0], nav = d ? parseFloat(d.nav) : NaN;
+          if (!(nav > 0)) throw new Error('no NAV for scheme ' + code);
+          navs[code] = { nav: nav, date: d.date };
+        } catch (err) { fail++; firstErr = firstErr || errMsg(err); }
+      }
+      let n = 0, noUnits = 0;
+      T.mf.forEach(e => {
+        const h = navs[String(metaOf(e).schemeCode).trim()]; if (!h) return;
+        const u = unitsOf(e); if (!(u > 0)) { noUnits++; return; }
+        const total = Math.round(u * h.nav * 100) / 100;
+        if (Math.abs(total - num(e.currentPrice)) >= 0.005) { e.currentPrice = total; n++; }
+        stamp(e, 'mfapi.in', h.date);
+      });
+      changed += n;
+      res.push({ src: 'Mutual fund NAV', ok: fail === 0 && noUnits === 0, msg: n + ' of ' + T.mf.length + ' updated' + (fail ? ' · ' + fail + ' scheme(s) failed (' + firstErr + ')' : '') + (noUnits ? ' · ' + noUnits + ' have no units entered' : '') });
+    }
+
+    if (c.crypto && T.cr.length) {
+      const ids = Array.from(new Set(T.cr.map(e => String(metaOf(e).coinId).trim().toLowerCase()))).slice(0, 50), cur = T.base.toLowerCase();
+      try {
+        const j = await getJSON('https://api.coingecko.com/api/v3/simple/price?ids=' + encodeURIComponent(ids.join(',')) + '&vs_currencies=' + encodeURIComponent(cur));
+        if (!j || typeof j !== 'object') throw new Error('unexpected reply');
+        let n = 0, unknown = 0, noUnits = 0;
+        T.cr.forEach(e => {
+          const id = String(metaOf(e).coinId).trim().toLowerCase(), p = j[id] ? num(j[id][cur]) : 0;
+          if (!(p > 0)) { unknown++; return; }
+          const u = unitsOf(e); if (!(u > 0)) { noUnits++; return; }
+          const total = Math.round(u * p * 100) / 100;
+          if (Math.abs(total - num(e.currentPrice)) >= 0.005) { e.currentPrice = total; n++; }
+          stamp(e, 'CoinGecko', '');
+        });
+        changed += n;
+        res.push({ src: 'Crypto prices', ok: unknown === 0 && noUnits === 0, msg: n + ' of ' + T.cr.length + ' updated' + (unknown ? ' · ' + unknown + ' coin id(s) not recognised' : '') + (noUnits ? ' · ' + noUnits + ' have no quantity entered' : '') });
+      } catch (err) { res.push({ src: 'Crypto prices', ok: false, msg: errMsg(err) + ' — kept your last prices' }); }
+    }
+
+    if (!res.length) res.push({ src: 'Nothing to refresh', ok: true, msg: 'Add a scheme code, coin id or a foreign-currency holding first' });
+    c.last = Date.now(); c.run = { at: new Date().toISOString(), why: why || 'manual', res: res }; rsave(c);
+    if (changed > 0) { try { scheduleSave(); } catch (e) { } repaint(); }
+    busy = false; rfPaint();
+  }
+
+  function rfPaint() {
+    const el = $('rf-body'); if (!el) return;
+    const c = rcfg(), T = rfTargets();
+    const tog = (k, label, sub) => `<div class="rf-row"><div>${label}<small>${sub}</small></div><label class="toggle-switch"><input type="checkbox" ${c[k] ? 'checked' : ''} onchange="rfSet('${k}',this.checked)"><span class="toggle-slider"></span></label></div>`;
+    const run = c.run ? `<div class="tx-note" style="margin-top:.8rem"><b>Last run</b> · ${esc(new Date(c.run.at).toLocaleString())} (${esc(c.run.why)})</div>` +
+      c.run.res.map(r => `<div class="rf-row"><div><span class="${r.ok ? 'rf-ok' : 'rf-bad'}">●</span> ${esc(r.src)}<small>${esc(r.msg)}</small></div></div>`).join('') : '<div class="tx-note">No refresh has run yet.</div>';
+    const cover = [
+      T.fxCodes.length ? `${T.fxCodes.length} foreign currenc${T.fxCodes.length === 1 ? 'y' : 'ies'} (${T.fxCodes.join(', ')})` : '',
+      T.mf.length ? `${T.mf.length} mutual fund${T.mf.length === 1 ? '' : 's'} with a scheme code` : '',
+      T.cr.length ? `${T.cr.length} crypto holding${T.cr.length === 1 ? '' : 's'} with a coin id` : ''
+    ].filter(Boolean);
+    const gaps = [
+      T.mfMissing ? `${T.mfMissing} mutual fund${T.mfMissing === 1 ? ' has' : 's have'} no scheme code` : '',
+      T.crMissing ? `${T.crMissing} crypto holding${T.crMissing === 1 ? ' has' : 's have'} no coin id` : ''
+    ].filter(Boolean);
+    el.innerHTML = `
+      <div class="rf-row"><div><b>Auto-refresh</b><small>Off by default. When on, prices refresh while the app is open, no more often than the interval below.</small></div>
+        <label class="toggle-switch"><input type="checkbox" ${c.on ? 'checked' : ''} onchange="rfSet('on',this.checked)"><span class="toggle-slider"></span></label></div>
+      <div class="rf-row"><div>Refresh every</div><select class="rf-sel" onchange="rfSet('mins',+this.value)">${[15, 30, 60, 180, 360, 1440].map(m => `<option value="${m}"${m === c.mins ? ' selected' : ''}>${m < 60 ? m + ' minutes' : m === 60 ? '1 hour' : (m / 60) + ' hours'}</option>`).join('')}</select></div>
+      ${tog('fx', 'Exchange rates', 'open.er-api.com · updates today’s rate on foreign-currency holdings')}
+      ${tog('mf', 'Mutual fund NAV', 'api.mfapi.in · needs the AMFI scheme code and your units on the holding')}
+      ${tog('crypto', 'Crypto prices', 'CoinGecko · needs the coin id (for example bitcoin) and your quantity')}
+      <div class="tx-note">Covered now: ${cover.length ? esc(cover.join(' · ')) : 'nothing yet'}.${T.metals ? ' ' + T.metals + ' gold/silver holding' + (T.metals === 1 ? '' : 's') + ' already follow the Market Pulse prices.' : ''} Stocks and ETFs stay manual. Anything a source cannot return keeps the price you entered.${gaps.length ? ' <span class="rf-bad">' + esc(gaps.join(' · ')) + '.</span>' : ''}</div>
+      <div style="display:flex;gap:8px;margin-top:1rem"><button class="btn-add" style="flex:1;justify-content:center" ${busy ? 'disabled' : ''} onclick="rfNow()"><i class="fas fa-sync-alt${busy ? ' fa-spin' : ''}"></i> ${busy ? 'Refreshing…' : 'Refresh now'}</button>
+        <button onclick="rfClose()" class="btn-secondary" style="flex:1;justify-content:center;display:flex">Close</button></div>
+      ${run}`;
+  }
+
+  window.rfOpen = function () {
+    let m = $('rf-modal');
+    if (!m) {
+      m = document.createElement('div'); m.className = 'modal-overlay'; m.id = 'rf-modal';
+      m.innerHTML = '<div class="modal-box rf-box"><div class="modal-title"><i class="fas fa-bolt" style="margin-right:8px;color:#a78bfa"></i>Live prices</div><div id="rf-body"></div></div>';
+      document.body.appendChild(m);
+    }
+    m.style.display = 'flex'; rfPaint();
+  };
+  window.rfClose = function () { const m = $('rf-modal'); if (m) m.style.display = 'none'; };
+  window.rfSet = function (k, v) { const c = rcfg(); c[k] = v; rsave(c); rfPaint(); if (k === 'on' && v && Date.now() - c.last > c.mins * 60000) runRefresh('auto'); };
+  window.rfNow = function () { runRefresh('manual'); };
+
+  function tick() {
+    const c = rcfg();
+    if (!c.on || busy || document.hidden || navigator.onLine === false) return;
+    if (typeof portDb === 'undefined' || !Array.isArray(portDb) || !portDb.length) return;
+    if (Date.now() - num(c.last) < Math.max(15, num(c.mins)) * 60000) return;
+    runRefresh('auto');
+  }
+  setInterval(tick, 60000);
+  setTimeout(tick, 12000);
+  document.addEventListener('visibilitychange', () => { if (!document.hidden) setTimeout(tick, 1500); });
+
+  /* ════════════════════ 2. STRESS TEST ════════════════════ */
+  const SK = 'fos_stress_v1';
+  const CLS = [
+    ['equity', 'Equities & equity funds'], ['intl', 'International assets'], ['hybrid', 'Hybrid funds'], ['debt', 'Bonds & debt funds'],
+    ['reit', 'REITs & InvITs'], ['metals', 'Gold & silver'], ['property', 'Real estate'], ['crypto', 'Crypto'],
+    ['commod', 'Commodities'], ['alt', 'Alternatives, business & collectibles'], ['safe', 'Cash & deposits'], ['retire', 'Retirement accounts']
+  ];
+  const CNAME = Object.fromEntries(CLS);
+  // Illustrative shocks (% change in value). They are assumptions, not forecasts — every number can be edited in the view.
+  const SCN = {
+    crash:    { n: 'Equity market crash', d: 'A sharp fall in share markets; gold holds up.', s: { equity: -35, intl: -30, hybrid: -18, debt: 1, reit: -25, metals: 8, property: -5, crypto: -55, commod: -20, alt: -20 } },
+    rates:    { n: 'Interest-rate spike', d: 'Rates jump: bond prices fall and valuations compress.', s: { equity: -10, intl: -8, hybrid: -6, debt: -6, reit: -15, metals: -3, property: -8, crypto: -15, alt: -8 } },
+    currency: { n: 'Home currency falls 10%', d: 'Foreign assets and gold are worth more in your currency.', s: { intl: 10, metals: 6 } },
+    property: { n: 'Property slump', d: 'Real estate falls and drags listed real estate with it.', s: { property: -20, reit: -15, equity: -5, alt: -5 } },
+    crypto:   { n: 'Crypto winter', d: 'A deep fall in crypto with mild spill-over.', s: { crypto: -70, alt: -5, equity: -3 } },
+    gold:     { n: 'Gold correction', d: 'Gold and silver give back recent gains.', s: { metals: -20 } },
+    custom:   { n: 'My own scenario', d: 'Start from zero and set your own shocks.', s: {} }
+  };
+  const sget = () => { const o = jget(SK, {}); return { scn: SCN[o.scn] ? o.scn : 'crash', edits: o.edits && typeof o.edits === 'object' ? o.edits : {}, cut: o.cut >= 0 && o.cut <= 100 ? Number(o.cut) : 100 }; };
+  const sput = S => jset(SK, S);
+  const shocks = S => { const base = SCN[S.scn].s, ed = S.edits[S.scn] || {}, out = {}; CLS.forEach(c => { const k = c[0]; out[k] = ed[k] !== undefined ? num(ed[k]) : num(base[k]); }); return out; };
+
+  function clsOf(e) {
+    const t = normalizeAssetType(e.assetType);
+    const s = [e.subType, e.subCategory, e.name, e.title].filter(Boolean).join(' ').toLowerCase();
+    const debtRx = /debt|liquid|gilt|bond|money market|overnight|ultra|short duration|low duration|income|corporate|credit|banking/;
+    switch (t) {
+      case 'Stocks': return 'equity';
+      case 'MutualFund':
+        if (debtRx.test(s)) return 'debt';
+        if (/gold|silver/.test(s)) return 'metals';
+        if (/international|global|overseas|\bus\b|nasdaq|s&p/.test(s)) return 'intl';
+        if (/hybrid|balanced|arbitrage|multi.?asset|asset allocation/.test(s)) return 'hybrid';
+        return 'equity';
+      case 'ETFs':
+        if (/gold|silver|commodity/.test(s)) return 'metals';
+        if (/debt|liquid|bond|gilt/.test(s)) return 'debt';
+        if (/international|global|nasdaq|s&p|overseas/.test(s)) return 'intl';
+        return 'equity';
+      case 'REITs': return 'reit';
+      case 'Bonds': return 'debt';
+      case 'Gold': case 'Silver': return 'metals';
+      case 'RealEstate': return 'property';
+      case 'Crypto': return 'crypto';
+      case 'International': return 'intl';
+      case 'Commodities': return 'commod';
+      case 'FixedDeposit': case 'RecurringDeposit': case 'Cash': return 'safe';
+      case 'Retirement': return 'retire';
+      default: return 'alt';
+    }
+  }
+  const nameOf = e => assetTypeLabel(e.assetType) + (e.subType ? ' · ' + e.subType : '');
+
+  function compute() {
+    const S = sget(), sh = shocks(S);
+    const A = (typeof portDb !== 'undefined' ? portDb : []).filter(e => e && e.status !== 'sold');
+    const by = {}; CLS.forEach(c => by[c[0]] = { k: c[0], n: 0, now: 0, after: 0 });
+    const rows = [];
+    A.forEach(e => {
+      const k = clsOf(e), v = portCalc(e).currentValue, a = v * (1 + num(sh[k]) / 100);
+      by[k].n++; by[k].now += v; by[k].after += a; rows.push({ e: e, k: k, now: v, after: a, d: a - v });
+    });
+    const now = CLS.reduce((s, c) => s + by[c[0]].now, 0), after = CLS.reduce((s, c) => s + by[c[0]].after, 0);
+    let nw = null; try { nw = fosNW(); } catch (e) { }
+    // runway: liquid assets (cash + deposits + debt funds) against what you spend each month
+    let hist = []; try { hist = fosLedgerHistory(3); } catch (e) { }
+    const out = hist.length ? hist.reduce((s, m) => s + num(m.expense) + num(m.emi), 0) / hist.length : null;
+    const inc = hist.length ? hist.reduce((s, m) => s + num(m.income), 0) / hist.length : null;
+    const liqNow = (nw ? num(nw.cash) : 0) + by.safe.now + by.debt.now, liqAfter = (nw ? num(nw.cash) : 0) + by.safe.after + by.debt.after;
+    const gap = out === null ? null : Math.max(0, out - (inc || 0) * (1 - S.cut / 100));
+    const runway = L => (gap === null ? null : (gap <= 0 ? Infinity : L / gap));
+    // property equity: the loan does not shrink when the property does
+    let props = []; try { props = propertyEquity().rows.map(r => { const v2 = r.value * (1 + num(sh.property) / 100); return { r: r, v1: r.value, v2: v2, owed: r.owed, e1: r.value - r.owed, e2: v2 - r.owed }; }); } catch (e) { }
+    // goals with tagged holdings
+    let goals = [];
+    try {
+      goals = (finaiGoals || []).map(g => {
+        const c = finaiGoalCalc(g), hs = goalHoldings(g.id); if (!hs.length) return null;
+        let loss = 0; hs.forEach(x => { loss += x.val - x.val * (1 + num(sh[clsOf(x.rec)]) / 100); });
+        const sAfter = c.saved - loss, pAfter = c.target > 0 ? Math.max(0, Math.min(100, sAfter / c.target * 100)) : 0;
+        return { g: g, c: c, hv: c.fromHoldings, loss: loss, sAfter: sAfter, pAfter: pAfter, months: loss > 0 && c.monthly > 0 ? Math.ceil(loss / c.monthly) : null };
+      }).filter(Boolean);
+    } catch (e) { }
+    return { S: S, sh: sh, by: by, rows: rows, now: now, after: after, nwNow: nw ? nw.net : null, nwAfter: nw ? nw.net + (after - now) : null, out: out, inc: inc, liqNow: liqNow, liqAfter: liqAfter, rwNow: runway(liqNow), rwAfter: runway(liqAfter), props: props, goals: goals };
+  }
+  const mo = v => v === null ? '—' : (v === Infinity ? 'No drawdown' : v.toFixed(1) + ' months');
+
+  /* tables shared by the view, the CSV and the PDF */
+  function stressPack(R) {
+    R = R || compute();
+    const body = CLS.filter(c => R.by[c[0]].n).map(c => { const o = R.by[c[0]], s = R.sh[c[0]]; return [c[1], o.n, Math.round(o.now), (s > 0 ? '+' : '') + s + '%', Math.round(o.after), Math.round(o.after - o.now)]; });
+    if (body.length) body.push(['Total', R.rows.length, Math.round(R.now), R.now ? (((R.after - R.now) / R.now * 100) >= 0 ? '+' : '-') + Math.abs((R.after - R.now) / R.now * 100).toFixed(1) + '%' : '0%', Math.round(R.after), Math.round(R.after - R.now)]);
+    const stress = { title: 'Stress test — ' + SCN[R.S.scn].n, head: ['Asset class', 'Holdings', 'Value now', 'Shock', 'Value after', 'Change'], body: body };
+    const props = { title: 'Stress test — property equity', head: ['Property', 'Value now', 'Loan owed', 'Equity now', 'Value after', 'Equity after'], body: R.props.map(p => [propName(p.r.rec), Math.round(p.v1), Math.round(p.owed), Math.round(p.e1), Math.round(p.v2), Math.round(p.e2)]) };
+    const goals = { title: 'Goal funding — holdings tagged to goals', head: ['Goal', 'Target', 'Saved now', 'From holdings', 'Progress now', 'Saved after stress', 'Progress after'],
+      body: compute0Goals(R).map(x => [x.g.name || 'Goal', Math.round(x.c.target), Math.round(x.c.saved), Math.round(x.hv), x.c.pct.toFixed(0) + '%', Math.round(x.sAfter), x.pAfter.toFixed(0) + '%']) };
+    return { stress: stress, props: props, goals: goals };
+  }
+  function compute0Goals(R) { return R.goals || []; }
+  function propName(r) { try { return propertyName(r); } catch (e) { return assetTypeLabel(r.assetType); } }
+
+  function taxPack() {
+    if (typeof window.fosTaxSummary !== 'function') return null;
+    const T = window.fosTaxSummary(), calc = T.calc, R = calc.R, body = [];
+    let tot = { cost: 0, proc: 0, st: 0, lt: 0, taxable: 0, tax: 0 };
+    T.order.filter(k => k !== 'exm').forEach(k => {
+      const o = R[k]; if (!o || !(o.cost || o.proc)) return;
+      body.push([T.names[k], Math.round(o.cost), Math.round(o.proc), Math.round(o.st), Math.round(o.lt), Math.round(o.taxable), Math.round(o.tax)]);
+      tot.cost += o.cost; tot.proc += o.proc; tot.st += o.st; tot.lt += o.lt; tot.taxable += o.taxable; tot.tax += o.tax;
+    });
+    if (body.length) body.push(['Total', Math.round(tot.cost), Math.round(tot.proc), Math.round(tot.st), Math.round(tot.lt), Math.round(tot.taxable), Math.round(tot.tax)]);
+    return { title: 'Tax summary — realised gains, FY ' + T.label + ' (estimate)', head: ['Asset class', 'Cost', 'Sale value', 'Short-term gain', 'Long-term gain', 'Taxable', 'Est. tax'], body: body };
+  }
+
+  window.fosPlanPack = function () { const p = stressPack(); return { goals: p.goals, tax: taxPack(), stress: p.stress, props: p.props }; };
+  window.fosPlanCsv = function (sel) {
+    const pk = window.fosPlanPack(), q = v => '"' + String(v == null ? '' : v).replace(/"/g, '""') + '"';
+    const tables = [];
+    if (sel.goals) tables.push(pk.goals);
+    if (sel.tax && pk.tax) tables.push(pk.tax);
+    if (sel.stress) { tables.push(pk.stress); tables.push(pk.props); }
+    return tables.filter(t => t && t.body.length).map(t => t.title.toUpperCase() + '\n' + t.head.map(q).join(',') + '\n' + t.body.map(r => r.map(q).join(',')).join('\n') + '\n\n').join('');
+  };
+  // Per-holding columns for the holdings CSV
+  window.fosHoldingPlanCols = function (e) {
+    const q = v => '"' + String(v == null ? '' : v).replace(/"/g, '""') + '"';
+    let goal = '', gp = '', loan = '', eq = '', rule = '';
+    try { if (e.goalId !== undefined && e.goalId !== '' && e.goalId !== null) { goal = goalName(e.goalId); gp = e.goalPct || 100; } } catch (x) { }
+    try { if (typeof window.fosTaxClass === 'function') rule = window.fosTaxClass(e).n; } catch (x) { }
+    try { if (normalizeAssetType(e.assetType) === 'RealEstate' && e.status !== 'sold') { const r = propertyEquity().rows.find(y => y.rec.id === e.id); if (r) { loan = r.loan ? (r.loan.lenderName || 'Loan') : ''; eq = Math.round(r.equity); } } } catch (x) { }
+    return [q(goal), gp, q(loan), eq, q(rule)].join(',');
+  };
+
+  /* ── view ── */
+  const panel = (t, b, x) => `<div class="glass-panel" style="margin-bottom:1.1rem;${x || ''}"><div class="panel-title">${t}</div>${b}</div>`;
+  const kpi = (l, v, s) => `<div class="port-kpi-card"><div class="kpi-label">${l}</div><div class="port-kpi-val">${v}</div>${s ? `<div class="pi-sub">${s}</div>` : ''}</div>`;
+  const tbl = (h, r, cls) => `<div class="pi-scroll"><table class="pi-t ${cls || ''}"><thead><tr>${h.map(x => `<th>${x}</th>`).join('')}</tr></thead><tbody>${r.map(x => `<tr${x._c ? ` class="${x._c}"` : ''}>${x.map(c => `<td>${c}</td>`).join('')}</tr>`).join('')}</tbody></table></div>`;
+
+  function renderStress() {
+    const root = $('st-root'); if (!root) return;
+    const R = compute(), S = R.S, sc = SCN[S.scn];
+    let h = `<div class="tx-bar">
+      <label>Scenario <select onchange="stSel(this.value)">${Object.keys(SCN).map(k => `<option value="${k}"${k === S.scn ? ' selected' : ''}>${esc(SCN[k].n)}</option>`).join('')}</select></label>
+      <label title="Share of your income that stops. 100 means you lose all income.">Income falls by <input type="number" min="0" max="100" step="5" value="${S.cut}" onchange="stCut(this.value)"> %</label>
+      <button class="tx-btn" onclick="stReset()"><i class="fas fa-undo"></i> Reset shocks</button>
+      <button class="tx-btn" onclick="stCsv()"><i class="fas fa-file-csv"></i> Download (CSV)</button></div>
+      <div class="tx-note" style="margin:-.4rem 0 1rem">${esc(sc.d)} The shocks below are illustrative assumptions, not forecasts — change any of them.</div>`;
+    if (!R.rows.length) { root.innerHTML = h + panel('Stress test', '<div class="tx-empty">No active holdings yet. Add holdings to the portfolio to see how a shock would hit them.</div>'); return; }
+    const d = R.after - R.now, dp = R.now ? d / R.now * 100 : 0;
+    h += `<div class="pi-kpis">${kpi('Portfolio value', money(R.now) + ' → ' + money(R.after), 'before → after the shock')}
+      ${kpi('Change', `<span class="${col(d)}">${sgn(d)}</span>`, `<span class="${col(dp)}">${pcs(dp)}</span> of the portfolio`)}
+      ${R.nwNow === null ? '' : kpi('Net worth', money(R.nwAfter), 'from ' + money(R.nwNow) + ' (debts unchanged)')}
+      ${kpi('Cash runway', mo(R.rwAfter), 'was ' + mo(R.rwNow) + (R.out === null ? ' · needs a few months of entries' : ' · income down ' + S.cut + '%'))}</div>`;
+
+    const cr = CLS.filter(c => R.by[c[0]].n).map(c => {
+      const o = R.by[c[0]], s = R.sh[c[0]], dd = o.after - o.now;
+      return [esc(c[1]) + `<div class="st-sub">${o.n} holding${o.n === 1 ? '' : 's'}</div>`, money(o.now), `<input class="st-in" type="number" step="1" min="-100" max="1000" value="${s}" onchange="stShock('${c[0]}',this.value)"> %`, money(o.after), `<span class="${col(dd)}">${sgn(dd)}</span>`];
+    });
+    const tr = ['Total', money(R.now), R.now ? pcs(dp) : '0%', money(R.after), sgn(d)]; tr._c = 'tx-hl'; cr.push(tr);
+    h += panel('Effect by asset class', tbl(['Asset class', 'Value now', 'Shock', 'Value after', 'Change'], cr));
+
+    const top = R.rows.filter(r => r.d < 0).sort((a, b) => a.d - b.d).slice(0, 6);
+    if (top.length) h += panel('Biggest hits', tbl(['Holding', 'Class', 'Value now', 'Value after', 'Change'], top.map(r => [esc(nameOf(r.e)), esc(CNAME[r.k]), money(r.now), money(r.after), `<span class="pi-dn">${sgn(r.d)}</span>`])));
+
+    if (R.props.length) {
+      const pr = R.props.map(p => [esc(propName(p.r.rec)), money(p.v1), p.owed > 0 ? money(p.owed) : '—', money(p.e1), money(p.v2), `<span class="${col(p.e2)}">${money(p.e2)}</span>` + (p.e2 < 0 ? ' <span class="tx-chip st">owes more than it is worth</span>' : '')]);
+      h += panel('Property equity', tbl(['Property', 'Value now', 'Loan owed', 'Equity now', 'Value after', 'Equity after'], pr) + '<div class="tx-note">A loan does not shrink when the property’s value falls, so equity moves by more than the value does.</div>');
+    }
+
+    if (R.goals.length) {
+      const gr = R.goals.map(x => [esc(x.g.name || 'Goal'), money(x.c.target), money(x.hv), x.c.pct.toFixed(0) + '%', money(x.sAfter), `<span class="${x.pAfter < x.c.pct ? 'pi-dn' : 'pi-up'}">${x.pAfter.toFixed(0)}%</span>`, x.loss > 0 ? (x.months !== null ? '+' + x.months + ' month' + (x.months === 1 ? '' : 's') + ' at ' + money(x.c.monthly) + '/mo' : money(x.loss) + ' to rebuild') : '—']);
+      h += panel('Goals funded by holdings', tbl(['Goal', 'Target', 'From holdings', 'Progress now', 'Saved after', 'Progress after', 'Delay to recover'], gr));
+    } else if ((finaiGoals || []).length) {
+      h += panel('Goals funded by holdings', '<div class="tx-empty">No holdings are tagged to a goal yet. Tag them in the holding form (Goal) to see how a shock would set each goal back.</div>');
+    }
+
+    const nwNote = [];
+    if (R.out !== null) nwNote.push('Monthly spending used: ' + money(R.out) + ' (average of the last ' + Math.min(3, (fosLedgerHistory(3) || []).length) + ' completed months, spending plus EMIs).');
+    nwNote.push('Cash runway counts cash on hand, deposits and debt funds after the shock, against the gap between your spending and the income that remains.');
+    nwNote.push('Retirement accounts are not counted as liquid. Net worth moves one-for-one with the portfolio change; loans and card balances are unchanged.');
+    h += '<div class="tx-note" style="margin-bottom:1rem">' + nwNote.map(esc).join(' ') + '</div>';
+    root.innerHTML = h;
+  }
+  window.renderPortStress = renderStress;
+  window.stSel = v => { const S = sget(); if (SCN[v]) { S.scn = v; sput(S); } renderStress(); };
+  window.stCut = v => { const S = sget(), n = parseFloat(v); if (n >= 0 && n <= 100) { S.cut = n; sput(S); } renderStress(); };
+  window.stShock = (k, v) => { const S = sget(), n = parseFloat(v); if (CNAME[k] && isFinite(n)) { S.edits[S.scn] = S.edits[S.scn] || {}; S.edits[S.scn][k] = Math.max(-100, Math.min(1000, n)); sput(S); } renderStress(); };
+  window.stReset = () => { const S = sget(); delete S.edits[S.scn]; sput(S); renderStress(); };
+  window.stCsv = () => {
+    const txt = window.fosPlanCsv({ stress: true, goals: true }); if (!txt) return;
+    const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([txt], { type: 'text/csv' }));
+    a.download = 'financeos-stress-test-' + localISO() + '.csv'; document.body.appendChild(a); a.click();
+    setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 500);
+  };
+
+  /* ════════════════════ 3. BACKUP: settings that live outside the data arrays ════════════════════ */
+  window.fosExtraState = function () {
+    return {
+      taxOverrides: jget('fos_tax_cls_v1', {}), taxSlab: localStorage.getItem('fos_tax_slab') || '', taxFy: localStorage.getItem('fos_tax_fy') || '',
+      adminConfig: jget('fos_admin_config_v1', null), fxRates: jget('fos_fx_v1', {}),
+      refreshSettings: jget(RK, null), stressSettings: jget(SK, null)
+    };
+  };
+  window.fosRestoreExtra = function (d) {
+    if (!d) return;
+    const set = (k, v) => { try { if (v === null || v === undefined || v === '') return; localStorage.setItem(k, typeof v === 'string' ? v : JSON.stringify(v)); } catch (e) { } };
+    set('fos_tax_cls_v1', d.taxOverrides); set('fos_tax_slab', d.taxSlab); set('fos_tax_fy', d.taxFy);
+    set('fos_admin_config_v1', d.adminConfig); set('fos_fx_v1', d.fxRates);
+    set(RK, d.refreshSettings); set(SK, d.stressSettings);
+  };
 })();
 </script>
 
