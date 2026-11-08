@@ -3732,7 +3732,7 @@ body.light-mode .p1-t td{border-bottom-color:rgba(15,23,42,.07)}
 .pi-fl{margin:.5rem 0 0 1rem;font-size:.76rem;color:#f59e0b}
 .pi-bm{font-size:.78rem;margin-bottom:.7rem}.pi-bm input{width:64px;margin:0 .3rem;padding:.2rem .4rem;border-radius:8px;border:1px solid rgba(167,139,250,.3);background:transparent;color:inherit}
 @media(max-width:820px){.pi-two{grid-template-columns:minmax(0,1fr)}}
-.port-sidebar:not(.collapsed) #pos-cat-by-asset .nav-group-inner{gap:8px;padding:4px 0 6px}.port-sidebar:not(.collapsed) #pos-cat-intel .nav-group-inner{padding:4px 0 6px}.port-sidebar:not(.collapsed) #pos-cat-by-asset .port-nav-item{padding-top:9px;padding-bottom:9px}.port-sidebar:not(.collapsed) .nav-section-label.nav-cat-toggle{margin-top:14px!important;margin-bottom:6px}.pi-cls{display:grid;grid-template-columns:1.4fr 1fr 1fr;gap:.5rem}.pi-hint{font-size:.7rem;opacity:.65;margin-top:.35rem;line-height:1.35}#pi-cs-modal{display:none;position:fixed;inset:0;z-index:100000;background:rgba(0,0,0,.55);align-items:center;justify-content:center;padding:1rem}.pi-cs-box{width:min(440px,100%);max-height:80vh;overflow:auto;background:var(--bg-card,#0f1720);border:1px solid rgba(167,139,250,.3);border-radius:16px;padding:1rem;color:inherit}.pi-cs-h{display:flex;justify-content:space-between;margin-bottom:.7rem}.pi-cs-h span{cursor:pointer;opacity:.7}.pi-cs-r{display:flex;gap:.5rem;margin:.4rem 0}.pi-cs-r.off input{opacity:.45;text-decoration:line-through}@media(max-width:600px){.pi-cls{grid-template-columns:1fr}}</style>
+.port-sidebar:not(.collapsed) #pos-cat-by-asset .nav-group-inner{gap:8px;padding:4px 0 6px}.port-sidebar:not(.collapsed) #pos-cat-intel .nav-group-inner{padding:4px 0 6px}.port-sidebar:not(.collapsed) #pos-cat-by-asset .port-nav-item{padding-top:9px;padding-bottom:9px}.port-sidebar:not(.collapsed) .nav-section-label.nav-cat-toggle{margin-top:14px!important;margin-bottom:6px}.pi-cls{display:grid;grid-template-columns:1.4fr 1fr 1fr;gap:.5rem}.pi-hint{font-size:.7rem;opacity:.65;margin-top:.35rem;line-height:1.35}#pi-cs-modal{display:none;position:fixed;inset:0;z-index:100000;background:rgba(0,0,0,.55);align-items:center;justify-content:center;padding:1rem}.pi-cs-box{width:min(440px,100%);max-height:80vh;overflow:auto;background:var(--bg-card,#0f1720);border:1px solid rgba(167,139,250,.3);border-radius:16px;padding:1rem;color:inherit}.pi-cs-h{display:flex;justify-content:space-between;margin-bottom:.7rem}.pi-cs-h span{cursor:pointer;opacity:.7}.pi-cs-r{display:flex;gap:.5rem;margin:.4rem 0}.pi-cs-r.off input{opacity:.45;text-decoration:line-through}@media(max-width:600px){.pi-cls{grid-template-columns:1fr}}#ps-modal{display:none;position:fixed;inset:0;z-index:100001;background:rgba(0,0,0,.55);align-items:center;justify-content:center;padding:1rem}.pi-tin{width:64px;padding:.25rem .4rem;border-radius:8px;border:1px solid rgba(167,139,250,.3);background:transparent;color:inherit;font-size:.78rem}.pi-ctl{display:flex;flex-wrap:wrap;gap:.5rem;align-items:center;font-size:.76rem;margin-bottom:.4rem}.pi-ctl .input-field{width:auto;min-width:150px}.pi-inc-sec{margin-top:1rem;padding:.9rem;border:1px solid rgba(167,139,250,.2);border-radius:14px}.pi-inc-t{font-weight:700;font-size:.85rem;margin-bottom:.5rem}.pi-inc-t span{font-weight:400;opacity:.6;margin-left:.5rem;font-size:.75rem}.pi-inc-f{display:grid;grid-template-columns:130px 120px 110px 1fr auto;gap:.4rem;margin-top:.6rem}@media(max-width:700px){.pi-inc-f{grid-template-columns:1fr 1fr}}</style>
 </head>
 <!-- ═══════════════════════════════════════════════════════
      LOGIN OVERLAY — shown before the dashboard loads
@@ -11012,7 +11012,7 @@ function wipeLocalFinancialData() {
   ['fos_db_v3','fos_port_v3','fos_credit_v1','fos_insurance_v1','fos_notes_v1','fos_subscriptions_v1',
    'fos_budgets','financeOS_ccCards','fos_notifications','fos_game_stats',
    'fos_dashboard_layout_v4','fos_onboarding_goal','fos_last_active_view','fos_finai_goals_v1',
-   'fos_master_v1','fos_last_nw_milestone','fos_last_portfolio_update','fos_finai_score_history','fos_notif_dismissed','fos_fx_v1','fos_port_customsubs_v1','fos_pi_bench'
+   'fos_master_v1','fos_last_nw_milestone','fos_last_portfolio_update','fos_finai_score_history','fos_notif_dismissed','fos_fx_v1','fos_port_customsubs_v1','fos_pi_bench','fos_port_targets_v1','fos_port_tgtband','fos_port_tgtnew'
   ].forEach(k => localStorage.removeItem(k));
   try { if (typeof fosDocClear === 'function') fosDocClear().catch(() => {}); } catch (e) {}   // attachments live in IndexedDB on this device
 }
@@ -16909,7 +16909,7 @@ function renderPortTable() {
       <td style="text-align:right;white-space:nowrap">
         ${e.status === 'sold'
           ? `<i class="fas fa-rotate-left" style="cursor:pointer;color:#34d39990;font-size:0.72rem;margin-right:8px" onclick="markPortActive(${e.id})" title="Mark Active"></i>`
-          : `<i class="fas fa-tag" style="cursor:pointer;color:#f472b690;font-size:0.72rem;margin-right:8px" onclick="markPortSold(${e.id})" title="Mark Sold"></i>`}
+          : `<i class="fas fa-tag" style="cursor:pointer;color:#f472b690;font-size:0.72rem;margin-right:8px" onclick="markPortSold(${e.id})" title="Sell (full or partial)"></i>`}
         <i class="fas fa-folder-open" style="cursor:pointer;color:#a78bfa;font-size:0.72rem;margin-right:8px" onclick="openPortDetail(${e.id})" title="Details, history & documents"></i><i class="fas fa-edit edit-icon" onclick="editPortEntry(${e.id})" title="Edit"></i><i class="fas fa-trash" style="cursor:pointer;color:#ef444460;font-size:0.72rem" onclick="deletePortItem(${e.id})"></i></td>
     </tr>`;
   });
@@ -22624,7 +22624,7 @@ function renderPortDetail() {
     <div class="p1-class-ico"><i class="${c && c.iconFab ? 'fab' : 'fas'} ${c ? c.icon : 'fa-gem'}"></i></div>
     <div style="flex:1;min-width:0"><div class="p1-class-t">${_esc(rec.subType || assetTypeLabel(t))}</div>
       <div class="p1-class-s">${_esc(assetTypeLabel(t))}${rec.subCategory ? ' · ' + _esc(rec.subCategory) : ''}${foreign ? ' · ' + _esc(String(rec.currency).toUpperCase()) : ''} · <span class="roi-chip ${rec.status === 'sold' ? 'bad' : 'good'}">${rec.status === 'sold' ? 'Sold' : 'Active'}</span></div></div>
-    <button type="button" class="btn-secondary" onclick="portDetailEdit()"><i class="fas fa-edit"></i> Edit</button>
+    ${rec.status !== 'sold' ? `<button type="button" class="btn-secondary" onclick="portSellOpen(${rec.id})"><i class="fas fa-tag"></i> Sell</button>` : ''}<button type="button" class="btn-secondary" onclick="portDetailEdit()"><i class="fas fa-edit"></i> Edit</button>
     <button type="button" class="btn-secondary" onclick="closePortDetail()">Close</button>
   </div>
   <div class="p1-kpis">
@@ -35716,6 +35716,8 @@ body.light-mode .adm-toast{background:#e0f7fc;color:#06303c}body.light-mode .adm
   const cls = n => n >= 0 ? 'pi-up' : 'pi-dn';
   const num = (e, k) => Number(e.meta && e.meta[k]) || 0;
   const yrs = (a, b) => (b - a) / YR;
+  const incSum = e => (e.income || []).reduce((s, i) => s + (Number(i.amount) || 0), 0);
+  function receivedByKind(rs) { const y = {}, a = {}, cut = localISO(new Date(Date.now() - 365 * DAY)); rs.forEach(r => (r.e.income || []).forEach(i => { const k = i.kind || 'Other', v = Number(i.amount) || 0; a[k] = (a[k] || 0) + v; if (i.date >= cut) y[k] = (y[k] || 0) + v; })); return { y12: y, all: a }; }
   const today = () => new Date(localISO() + 'T00:00:00');
   const rows = () => portDb.map(e => ({ e, c: portCalc(e), t: normalizeAssetType(e.assetType), sold: e.status === 'sold' }));
   const isIntl = r => portTaxonomy(r.e).geo === 'International', riskLbl = r => portTaxonomy(r.e).risk, riskNum = r => ({ Low: 1.5, Moderate: 2.8, High: 4, 'Very High': 5 })[riskLbl(r)] || 3;
@@ -35737,6 +35739,7 @@ body.light-mode .adm-toast{background:#e0f7fc;color:#06303c}body.light-mode .adm
         out.push({ d: new Date((l.date || e.date) + 'T00:00:00'), a: -a });
       });
       out.push({ d: new Date(e.date + 'T00:00:00'), a: -(c.totalInvestment - lotSum) });
+      (e.income || []).forEach(i => { if (i.date && Number(i.amount) > 0) out.push({ d: new Date(i.date + 'T00:00:00'), a: Number(i.amount) }); });
       out.push({ d: r.sold && e.sellDate ? new Date(e.sellDate + 'T00:00:00') : end, a: c.currentValue });
     });
     return out.sort((a, b) => a.d - b.d);
@@ -35750,7 +35753,7 @@ body.light-mode .adm-toast{background:#e0f7fc;color:#06303c}body.light-mode .adm
   }
   function cagr(rs) {
     const end = today(); let w = 0, inv = 0, val = 0;
-    rs.forEach(r => { const ed = r.sold && r.e.sellDate ? new Date(r.e.sellDate) : end; w += r.c.totalInvestment * Math.max(0, yrs(new Date(r.e.date), ed)); inv += r.c.totalInvestment; val += r.c.currentValue; });
+    rs.forEach(r => { const ed = r.sold && r.e.sellDate ? new Date(r.e.sellDate) : end; w += r.c.totalInvestment * Math.max(0, yrs(new Date(r.e.date), ed)); inv += r.c.totalInvestment; val += r.c.currentValue + incSum(r.e); });
     const y = inv ? w / inv : 0; return y >= 0.1 && inv > 0 && val > 0 ? (Math.pow(val / inv, 1 / y) - 1) * 100 : null;
   }
   function income(rs) {
@@ -35804,21 +35807,60 @@ body.light-mode .adm-toast{background:#e0f7fc;color:#06303c}body.light-mode .adm
   const kpi = (l, v, s) => `<div class="port-kpi-card"><div class="kpi-label">${l}</div><div class="port-kpi-val">${v}</div>${s ? `<div class="pi-sub">${s}</div>` : ''}</div>`;
   const tbl = (h, r) => `<div class="pi-scroll"><table class="pi-t"><thead><tr>${h.map(x => `<th>${x}</th>`).join('')}</tr></thead><tbody>${r.map(x => `<tr>${x.map(c => `<td>${c}</td>`).join('')}</tr>`).join('')}</tbody></table></div>`;
 
+  // ── target allocation & rebalancing ──
+  const TKEY = 'fos_port_targets_v1', tg = () => { try { return JSON.parse(localStorage.getItem(TKEY)) || {}; } catch (x) { return {}; } };
+  let tgRows = [];
+  function targetsPanel(act, tot) {
+    if (!(tot > 0)) return '';
+    const T = tg(), cur = {}; act.forEach(r => cur[r.t] = (cur[r.t] || 0) + r.c.currentValue);
+    const band = parseFloat(localStorage.getItem('fos_port_tgtband')); const bd = band >= 0 ? band : 5, nm = Math.max(0, parseFloat(localStorage.getItem('fos_port_tgtnew')) || 0);
+    const keys = [...new Set(Object.keys(cur).concat(Object.keys(T)))].sort((a, b) => (cur[b] || 0) - (cur[a] || 0));
+    const sumT = keys.reduce((s, k) => s + (Number(T[k]) || 0), 0), has = sumT > 0, T2 = tot + nm, short = {};
+    let sh = 0; keys.forEach(k => { const d = Math.max(0, (Number(T[k]) || 0) / 100 * T2 - (cur[k] || 0)); short[k] = d; sh += d; });
+    const k2 = nm > 0 && sh > 0 ? Math.min(1, nm / sh) : 0;
+    tgRows = keys.map(k => ({ k, cur: cur[k] || 0, tgt: Number(T[k]) || 0 }));
+    const rows = keys.map(k => {
+      const c = (cur[k] || 0) / tot * 100, t = Number(T[k]) || 0, dr = c - t, trade = t / 100 * tot - (cur[k] || 0), set = T[k] != null;
+      const a = !set || !has ? '—' : Math.abs(dr) <= bd ? '<span class="pi-up">On target</span>' : trade > 0 ? `<span class="pi-up">Add ${fmt(trade)}</span>` : `<span class="pi-dn">Trim ${fmt(-trade)}</span>`;
+      return [_esc(assetTypeLabel(k)), c.toFixed(1) + '%', `<input type="number" class="pi-tin" min="0" max="100" step="0.5" value="${set ? T[k] : ''}" placeholder="–" onchange="piTgt('${k}',this.value)">`,
+        set && has ? `<span class="${Math.abs(dr) <= bd ? 'pi-up' : 'pi-dn'}">${dr >= 0 ? '+' : ''}${dr.toFixed(1)} pp</span>` : '—', a, nm > 0 && has && set ? fmt(short[k] * k2) : '—'];
+    });
+    const free = Object.keys(ASSET_CATALOG).filter(k => keys.indexOf(k) < 0);
+    return panel('Target allocation & rebalancing', `<div class="pi-ctl">
+        <select id="pi-tg-add" class="input-field"><option value="">+ Add a class…</option>${free.map(k => `<option value="${k}">${_esc(ASSET_CATALOG[k].label)}</option>`).join('')}</select><button class="pi-tab" onclick="piTgtAdd($('pi-tg-add').value)">Add</button>
+        <label>Tolerance ± <input type="number" class="pi-tin" min="0" step="0.5" value="${bd}" onchange="piTgtOpt('fos_port_tgtband',this.value)"> pp</label>
+        <label>New money <input type="number" class="pi-tin" style="width:90px" min="0" step="any" value="${nm || ''}" placeholder="0" onchange="piTgtOpt('fos_port_tgtnew',this.value)"></label>
+        <button class="pi-tab" onclick="piTgtNorm()">Normalize to 100%</button><button class="pi-tab" onclick="piTgtClear()">Clear</button></div>`
+      + (has && Math.abs(sumT - 100) > 0.05 ? `<div class="pi-hint" style="color:#f59e0b">Targets add up to ${sumT.toFixed(1)}% — they should total 100%.</div>` : '')
+      + (has ? '<div style="height:200px;margin:.6rem 0"><canvas id="pi-tgt"></canvas></div>' : '<div class="pi-sub">Set a target % per class (for example Stocks 50, Gold 20). Drift and the amounts to add or trim appear here.</div>')
+      + tbl(['Class', 'Current', 'Target %', 'Drift', 'To reach target', 'New-money plan'], rows)
+      + '<div class="pi-sub">“To reach target” assumes you rebalance within the current total. “New-money plan” spreads the amount you enter across underweight classes without selling anything.</div>');
+  }
+  function mkTargets() {
+    if (!$('pi-tgt')) return; const rs = tgRows.filter(r => r.cur > 0 || r.tgt > 0), tot = tgRows.reduce((s, r) => s + r.cur, 0) || 1;
+    mk('pi-tgt', { type: 'bar', data: { labels: rs.map(r => assetTypeLabel(r.k)), datasets: [{ label: 'Current %', data: rs.map(r => r.cur / tot * 100), backgroundColor: '#a78bfa' }, { label: 'Target %', data: rs.map(r => r.tgt), backgroundColor: '#2dd4bf' }] }, options: { maintainAspectRatio: false, plugins: { legend: { labels: { boxWidth: 10 } } } } });
+  }
+  window.piTgt = (k, v) => { const o = tg(); v = parseFloat(v); if (isNaN(v)) o[k] = null; else o[k] = Math.max(0, Math.min(100, v)); localStorage.setItem(TKEY, JSON.stringify(o)); renderPortIntel(); };
+  window.piTgtAdd = k => { if (!k) return; const o = tg(); if (!(k in o)) o[k] = null; localStorage.setItem(TKEY, JSON.stringify(o)); renderPortIntel(); };
+  window.piTgtNorm = () => { const o = tg(), s = Object.values(o).reduce((a, b) => a + (Number(b) || 0), 0); if (!s) return; Object.keys(o).forEach(k => { if (o[k] != null) o[k] = Math.round(o[k] / s * 1000) / 10; }); localStorage.setItem(TKEY, JSON.stringify(o)); renderPortIntel(); };
+  window.piTgtClear = () => { if (confirm('Clear all target allocations?')) { localStorage.removeItem(TKEY); renderPortIntel(); } };
+  window.piTgtOpt = (key, v) => { localStorage.setItem(key, v); renderPortIntel(); };
   window.renderPortIntel = function () {
     const root = $('pi-root'); if (!root) return;
     const all = rows(), act = all.filter(r => !r.sold), sold = all.filter(r => r.sold);
     const tot = act.reduce((s, r) => s + r.c.currentValue, 0);
     if (!all.length || !(tot > 0 || sold.length)) { root.innerHTML = panel('Portfolio Intelligence', '<div class="pi-sub">Add holdings to unlock allocation, XIRR, risk and liquidity analysis.</div>'); return; }
-    const inv = all.reduce((s, r) => s + r.c.totalInvestment, 0), val = all.reduce((s, r) => s + r.c.currentValue, 0);
+    const inv = all.reduce((s, r) => s + r.c.totalInvestment, 0), val0 = all.reduce((s, r) => s + r.c.currentValue, 0), incAll = all.reduce((s, r) => s + incSum(r.e), 0), val = val0 + incAll;
     const X = xirr(flows(all)), CG = cagr(all), b = bm();
     const unr = act.reduce((s, r) => s + r.c.gainLoss, 0), rea = sold.reduce((s, r) => s + r.c.gainLoss, 0);
     const inc = income(all), incT = Object.values(inc).reduce((s, x) => s + x, 0);
     const H = act.length ? health(act, tot) : null;
     const g = { class: r => assetTypeLabel(r.t), geography: geo, sector: sec, instrument: ins, risk: riskLbl }, G = grp(act, g[tab]);
-    let h = `<div class="pi-kpis">${kpi('Portfolio value', fmt(tot), 'Invested ' + fmt(inv))}${kpi('Absolute return', `<span class="${cls(val - inv)}">${pc(inv ? (val - inv) / inv * 100 : 0)}</span>`, fmt(val - inv))}${kpi('XIRR', X === null ? '—' : `<span class="${cls(X)}">${pc(X)}</span>`, 'money-weighted, annualised')}${kpi('CAGR', CG === null ? '—' : `<span class="${cls(CG)}">${pc(CG)}</span>`, 'cost-weighted holding period')}${kpi('Est. passive income', fmt(incT), 'per year · ' + fmt(incT / 12) + '/mo')}${H ? kpi('Health score', `<span style="color:${H.score >= 70 ? '#34d399' : H.score >= 45 ? '#f59e0b' : '#f43f5e'}">${H.score}/100</span>`, 'risk level ' + H.risk.toFixed(1) + '/5') : ''}</div>`;
+    let h = `<div class="pi-kpis">${kpi('Portfolio value', fmt(tot), 'Invested ' + fmt(inv))}${kpi('Absolute return', `<span class="${cls(val - inv)}">${pc(inv ? (val - inv) / inv * 100 : 0)}</span>`, fmt(val - inv) + (incAll ? ' incl. income' : ''))}${kpi('XIRR', X === null ? '—' : `<span class="${cls(X)}">${pc(X)}</span>`, 'money-weighted, annualised')}${kpi('CAGR', CG === null ? '—' : `<span class="${cls(CG)}">${pc(CG)}</span>`, 'cost-weighted holding period')}${kpi('Est. passive income', fmt(incT), 'per year · ' + fmt(incT / 12) + '/mo')}${H ? kpi('Health score', `<span style="color:${H.score >= 70 ? '#34d399' : H.score >= 45 ? '#f59e0b' : '#f43f5e'}">${H.score}/100</span>`, 'risk level ' + H.risk.toFixed(1) + '/5') : ''}</div>`;
     // allocation
     h += panel('Asset allocation', `<div class="pi-tabs">${['class','geography','sector','instrument','risk'].map(t => `<button class="pi-tab${t === tab ? ' on' : ''}" onclick="piTab('${t}')">${t[0].toUpperCase() + t.slice(1)}</button>`).join('')}</div>
       <div class="pi-two"><div style="height:240px"><canvas id="pi-alloc"></canvas></div>${tbl(['Name','Value','Share','Return'], G.map(x => [_esc(x.k), fmt(x.v), (x.v / tot * 100).toFixed(1) + '%', `<span class="${cls(x.v - x.i)}">${pc(x.i ? (x.v - x.i) / x.i * 100 : 0)}</span>`]))}</div>${tab === 'sector' ? '<div class="pi-sub">Sector uses a holding’s sector / index-tracked field when present, else its sub-category.</div>' : ''}`);
+    h += targetsPanel(act, tot);
     // concentration + health
     if (H) {
       const top5 = [...act].sort((a, b) => b.c.currentValue - a.c.currentValue).slice(0, 5), cl = grp(act, r => r.t), hhi = Math.round(cl.reduce((s, x) => s + Math.pow(x.v / tot * 100, 2), 0));
@@ -35837,7 +35879,8 @@ body.light-mode .adm-toast{background:#e0f7fc;color:#06303c}body.light-mode .adm
       ['Realized (sold)', sold.length, fmt(sum(sold, r => r.c.totalInvestment)), fmt(sum(sold, r => r.c.currentValue)), `<b class="${cls(rea)}">${fmt(rea)}</b>`, fmt(sum(sold.filter(r => !lt(r)), r => r.c.gainLoss)), fmt(sum(sold.filter(lt), r => r.c.gainLoss))],
       ['Unrealized (held)', act.length, fmt(sum(act, r => r.c.totalInvestment)), fmt(tot), `<b class="${cls(unr)}">${fmt(unr)}</b>`, fmt(sum(act.filter(r => !lt(r)), r => r.c.gainLoss)), fmt(sum(act.filter(lt), r => r.c.gainLoss))]]) + '<div class="pi-sub">Holding-period split is informational; it is not tax advice.</div>');
     // income
-    h += panel('Passive income (annual estimate)', `<div class="pi-two"><div style="height:200px"><canvas id="pi-inc"></canvas></div>${tbl(['Source','Per year','Per month'], Object.entries(inc).map(([k, v]) => [k, fmt(v), fmt(v / 12)]).concat(incT ? [['<b>Total</b>', `<b>${fmt(incT)}</b>`, `<b>${fmt(incT / 12)}</b>`]] : []))}</div><div class="pi-sub">Estimated from dividend yield, coupon / interest rate and monthly rent on active holdings — not actual receipts.</div>`);
+    const rc = receivedByKind(all), kinds = [...new Set(Object.keys(inc).concat(Object.keys(rc.y12), Object.keys(rc.all)))], tsum = o => Object.values(o).reduce((x, y) => x + y, 0);
+    h += panel('Passive income — estimated vs received', `<div class="pi-two"><div style="height:200px"><canvas id="pi-inc"></canvas></div>${tbl(['Source','Estimated / yr','Received (12m)','Received (all)'], kinds.map(k => [k, fmt(inc[k] || 0), fmt(rc.y12[k] || 0), fmt(rc.all[k] || 0)]).concat(kinds.length ? [['<b>Total</b>', `<b>${fmt(incT)}</b>`, `<b>${fmt(tsum(rc.y12))}</b>`, `<b>${fmt(tsum(rc.all))}</b>`]] : []))}</div><div class="pi-sub">Estimates come from yield, rate and rent fields. “Received” is what you logged on each holding (open a holding → Income received) and is included in XIRR, CAGR and total return.</div>`);
     // liquidity + maturity
     const tiers = TIERS.map(() => 0); act.forEach(r => { const d = LIQ[r.t] || 30, i = TIERS.findIndex(t => d <= t[1]); tiers[i] += r.c.currentValue; });
     const now = localISO(), mat = act.filter(r => r.e.meta && r.e.meta.maturityDate && r.e.meta.maturityDate >= now).sort((a, b) => a.e.meta.maturityDate < b.e.meta.maturityDate ? -1 : 1);
@@ -35853,7 +35896,8 @@ body.light-mode .adm-toast{background:#e0f7fc;color:#06303c}body.light-mode .adm
     })());
     root.innerHTML = h;
     if (G.length) mk('pi-alloc', { type: 'doughnut', data: { labels: G.map(x => x.k), datasets: [{ data: G.map(x => x.v), backgroundColor: COL, borderWidth: 0 }] }, options: { maintainAspectRatio: false, cutout: '62%', plugins: { legend: { position: 'right', labels: { boxWidth: 10 } } } } });
-    const ik = Object.keys(inc); if (ik.length) mk('pi-inc', { type: 'bar', data: { labels: ik, datasets: [{ data: ik.map(k => inc[k]), backgroundColor: COL }] }, options: { maintainAspectRatio: false, plugins: { legend: { display: false } } } });
+    if (kinds.length) mk('pi-inc', { type: 'bar', data: { labels: kinds, datasets: [{ label: 'Estimated / yr', data: kinds.map(k => inc[k] || 0), backgroundColor: '#a78bfa' }, { label: 'Received (12m)', data: kinds.map(k => rc.y12[k] || 0), backgroundColor: '#34d399' }] }, options: { maintainAspectRatio: false, plugins: { legend: { labels: { boxWidth: 10 } } } } });
+    mkTargets();
     mk('pi-liq', { type: 'bar', data: { labels: TIERS.map(t => t[0]), datasets: [{ data: tiers, backgroundColor: TIERS.map(t => t[2]) }] }, options: { indexAxis: 'y', maintainAspectRatio: false, plugins: { legend: { display: false } } } });
     mk('pi-hist', { type: 'line', data: { labels: hs.map(x => x.D), datasets: [{ label: 'Value', data: hs.map(x => x.V), borderColor: '#a78bfa', backgroundColor: 'rgba(167,139,250,.15)', fill: true, tension: .25, pointRadius: 0 }, { label: 'Invested', data: hs.map(x => x.I), borderColor: '#94a3b8', borderDash: [5, 4], pointRadius: 0 }, { label: 'Benchmark ' + b + '%', data: hs.map(x => x.B), borderColor: '#f59e0b', pointRadius: 0, tension: .25 }] }, options: { maintainAspectRatio: false, interaction: { mode: 'index', intersect: false }, plugins: { legend: { labels: { boxWidth: 10 } } } } });
   };
@@ -35981,6 +36025,146 @@ body.light-mode .adm-toast{background:#e0f7fc;color:#06303c}body.light-mode .adm
   window.piCsArc = id => edit(a => { const x = a.find(y => y.id === id); if (x) x.archived = !x.archived; });
   document.addEventListener('input', e => { if (e.target && (e.target.id === 'pi-instr' || e.target.id === 'p-subType')) hint(); });
   document.addEventListener('change', e => { const i = e.target && e.target.id; if (i === 'p-subCategory') { hint(); hide(); } else if (i === 'pi-geo' || i === 'pi-risk') hint(); });
+})();
+
+</script>
+<script>
+/* ═══ PARTIAL SELLS — sell part of a holding; the sold part becomes its own realized record, the rest stays active ═══ */
+(function () {
+  const $ = id => document.getElementById(id);
+  let sid = null;
+  const totQty = r => (Number(r.quantity) || 0) + (r.lots || []).reduce((s, l) => s + (Number(l.qty) || 0), 0);
+  const hasQty = t => isQtyBased(t) || PORT_QTY_LEGACY.indexOf(t) >= 0;
+  // fraction f of a holding: quantities and fees always scale; amounts scale only for total-amount classes (per-unit prices stay per-unit)
+  function scale(rec, f) {
+    const pu = isQtyBased(rec.assetType), r = { ...rec, quantity: (Number(rec.quantity) || 0) * f };
+    r.lots = (rec.lots || []).map(l => ({ ...l, qty: (Number(l.qty) || 0) * f, fees: (Number(l.fees) || 0) * f, ...(pu ? {} : { price: (Number(l.price) || 0) * f }) }));
+    if (!pu) { r.purchasePrice = (Number(rec.purchasePrice) || 0) * f; r.currentPrice = (Number(rec.currentPrice) || 0) * f; r.valuations = (rec.valuations || []).map(v => ({ ...v, price: (Number(v.price) || 0) * f })); }
+    return r;
+  }
+  function soldPart(rec, f, date, price) {
+    return { ...scale(rec, f), id: 0, status: 'sold', sellDate: date, sellPrice: price, splitFrom: rec.id, docs: [], income: [], notes: (rec.notes ? rec.notes + ' · ' : '') + 'Partial sale' };
+  }
+  window.portSellOpen = window.markPortSold = function (id) {
+    const rec = portDb.find(x => x.id === id); if (!rec || rec.status === 'sold') return;
+    sid = id; let m = $('ps-modal'); if (!m) { m = document.createElement('div'); m.id = 'ps-modal'; document.body.appendChild(m); }
+    const t = normalizeAssetType(rec.assetType), pu = isQtyBased(t), q = hasQty(t), unit = rec.unit || (ASSET_CATALOG[t] && ASSET_CATALOG[t].unit) || 'units', N = n => portFmtNative(n, rec);
+    m.style.display = 'flex';
+    m.innerHTML = `<div class="pi-cs-box"><div class="pi-cs-h"><b>Sell · ${_esc(rec.subType || assetTypeLabel(t))}</b><span onclick="psClose()">✕</span></div>
+      <div class="pi-hint" style="margin:0 0 .6rem">${q ? 'You hold ' + Number(totQty(rec).toFixed(4)) + ' ' + _esc(unit) : 'Holding value ' + N(rec.currentPrice)}. Sell all or only part — the rest stays active.</div>
+      <div class="input-group"><label>${q ? 'Quantity to sell (' + _esc(unit) + ')' : 'Share of holding to sell (%)'}</label><input id="ps-q" type="number" step="any" min="0" class="input-field" value="${q ? Number(totQty(rec).toFixed(4)) : 100}" oninput="psCalc()"></div>
+      <div class="input-group"><label>Sell date</label><input id="ps-d" type="date" class="input-field" min="${rec.date}" value="${localISO()}"></div>
+      <div class="input-group"><label id="ps-pl">${pu ? 'Sell price / unit' : 'Amount received for this portion'}</label><input id="ps-p" type="number" step="any" min="0" class="input-field" value="${pu ? rec.currentPrice : rec.currentPrice}" oninput="this.dataset.t=1;psCalc()"></div>
+      <div class="pi-hint" id="ps-prev" style="font-size:.78rem;opacity:.9;margin:.5rem 0"></div><div id="ps-err" class="pi-hint" style="color:#f43f5e"></div>
+      <div style="display:flex;gap:.5rem;justify-content:flex-end;margin-top:.6rem"><button class="btn-secondary" onclick="psClose()">Cancel</button><button class="btn-add" onclick="psConfirm()"><i class="fas fa-check"></i> Confirm sale</button></div></div>`;
+    psCalc();
+  };
+  window.psClose = () => { $('ps-modal').style.display = 'none'; };
+  function parse() {
+    const rec = portDb.find(x => x.id === sid), t = normalizeAssetType(rec.assetType), q = hasQty(t), tq = q ? totQty(rec) : 100, v = parseFloat($('ps-q').value);
+    const f = v > 0 ? Math.min(1, v / tq) : 0;
+    return { rec, t, f, v, full: f >= 0.999999, date: $('ps-d').value, price: parseFloat($('ps-p').value), pu: isQtyBased(t), q };
+  }
+  window.psCalc = function () {
+    const p = parse(), pi = $('ps-p');
+    if (!p.pu && !pi.dataset.t) pi.value = Number(((Number(p.rec.currentPrice) || 0) * p.f).toFixed(2));   // total-amount classes: default to the share's current value
+    if (!(p.f > 0) || !(p.price >= 0)) { $('ps-prev').textContent = ''; return; }
+    const s = soldPart(p.rec, p.f, p.date || localISO(), p.price), c = portCalc(s), left = p.q ? Math.max(0, totQty(p.rec) - p.v) : (1 - p.f) * 100;
+    $('ps-prev').innerHTML = `Realized: <b style="color:${c.gainLoss >= 0 ? '#34d399' : '#f43f5e'}">${fmt(c.gainLoss)} (${c.roi.toFixed(1)}%)</b> on cost ${fmt(c.totalInvestment)} · Remaining: ${p.full ? 'none — fully sold' : p.q ? Number(left.toFixed(4)) + ' ' + _esc(p.rec.unit || '') : left.toFixed(0) + '%'}`;
+  };
+  window.psConfirm = function () {
+    const p = parse(), err = $('ps-err'); err.textContent = '';
+    if (!(p.f > 0)) { err.textContent = 'Enter a quantity greater than zero (up to what you hold).'; return; }
+    if (p.v > (p.q ? totQty(p.rec) : 100) * 1.000001) { err.textContent = 'You can’t sell more than you hold.'; return; }
+    if (!p.date || p.date < p.rec.date) { err.textContent = 'Sell date can’t be before the purchase date.'; return; }
+    if (!(p.price >= 0) || isNaN(p.price)) { err.textContent = 'Enter the sell price.'; return; }
+    const i = portDb.findIndex(x => x.id === sid); if (i < 0) return;
+    if (p.full) portDb[i] = { ...p.rec, status: 'sold', sellDate: p.date, sellPrice: p.price };
+    else {
+      const sold = soldPart(p.rec, p.f, p.date, p.price); let nid = Date.now(); while (portDb.some(x => x.id === nid)) nid++;
+      sold.id = nid; portDb[i] = scale(p.rec, 1 - p.f); portDb.splice(i + 1, 0, sold);
+    }
+    scheduleSave(); psClose(); buildPortDropdowns();
+    try { portRefreshViews(); } catch (e) {} if (typeof _detailId !== 'undefined' && _detailId && $('port-detail-modal').style.display === 'flex') renderPortDetail();
+  };
+})();
+
+</script>
+<script>
+/* ═══ INCOME LOG (per holding, in the holding detail view) ═══ */
+(function () {
+  const $ = id => document.getElementById(id), KINDS = [['Dividends', 'Dividend'], ['Interest', 'Interest'], ['Rental', 'Rent'], ['Other', 'Other']];
+  const _rd = window.renderPortDetail;
+  window.renderPortDetail = function () { const r = _rd.apply(this, arguments); try { inject(); } catch (e) {} return r; };
+  function inject() {
+    const rec = portDb.find(x => x.id === _detailId), body = $('port-detail-body'); if (!rec || !body) return;
+    const t = normalizeAssetType(rec.assetType), def = { Stocks: 'Dividends', ETFs: 'Dividends', RealEstate: 'Rental' }[t] || 'Interest';
+    const inc = (rec.income || []).slice().sort((a, b) => a.date < b.date ? 1 : -1), tot = inc.reduce((s, i) => s + (Number(i.amount) || 0), 0);
+    const d = document.createElement('div'); d.className = 'pi-inc-sec';
+    d.innerHTML = `<div class="pi-inc-t">Income received <span>${inc.length ? fmt(tot) + ' total · ' + inc.length + ' payment' + (inc.length > 1 ? 's' : '') : 'nothing logged yet'}</span></div>
+      ${inc.length ? `<div class="pi-scroll"><table class="pi-t"><tbody>${inc.map(i => `<tr><td>${fmtDate(i.date)}</td><td>${_esc((KINDS.find(k => k[0] === i.kind) || [0, i.kind || 'Other'])[1])}</td><td style="white-space:normal">${_esc(i.note || '')}</td><td style="text-align:right"><b>${fmt(i.amount)}</b></td><td><a style="cursor:pointer;opacity:.6" onclick="piIncDel('${i.id}')">✕</a></td></tr>`).join('')}</tbody></table></div>` : ''}
+      <div class="pi-inc-f"><input type="date" id="pi-i-d" class="input-field" value="${localISO()}"><input type="number" id="pi-i-a" class="input-field" step="any" min="0" placeholder="Amount (${_esc(portSym(portBaseCode()))})"><select id="pi-i-k" class="input-field">${KINDS.map(k => `<option value="${k[0]}"${k[0] === def ? ' selected' : ''}>${k[1]}</option>`).join('')}</select><input type="text" id="pi-i-n" class="input-field" placeholder="Note (optional)"><button class="btn-add" onclick="piIncAdd()">Add</button></div>
+      <div class="pi-hint">Amounts are in your base currency. Logged income feeds XIRR, CAGR and total return on the Intelligence page.</div>`;
+    body.appendChild(d);
+  }
+  window.piIncAdd = function () {
+    const rec = portDb.find(x => x.id === _detailId); if (!rec) return;
+    const a = parseFloat($('pi-i-a').value), dt = $('pi-i-d').value; if (!(a > 0) || !dt) { alert('Enter a date and an amount greater than zero.'); return; }
+    rec.income = (rec.income || []).concat([{ id: Math.random().toString(36).slice(2, 9), date: dt, amount: a, kind: $('pi-i-k').value, note: $('pi-i-n').value.trim() }]);
+    scheduleSave(); renderPortDetail();
+  };
+  window.piIncDel = function (id) { const rec = portDb.find(x => x.id === _detailId); if (!rec || !confirm('Remove this income entry?')) return; rec.income = (rec.income || []).filter(i => i.id !== id); scheduleSave(); renderPortDetail(); };
+})();
+
+</script>
+<script>
+/* ═══ PORTFOLIO ALERTS — maturity, stale valuations, concentration, SIP / instalment due dates (through the existing Notifications) ═══ */
+(function () {
+  const DAY = 864e5, CONC_HOLDING = 25, CONC_CLASS = 50, STALE_DAYS = 30, MATURITY_DAYS = 30, SIP_DAYS = 3;
+  // due-day fields so SIPs and RD instalments can be reminded
+  [['MutualFund', 'sipDay', 'SIP day of month (1–28)'], ['RecurringDeposit', 'installmentDay', 'Instalment day of month (1–28)']].forEach(([k, f, l]) => {
+    const c = ASSET_CATALOG[k]; if (c && !c.fields.some(x => x.k === f)) c.fields.push(_F(f, l, 'number', 'e.g. 5'));
+  });
+  Object.assign(NOTIF_COOLDOWN_HOURS, { 'port-maturity': 24, 'port-stale': 72, 'port-concentration': 72, 'port-sip': 12 });
+  const num = (r, k) => Number(r.meta && r.meta[k]) || 0, name = r => r.subType || assetTypeLabel(r.assetType);
+  const dayDiff = iso => Math.round((new Date(iso + 'T00:00:00') - new Date(localISO() + 'T00:00:00')) / DAY);
+  function nextDue(day) {            // next occurrence (today counts) of a day-of-month, clamped to month length
+    const n = new Date(), mk = (y, m) => { const dd = Math.min(day, new Date(y, m + 1, 0).getDate()); return new Date(y, m, dd); };
+    let d = mk(n.getFullYear(), n.getMonth()); if (localISO(d) < localISO(n)) d = mk(n.getFullYear(), n.getMonth() + 1); return localISO(d);
+  }
+  window.portAlerts = function () {
+    if (!isNotifEnabled('desktop-notif') || !isNotifEnabled('portfolio-updates')) return;
+    const act = portDb.filter(r => r.status !== 'sold'), today = localISO();
+    if (!act.length) return;
+    act.forEach(r => {
+      const m = r.meta && r.meta.maturityDate;
+      if (m) {   // 1. maturity: due within the window, or already passed but still active
+        const d = dayDiff(m), v = fmt(portCalc(r).currentValue);
+        if (d >= 0 && d <= MATURITY_DAYS) addNotification(`port-maturity-${r.id}-${m}`, 'fa-hourglass-half', d <= 7 ? '#ef4444' : '#f59e0b', `Maturing ${d === 0 ? 'today' : 'in ' + d + ' day' + (d > 1 ? 's' : '')}: ${name(r)}`, `${name(r)} (${assetTypeLabel(r.assetType)}) matures on ${fmtDate(m)}. Current value ${v}. Plan where the proceeds go.`, 'port-maturity');
+        else if (d < 0 && d >= -60) addNotification(`port-maturity-${r.id}-${m}-over`, 'fa-hourglass-end', '#ef4444', `Matured: ${name(r)}`, `${name(r)} matured on ${fmtDate(m)} (${-d} day${d < -1 ? 's' : ''} ago) but is still marked active. Renew it or mark it sold.`, 'port-maturity');
+      }
+      [['sipAmount', 'sipDay', 'SIP'], ['installment', 'installmentDay', 'Instalment']].forEach(([a, dk, lbl]) => {   // 4. SIP / RD instalment due dates
+        const amt = num(r, a), day = num(r, dk); if (!(amt > 0) || !(day >= 1 && day <= 31)) return;
+        const due = nextDue(Math.round(day)), d = dayDiff(due);
+        if (d <= SIP_DAYS) addNotification(`port-sip-${r.id}-${a}-${due}`, 'fa-sync-alt', '#38bdf8', `${lbl} due ${d === 0 ? 'today' : d === 1 ? 'tomorrow' : 'in ' + d + ' days'}: ${name(r)}`, `${lbl} of ${fmt(amt)} for ${name(r)} is due on ${fmtDate(due)}. Keep the balance ready.`, 'port-sip');
+      });
+    });
+    // 2. stale valuations (skip classes whose value doesn't move with a price: cash, deposits)
+    const FIXED = ['Cash', 'FixedDeposit', 'RecurringDeposit'];
+    const stale = act.filter(r => FIXED.indexOf(normalizeAssetType(r.assetType)) < 0).map(r => {
+      const last = [r.date].concat((r.valuations || []).map(v => v.date)).sort().pop(); return { r, age: -dayDiff(last) };
+    }).filter(x => x.age >= STALE_DAYS).sort((a, b) => b.age - a.age);
+    if (stale.length) addNotification(`port-stale-${Math.floor(Date.now() / (7 * DAY))}`, 'fa-clock', '#f59e0b', `${stale.length} holding${stale.length > 1 ? 's' : ''} need a fresh valuation`, stale.slice(0, 3).map(x => `${name(x.r)} (${x.age}d)`).join(', ') + (stale.length > 3 ? ` and ${stale.length - 3} more` : '') + ` haven't been updated in ${STALE_DAYS}+ days. Update prices so returns and allocation stay accurate.`, 'port-stale');
+    // 3. concentration breaches
+    const rows = act.map(r => ({ r, v: portCalc(r).currentValue })), tot = rows.reduce((s, x) => s + x.v, 0), byC = {};
+    if (tot > 0 && rows.length > 1) {
+      rows.forEach(x => { const t = normalizeAssetType(x.r.assetType); byC[t] = (byC[t] || 0) + x.v; if (x.v / tot * 100 > CONC_HOLDING) addNotification(`port-conc-h-${x.r.id}`, 'fa-balance-scale', '#f59e0b', `Concentration: ${name(x.r)}`, `${name(x.r)} is ${(x.v / tot * 100).toFixed(0)}% of your portfolio (limit ${CONC_HOLDING}%). Consider trimming or diversifying.`, 'port-concentration'); });
+      Object.keys(byC).forEach(t => { if (byC[t] / tot * 100 > CONC_CLASS && Object.keys(byC).length > 1) addNotification(`port-conc-c-${t}`, 'fa-balance-scale', '#f59e0b', `Concentration: ${assetTypeLabel(t)}`, `${assetTypeLabel(t)} makes up ${(byC[t] / tot * 100).toFixed(0)}% of your portfolio (limit ${CONC_CLASS}%).`, 'port-concentration'); });
+    }
+  };
+  const _ca = window.checkAlerts; window.checkAlerts = function () { const r = _ca.apply(this, arguments); try { portAlerts(); } catch (e) {} return r; };
+  const _ss = window.scheduleSave; let tmr; window.scheduleSave = function () { const r = _ss.apply(this, arguments); clearTimeout(tmr); tmr = setTimeout(() => { try { portAlerts(); } catch (e) {} }, 800); return r; };
+  setTimeout(() => { try { portAlerts(); } catch (e) {} }, 1500);
 })();
 
 </script>
