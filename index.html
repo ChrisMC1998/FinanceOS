@@ -8710,7 +8710,7 @@ function passAppLockGate() {
                 <div class="finai-goal-grid">
                   <input id="fg-name" class="finai-ask-input full" type="text" placeholder="Goal name, e.g. Emergency fund">
                   <input id="fg-target" class="finai-ask-input" type="number" min="0" placeholder="Target amount">
-                  <input id="fg-saved" class="finai-ask-input" type="number" min="0" placeholder="Saved so far">
+                  <input id="fg-saved" class="finai-ask-input" type="number" min="0" placeholder="Saved so far (outside holdings)">
                   <input id="fg-monthly" class="finai-ask-input" type="number" min="0" placeholder="Monthly contribution">
                   <input id="fg-date" class="finai-ask-input" type="date" title="Target date (optional)">
                   <label class="full" style="grid-column:1/-1;font-size:.74rem;display:flex;gap:8px;align-items:center;flex-wrap:wrap"><span><input id="fg-auto" type="checkbox"> Track automatically — saved = income − expenses − loans − investments since</span><input id="fg-since" class="finai-ask-input" type="date" title="Blank = from when the goal is created" style="max-width:150px"><span style="opacity:.7">“Saved so far” counts as a starting balance.</span></label>
@@ -8999,6 +8999,11 @@ function passAppLockGate() {
       <label>Notes (Optional)</label>
       <input type="text" id="p-notes" class="input-field port-focus" placeholder="e.g. SGB 2023-24, Plot near highway…">
     </div>
+
+    <div class="input-group"><label>Goal (Optional)</label>
+      <div style="display:flex;gap:8px"><select id="p-goalId" class="input-field" style="flex:1;min-width:0" onchange="portGoalSync()"><option value="">— Not tagged to a goal —</option></select>
+      <input type="number" id="p-goalPct" class="input-field" style="width:120px;display:none" placeholder="% to goal" min="1" max="100" step="any" inputmode="decimal" title="Share of this holding that counts toward the goal (blank = 100%)"></div>
+      <div style="font-size:.7rem;color:var(--text-muted);margin-top:4px">Counts this holding's current value toward the goal. Create goals in Fin AI → Goals.</div></div>
 
     <div id="port-err"></div>
     <div class="modal-actions" style="display:flex;gap:8px;margin-top:1.3rem;flex-wrap:wrap">
@@ -10774,7 +10779,7 @@ const ASSET_CATALOG = {
     fields: [_F('purity', 'Purity', 'text', '999 / 925'), _F('storage', 'Stored at', 'text', 'Home / bank locker')] },
   RealEstate: { label: 'Real Estate', short: 'Real Estate', icon: 'fa-home', mode: 'total', unit: 'sq.ft', blurb: 'Land, flats, houses and commercial property.',
     subs: ['Residential Flat', 'Independent House', 'Plot / Land', 'Agricultural Land', 'Commercial Property'],
-    fields: [_F('location', 'Location / address', 'text', 'City, locality'), _F('registrationNo', 'Registration / document no.', 'text'), _F('monthlyRent', 'Monthly rent received', 'number', '0'), _F('loanLinked', 'Linked loan', 'text', 'Lender, if any')] },
+    fields: [_F('location', 'Location / address', 'text', 'City, locality'), _F('registrationNo', 'Registration / document no.', 'text'), _F('monthlyRent', 'Monthly rent received', 'number', '0'), _F('loanLinked', 'Linked loan', 'loan', 'Lender, if any')] },
   MutualFund: { label: 'Mutual Funds', short: 'Mutual Funds', icon: 'fa-chart-pie', mode: 'total', unit: 'units', blurb: 'Equity, debt and hybrid mutual funds.',
     subs: ['Equity Fund', 'Debt Fund', 'Hybrid Fund', 'Index Fund', 'ELSS (Tax Saver)', 'Liquid Fund'],
     fields: [_F('amc', 'Fund house (AMC)', 'text'), _F('folio', 'Folio number', 'text'), _F('plan', 'Plan', 'select', ['Direct', 'Regular']), _F('sipAmount', 'Monthly SIP', 'number', '0')] },
@@ -12209,6 +12214,19 @@ function finaiBuildInsights(a) {
   const push = (icon, color, severity, title, body, action, impact) =>
     insights.push({ icon, color, severity, title, body, action, impact: impact || 0 });
 
+  // ── Goal funding risk: near-dated goals backed mostly by stocks / crypto ──
+  try {
+    (finaiGoals || []).forEach(g => {
+      const hs = goalHoldings(g.id), td = finaiParseISO(g.targetDate); if (!hs.length || !td) return;
+      const mo = (td.getFullYear() - new Date().getFullYear()) * 12 + td.getMonth() - new Date().getMonth();
+      if (mo < 0 || mo > 36) return;
+      const tot = hs.reduce((s, h) => s + h.val, 0), vol = hs.filter(h => /^(Stocks|Crypto)$/.test(normalizeAssetType(h.rec.assetType))).reduce((s, h) => s + h.val, 0);
+      if (tot > 0 && vol / tot >= 0.5 && !finaiGoalCalc(g).done)
+        push('fa-bullseye', '#fbbf24', 'warn', `${g.name}: funded mostly by stocks/crypto`,
+          `${Math.round(vol / tot * 100)}% of the ${fmt(Math.round(tot))} tagged to “${g.name}” is in directly held stocks or crypto, and the target date is about ${mo} month${mo === 1 ? '' : 's'} away. A market fall close to the date could leave it short.`,
+          'Consider moving part of it to lower-volatility holdings as the date nears.');
+    });
+  } catch (e) {}
   // ── Essential vs discretionary breakdown (always shown when spend exists) ──
   if (a.essentialThisMonth + a.discretionaryThisMonth > 0) {
     push('fa-scale-balanced', '#38bdf8', 'info', 'Needs vs wants this month',
@@ -13008,7 +13026,7 @@ function finaiDebtAnswer(extra) {
 
 // ── Goals ───────────────────────────────────────────────────────────────────
 function finaiGoalCalc(g) {
-  const target = Number(g.target) || 0, saved = (g.auto && window.polGoalSaved ? window.polGoalSaved(g) : Number(g.saved)) || 0, monthly = (g.auto && window.polGoalMonthly ? window.polGoalMonthly(g) : Number(g.monthly)) || 0;
+  const target = Number(g.target) || 0, hv = goalHoldingsValue(g.id), saved = ((g.auto && window.polGoalSaved ? window.polGoalSaved(g) : Number(g.saved)) || 0) + hv, monthly = (g.auto && window.polGoalMonthly ? window.polGoalMonthly(g) : Number(g.monthly)) || 0;
   const rem = Math.max(0, target - saved), pct = target > 0 ? Math.min(100, (saved / target) * 100) : 0;
   const months = rem <= 0 ? 0 : (monthly > 0 ? Math.ceil(rem / monthly) : null);
   let need = null, boost = null;
@@ -13020,7 +13038,7 @@ function finaiGoalCalc(g) {
     const m2 = Math.ceil(rem / nm);
     if (m2 < months) boost = { monthly: nm, earlier: months - m2 };
   }
-  return { target, saved, monthly, rem, pct, months, need, boost, done: rem <= 0, onTrack: need === null || monthly >= need };
+  return { target, saved, fromHoldings: hv, monthly, rem, pct, months, need, boost, done: rem <= 0, onTrack: need === null || monthly >= need };
 }
 function finaiGoalAnswer() {
   const gs = finaiGoals || [];
@@ -13059,7 +13077,7 @@ function finaiGoalSave() {
 }
 function finaiGoalEdit(id) { const g = finaiGoals.find(x => x.id === id); if (!g) return; finaiGoalEditId = id; finaiGoalFillForm(g); const el = document.getElementById('fg-name'); if (el) el.focus(); }
 function finaiGoalCancelEdit() { finaiGoalEditId = null; finaiGoalFillForm({}); }
-function finaiGoalDelete(id) { const g = finaiGoals.find(x => x.id === id); if (!g || !confirm('Delete goal "' + g.name + '"?')) return; finaiGoals = finaiGoals.filter(x => x.id !== id); if (finaiGoalEditId === id) finaiGoalCancelEdit(); saveFinaiGoals(); renderFinAI(); }
+function finaiGoalDelete(id) { const g = finaiGoals.find(x => x.id === id); if (!g || !confirm('Delete goal "' + g.name + '"?')) return; finaiGoals = finaiGoals.filter(x => x.id !== id); portDb.forEach(r => { if (Number(r.goalId) === Number(id)) { r.goalId = ''; r.goalPct = ''; } }); if (finaiGoalEditId === id) finaiGoalCancelEdit(); saveFinaiGoals(); renderFinAI(); }
 function finaiGoalAddSavings(id) {
   const g = finaiGoals.find(x => x.id === id); if (!g) return;
   const v = Number(prompt('How much to add to "' + g.name + '"? (' + (localStorage.getItem('fos_currency') || '₹') + ')'));
@@ -13215,6 +13233,11 @@ function finaiRenderDebt() {
     </div>
     ${p.missingEmi ? `<ul class="finai-fc-notes"><li>${p.missingEmi} debt(s) have no EMI set, so only extra payments reduce them.</li></ul>` : ''}`;
 }
+function finaiGoalHoldingsLine(g, c) {
+  const hs = goalHoldings(g.id).sort((x, y) => y.val - x.val); if (!hs.length) return '';
+  const names = hs.slice(0, 3).map(h => finaiEscapeHtml(h.rec.subType || assetTypeLabel(h.rec.assetType))).join(', ') + (hs.length > 3 ? ' +' + (hs.length - 3) + ' more' : '');
+  return `<div class="finai-goal-sub"><span><i class="fas fa-layer-group"></i> ${fmt(c.fromHoldings)} from ${hs.length} holding${hs.length > 1 ? 's' : ''}</span><span>${names}</span></div>`;
+}
 function finaiRenderGoals() {
   const box = document.getElementById('finai-goal-list');
   if (!box) return;
@@ -13232,7 +13255,7 @@ function finaiRenderGoals() {
     return `<div class="finai-goal">
       <div class="finai-goal-top"><b>${finaiEscapeHtml(g.name)}${g.auto?' <small style="font-weight:600;opacity:.7" title="Tracks income minus expenses, loans and investments">⚡ auto</small>':''}</b><span>${c.pct.toFixed(0)}%</span></div>
       <div class="finai-bar"><span style="width:${c.pct.toFixed(1)}%"></span></div>
-      <div class="finai-goal-sub"><span>${fmt(c.saved)} / ${fmt(c.target)}</span><span>${line}</span></div>${tip}
+      <div class="finai-goal-sub"><span>${fmt(c.saved)} / ${fmt(c.target)}</span><span>${line}</span></div>${tip}${finaiGoalHoldingsLine(g, c)}
       <div class="finai-goal-actions">${g.auto?'':`<button onclick="finaiGoalAddSavings(${g.id})"><i class="fas fa-plus"></i> Add savings</button>`}<button onclick="finaiGoalEdit(${g.id})"><i class="fas fa-pen"></i> Edit</button><button onclick="finaiGoalDelete(${g.id})"><i class="fas fa-trash"></i></button></div></div>`;
   }).join('');
   const total = gs.reduce((s, g) => s + (finaiGoalCalc(g).done ? 0 : Number(g.monthly) || 0), 0);
@@ -13659,7 +13682,7 @@ function finaiOutlookAnswer(n) {
   const L = [low.free < 0 ? `⚠️ <b>Cash gets tight in ${finaiMonthsLabel(low.i + 1)}.</b>` : `✅ <b>You stay in the green for the next ${n} month${n > 1 ? 's' : ''}.</b>`, `At your current income and habits you'd keep about <b>${finaiFig(fmt(cum), 'Where the free cash comes from', () => finaiCapRows(st))}</b> in total (${fmt(Math.round(cum / n))}/month).`];
   if (low.free < 0) L.push(`${finaiMonthsLabel(low.i + 1)} is ${fmt(Math.abs(low.free))} short — delay a purchase or trim a category before then.`);
   if (loans.length) L.push(`Debt falls from ${fmt(debtNow)} to <b>${fmt(tr.bal[n - 1])}</b> on current EMIs.`);
-  if (gm > 0) L.push(`Your goals take ${fmt(gm)}/month: ${goals.map(g => { const t = Number(g.target) || 0, v = Math.min(t, (Number(g.saved) || 0) + (Number(g.monthly) || 0) * n); return finaiEscapeHtml(g.name) + ' → ' + (t ? (v / t * 100).toFixed(0) + '%' : fmt(v)); }).join(', ')}.${cum < gm * n ? ' <b>Your free cash doesn\'t cover all of them.</b>' : ''}`);
+  if (gm > 0) L.push(`Your goals take ${fmt(gm)}/month: ${goals.map(g => { const t = Number(g.target) || 0, v = Math.min(t, finaiGoalCalc(g).saved + (Number(g.monthly) || 0) * n); return finaiEscapeHtml(g.name) + ' → ' + (t ? (v / t * 100).toFixed(0) + '%' : fmt(v)); }).join(', ')}.${cum < gm * n ? ' <b>Your free cash doesn\'t cover all of them.</b>' : ''}`);
   return L.join('<br>') + `<table class="finai-debt-table" style="margin-top:8px"><thead><tr><th>Month</th><th>In</th><th>Out</th><th>Free</th><th>Cumulative</th><th>Debt</th></tr></thead><tbody>${rows.join('')}</tbody></table><div class="finai-strat-note">Assumes steady income and spending; one-off bills aren't included.</div>`;
 }
 
@@ -22435,6 +22458,7 @@ function portRenderExtra(t, meta, sub) {
   hint.textContent = '(' + c.label + ')';
   box.innerHTML = c.fields.map(f => {
     const id = 'pm-' + f.k, v = keepMeta && keepMeta[f.k] != null ? keepMeta[f.k] : '';
+    if (f.t === 'loan') return portLoanFieldHtml(f, keepMeta || {});
     if (f.t === 'select') return `<div class="input-group"><label>${_esc(f.l)}</label><select id="${id}" class="input-field port-focus"><option value="">—</option>${f.o.map(o => `<option${o === v ? ' selected' : ''}>${_esc(o)}</option>`).join('')}</select></div>`;
     return `<div class="input-group"><label>${_esc(f.l)}</label><input id="${id}" class="input-field port-focus" type="${f.t === 'number' ? 'number' : f.t === 'date' ? 'date' : 'text'}"${f.t === 'number' ? ' step="any" inputmode="decimal"' : ''} placeholder="${_esc(f.o || '')}" value="${_esc(v)}"></div>`;
   }).join('');
@@ -22451,6 +22475,7 @@ function portResetExtra() {
   _pEl('p-currency').value = portBaseCode(); _pEl('p-fxNow').value = ''; _pEl('p-fxBuy').value = '';
   ['p-owner', 'p-ownPct', 'p-jointHolders', 'p-nominee', 'p-heldAt'].forEach(id => _pEl(id).value = '');
   _pEl('p-holdMode').value = '';
+  portGoalOptions(''); _pEl('p-goalPct').value = '';
   ['p-sec-own', 'p-sec-docs'].forEach(id => _pEl(id).open = false);
   portRenderDocsList(); portCurSync(false);
 }
@@ -22463,19 +22488,89 @@ function portLoadExtra(entry) {
   portRenderExtra(_pType(), entry.meta || {}, entry.subCategory || '');
   _pEl('p-owner').value = entry.owner || ''; _pEl('p-ownPct').value = entry.ownershipPct || '';
   _pEl('p-holdMode').value = entry.holdingMode || '';
+  portGoalOptions(entry.goalId); _pEl('p-goalPct').value = entry.goalPct || '';
   _pEl('p-jointHolders').value = entry.jointHolders || ''; _pEl('p-nominee').value = entry.nominee || ''; _pEl('p-heldAt').value = entry.heldAt || '';
   _pEl('p-sec-own').open = !!(entry.owner || entry.ownershipPct || entry.holdingMode || entry.jointHolders || entry.nominee || entry.heldAt);
   _pEl('p-sec-docs').open = !!(entry.docs && entry.docs.length);
   portRenderDocsList();
 }
+// ── NET EQUITY (real estate value − linked loan) ─────────────────────────────
+// Net worth already subtracts every loan once (assets − debt), so equity here is a per-property view of the
+// same numbers and is never deducted again. Loan owed uses the same rolled-forward estimate as Net Worth.
+function portLoanFieldHtml(f, meta) {
+  const loans = (creditDb || []).filter(c => c && c.id !== undefined && c.id !== null);
+  let sel = meta.loanId !== undefined && meta.loanId !== null ? String(meta.loanId) : '';
+  const txt = meta.loanLinked || '';
+  if (!sel && txt) { const m = loans.filter(c => c.status === 'Active' && finaiNameMatch(c.lenderName, txt)); if (m.length === 1) sel = String(m[0].id); }
+  const opts = loans.map(c => `<option value="${c.id}"${String(c.id) === sel ? ' selected' : ''}>${_esc(c.lenderName || 'Loan')} · ${_esc(c.type || 'Loan')} · owes ${fmt(Number(c.outstandingBalance) || 0)}${c.status === 'Active' ? '' : ' (closed)'}</option>`).join('');
+  return `<div class="input-group"><label>${_esc(f.l)}</label><select id="pm-loanId" class="input-field port-focus" onchange="portLoanSync()"><option value="">— No loan from my list —</option>${opts}</select>
+    <input id="pm-loanLinked" class="input-field port-focus" type="text" placeholder="Lender not in your loans (optional)" value="${_esc(sel ? '' : txt)}" style="margin-top:6px;${sel ? 'display:none' : ''}">
+    <div style="font-size:.7rem;color:var(--text-muted);margin-top:4px">Pick a loan to see net equity (value − what is still owed). Add the loan to your loans list first if it is missing.</div></div>`;
+}
+function portLoanSync() { const s = _pEl('pm-loanId'), t = _pEl('pm-loanLinked'); if (!s || !t) return; t.style.display = s.value ? 'none' : ''; if (s.value) t.value = ''; }
+function propertyName(r) { return r.subType || (r.meta && r.meta.location) || assetTypeLabel(r.assetType); }
+function propertyEquity() {
+  const out = { rows: [], value: 0, owed: 0, equity: 0, unlinkedHomeLoans: [] };
+  const props = (portDb || []).filter(r => r && r.status !== 'sold' && normalizeAssetType(r.assetType) === 'RealEstate');
+  let est = []; try { if (typeof fosNW === 'function') est = fosNW().loans || []; } catch (e) {}
+  const loans = creditDb || [];
+  const owedOf = c => { const e = est.find(x => x.id !== undefined && x.id !== null && Number(x.id) === Number(c.id)); return e ? e.liab : (c.status === 'Active' ? Number(c.outstandingBalance) || 0 : 0); };
+  const loanOf = r => {
+    const m = r.meta || {};
+    if (m.loanId !== undefined && m.loanId !== '' && m.loanId !== null) { const c = loans.find(x => Number(x.id) === Number(m.loanId)); return c ? { c, byName: false } : null; }
+    if (m.loanLinked) { const hit = loans.filter(x => x.status === 'Active' && finaiNameMatch(x.lenderName, m.loanLinked)); if (hit.length === 1) return { c: hit[0], byName: true }; }
+    return null;
+  };
+  const rows = props.map(r => { const l = loanOf(r); return { rec: r, value: portCalc(r).currentValue, loan: l ? l.c : null, byName: l ? l.byName : false }; });
+  const totByLoan = {}, cntByLoan = {};
+  rows.forEach(x => { if (x.loan) { totByLoan[x.loan.id] = (totByLoan[x.loan.id] || 0) + x.value; cntByLoan[x.loan.id] = (cntByLoan[x.loan.id] || 0) + 1; } });
+  rows.forEach(x => {
+    let owed = 0; x.shared = false;
+    if (x.loan) { const n = cntByLoan[x.loan.id], tot = totByLoan[x.loan.id], full = owedOf(x.loan); x.shared = n > 1; owed = n > 1 && tot > 0 ? full * x.value / tot : full; }
+    x.owed = owed; x.equity = x.value - owed; out.value += x.value; out.owed += owed; out.equity += x.equity;
+  });
+  out.rows = rows;
+  out.unlinkedHomeLoans = loans.filter(c => c.status === 'Active' && /home|mortgage|property|housing/i.test(c.type || '') && !totByLoan[c.id]);
+  return out;
+}
+function portEquityKv(rec) {
+  if (!rec || normalizeAssetType(rec.assetType) !== 'RealEstate' || rec.status === 'sold') return '';
+  const row = propertyEquity().rows.find(x => x.rec.id === rec.id); if (!row) return '';
+  const col = row.equity >= 0 ? 'var(--c-inc)' : 'var(--danger)';
+  return (row.loan ? `<div class="p1-kv"><span>Linked loan</span><b>${_esc(row.loan.lenderName || 'Loan')} · owes ${fmt(Math.round(row.owed))}${row.shared ? ' (split across properties)' : ''}${row.byName ? ' · matched by lender name' : ''}</b></div>` : '')
+    + `<div class="p1-kv"><span>Net equity</span><b style="color:${col}">${fmt(Math.round(row.equity))}</b></div>`;
+}
+
+// ── GOAL MAPPING (holdings → goals) ─────────────────────────────────────────
+function goalName(id) { const g = (finaiGoals || []).find(x => Number(x.id) === Number(id)); return g ? (g.name || 'Goal') : ''; }
+function goalHoldingShare(r) { const p = Number(r.goalPct); return p > 0 && p <= 100 ? p / 100 : 1; }
+function goalHoldings(goalId) {
+  if (goalId === undefined || goalId === null || goalId === '' || typeof portDb === 'undefined') return [];
+  return portDb.filter(r => r.status !== 'sold' && r.goalId !== undefined && r.goalId !== null && r.goalId !== '' && Number(r.goalId) === Number(goalId))
+    .map(r => ({ rec: r, val: portCalc(r).currentValue * goalHoldingShare(r) }));
+}
+function goalHoldingsValue(goalId) { return goalHoldings(goalId).reduce((s, h) => s + h.val, 0); }
+function portGoalOptions(selected) {
+  const el = _pEl('p-goalId'); if (!el) return;
+  const gs = finaiGoals || [];
+  el.innerHTML = '<option value="">— Not tagged to a goal —</option>' + gs.map(g => `<option value="${g.id}">${_esc(g.name || 'Goal')}</option>`).join('');
+  el.value = selected && gs.some(g => Number(g.id) === Number(selected)) ? String(selected) : '';
+  portGoalSync();
+}
+function portGoalSync() {
+  const el = _pEl('p-goalId'), pct = _pEl('p-goalPct'); if (!el || !pct) return;
+  pct.style.display = el.value ? '' : 'none'; if (!el.value) pct.value = '';
+}
 function portCollectExtra(t) {
   const cur = portSelCur(), foreign = cur !== portBaseCode(), now = parseFloat(_pEl('p-fxNow').value), buy = parseFloat(_pEl('p-fxBuy').value);
   const pct = parseFloat(_pEl('p-ownPct').value);
+  const gid = Number(_pEl('p-goalId').value) || 0, gpct = parseFloat(_pEl('p-goalPct').value);
   return {
     subCategory: _pEl('p-subCategory').value, meta: portReadMeta(),
     currency: foreign ? cur : '', fxNow: foreign && now > 0 ? now : '', fxBuy: foreign ? (buy > 0 ? buy : (now > 0 ? now : '')) : '',
     owner: _pEl('p-owner').value.trim(), ownershipPct: pct > 0 ? pct : '', holdingMode: _pEl('p-holdMode').value,
-    jointHolders: _pEl('p-jointHolders').value.trim(), nominee: _pEl('p-nominee').value.trim(), heldAt: _pEl('p-heldAt').value.trim()
+    jointHolders: _pEl('p-jointHolders').value.trim(), nominee: _pEl('p-nominee').value.trim(), heldAt: _pEl('p-heldAt').value.trim(),
+    goalId: gid > 0 ? gid : '', goalPct: gid > 0 && gpct > 0 && gpct < 100 ? gpct : ''
   };
 }
 function portValidateExtra(ex, bad) {
@@ -22616,7 +22711,7 @@ function renderPortDetail() {
   const valRows = vals.map((v, i) => { const prev = i ? Number(vals[i - 1].price) : Number(rec.purchasePrice), ch = prev > 0 ? (Number(v.price) - prev) / prev * 100 : 0; return `<tr><td>${fmtDate(v.date)}</td><td class="r">${N(v.price)}</td><td class="r" style="color:${ch >= 0 ? 'var(--c-inc)' : 'var(--danger)'}">${ch >= 0 ? '+' : ''}${ch.toFixed(1)}%</td><td>${_esc(v.note || '')}</td><td><a class="p1-x" onclick="portDeleteValuation(${v.id})" title="Remove">✕</a></td></tr>`; }).reverse().join('');
   // details / ownership / docs
   const meta = rec.meta || {}, metaRows = c ? c.fields.filter(f => meta[f.k] !== undefined && meta[f.k] !== '').map(f => `<div class="p1-kv"><span>${_esc(f.l)}</span><b>${_esc(f.t === 'date' ? fmtDate(meta[f.k]) : meta[f.k])}</b></div>`).join('') : '';
-  const own = [['Owner', rec.owner || 'Self'], ['Your share', (rec.ownershipPct || 100) + '%'], ['Holding mode', rec.holdingMode], ['Joint holder(s)', rec.jointHolders], ['Nominee', rec.nominee], ['Held with', rec.heldAt]].filter(x => x[1]).map(x => `<div class="p1-kv"><span>${x[0]}</span><b>${_esc(x[1])}</b></div>`).join('');
+  const own = [['Owner', rec.owner || 'Self'], ['Your share', (rec.ownershipPct || 100) + '%'], ['Holding mode', rec.holdingMode], ['Joint holder(s)', rec.jointHolders], ['Nominee', rec.nominee], ['Held with', rec.heldAt], ['Goal', goalName(rec.goalId) ? goalName(rec.goalId) + (Number(rec.goalPct) > 0 && Number(rec.goalPct) < 100 ? ' (' + rec.goalPct + '%)' : '') : '']].filter(x => x[1]).map(x => `<div class="p1-kv"><span>${x[0]}</span><b>${_esc(x[1])}</b></div>`).join('');
   const docs = (rec.docs || []).map(d => `<div class="p1-doc"><i class="fas fa-file-alt"></i><span class="p1-doc-n">${_esc(d.name)}</span><span class="p1-doc-m">${_esc(d.docType)} · ${_kb(d.size)} · ${fmtDate(d.added)}</span><a onclick="portOpenDoc(${rec.id},'${d.id}')">Open</a><a onclick="portOpenDoc(${rec.id},'${d.id}',true)">Download</a><a class="x" onclick="portDeleteDoc('${d.id}')" title="Remove">✕</a></div>`).join('');
   const today = localISO();
   body.innerHTML = `
@@ -22645,7 +22740,7 @@ function renderPortDetail() {
     <div class="qa-hint">The most recent valuation becomes the holding’s current ${perUnit ? 'price' : 'value'}.</div></div>
   <div class="p1-two">
     <div class="p1-sect"><div class="p1-sect-t"><span><i class="fas fa-user-shield"></i> Ownership</span></div>${own || '<div class="p1-empty" style="padding:10px">No ownership details saved.</div>'}</div>
-    <div class="p1-sect"><div class="p1-sect-t"><span><i class="fas fa-sliders-h"></i> ${c ? _esc(c.label) + ' details' : 'Details'}</span></div>${metaRows || '<div class="p1-empty" style="padding:10px">No extra details saved.</div>'}${rec.notes ? `<div class="p1-kv"><span>Notes</span><b>${_esc(rec.notes)}</b></div>` : ''}</div>
+    <div class="p1-sect"><div class="p1-sect-t"><span><i class="fas fa-sliders-h"></i> ${c ? _esc(c.label) + ' details' : 'Details'}</span></div>${(metaRows + portEquityKv(rec)) || '<div class="p1-empty" style="padding:10px">No extra details saved.</div>'}${rec.notes ? `<div class="p1-kv"><span>Notes</span><b>${_esc(rec.notes)}</b></div>` : ''}</div>
   </div>
   <div class="p1-sect"><div class="p1-sect-t"><span><i class="fas fa-paperclip"></i> Documents</span>
       <span class="p1-docadd2"><select id="pd-docType" class="input-field">${PORT_DOC_TYPES.map(x => `<option>${x}</option>`).join('')}</select><label class="btn-secondary p1-filebtn"><i class="fas fa-upload"></i> Attach<input type="file" multiple accept="${PORT_DOC_ACCEPT}" style="display:none" onchange="portDetailAddDocs(this)"></label></span></div>
@@ -22684,8 +22779,8 @@ function portSubCell(e) {
   return `<a class="p1-link" onclick="openPortDetail(${e.id})" title="Open details, history and documents">${_esc(e.subType || '-')}</a>` + (e.subCategory ? `<div class="p1-subtag">${_esc(e.subCategory)}</div>` : '');
 }
 function portTag(e) {
-  const n = (e.docs || []).length;
-  return (portIsForeign(e) ? `<span class="p1-chip" title="Held in ${_esc(String(e.currency).toUpperCase())}">${_esc(String(e.currency).toUpperCase())}</span>` : '') + (n ? `<span class="p1-chip" title="${n} document(s)"><i class="fas fa-paperclip"></i> ${n}</span>` : '');
+  const n = (e.docs || []).length, gn = e.goalId ? goalName(e.goalId) : '';
+  return (gn ? `<span class="p1-chip" title="Counts toward goal: ${_esc(gn)}"><i class="fas fa-bullseye"></i> ${_esc(gn)}</span>` : '') + (portIsForeign(e) ? `<span class="p1-chip" title="Held in ${_esc(String(e.currency).toUpperCase())}">${_esc(String(e.currency).toUpperCase())}</span>` : '') + (n ? `<span class="p1-chip" title="${n} document(s)"><i class="fas fa-paperclip"></i> ${n}</span>` : '');
 }
 
 // ── BUDGET MODAL ───────────────────────────────────────────────────────────
@@ -35284,7 +35379,7 @@ try{init();paint()}catch(e){}
     }
     var from = lastDue || asOf, days = Math.max(0, Math.round((today - from) / 86400000));
     var accrued = bal > 0 && rate > 0 ? bal * rate / 36500 * days : 0;
-    return { name: nm, start: c.startDate || '', balance: Math.round(bal), accrued: Math.round(accrued), assumed: Math.round(assumed), tracked: tracked, liab: Math.round(bal + accrued) };
+    return { id: c.id, name: nm, start: c.startDate || '', balance: Math.round(bal), accrued: Math.round(accrued), assumed: Math.round(assumed), tracked: tracked, liab: Math.round(bal + accrued) };
   }
   window.fosNW = function () {
     var today = new Date(); today.setHours(0, 0, 0, 0); var tIso = iso(today), S = stamps(), notes = [];
@@ -35315,6 +35410,13 @@ try{init();paint()}catch(e){}
     if (!host) { var row = document.querySelector('#view-networth .nw-row'); if (!row) return; host = document.createElement('div'); host.id = 'fosnw-explain'; row.insertAdjacentElement('afterend', host); }
     var R = function (label, val, sub, cls) { return '<div class="fosnw-row ' + (cls || '') + '"><span><b>' + label + '</b>' + (sub ? '<em>' + sub + '</em>' : '') + '</span><span>' + val + '</span></div>'; };
     var loanRows = N.loans.filter(function (l) { return l.liab > 0; }).map(function (l) { return R(_esc(l.name), fmt(l.liab), l.accrued ? 'incl. ' + fmt(l.accrued) + ' accrued interest' + (l.tracked ? '' : ' · EMIs assumed') : (l.tracked ? '' : 'EMIs assumed'), ''); }).join('');
+    var E = null; try { E = propertyEquity(); } catch (e) {}
+    var eqHtml = '';
+    if (E && E.rows.length) {
+      eqHtml = R('Real estate equity', fmt(Math.round(E.equity)), 'property ' + fmt(Math.round(E.value)) + ' − linked loans ' + fmt(Math.round(E.owed)) + ' · already inside the totals above, not deducted again', 'tot') +
+        E.rows.map(function (x) { return R(_esc(propertyName(x.rec)), fmt(Math.round(x.equity)), x.loan ? fmt(Math.round(x.value)) + ' − ' + _esc(x.loan.lenderName || 'loan') + ' ' + fmt(Math.round(x.owed)) + (x.byName ? ' (matched by lender name)' : '') : 'no loan linked'); }).join('');
+      if (E.unlinkedHomeLoans.length) eqHtml += '<div class="fosnw-note">' + E.unlinkedHomeLoans.length + ' home loan' + (E.unlinkedHomeLoans.length > 1 ? 's are' : ' is') + ' not linked to a property (' + E.unlinkedHomeLoans.map(function (l) { return _esc(l.lenderName || 'Loan'); }).slice(0, 3).join(', ') + '), so that property’s equity looks higher than it is.</div>';
+    }
     host.innerHTML = '<details class="glass-panel fosnw"' + (window._fosNWOpen ? ' open' : '') + ' ontoggle="window._fosNWOpen=this.open"><summary>How net worth is calculated<small>assets ' + fmt(Math.round(N.assets)) + ' − liabilities ' + fmt(Math.round(N.debt)) + ' = ' + fmt(Math.round(N.net)) + '</small></summary>' +
       R('Cash on hand', fmt(Math.round(N.cash)), 'income − expenses − investments − EMIs paid') +
       R('Portfolio, current value', fmt(Math.round(N.portfolio)), 'cost ' + fmt(Math.round(N.portCost))) +
@@ -35322,7 +35424,7 @@ try{init();paint()}catch(e){}
       R('Loans outstanding (est.)', fmt(Math.round(N.loanBal)), 'rolled forward with interest and your logged EMIs') +
       R('Accrued interest', fmt(Math.round(N.accrued)), 'since each loan’s last due date') +
       R('Credit-card dues', fmt(Math.round(N.cc))) + loanRows +
-      R('Total liabilities', fmt(Math.round(N.debt)), '', 'tot') + R('Net worth', fmt(Math.round(N.net)), '', 'tot') +
+      R('Total liabilities', fmt(Math.round(N.debt)), '', 'tot') + R('Net worth', fmt(Math.round(N.net)), '', 'tot') + eqHtml +
       '<div class="fosnw-note">' + N.notes.map(_esc).join('<br>') + '</div></details>';
   };
 })();
