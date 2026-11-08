@@ -115,6 +115,25 @@
   B('notify.quietEnabled', false, NT, 'Quiet hours: mute notification sound', 'Alerts still appear in the bell, but make no sound during quiet hours.', ['Notifications']);
   add({ p: 'notify.quietFrom', t: 'time', d: '22:00', g: NT, l: 'Quiet hours start', h: '', aff: ['Notifications'] });
   add({ p: 'notify.quietTo', t: 'time', d: '07:00', g: NT, l: 'Quiet hours end', h: '', aff: ['Notifications'] });
+  /* ── Tax rules (India): one row per editable number, read by the Tax view ── */
+  var TXG = 'Tax rules (India)', TXA = ['Tax view'];
+  [
+    ['eq',   'Listed equity & equity funds', 12, 20, false, 12.5],
+    ['lst',  'Other listed securities', 12, 0, true, 12.5],
+    ['oth',  'Physical gold/silver, unlisted & other assets', 24, 0, true, 12.5],
+    ['prop', 'Property & land', 24, 0, true, 12.5],
+    ['debt', 'Specified debt funds (bought on/after 1 Apr 2023)', 0, 0, true, 0]
+  ].forEach(function (c) {
+    var k = c[0], n = c[1];
+    N('tax.' + k + '.ltMonths', c[2], 0, 120, 1, TXG, n + ': long-term after (months)', 'Held longer than this = long-term. 0 means never long-term (always taxed as short-term).', TXA, '', true);
+    B('tax.' + k + '.stSlab', c[4], TXG, n + ': short-term gain taxed at your slab', 'On: uses the slab rate you enter in the Tax view. Off: uses the fixed rate below.', TXA);
+    N('tax.' + k + '.stRate', c[3], 0, 100, 0.5, TXG, n + ': short-term rate (%)', 'Only used when "taxed at your slab" is off.', TXA, '');
+    N('tax.' + k + '.ltRate', c[5], 0, 100, 0.5, TXG, n + ': long-term rate (%)', 'Applied to long-term gains, without indexation.', TXA, '');
+  });
+  N('tax.eq.exempt', 125000, 0, 100000000, 1000, TXG, 'Listed equity: long-term gains exempt each year up to (₹)', 'Only long-term equity gains above this amount are taxed.', TXA, '');
+  N('tax.vda.stRate', 30, 0, 100, 0.5, TXG, 'Crypto & virtual digital assets: tax rate (%)', 'Flat rate on every gain, no holding-period test.', TXA, '');
+  B('tax.vda.noSetoff', true, TXG, 'Crypto: losses cannot offset any other gain', 'On: only profitable crypto sales are taxed and crypto losses are ignored.', TXA);
+  N('tax.cess', 4, 0, 20, 0.5, TXG, 'Health & education cess (%)', 'Added on top of the tax. Surcharge is not modelled.', TXA, '4');
   var dyn = false;
   function ensureDyn() { /* one cooldown + one on/off row per notification type, read from the app's own table */
     if (dyn) return; var T; try { T = NOTIF_COOLDOWN_HOURS; } catch (e) { return; } if (!T) return; dyn = true;
@@ -6747,6 +6766,7 @@ function passAppLockGate() {
     <div class="drawer-item" id="mob-port-table" onclick="mobNav('port-table','portfolio')"><i class="fas fa-table" style="color:#a78bfa;width:16px;text-align:center"></i> Holdings Table</div>
     <div class="drawer-item" id="mob-port-analytics" onclick="mobNav('port-analytics','portfolio')"><i class="fas fa-chart-bar" style="color:#a78bfa;width:16px;text-align:center"></i> Port. Analytics</div>
     <div class="drawer-item" id="mob-port-intel" onclick="mobNav('port-intel','portfolio')"><i class="fas fa-brain" style="color:#a78bfa;width:16px;text-align:center"></i> Intelligence</div>
+    <div class="drawer-item" id="mob-port-tax" onclick="mobNav('port-tax','portfolio')"><i class="fas fa-file-invoice-dollar" style="color:#a78bfa;width:16px;text-align:center"></i> Tax</div>
 
     <div class="drawer-section-label" style="color:#7c6eb3">By Asset</div>
     <div class="drawer-item" onclick="filterPortAsset('Gold');closeMobileDrawer()"><i class="fas fa-circle" style="color:var(--c-gold);font-size:0.55rem;width:16px;text-align:center"></i> Gold</div>
@@ -6982,6 +7002,10 @@ function passAppLockGate() {
   <div class="port-nav-item" id="port-nav-intel" onclick="switchView('port-intel',this,'portfolio')">
     <div class="nav-icon"><i class="fas fa-brain" style="color:#a78bfa"></i></div>
     <span class="nav-label">Portfolio Intelligence</span>
+  </div>
+  <div class="port-nav-item" id="port-nav-tax" onclick="switchView('port-tax',this,'portfolio')">
+    <div class="nav-icon"><i class="fas fa-file-invoice-dollar" style="color:#a78bfa"></i></div>
+    <span class="nav-label">Tax</span>
   </div>
   </div></div>
 
@@ -8204,6 +8228,7 @@ function passAppLockGate() {
 
     <!-- PORTFOLIO: INTELLIGENCE -->
     <div id="view-port-intel" class="view-section"><div id="pi-root"></div></div>
+    <div id="view-port-tax" class="view-section"><div id="tx-root"></div></div>
 
     <!-- CREDIT TRACKER -->
 <!-- CC UTILIZATION VIEW -->
@@ -11794,6 +11819,7 @@ function switchView(viewName, btn, group) {
     'port-table':     '<span>Holdings</span> <b>Register</b>',
     'port-analytics': '<span>Portfolio</span> <b>Analytics</b>',
     'port-intel':     '<span>Portfolio</span> <b>Intelligence</b>',
+    'port-tax':       '<span>Portfolio</span> <b>Tax</b>',
     'roughboard':     '<span>Playbook</span> <b>Rough Board</b>',
     'calculator':     '<span>Playbook</span> <b>Calculator</b>',
           'ccutil':         '<span>Credit Card</span> <b>Utilization</b>',
@@ -11818,6 +11844,7 @@ function switchView(viewName, btn, group) {
     'port-table':     'view-port-table',
     'port-analytics': 'view-port-analytics',
     'port-intel':     'view-port-intel',
+    'port-tax':       'view-port-tax',
     'roughboard':     'view-roughboard',
     'calculator':     'view-calculator',
     'insurance':      'view-insurance',
@@ -11842,6 +11869,7 @@ function switchView(viewName, btn, group) {
   else if (viewName === 'port-table')     { buildPortDropdowns(); renderPortTable(); }
   else if (viewName === 'port-analytics') { buildPortDropdowns(); renderPortAnalytics(); }
   else if (viewName === 'port-intel')     { renderPortIntel(); }
+  else if (viewName === 'port-tax')       { renderPortTax(); }
   else if (viewName === 'ccutil') { setTimeout(initCCView, 50); }
   else if (viewName === 'roughboard') { setTimeout(initRoughBoard, 100); }
   else if (viewName === 'calculator') { setTimeout(initCalculator, 100); }
@@ -27348,7 +27376,7 @@ window.onload = () => {
       const lastView = JSON.parse(localStorage.getItem('fos_last_active_view') || 'null');
       if (lastView && lastView.view && lastView.view !== 'dashboard') {
         const idMap = lastView.group === 'portfolio'
-          ? { 'port-overview':'port-nav-overview', 'port-table':'port-nav-table', 'port-analytics':'port-nav-analytics', 'port-intel':'port-nav-intel' }
+          ? { 'port-overview':'port-nav-overview', 'port-table':'port-nav-table', 'port-analytics':'port-nav-analytics', 'port-intel':'port-nav-intel', 'port-tax':'port-nav-tax' }
           : { 'dashboard':'fin-nav-dashboard', 'transactions':'fin-nav-transactions', 'loans':'fin-nav-loans',
               'investments':'fin-nav-investments', 'credit':'fin-nav-credit', 'ccutil':'fin-nav-ccutil',
               'scenario':'fin-nav-scenario', 'roughboard':'fin-nav-roughboard', 'calculator':'fin-nav-calculator',
@@ -35554,6 +35582,7 @@ body.light-mode .adm-toast{background:#e0f7fc;color:#06303c}body.light-mode .adm
     if (!root()) return; S.ok = sessOk(); if (S.ok) touch(); else if (!S.gate || S.gate === 'ok') S.gate = pinRec() ? 'enter' : 'setup';
     render();
   };
+  window.fosAdminGoto = function (f) { S.tab = 'lab'; S.filter = f || ''; S.openG['Tax rules (India)'] = true; if (S.ok) render(); };
   function render() {
     var r = root(); if (!r) return;
     if (!S.ok) { r.innerHTML = gateHtml(); var i = $q('input', r); if (i) setTimeout(function () { try { i.focus(); } catch (e) { } }, 30); return; }
@@ -36005,7 +36034,7 @@ body.light-mode .adm-toast{background:#e0f7fc;color:#06303c}body.light-mode .adm
   };
   window.piTab = t => { tab = t; renderPortIntel(); };
   // re-render whenever data saves while this view is open
-  const _ss = window.scheduleSave; if (typeof _ss === 'function') window.scheduleSave = function () { const r = _ss.apply(this, arguments); if (activeView === 'port-intel') setTimeout(renderPortIntel, 50); return r; };
+  const _ss = window.scheduleSave; if (typeof _ss === 'function') window.scheduleSave = function () { const r = _ss.apply(this, arguments); if (activeView === 'port-intel') setTimeout(renderPortIntel, 50); if (activeView === 'port-tax' && window.renderPortTax) setTimeout(renderPortTax, 50); return r; };
 })();
 
 </script>
@@ -36270,5 +36299,269 @@ body.light-mode .adm-toast{background:#e0f7fc;color:#06303c}body.light-mode .adm
 })();
 
 </script>
+<style id="fos-tax-style">
+/* ── Tax view (Portfolio OS › Intelligence › Tax) ── */
+.tx-bar{display:flex;flex-wrap:wrap;gap:.6rem 1rem;align-items:center;margin-bottom:1rem;font-size:.78rem}
+.tx-bar label{display:flex;align-items:center;gap:.4rem;opacity:.9}
+.tx-bar select,.tx-bar input,.tx-cls{background:transparent;color:inherit;border:1px solid rgba(167,139,250,.3);border-radius:8px;padding:.25rem .45rem;font-size:.76rem}
+.tx-bar input{width:64px}
+.tx-bar select option,.tx-cls option{color:#111}
+.tx-btn{background:rgba(167,139,250,.14);border:1px solid rgba(167,139,250,.3);color:inherit;border-radius:999px;padding:.32rem .85rem;font-size:.75rem;cursor:pointer}
+.tx-btn:hover{background:rgba(167,139,250,.28)}
+.tx-note{font-size:.74rem;opacity:.75;line-height:1.5;margin-top:.6rem}
+.tx-warn{font-size:.76rem;color:#f59e0b;margin:.5rem 0 0}
+.tx-chip{display:inline-block;border-radius:999px;padding:.08rem .5rem;font-size:.68rem;font-weight:600}
+.tx-chip.st{background:rgba(245,158,11,.16);color:#f59e0b}
+.tx-chip.lt{background:rgba(52,211,153,.16);color:#34d399}
+.tx-chip.ed{background:rgba(34,211,238,.16);color:#22d3ee;margin-left:.4rem}
+.tx-num{text-align:right;font-variant-numeric:tabular-nums}
+.tx-empty{opacity:.65;font-size:.8rem;padding:.4rem 0}
+.tx-hl td{font-weight:700;border-top:2px solid rgba(148,163,184,.3)!important}
+body.light-mode .tx-bar select option,body.light-mode .tx-cls option{color:#111}
+</style>
+<script id="fos-tax">
+/* ═══ TAX VIEW — capital gains by asset class, rules read from the Admin Panel (Tax rules (India)) ═══
+   Estimates for planning only. Surcharge, carried-forward losses, TDS credits and the
+   pre-23-Jul-2024 property indexation option are not modelled. */
+(function () {
+  'use strict';
+  const $ = id => document.getElementById(id);
+  const C = p => window.FOSC(p);
+  const CLS = [
+    ['eq',   'Listed equity & equity funds'],
+    ['lst',  'Other listed securities (gold/silver ETFs, listed bonds, REIT/InvIT units)'],
+    ['oth',  'Physical gold & silver, unlisted & foreign assets, other funds'],
+    ['prop', 'Property & land'],
+    ['debt', 'Specified debt funds (bought on/after 1 Apr 2023)'],
+    ['vda',  'Crypto & virtual digital assets'],
+    ['exm',  'Not a capital gain (deposits, retirement accounts)']
+  ];
+  const NAME = Object.fromEntries(CLS);
+  const OKEY = 'fos_tax_cls_v1', SKEY = 'fos_tax_slab', FKEY = 'fos_tax_fy';
+  let fySel = null;
+
+  const num = v => Number(v) || 0;
+  const money = n => fmt(Math.round(n));
+  const sgn = n => (n < 0 ? '−' : '') + money(Math.abs(n));
+  const col = n => n >= 0 ? 'pi-up' : 'pi-dn';
+  const todayISO = () => localISO();
+  const ovr = () => { try { return JSON.parse(localStorage.getItem(OKEY)) || {}; } catch (e) { return {}; } };
+  const slab = () => { const v = parseFloat(localStorage.getItem(SKEY)); return v >= 0 && v <= 100 ? v : 30; };
+  const cess = () => num(C('tax.cess'));
+
+  /* ── dates ── */
+  function addM(iso, m) {
+    const p = String(iso).slice(0, 10).split('-').map(Number);
+    const t = new Date(Date.UTC(p[0], p[1] - 1 + m, 1));
+    const dim = new Date(Date.UTC(t.getUTCFullYear(), t.getUTCMonth() + 1, 0)).getUTCDate();
+    t.setUTCDate(Math.min(p[2], dim));
+    return t.toISOString().slice(0, 10);
+  }
+  const nextDay = iso => { const t = new Date(iso + 'T00:00:00Z'); t.setUTCDate(t.getUTCDate() + 1); return t.toISOString().slice(0, 10); };
+  const fyOf = iso => { const y = +iso.slice(0, 4), m = +iso.slice(5, 7); return m >= 4 ? y : y - 1; };
+  const fyLbl = y => y + '-' + String(y + 1).slice(2);
+  function dayDiff(a, b) { return Math.round((new Date(b + 'T00:00:00Z') - new Date(a + 'T00:00:00Z')) / 864e5); }
+
+  /* ── rules (all numbers come from the Admin Panel config) ── */
+  function rule(k) {
+    if (k === 'exm') return { ltM: 0, st: 0, stSlab: false, lt: 0, ex: 0 };
+    if (k === 'vda') return { ltM: 0, st: num(C('tax.vda.stRate')), stSlab: false, lt: num(C('tax.vda.stRate')), ex: 0 };
+    return { ltM: num(C('tax.' + k + '.ltMonths')), st: num(C('tax.' + k + '.stRate')), stSlab: !!C('tax.' + k + '.stSlab'), lt: num(C('tax.' + k + '.ltRate')), ex: k === 'eq' ? num(C('tax.eq.exempt')) : 0 };
+  }
+  const stRate = k => { const r = rule(k); return r.stSlab ? slab() : r.st; };
+
+  /* ── which rule applies to a holding (best guess; user can override per holding) ── */
+  function autoClass(e) {
+    const t = normalizeAssetType(e.assetType);
+    const s = [e.subType, e.subCategory, e.name, e.title].filter(Boolean).join(' ').toLowerCase();
+    const early = (e.date || '9999') < '2023-04-01';
+    switch (t) {
+      case 'Stocks': return /unlisted|pre-?ipo|private/.test(s) ? 'oth' : 'eq';
+      case 'MutualFund':
+        if (/debt|liquid|gilt|bond|money market|overnight|ultra|short duration|low duration|income|corporate|credit|banking/.test(s)) return early ? 'oth' : 'debt';
+        if (/gold|silver|fof|fund of fund|international|global|overseas|\bus\b/.test(s)) return 'oth';
+        return 'eq';
+      case 'ETFs':
+        if (/gold|silver|commodity/.test(s)) return 'lst';
+        if (/debt|liquid|bond|gilt/.test(s)) return early ? 'lst' : 'debt';
+        return 'eq';
+      case 'REITs': return 'lst';
+      case 'Bonds': return /unlisted/.test(s) ? 'oth' : 'lst';
+      case 'Gold': return /sovereign|sgb/.test(s) ? 'lst' : 'oth';
+      case 'RealEstate': return 'prop';
+      case 'Crypto': return 'vda';
+      case 'FixedDeposit': case 'RecurringDeposit': case 'Cash': case 'Retirement': return 'exm';
+      default: return 'oth';
+    }
+  }
+  const clsOf = e => { const o = ovr()[e.id]; return (o && NAME[o]) ? o : autoClass(e); };
+
+  /* ── split a holding into purchase lots with their share of proceeds ── */
+  function segs(e, c) {
+    const lots = Array.isArray(e.lots) ? e.lots : [];
+    if (!lots.length) return [{ d: e.date, cost: c.totalInvestment, proc: c.currentValue }];
+    const perUnit = isQtyBased(e.assetType), share = portShare(e), fxB = c.fxBuyUsed;
+    const parts = [{ d: e.date, q: num(e.quantity), cost: (perUnit ? num(e.quantity) * num(e.purchasePrice) : num(e.purchasePrice)) * fxB * share }];
+    lots.forEach(l => {
+      const lq = num(l.qty), nat = (perUnit ? lq * num(l.price) : num(l.price)) + num(l.fees);
+      parts.push({ d: l.date || e.date, q: lq, cost: nat * (num(l.fx) > 0 ? num(l.fx) : fxB) * share });
+    });
+    const sC = parts.reduce((s, p) => s + p.cost, 0), sQ = parts.reduce((s, p) => s + p.q, 0);
+    return parts.map(p => ({ d: p.d, cost: p.cost, proc: c.currentValue * (perUnit && sQ > 0 ? p.q / sQ : (sC > 0 ? p.cost / sC : 1 / parts.length)) }));
+  }
+  const nameOf = e => assetTypeLabel(e.assetType) + (e.subType ? ' · ' + e.subType : '');
+
+  function rowsFor(filter) {
+    const out = [];
+    portDb.forEach(e => {
+      const sold = e.status === 'sold';
+      if (!filter(e, sold)) return;
+      const k = clsOf(e), c = portCalc(e), sale = sold ? (e.sellDate || todayISO()) : todayISO(), r = rule(k);
+      segs(e, c).forEach(s => {
+        const buy = String(s.d || e.date).slice(0, 10), ltFrom = r.ltM > 0 ? nextDay(addM(buy, r.ltM)) : null, lt = !!ltFrom && sale >= ltFrom;
+        out.push({ e, id: e.id, k, buy, sale, cost: s.cost, proc: s.proc, gain: s.proc - s.cost, term: lt ? 'LT' : 'ST', ltOn: ltFrom, sold });
+      });
+    });
+    return out;
+  }
+
+  /* ── set-off and tax for a list of realised rows ── */
+  function compute(rs) {
+    const cs = cess() / 100, R = {};
+    CLS.forEach(c => R[c[0]] = { k: c[0], cost: 0, proc: 0, st: 0, lt: 0, taxable: 0, tax: 0, setoff: 0 });
+    rs.forEach(r => { const o = R[r.k]; o.cost += r.cost; o.proc += r.proc; o[r.term === 'ST' ? 'st' : 'lt'] += r.gain; });
+    const B = []; let lostVda = 0, eqLtNet = 0, unused = 0;
+    CLS.forEach(c => {
+      const k = c[0], o = R[k], r = rule(k);
+      if (k === 'exm') return;
+      if (k === 'vda' && C('tax.vda.noSetoff')) {
+        const pos = rs.filter(x => x.k === 'vda' && x.gain > 0).reduce((s, x) => s + x.gain, 0);
+        lostVda = rs.filter(x => x.k === 'vda' && x.gain < 0).reduce((s, x) => s - x.gain, 0);
+        o.taxable = pos; o.tax = pos * r.st / 100 * (1 + cs); return;
+      }
+      [['st', stRate(k)], ['lt', r.lt]].forEach(p => { const g = o[p[0]]; if (g) B.push({ o, t: p[0], g, rem: Math.abs(g), rate: p[1], loss: g < 0, k }); });
+    });
+    const gains = B.filter(b => !b.loss), losses = B.filter(b => b.loss);
+    const pool = t => losses.filter(b => !t || b.t === t).reduce((s, b) => s + b.rem, 0);
+    function absorb(amount, ok) {
+      gains.filter(ok).sort((a, b) => b.rate - a.rate).forEach(b => { const u = Math.min(amount, b.rem); b.rem -= u; b.o.setoff += u; amount -= u; });
+      return amount;
+    }
+    let ltLeft = absorb(pool('lt'), b => b.t === 'lt');
+    let stLeft = absorb(pool('st'), () => true);
+    unused = ltLeft + stLeft;
+    gains.forEach(b => {
+      let tx = b.rem;
+      if (b.k === 'eq' && b.t === 'lt') { eqLtNet = b.rem; tx = Math.max(0, b.rem - rule('eq').ex); }
+      b.o.taxable += tx; b.o.tax += tx * b.rate / 100 * (1 + cs);
+    });
+    const T = Object.values(R).reduce((a, o) => ({ gain: a.gain + o.st + o.lt, tax: a.tax + o.tax }), { gain: 0, tax: 0 });
+    return { R, tax: T.tax, gain: T.gain, lostVda, unused, eqLtNet, eqLeft: Math.max(0, rule('eq').ex - eqLtNet) };
+  }
+
+  /* ── view ── */
+  const panel = (t, b, x) => `<div class="glass-panel" style="margin-bottom:1.1rem;${x || ''}"><div class="panel-title">${t}</div>${b}</div>`;
+  const kpi = (l, v, s) => `<div class="port-kpi-card"><div class="kpi-label">${l}</div><div class="port-kpi-val">${v}</div>${s ? `<div class="pi-sub">${s}</div>` : ''}</div>`;
+  const tbl = (h, r, cls) => `<div class="pi-scroll"><table class="pi-t ${cls || ''}"><thead><tr>${h.map(x => `<th>${x}</th>`).join('')}</tr></thead><tbody>${r.map(x => `<tr${x._c ? ` class="${x._c}"` : ''}>${x.map(c => `<td>${c}</td>`).join('')}</tr>`).join('')}</tbody></table></div>`;
+  const chip = t => `<span class="tx-chip ${t === 'LT' ? 'lt' : 'st'}">${t === 'LT' ? 'Long-term' : 'Short-term'}</span>`;
+  const clsSel = r => `<select class="tx-cls" onchange="txSetCls(${r.id},this.value)" title="Change which tax rule applies to this holding">${['auto'].concat(CLS.map(c => c[0])).map(k => `<option value="${k}"${(k === 'auto' ? !ovr()[r.id] : ovr()[r.id] === k) ? ' selected' : ''}>${k === 'auto' ? 'Auto · ' + _esc(NAME[autoClass(r.e)]) : _esc(NAME[k])}</option>`).join('')}</select>`;
+  const mod = k => { try { return FOS_CONFIG.SCHEMA().some(s => s.p.indexOf('tax.' + k + '.') === 0 && FOS_CONFIG.isModified(s.p)); } catch (e) { return false; } };
+
+  function fyList() {
+    const s = new Set([fyOf(todayISO())]);
+    portDb.forEach(e => { if (e.status === 'sold' && e.sellDate) s.add(fyOf(e.sellDate)); });
+    return [...s].sort((a, b) => b - a);
+  }
+
+  function rulesTable() {
+    const rows = CLS.filter(c => c[0] !== 'exm').map(c => {
+      const k = c[0], r = rule(k), s = stRate(k);
+      const lt = k === 'vda' ? 'No holding-period test' : r.ltM > 0 ? 'After ' + r.ltM + ' months' : 'Never — always short-term';
+      const st = r.stSlab ? 'Your slab (' + slab() + '%)' : s + '%';
+      const l = k === 'vda' ? '30% flat' : r.ltM > 0 ? r.lt + '%' + (r.ex ? ' above ₹' + fmt(r.ex) + ' a year' : '') : '—';
+      return [_esc(c[1]) + (mod(k) ? '<span class="tx-chip ed">edited</span>' : ''), lt, st, l];
+    });
+    return tbl(['Asset class', 'Long-term', 'Short-term rate', 'Long-term rate'], rows) +
+      `<div class="tx-note">Plus ${cess()}% health &amp; education cess. Defaults were checked against FY 2026-27 rules on 8 Nov 2026 (Income-tax Act, 2025 in force from 1 Apr 2026; Budget 2026 left capital-gains rates and the crypto tax unchanged). Rates change often, so confirm before you file.
+      Property bought before 23 Jul 2024 may qualify for 20% with indexation instead of 12.5% — not modelled, so this can overstate tax on older property.</div>
+      <div style="margin-top:.7rem"><button class="tx-btn" onclick="txOpenAdmin()"><i class="fas fa-user-shield"></i> Edit rules in Admin Panel</button></div>`;
+  }
+
+  window.renderPortTax = function () {
+    const root = $('tx-root'); if (!root) return;
+    const list = fyList(); if (fySel === null) { const sv = +localStorage.getItem(FKEY); fySel = list.indexOf(sv) >= 0 ? sv : list[0]; }
+    if (list.indexOf(fySel) < 0) fySel = list[0];
+    const fyS = fySel + '-04-01', fyE = (fySel + 1) + '-03-31';
+    const real = rowsFor((e, sold) => sold && e.sellDate && e.sellDate >= fyS && e.sellDate <= fyE).filter(r => r.k !== 'exm');
+    const calc = compute(real);
+    const open = rowsFor((e, sold) => !sold).filter(r => r.k !== 'exm');
+    const in90 = open.filter(r => r.term === 'ST' && r.ltOn && r.gain > 0 && dayDiff(todayISO(), r.ltOn) <= 90);
+    const eqLTunreal = open.filter(r => r.k === 'eq' && r.term === 'LT' && r.gain > 0).reduce((s, r) => s + r.gain, 0);
+    const isCur = fySel === fyOf(todayISO());
+
+    let h = `<div class="tx-bar">
+      <label>Financial year <select onchange="txFy(this.value)">${list.map(y => `<option value="${y}"${y === fySel ? ' selected' : ''}>FY ${fyLbl(y)}</option>`).join('')}</select></label>
+      <label title="Used for gains that are taxed at your slab rate">Your slab rate <input type="number" min="0" max="100" step="0.5" value="${slab()}" onchange="txSlab(this.value)"> %</label>
+      <button class="tx-btn" onclick="txCsv()"><i class="fas fa-file-csv"></i> Download realised gains (CSV)</button>
+      <button class="tx-btn" onclick="txOpenAdmin()"><i class="fas fa-sliders-h"></i> Tax rules</button></div>`;
+
+    h += `<div class="pi-kpis">${kpi('Realised gain, FY ' + fyLbl(fySel), `<span class="${col(calc.gain)}">${sgn(calc.gain)}</span>`, real.length + ' sale lot' + (real.length === 1 ? '' : 's'))}
+      ${kpi('Estimated tax', money(calc.tax), 'incl. ' + cess() + '% cess, after loss set-off')}
+      ${kpi('Equity gains still exempt', money(calc.eqLeft), 'of ₹' + fmt(rule('eq').ex) + ' yearly limit' + (isCur && eqLTunreal > 0 ? ' · ₹' + fmt(Math.round(eqLTunreal)) + ' long-term equity gain unrealised' : ''))}
+      ${kpi('Turning long-term in 90 days', money(in90.reduce((s, r) => s + r.gain, 0)), in90.length + ' lot' + (in90.length === 1 ? '' : 's') + ' with a gain')}</div>`;
+
+    // realised by class
+    const cr = CLS.filter(c => c[0] !== 'exm').map(c => [c[0], calc.R[c[0]]]).filter(x => x[1].cost || x[1].proc);
+    const tot = cr.reduce((a, x) => ({ cost: a.cost + x[1].cost, proc: a.proc + x[1].proc, st: a.st + x[1].st, lt: a.lt + x[1].lt, taxable: a.taxable + x[1].taxable, tax: a.tax + x[1].tax }), { cost: 0, proc: 0, st: 0, lt: 0, taxable: 0, tax: 0 });
+    const byRows = cr.map(x => { const o = x[1]; return [_esc(NAME[x[0]]), money(o.cost), money(o.proc), `<span class="${col(o.st)}">${sgn(o.st)}</span>`, `<span class="${col(o.lt)}">${sgn(o.lt)}</span>`, money(o.taxable), '<b>' + money(o.tax) + '</b>']; });
+    if (byRows.length) { const r = ['Total', money(tot.cost), money(tot.proc), sgn(tot.st), sgn(tot.lt), money(tot.taxable), money(tot.tax)]; r._c = 'tx-hl'; byRows.push(r); }
+    let notes = '';
+    if (calc.unused > 0.5) notes += `<div class="tx-warn">Losses of ${money(calc.unused)} could not be set off this year. If you file on time they can usually be carried forward for 8 years.</div>`;
+    if (calc.lostVda > 0.5) notes += `<div class="tx-warn">Crypto losses of ${money(calc.lostVda)} cannot offset any other gain, and cannot be carried forward.</div>`;
+    h += panel('Realised gains by asset class — FY ' + fyLbl(fySel), (byRows.length ? tbl(['Asset class', 'Cost', 'Sale value', 'Short-term gain', 'Long-term gain', 'Taxable', 'Est. tax'], byRows) : '<div class="tx-empty">No holdings sold in this financial year. Mark a holding as sold (with a sell date) and it appears here.</div>') + notes +
+      '<div class="tx-note">Short-term losses are set off against any gain, long-term losses only against long-term gains. Surcharge, TDS already deducted and carried-forward losses from earlier years are not included.</div>');
+
+    // realised lots
+    if (real.length) {
+      const rr = real.sort((a, b) => a.sale < b.sale ? 1 : -1).map(r => [fmtDate(r.sale), _esc(nameOf(r.e)), fmtDate(r.buy), money(r.cost), money(r.proc), `<span class="${col(r.gain)}">${sgn(r.gain)}</span>`, chip(r.term), clsSel(r)]);
+      h += panel('Sale lots', tbl(['Sold', 'Holding', 'Bought', 'Cost', 'Sale value', 'Gain', 'Term', 'Tax rule used'], rr));
+    }
+
+    // unrealised
+    const ur = open.sort((a, b) => (a.term === b.term ? ((a.ltOn || '9') > (b.ltOn || '9') ? 1 : -1) : (a.term === 'ST' ? -1 : 1))).map(r => {
+      const rl = rule(r.k), rt = r.term === 'LT' ? rl.lt : stRate(r.k), est = r.gain > 0 ? r.gain * rt / 100 * (1 + cess() / 100) : 0;
+      const when = r.term === 'LT' ? 'Already' : (r.ltOn ? fmtDate(r.ltOn) + ' (' + Math.max(1, dayDiff(todayISO(), r.ltOn)) + ' days)' : '—');
+      return [_esc(nameOf(r.e)), fmtDate(r.buy), money(r.cost), money(r.proc), `<span class="${col(r.gain)}">${sgn(r.gain)}</span>`, chip(r.term), when, r.gain > 0 ? money(est) : '—', clsSel(r)];
+    });
+    h += panel('If you sold today (unrealised)', (ur.length ? tbl(['Holding', 'Bought', 'Cost', 'Value', 'Gain', 'Term now', 'Long-term from', 'Est. tax', 'Tax rule used'], ur) +
+      '<div class="tx-note">Each row is taxed on its own, so the equity exemption and loss set-off are not applied here. “Long-term from” is the first day the longer holding period is met.</div>' : '<div class="tx-empty">No active holdings with a taxable gain profile.</div>'));
+
+    h += panel('Rules in force', rulesTable());
+    h += '<div class="tx-note" style="margin-bottom:1rem">Planning estimates, not tax advice. Check figures with a chartered accountant before filing.</div>';
+    root.innerHTML = h;
+  };
+
+  window.txFy = v => { fySel = +v; try { localStorage.setItem(FKEY, String(fySel)); } catch (e) { } renderPortTax(); };
+  window.txSlab = v => { const n = parseFloat(v); if (n >= 0 && n <= 100) { try { localStorage.setItem(SKEY, String(n)); } catch (e) { } } renderPortTax(); };
+  window.txSetCls = (id, k) => { const o = ovr(); if (k === 'auto') delete o[id]; else o[id] = k; try { localStorage.setItem(OKEY, JSON.stringify(o)); } catch (e) { } renderPortTax(); };
+  window.txOpenAdmin = () => {
+    try { openSettingsModal(); } catch (e) { }
+    setTimeout(() => { try { switchSettingsTab('admin', document.querySelector('.set-nav-admin')); if (window.fosAdminGoto) window.fosAdminGoto('Tax rules'); } catch (e) { console.error(e); } }, 60);
+  };
+  window.txCsv = () => {
+    const fyS = fySel + '-04-01', fyE = (fySel + 1) + '-03-31';
+    const rs = rowsFor((e, sold) => sold && e.sellDate && e.sellDate >= fyS && e.sellDate <= fyE).filter(r => r.k !== 'exm');
+    const q = v => '"' + String(v == null ? '' : v).replace(/"/g, '""') + '"';
+    const lines = [['Holding', 'Tax rule', 'Buy date', 'Sell date', 'Cost', 'Sale value', 'Gain', 'Term'].map(q).join(',')]
+      .concat(rs.map(r => [nameOf(r.e), NAME[r.k], r.buy, r.sale, r.cost.toFixed(2), r.proc.toFixed(2), r.gain.toFixed(2), r.term === 'LT' ? 'Long-term' : 'Short-term'].map(q).join(',')));
+    const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([lines.join('\r\n')], { type: 'text/csv' }));
+    a.download = 'financeos-realised-gains-FY' + fyLbl(fySel) + '.csv'; document.body.appendChild(a); a.click();
+    setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 500);
+  };
+
+  try { FOS_CONFIG.onChange(() => { const v = $('view-port-tax'); if (v && v.classList.contains('active')) renderPortTax(); }); } catch (e) { }
+})();
+</script>
+
 </body>
 </html>
