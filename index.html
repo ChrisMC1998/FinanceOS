@@ -3642,6 +3642,81 @@ body.light-mode .onboard-btn-back{border-color:#cbd5e1;color:#334155}
 body.light-mode .onboard-btn-back:hover{background:#f1f5f9;color:#0f172a}
 body.light-mode .onboard-summary-text{color:#334155}
 </style>
+<style id="phase1-asset-css">
+/* PHASE 1 — asset expansion */
+.p1-sec{border:1px solid var(--glass-border);border-radius:12px;padding:0 12px;margin:0 0 10px;background:rgba(255,255,255,0.03)}
+.p1-sec summary{cursor:pointer;padding:10px 0;font-size:.78rem;font-weight:600;color:var(--text-main);list-style:none;display:flex;align-items:center;gap:8px}
+.p1-sec summary::-webkit-details-marker{display:none}
+.p1-sec summary i{color:#a78bfa;width:16px;text-align:center}
+.p1-sec summary span{color:var(--text-muted);font-weight:500;font-size:.72rem}
+.p1-sec[open] summary{border-bottom:1px solid var(--glass-border);margin-bottom:10px}
+.p1-grid{display:grid;grid-template-columns:1fr 1fr;gap:0 9px}
+.p1-grid .input-group{min-width:0}
+.p1-more{margin:-4px 0 10px}
+.p1-more select{width:100%}
+.p1-fxlink{font-size:.72rem;color:var(--accent);cursor:pointer;font-weight:600;float:right;text-transform:none;letter-spacing:0}
+.p1-filebtn{display:inline-flex;align-items:center;gap:6px;cursor:pointer;white-space:nowrap}
+.p1-docadd{display:flex;gap:8px;align-items:center;margin-bottom:8px}
+.p1-docadd select{flex:1;margin:0}
+.p1-doc{display:flex;align-items:center;gap:8px;padding:6px 8px;border:1px solid var(--glass-border);border-radius:9px;margin-bottom:5px;font-size:.76rem}
+.p1-doc i{color:#a78bfa}
+.p1-doc.new{border-style:dashed}
+.p1-doc-n{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--text-main)}
+.p1-doc-m{color:var(--text-muted);font-size:.68rem;white-space:nowrap}
+.p1-doc a{cursor:pointer;color:var(--accent);font-weight:600;font-size:.72rem}
+.p1-doc a.x,.p1-x{color:#ef4444;cursor:pointer;opacity:.8}
+.p1-link{cursor:pointer;color:inherit;text-decoration:underline dotted rgba(167,139,250,.6);text-underline-offset:3px}
+.p1-link:hover{color:#a78bfa}
+.p1-subtag{font-size:.64rem;color:var(--text-muted);opacity:.85;margin-top:1px}
+.p1-chip{display:inline-flex;align-items:center;gap:3px;margin-left:6px;padding:1px 6px;border-radius:999px;font-size:.6rem;font-weight:700;background:rgba(167,139,250,.16);color:#c4b5fd;border:1px solid rgba(167,139,250,.28)}
+/* class panel + detail view */
+.p1-class{border-color:color-mix(in srgb,var(--p1c) 35%,transparent)}
+.p1-class-head,.p1-dhead{display:flex;align-items:center;gap:12px;margin-bottom:12px;flex-wrap:wrap}
+.p1-class-ico{width:42px;height:42px;border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:1.05rem;color:var(--p1c);background:color-mix(in srgb,var(--p1c) 16%,transparent);flex-shrink:0}
+.p1-class-t{font-size:1rem;font-weight:700;color:var(--text-main)}
+.p1-class-s{font-size:.76rem;color:var(--text-muted);margin-top:2px}
+.p1-kpis{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px}
+.p1-kpi,.p1-hl-i{flex:1 1 118px;min-width:0;padding:9px 11px;border-radius:11px;border:1px solid var(--glass-border);background:rgba(255,255,255,0.03)}
+.p1-kpi .l,.p1-hl-i .l,.p1-subs .l{font-size:.62rem;text-transform:uppercase;letter-spacing:.8px;color:var(--text-muted);font-weight:600}
+.p1-kpi .v,.p1-hl-i .v{font-size:.98rem;font-weight:700;margin-top:3px;color:var(--text-main);font-family:'DM Mono',monospace;overflow-wrap:anywhere}
+.p1-hl-i .v{font-size:.86rem}
+.p1-kpi .s,.p1-hl-i .s{font-size:.66rem;color:var(--text-muted);margin-top:2px}
+.p1-hl{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px}
+.p1-subs{margin-top:4px}
+.p1-bar{display:flex;align-items:center;gap:8px;font-size:.74rem;margin-top:6px;color:var(--text-main)}
+.p1-bar span{width:36%;min-width:90px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.p1-bar div{flex:1;height:7px;border-radius:99px;background:rgba(255,255,255,.07);overflow:hidden}
+.p1-bar i{display:block;height:100%;border-radius:99px}
+.p1-bar b{width:34px;text-align:right;font-family:'DM Mono',monospace;font-size:.7rem}
+.p1-empty{padding:18px;text-align:center;font-size:.8rem;color:var(--text-muted)}
+.modal-box.p1-detail{width:780px;max-width:calc(100vw - 24px);max-height:90vh;overflow-y:auto}
+.p1-sect{border:1px solid var(--glass-border);border-radius:13px;padding:11px 12px;margin-bottom:12px;background:rgba(255,255,255,0.02);min-width:0}
+.p1-sect-t{display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap;font-size:.78rem;font-weight:700;color:var(--text-main);margin-bottom:8px}
+.p1-sect-t i{color:#a78bfa;margin-right:6px}
+.p1-two{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.p1-two .p1-sect{margin-bottom:12px}
+.p1-kv{display:flex;justify-content:space-between;gap:10px;font-size:.76rem;padding:4px 0;border-bottom:1px dashed var(--glass-border)}
+.p1-kv span{color:var(--text-muted)}
+.p1-kv b{font-weight:600;color:var(--text-main);text-align:right;overflow-wrap:anywhere}
+.p1-tw{overflow-x:auto}
+.p1-t{width:100%;border-collapse:collapse;font-size:.74rem}
+.p1-t th{text-align:left;font-size:.6rem;text-transform:uppercase;letter-spacing:.7px;color:var(--text-muted);padding:5px 6px;border-bottom:1px solid var(--glass-border);white-space:nowrap}
+.p1-t td{padding:6px;border-bottom:1px solid rgba(255,255,255,.05);color:var(--text-main);white-space:nowrap}
+.p1-t .r{text-align:right;font-family:'DM Mono',monospace}
+.p1-add{display:flex;gap:6px;flex-wrap:wrap;margin-top:9px;align-items:center}
+.p1-add .input-field{flex:1 1 90px;min-width:80px;margin:0}
+.p1-docadd2{display:inline-flex;gap:6px;align-items:center}
+.p1-docadd2 select{margin:0;padding:5px 8px;font-size:.72rem}
+.p1-fxlist{max-height:55vh;overflow-y:auto}
+.p1-fxrow{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:7px 0;border-bottom:1px solid var(--glass-border);font-size:.8rem;color:var(--text-main)}
+.p1-fxrow span{color:var(--text-muted);font-size:.7rem}
+.p1-fxin{display:flex;align-items:center;gap:6px;white-space:nowrap;font-size:.76rem;color:var(--text-muted)}
+.p1-fxin input{width:110px;margin:0}
+body.light-mode .p1-sec,body.light-mode .p1-kpi,body.light-mode .p1-hl-i,body.light-mode .p1-sect{background:rgba(15,23,42,0.03)}
+body.light-mode .p1-bar div{background:rgba(15,23,42,.08)}
+body.light-mode .p1-t td{border-bottom-color:rgba(15,23,42,.07)}
+@media (max-width:640px){.p1-grid,.p1-two{grid-template-columns:1fr}.p1-bar span{width:42%}}
+</style>
 </head>
 <!-- ═══════════════════════════════════════════════════════
      LOGIN OVERLAY — shown before the dashboard loads
@@ -6666,6 +6741,16 @@ function passAppLockGate() {
     <div class="drawer-item" onclick="filterPortAsset('Crypto');closeMobileDrawer()"><i class="fas fa-circle" style="color:var(--c-crypto);font-size:0.55rem;width:16px;text-align:center"></i> Crypto</div>
     <div class="drawer-item" onclick="filterPortAsset('FixedDeposit');closeMobileDrawer()"><i class="fas fa-circle" style="color:#14b8a6;font-size:0.55rem;width:16px;text-align:center"></i> Fixed Deposit</div>
     <div class="drawer-item" onclick="filterPortAsset('RecurringDeposit');closeMobileDrawer()"><i class="fas fa-circle" style="color:#0ea5e9;font-size:0.55rem;width:16px;text-align:center"></i> Recurring Deposit</div>
+    <div class="drawer-item" onclick="filterPortAsset('Cash');closeMobileDrawer()"><i class="fas fa-circle" style="color:#84cc16;font-size:0.55rem;width:16px;text-align:center"></i> Cash & Equivalents</div>
+    <div class="drawer-item" onclick="filterPortAsset('Retirement');closeMobileDrawer()"><i class="fas fa-circle" style="color:#f97316;font-size:0.55rem;width:16px;text-align:center"></i> Retirement Assets</div>
+    <div class="drawer-item" onclick="filterPortAsset('International');closeMobileDrawer()"><i class="fas fa-circle" style="color:#6366f1;font-size:0.55rem;width:16px;text-align:center"></i> International</div>
+    <div class="drawer-item" onclick="filterPortAsset('ETFs');closeMobileDrawer()"><i class="fas fa-circle" style="color:#06b6d4;font-size:0.55rem;width:16px;text-align:center"></i> ETFs</div>
+    <div class="drawer-item" onclick="filterPortAsset('REITs');closeMobileDrawer()"><i class="fas fa-circle" style="color:#d946ef;font-size:0.55rem;width:16px;text-align:center"></i> REITs &amp; InvITs</div>
+    <div class="drawer-item" onclick="filterPortAsset('Alternatives');closeMobileDrawer()"><i class="fas fa-circle" style="color:#e11d48;font-size:0.55rem;width:16px;text-align:center"></i> Alternatives</div>
+    <div class="drawer-item" onclick="filterPortAsset('Commodities');closeMobileDrawer()"><i class="fas fa-circle" style="color:#92400e;font-size:0.55rem;width:16px;text-align:center"></i> Commodities</div>
+    <div class="drawer-item" onclick="filterPortAsset('Collectibles');closeMobileDrawer()"><i class="fas fa-circle" style="color:#eab308;font-size:0.55rem;width:16px;text-align:center"></i> Collectibles</div>
+    <div class="drawer-item" onclick="filterPortAsset('DigitalAssets');closeMobileDrawer()"><i class="fas fa-circle" style="color:#2dd4bf;font-size:0.55rem;width:16px;text-align:center"></i> Digital Assets</div>
+    <div class="drawer-item" onclick="filterPortAsset('Business');closeMobileDrawer()"><i class="fas fa-circle" style="color:#7c3aed;font-size:0.55rem;width:16px;text-align:center"></i> Business Ownership</div>
     <div class="drawer-item" onclick="filterPortAsset('all');closeMobileDrawer()"><i class="fas fa-asterisk" style="color:#a78bfa;font-size:0.55rem;width:16px;text-align:center"></i> All Assets</div>
     <div class="drawer-item" id="mob-full-dash-toggle" onclick="toggleMobileFullDashboard()"><i class="fas fa-desktop" style="width:16px;text-align:center"></i> <span id="mob-full-dash-label">Show Full Dashboard</span></div>
   </details>
@@ -6912,6 +6997,46 @@ function passAppLockGate() {
   <div class="port-nav-item" id="port-nav-rd" onclick="filterPortAsset('RecurringDeposit')">
     <div class="nav-icon"><i class="fas fa-sync-alt" style="color:#0ea5e9"></i></div>
     <span class="nav-label">Recurring Deposit</span>
+  </div>
+  <div class="port-nav-item" id="port-nav-cash" onclick="filterPortAsset('Cash')">
+    <div class="nav-icon"><i class="fas fa-wallet" style="color:#84cc16"></i></div>
+    <span class="nav-label">Cash & Equivalents</span>
+  </div>
+  <div class="port-nav-item" id="port-nav-retirement" onclick="filterPortAsset('Retirement')">
+    <div class="nav-icon"><i class="fas fa-umbrella-beach" style="color:#f97316"></i></div>
+    <span class="nav-label">Retirement Assets</span>
+  </div>
+  <div class="port-nav-item" id="port-nav-international" onclick="filterPortAsset('International')">
+    <div class="nav-icon"><i class="fas fa-globe" style="color:#6366f1"></i></div>
+    <span class="nav-label">International</span>
+  </div>
+  <div class="port-nav-item" id="port-nav-etfs" onclick="filterPortAsset('ETFs')">
+    <div class="nav-icon"><i class="fas fa-chart-area" style="color:#06b6d4"></i></div>
+    <span class="nav-label">ETFs</span>
+  </div>
+  <div class="port-nav-item" id="port-nav-reits" onclick="filterPortAsset('REITs')">
+    <div class="nav-icon"><i class="fas fa-city" style="color:#d946ef"></i></div>
+    <span class="nav-label">REITs &amp; InvITs</span>
+  </div>
+  <div class="port-nav-item" id="port-nav-alternatives" onclick="filterPortAsset('Alternatives')">
+    <div class="nav-icon"><i class="fas fa-rocket" style="color:#e11d48"></i></div>
+    <span class="nav-label">Alternatives</span>
+  </div>
+  <div class="port-nav-item" id="port-nav-commodities" onclick="filterPortAsset('Commodities')">
+    <div class="nav-icon"><i class="fas fa-oil-can" style="color:#92400e"></i></div>
+    <span class="nav-label">Commodities</span>
+  </div>
+  <div class="port-nav-item" id="port-nav-collectibles" onclick="filterPortAsset('Collectibles')">
+    <div class="nav-icon"><i class="fas fa-gem" style="color:#eab308"></i></div>
+    <span class="nav-label">Collectibles</span>
+  </div>
+  <div class="port-nav-item" id="port-nav-digital" onclick="filterPortAsset('DigitalAssets')">
+    <div class="nav-icon"><i class="fas fa-laptop-code" style="color:#2dd4bf"></i></div>
+    <span class="nav-label">Digital Assets</span>
+  </div>
+  <div class="port-nav-item" id="port-nav-business" onclick="filterPortAsset('Business')">
+    <div class="nav-icon"><i class="fas fa-briefcase" style="color:#7c3aed"></i></div>
+    <span class="nav-label">Business Ownership</span>
   </div>
   <div class="port-nav-item" id="port-nav-all" onclick="filterPortAsset('all')">
     <div class="nav-icon"><i class="fas fa-asterisk" style="color:#a78bfa"></i></div>
@@ -7927,6 +8052,7 @@ function passAppLockGate() {
       <div class="mob-port-add-bar">
         <button type="button" class="btn-add mob-port-add-btn" onclick="openPortModal()" aria-label="Add Portfolio Entry"><i class="fas fa-plus"></i> Add Entry</button>
       </div>
+      <div id="port-class-panel"></div>
       <div class="glass-panel">
         <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:.9rem">
           <div class="panel-title" style="margin-bottom:0">Holdings Register</div>
@@ -8730,11 +8856,30 @@ function passAppLockGate() {
       <button type="button" data-t="Crypto" onclick="setPortType('Crypto')">Crypto</button>
       <button type="button" data-t="" onclick="setPortType('')">Other</button>
     </div>
+    <div class="p1-more"><select id="p-type-more" class="input-field" onchange="portMoreType(this)"><option value="">More asset types…</option></select></div>
     <input type="text" id="p-assetType" class="input-field port-focus" placeholder="Asset type, e.g. Bonds, Fixed Deposit" style="display:none;margin-bottom:10px" oninput="updatePortUnit()">
     <div class="input-group">
       <label>Name / Sub-Type</label>
       <input type="text" id="p-subType" class="input-field port-focus" list="p-sub-list" autocomplete="off" placeholder="e.g. Silver Coins, Parag Parikh Flexi Cap, Plot name" oninput="portAutofill()" onchange="portAutofill()">
       <datalist id="p-sub-list"></datalist>
+    </div>
+    <div class="input-group" id="p-subcat-grp">
+      <label>Sub-category</label>
+      <select id="p-subCategory" class="input-field port-focus"><option value="">Select sub-category</option></select>
+    </div>
+    <div class="modal-row">
+      <div class="input-group">
+        <label>Currency <a class="p1-fxlink" onclick="openFxModal()">Exchange rates</a></label>
+        <select id="p-currency" class="input-field port-focus" onchange="portCurChange()"></select>
+      </div>
+      <div class="input-group" id="p-fxNow-grp" style="display:none">
+        <label id="p-lbl-fxNow">Today’s rate</label>
+        <input type="number" id="p-fxNow" class="input-field port-focus" placeholder="0.00" inputmode="decimal" step="any" oninput="calcPortPreview()">
+      </div>
+      <div class="input-group" id="p-fxBuy-grp" style="display:none">
+        <label id="p-lbl-fxBuy">Rate at purchase</label>
+        <input type="number" id="p-fxBuy" class="input-field port-focus" placeholder="0.00" inputmode="decimal" step="any" oninput="calcPortPreview()">
+      </div>
     </div>
     <div class="modal-row">
       <div class="input-group">
@@ -8754,7 +8899,7 @@ function passAppLockGate() {
         <div class="qa-chips" id="p-buy-chips"></div>
       </div>
       <div class="input-group" id="p-total-grp">
-        <label>Total paid (₹) <span style="color:var(--text-muted);font-size:0.68rem">→ fills price</span></label>
+        <label><span id="p-lbl-total">Total paid (₹)</span> <span style="color:var(--text-muted);font-size:0.68rem">→ fills price</span></label>
         <input type="number" id="p-total" class="input-field port-focus" placeholder="0.00" inputmode="decimal" oninput="syncPortTotal('total');calcPortPreview()">
       </div>
     </div>
@@ -8787,6 +8932,32 @@ function passAppLockGate() {
       </div>
     </div>
 
+    <details class="p1-sec" id="p-sec-details" open>
+      <summary><i class="fas fa-sliders-h"></i> Asset details <span id="p-sec-details-hint"></span></summary>
+      <div id="p-meta-fields" class="p1-grid"></div>
+    </details>
+    <details class="p1-sec" id="p-sec-own">
+      <summary><i class="fas fa-user-shield"></i> Ownership details</summary>
+      <div class="p1-grid">
+        <div class="input-group"><label>Owner</label><input type="text" id="p-owner" class="input-field port-focus" placeholder="Self"></div>
+        <div class="input-group"><label>Your ownership share (%)</label><input type="number" id="p-ownPct" class="input-field port-focus" placeholder="100" min="0" max="100" step="any" inputmode="decimal" oninput="calcPortPreview()"></div>
+        <div class="input-group"><label>Holding mode</label><select id="p-holdMode" class="input-field port-focus"><option value="">—</option><option>Sole</option><option>Joint</option><option>Held for a minor</option><option>Through a company / trust</option><option>Held by a nominee</option></select></div>
+        <div class="input-group"><label>Joint holder(s)</label><input type="text" id="p-jointHolders" class="input-field port-focus" placeholder="Names"></div>
+        <div class="input-group"><label>Nominee</label><input type="text" id="p-nominee" class="input-field port-focus" placeholder="Name"></div>
+        <div class="input-group"><label>Held with / custodian</label><input type="text" id="p-heldAt" class="input-field port-focus" placeholder="Bank, broker, registry…"></div>
+      </div>
+      <div class="qa-hint" style="margin-bottom:10px">The amounts above are for the whole asset. If you own less than 100%, your share is applied to the value automatically.</div>
+    </details>
+    <details class="p1-sec" id="p-sec-docs">
+      <summary><i class="fas fa-paperclip"></i> Documents <span id="p-docs-count"></span></summary>
+      <div class="p1-docadd">
+        <select id="p-docType" class="input-field"></select>
+        <label class="btn-secondary p1-filebtn"><i class="fas fa-upload"></i> Attach files<input type="file" id="p-docFile" multiple accept=".pdf,.png,.jpg,.jpeg,.webp,.heic,.doc,.docx,.xls,.xlsx,.csv,.txt" style="display:none" onchange="portPickDocs(this)"></label>
+      </div>
+      <div id="p-docs-list"></div>
+      <div class="qa-hint" style="margin-bottom:10px">Ownership proof, certificates and statements. Files (up to 5 MB each) stay on this device; only their names sync to your account.</div>
+    </details>
+
     <div class="calc-preview" id="port-calc-preview">
       <div class="calc-item"><div class="calc-item-label">Total Invested</div><div class="calc-item-val" id="calc-invested">₹0</div></div>
       <div class="calc-item"><div class="calc-item-label">Current Value</div><div class="calc-item-val" id="calc-value">₹0</div></div>
@@ -8806,6 +8977,24 @@ function passAppLockGate() {
       <button onclick="savePortEntry(true)" class="btn-secondary" id="port-another-btn" title="Ctrl+Enter" style="white-space:nowrap">Save &amp; add another</button>
       <button onclick="closePortModal()" class="btn-secondary">Cancel</button>
       <button onclick="deleteCurrentPortEntry()" class="btn-delete" style="display:none" id="port-delete-btn"><i class="fas fa-trash"></i> Delete</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL: Portfolio holding detail (Phase 1) -->
+<div class="modal-overlay" id="port-detail-modal" onclick="if(event.target===this)closePortDetail()">
+  <div class="modal-box port-modal p1-detail"><div id="port-detail-body"></div></div>
+</div>
+
+<!-- MODAL: Exchange rates (Phase 1) -->
+<div class="modal-overlay" id="fx-modal" onclick="if(event.target===this)closeFxModal()">
+  <div class="modal-box port-modal">
+    <div class="modal-title" style="color:#c4b5fd">Exchange rates</div>
+    <div class="qa-hint" id="fx-modal-note" style="margin-bottom:10px"></div>
+    <div id="fx-modal-body" class="p1-fxlist"></div>
+    <div class="modal-actions" style="display:flex;gap:8px;margin-top:1.1rem">
+      <button onclick="saveFxRates()" class="btn-add" style="flex:1;justify-content:center;background:rgba(167,139,250,0.8)">Save rates</button>
+      <button onclick="closeFxModal()" class="btn-secondary">Cancel</button>
     </div>
   </div>
 </div>
@@ -10526,7 +10715,111 @@ const ASSET_COLOR = {
   'Crypto':           '#a78bfa',   // violet
   'FixedDeposit':     '#14b8a6',   // teal
   'RecurringDeposit': '#0ea5e9',   // light blue
+  'Cash':             '#84cc16',   // lime
+  'Retirement':       '#f97316',   // orange
+  'International':    '#6366f1',   // indigo
+  'ETFs':             '#06b6d4',   // cyan
+  'REITs':            '#d946ef',   // fuchsia
+  'Alternatives':     '#e11d48',   // rose
+  'Commodities':      '#92400e',   // brown
+  'Collectibles':     '#eab308',   // yellow
+  'DigitalAssets':    '#2dd4bf',   // aqua
+  'Business':         '#7c3aed',   // deep violet
   'Other':            '#64748b',   // slate fallback
+};
+// ══════════════════════════════════════════════════════════════════════════════
+// ASSET CATALOG (Phase 1) — one registry for all 19 asset classes.
+// mode 'qty'   = value is quantity x price per unit (Gold, Silver, ETFs, REITs, International, Commodities)
+// mode 'total' = purchasePrice / currentPrice are TOTAL amounts (how the app already treats funds, stocks, FDs …)
+// subs   = sub-categories shown in the entry form    fields = asset-specific data fields (saved in record.meta)
+// ══════════════════════════════════════════════════════════════════════════════
+const _F = (k, l, t, o) => ({ k, l, t: t || 'text', o: o === undefined ? null : o });
+const PORT_QTY_LEGACY = ['RealEstate', 'MutualFund', 'Bonds', 'Stocks', 'Crypto', 'FixedDeposit', 'RecurringDeposit'];   // total-based types that already required a quantity
+const PORT_SEG_TYPES = ['Gold', 'Silver', 'MutualFund', 'RealEstate', 'Stocks', 'Crypto'];                                  // quick buttons in the entry form
+const ASSET_CATALOG = {
+  Gold: { label: 'Gold', short: 'Gold', icon: 'fa-coins', mode: 'qty', unit: 'grams', blurb: 'Physical, paper and digital gold.',
+    subs: ['Physical Gold', 'Coins & Bars', 'Jewellery', 'Sovereign Gold Bond', 'Digital Gold'],
+    fields: [_F('purity', 'Purity', 'select', ['24K', '22K', '18K', 'Other']), _F('storage', 'Stored at', 'text', 'Home / bank locker'), _F('makingCharges', 'Making charges', 'number', '0')] },
+  Silver: { label: 'Silver', short: 'Silver', icon: 'fa-medal', mode: 'qty', unit: 'grams', blurb: 'Coins, bars, jewellery and articles.',
+    subs: ['Coins', 'Bars', 'Jewellery', 'Utensils & Articles'],
+    fields: [_F('purity', 'Purity', 'text', '999 / 925'), _F('storage', 'Stored at', 'text', 'Home / bank locker')] },
+  RealEstate: { label: 'Real Estate', short: 'Real Estate', icon: 'fa-home', mode: 'total', unit: 'sq.ft', blurb: 'Land, flats, houses and commercial property.',
+    subs: ['Residential Flat', 'Independent House', 'Plot / Land', 'Agricultural Land', 'Commercial Property'],
+    fields: [_F('location', 'Location / address', 'text', 'City, locality'), _F('registrationNo', 'Registration / document no.', 'text'), _F('monthlyRent', 'Monthly rent received', 'number', '0'), _F('loanLinked', 'Linked loan', 'text', 'Lender, if any')] },
+  MutualFund: { label: 'Mutual Funds', short: 'Mutual Funds', icon: 'fa-chart-pie', mode: 'total', unit: 'units', blurb: 'Equity, debt and hybrid mutual funds.',
+    subs: ['Equity Fund', 'Debt Fund', 'Hybrid Fund', 'Index Fund', 'ELSS (Tax Saver)', 'Liquid Fund'],
+    fields: [_F('amc', 'Fund house (AMC)', 'text'), _F('folio', 'Folio number', 'text'), _F('plan', 'Plan', 'select', ['Direct', 'Regular']), _F('sipAmount', 'Monthly SIP', 'number', '0')] },
+  Bonds: { label: 'Bonds', short: 'Bonds', icon: 'fa-file-invoice-dollar', mode: 'total', unit: 'units', blurb: 'Government and corporate bonds, debentures.',
+    subs: ['Government Bond (G-Sec)', 'Treasury Bill', 'Corporate Bond', 'Tax-Free Bond', 'Debenture'],
+    fields: [_F('issuer', 'Issuer', 'text'), _F('couponRate', 'Coupon rate (%)', 'number', '0.00'), _F('maturityDate', 'Maturity date', 'date'), _F('faceValue', 'Face value / unit', 'number'), _F('payout', 'Interest payout', 'select', ['Monthly', 'Quarterly', 'Half-yearly', 'Annual', 'At maturity']), _F('rating', 'Credit rating', 'text', 'AAA, AA+ …')] },
+  Stocks: { label: 'Stocks', short: 'Stocks', icon: 'fa-chart-line', mode: 'total', unit: 'shares', blurb: 'Direct equity held in a demat account.',
+    subs: ['Large Cap', 'Mid Cap', 'Small Cap', 'IPO / Allotment', 'ESOP / RSU'],
+    fields: [_F('exchange', 'Exchange', 'select', ['NSE', 'BSE']), _F('ticker', 'Ticker / symbol', 'text'), _F('broker', 'Broker / demat', 'text'), _F('dividendYield', 'Dividend yield (%)', 'number', '0.00')] },
+  Crypto: { label: 'Crypto', short: 'Crypto', icon: 'fa-bitcoin', iconFab: true, mode: 'total', unit: 'tokens', blurb: 'Coins, tokens and staked crypto.',
+    subs: ['Bitcoin', 'Ethereum', 'Stablecoin', 'Altcoin', 'Staked / DeFi', 'NFT'],
+    fields: [_F('wallet', 'Exchange / wallet', 'text'), _F('walletType', 'Custody', 'select', ['Exchange', 'Hot wallet', 'Cold wallet']), _F('network', 'Network / chain', 'text')] },
+  FixedDeposit: { label: 'Fixed Deposit', short: 'Fixed Deposit', icon: 'fa-piggy-bank', mode: 'total', unit: 'units', blurb: 'Bank, post-office and corporate deposits.',
+    subs: ['Bank FD', 'Tax-Saver FD', 'Corporate FD', 'Post Office Time Deposit', 'Senior Citizen FD'],
+    fields: [_F('bank', 'Bank / institution', 'text'), _F('interestRate', 'Interest rate (%)', 'number', '0.00'), _F('maturityDate', 'Maturity date', 'date'), _F('payout', 'Interest payout', 'select', ['Cumulative', 'Monthly', 'Quarterly', 'Annual']), _F('accountRef', 'Receipt / account ref.', 'text'), _F('autoRenew', 'Auto-renew', 'select', ['No', 'Yes'])] },
+  RecurringDeposit: { label: 'Recurring Deposit', short: 'Recurring Deposit', icon: 'fa-sync-alt', mode: 'total', unit: 'units', blurb: 'Monthly deposit schemes.',
+    subs: ['Bank RD', 'Post Office RD'],
+    fields: [_F('bank', 'Bank / institution', 'text'), _F('interestRate', 'Interest rate (%)', 'number', '0.00'), _F('installment', 'Monthly instalment', 'number', '0'), _F('maturityDate', 'Maturity date', 'date'), _F('accountRef', 'Account ref.', 'text')] },
+  Cash: { label: 'Cash & Equivalents', short: 'Cash', icon: 'fa-wallet', mode: 'total', unit: 'account', blurb: 'Savings accounts, cash reserves and liquid funds.',
+    alias: ['cash equivalents', 'savings account', 'liquid funds'],
+    subs: ['Savings Account', 'Current Account', 'Cash in Hand', 'Emergency Fund', 'Money Market / Liquid Fund', 'Digital Wallet'],
+    fields: [_F('institution', 'Bank / institution', 'text'), _F('accountRef', 'Account ref. (last 4 digits)', 'text'), _F('interestRate', 'Interest rate (%)', 'number', '0.00'), _F('minBalance', 'Minimum balance', 'number', '0')] },
+  Retirement: { label: 'Retirement Assets', short: 'Retirement', icon: 'fa-umbrella-beach', mode: 'total', unit: 'account', blurb: 'EPF, PPF, NPS and pension funds.',
+    alias: ['retirement', 'epf', 'ppf', 'nps', 'vpf', 'pension', 'pension fund'],
+    subs: ['EPF', 'VPF', 'PPF', 'NPS', 'Pension Fund / Annuity', 'Gratuity', 'Superannuation'],
+    fields: [_F('accountRef', 'UAN / PRAN / account ref.', 'text'), _F('employer', 'Employer / custodian', 'text'), _F('employeeContribution', 'Your monthly contribution', 'number', '0'), _F('employerContribution', 'Employer monthly contribution', 'number', '0'), _F('interestRate', 'Interest / return (%)', 'number', '0.00'), _F('maturityDate', 'Maturity / retirement date', 'date')] },
+  International: { label: 'International Assets', short: 'International', icon: 'fa-globe', mode: 'qty', unit: 'shares', blurb: 'Foreign stocks, international ETFs and overseas holdings.',
+    alias: ['international', 'overseas', 'foreign', 'global'],
+    subs: ['US Stocks', 'Global Stocks', 'International ETF', 'International Mutual Fund', 'Foreign Bond', 'Overseas Account / Deposit'],
+    fields: [_F('country', 'Country', 'text'), _F('exchange', 'Exchange', 'text', 'NYSE, NASDAQ, LSE …'), _F('ticker', 'Ticker / symbol', 'text'), _F('broker', 'Broker / platform', 'text')] },
+  ETFs: { label: 'ETFs', short: 'ETFs', icon: 'fa-chart-area', mode: 'qty', unit: 'units', blurb: 'Gold, index and sector exchange-traded funds.',
+    alias: ['etf'],
+    subs: ['Gold ETF', 'Silver ETF', 'Index ETF', 'Sector ETF', 'Debt / Liquid ETF', 'Commodity ETF'],
+    fields: [_F('exchange', 'Exchange', 'select', ['NSE', 'BSE']), _F('ticker', 'Ticker / symbol', 'text'), _F('indexTracked', 'Index / asset tracked', 'text'), _F('expenseRatio', 'Expense ratio (%)', 'number', '0.00'), _F('broker', 'Broker / demat', 'text')] },
+  REITs: { label: 'REITs & InvITs', short: 'REITs & InvITs', icon: 'fa-city', mode: 'qty', unit: 'units', blurb: 'Real estate and infrastructure investment trusts.',
+    alias: ['reit', 'reits', 'invit', 'invits', 'reits & invits', 'reits and invits'],
+    subs: ['Equity REIT', 'Hybrid REIT', 'Infrastructure InvIT', 'Roads / Transmission InvIT', 'Private InvIT'],
+    fields: [_F('exchange', 'Exchange', 'select', ['NSE', 'BSE']), _F('ticker', 'Ticker / symbol', 'text'), _F('sector', 'Sector', 'text', 'Offices, roads, towers …'), _F('distributionYield', 'Distribution yield (%)', 'number', '0.00')] },
+  Alternatives: { label: 'Alternative Investments', short: 'Alternatives', icon: 'fa-rocket', mode: 'total', unit: 'stake', blurb: 'Private equity, venture capital and private credit.',
+    alias: ['alternative', 'alternatives', 'private equity', 'venture capital', 'private credit', 'aif'],
+    subs: ['Private Equity', 'Venture Capital', 'Angel Investment', 'Private Credit', 'Hedge Fund / AIF', 'Peer-to-Peer Lending', 'Startup Equity'],
+    fields: [_F('manager', 'Fund manager / platform', 'text'), _F('vintageYear', 'Vintage year', 'number', 'YYYY'), _F('commitment', 'Total commitment', 'number', '0'), _F('calledCapital', 'Capital called so far', 'number', '0'), _F('lockInEnd', 'Lock-in ends', 'date'), _F('expectedIrr', 'Target IRR (%)', 'number', '0.0')] },
+  Commodities: { label: 'Commodities', short: 'Commodities', icon: 'fa-oil-can', mode: 'qty', unit: 'units', blurb: 'Crude oil, natural gas and agricultural commodities.',
+    alias: ['commodity'],
+    subs: ['Crude Oil', 'Natural Gas', 'Agricultural (Grains / Pulses)', 'Agricultural (Soft)', 'Base Metals', 'Platinum / Palladium'],
+    fields: [_F('instrument', 'Instrument', 'select', ['Physical', 'Futures', 'ETN / Note', 'Other']), _F('contract', 'Contract / exchange', 'text', 'MCX, NYMEX …'), _F('contractExpiry', 'Contract expiry', 'date'), _F('lotSize', 'Lot size', 'number')] },
+  Collectibles: { label: 'Collectibles', short: 'Collectibles', icon: 'fa-gem', mode: 'total', unit: 'items', blurb: 'Watches, artwork, antiques and rare collectibles.',
+    alias: ['collectible', 'watches', 'artwork', 'antiques'],
+    subs: ['Watches', 'Artwork', 'Antiques', 'Rare Coins & Stamps', 'Wine & Spirits', 'Classic Cars', 'Memorabilia', 'Musical Instruments'],
+    fields: [_F('maker', 'Maker / artist', 'text'), _F('yearMade', 'Year made', 'number', 'YYYY'), _F('condition', 'Condition', 'select', ['Mint', 'Excellent', 'Good', 'Fair', 'Needs restoration']), _F('provenance', 'Provenance', 'text'), _F('certificateNo', 'Certificate / serial no.', 'text'), _F('insuredValue', 'Insured value', 'number', '0'), _F('appraisalDate', 'Last appraisal date', 'date'), _F('storage', 'Stored at', 'text')] },
+  DigitalAssets: { label: 'Digital Assets', short: 'Digital Assets', icon: 'fa-laptop-code', mode: 'total', unit: 'items', blurb: 'Domains, websites and digital intellectual property.',
+    alias: ['digital', 'domains', 'domain names'],
+    subs: ['Domain Name', 'Website / Blog', 'Digital IP / Copyright', 'Software / App', 'Channel / Social Account', 'Royalty Stream'],
+    fields: [_F('platform', 'Registrar / platform', 'text'), _F('identifier', 'Domain / URL / ID', 'text'), _F('renewalDate', 'Renewal date', 'date'), _F('annualCost', 'Annual renewal cost', 'number', '0'), _F('monthlyRevenue', 'Monthly revenue', 'number', '0')] },
+  Business: { label: 'Business Ownership', short: 'Business', icon: 'fa-briefcase', mode: 'total', unit: 'stake', blurb: 'Private business equity and ownership stakes.',
+    alias: ['business', 'private business', 'business ownership'],
+    subs: ['Sole Proprietorship', 'Partnership Stake', 'Private Limited (Equity)', 'LLP Stake', 'Franchise', 'Family Business', 'Startup Founder Equity'],
+    fields: [_F('registrationNo', 'CIN / registration no.', 'text'), _F('industry', 'Industry', 'text'), _F('annualRevenue', 'Annual revenue (100%)', 'number', '0'), _F('annualProfit', 'Annual profit (100%)', 'number', '0'), _F('valuationMethod', 'Valuation method', 'select', ['Book value', 'Earnings multiple', 'DCF', 'Last funding round', 'Manual estimate']), _F('valuationDate', 'Last valuation date', 'date')] }
+};
+// Order of the "By Asset" sidebar, entry-form list and detail views follows this registry.
+const _ASSET_ALIASES = (() => {
+  const m = {};
+  Object.keys(ASSET_CATALOG).forEach(k => {
+    const c = ASSET_CATALOG[k];
+    [k, c.label].concat(c.alias || []).forEach(a => { m[String(a).toLowerCase().replace(/[_\-]+/g, ' ').replace(/\s+/g, ' ').trim()] = k; });
+  });
+  return m;
+})();
+// Supported currencies. Rates are "base currency per 1 unit" and are entered by the person (no network calls).
+const FX_CURRENCIES = {
+  INR: { sym: '₹', name: 'Indian Rupee' }, USD: { sym: '$', name: 'US Dollar' }, EUR: { sym: '€', name: 'Euro' },
+  GBP: { sym: '£', name: 'British Pound' }, AED: { sym: 'AED ', name: 'UAE Dirham' }, SGD: { sym: 'S$', name: 'Singapore Dollar' },
+  AUD: { sym: 'A$', name: 'Australian Dollar' }, CAD: { sym: 'C$', name: 'Canadian Dollar' }, JPY: { sym: 'JP¥', name: 'Japanese Yen' },
+  CHF: { sym: 'CHF ', name: 'Swiss Franc' }, HKD: { sym: 'HK$', name: 'Hong Kong Dollar' }, CNY: { sym: 'CN¥', name: 'Chinese Yuan' }
 };
 // Alpha version for bar/area fills
 function assetColorA(type, alpha = 0.7) {
@@ -10544,7 +10837,8 @@ function assetColor(type) {
 // ─── ASSET TYPE DETECTION ───────────────────────────────────────────────────
 function isQtyBased(assetType) {
   const t = normalizeAssetType(assetType);
-  return t !== 'RealEstate' && t !== 'MutualFund' && t !== 'Bonds' && t !== 'Stocks' && t !== 'Crypto' && t !== 'FixedDeposit' && t !== 'RecurringDeposit';
+  if (ASSET_CATALOG[t]) return ASSET_CATALOG[t].mode === 'qty';   // catalog decides: per-unit price (qty) or total amount
+  return true;                                                     // unknown / custom types stay per-unit, as before
 }
 
 let db = JSON.parse(localStorage.getItem('fos_db_v3')) || [];
@@ -10593,6 +10887,7 @@ let userNumberSystem = localStorage.getItem('fos_number_system') || 'indian';
 function normalizeAssetType(type) {
   const t = String(type ?? '').trim().toLowerCase().replace(/[_\-]+/g, ' ').replace(/\s+/g, ' ');
   if (!t) return '';
+  if (_ASSET_ALIASES[t]) return _ASSET_ALIASES[t];   // exact names / aliases of every catalog class
   if (t.includes('gold')) return 'Gold';
   if (t.includes('silver')) return 'Silver';
   if (t.includes('land') || t.includes('property') || t.includes('plot') || t.includes('real estate') || t.includes('realestate')) return 'RealEstate';
@@ -10602,17 +10897,23 @@ function normalizeAssetType(type) {
   if (t.includes('crypto') || t.includes('bitcoin') || t.includes('btc') || t.includes('eth') || t.includes('ethereum')) return 'Crypto';
   if (t.includes('fixed deposit') || t === 'fd') return 'FixedDeposit';
   if (t.includes('recurring deposit') || t === 'rd') return 'RecurringDeposit';
+  if (/\b(epf|ppf|nps|vpf)\b|pension|retirement/.test(t)) return 'Retirement';
+  if (/\betfs?\b/.test(t)) return 'ETFs';
+  if (/\b(reits?|invits?)\b/.test(t)) return 'REITs';
+  if (/private equity|venture|private credit|alternative/.test(t)) return 'Alternatives';
+  if (/commodit|crude oil|natural gas/.test(t)) return 'Commodities';
+  if (/collectible|antique|artwork/.test(t)) return 'Collectibles';
+  if (/digital asset|domain name/.test(t)) return 'DigitalAssets';
+  if (/business|private company/.test(t)) return 'Business';
+  if (/international|overseas|foreign/.test(t)) return 'International';
+  if (/^cash\b|savings account|liquid fund/.test(t)) return 'Cash';
   return String(type).trim();
 }
 
 function assetTypeLabel(type) {
   const k = normalizeAssetType(type);
-  const map = { 
-    Gold:'Gold', Silver:'Silver', RealEstate:'Real Estate', 
-    MutualFund:'Mutual Funds', Bonds:'Bonds', Stocks:'Stocks', Crypto:'Crypto',
-    FixedDeposit:'Fixed Deposit', RecurringDeposit:'Recurring Deposit'
-  };
-  return map[k] || (String(type ?? '').trim() || 'Other');
+  if (ASSET_CATALOG[k]) return ASSET_CATALOG[k].label;
+  return String(type ?? '').trim() || 'Other';
 }
 
 // Key used to look up colours — same as normalizeAssetType but "Other" fallback
@@ -10682,8 +10983,9 @@ function wipeLocalFinancialData() {
   ['fos_db_v3','fos_port_v3','fos_credit_v1','fos_insurance_v1','fos_notes_v1','fos_subscriptions_v1',
    'fos_budgets','financeOS_ccCards','fos_notifications','fos_game_stats',
    'fos_dashboard_layout_v4','fos_onboarding_goal','fos_last_active_view','fos_finai_goals_v1',
-   'fos_master_v1','fos_last_nw_milestone','fos_last_portfolio_update','fos_finai_score_history','fos_notif_dismissed'
+   'fos_master_v1','fos_last_nw_milestone','fos_last_portfolio_update','fos_finai_score_history','fos_notif_dismissed','fos_fx_v1'
   ].forEach(k => localStorage.removeItem(k));
+  try { if (typeof fosDocClear === 'function') fosDocClear().catch(() => {}); } catch (e) {}   // attachments live in IndexedDB on this device
 }
 
 async function handleLogout() {
@@ -11201,24 +11503,31 @@ setInterval(() => { if (!document.hidden) doAutoSave(); }, 8000);
 
 // ── PORTFOLIO CALC ─────────────────────────────────────────────────────────
 function portCalc(e) {
-  const qty = Number(e.quantity) || 0;
+  const qtyP = Number(e.quantity) || 0;
   const buyP = Number(e.purchasePrice) || 0;
   const isSold = e.status === 'sold';
   const curP = isSold ? (Number(e.sellPrice) || Number(e.currentPrice) || 0) : (Number(e.currentPrice) || 0);
+  const perUnit = isQtyBased(e.assetType);
 
-  let totalInv, currVal;
-  if (isQtyBased(e.assetType)) {
-    totalInv = qty * buyP;
-    currVal  = qty * curP;
-  } else {
-    totalInv = buyP;
-    currVal  = curP;
-  }
+  // Phase 1: foreign-currency holdings convert to the base currency (purchase at the purchase-time rate,
+  // value at today's rate), extra purchases (lots) add to cost, and ownership share scales the result.
+  // A holding with none of these fields calculates exactly as before.
+  const fxNow = portFxNow(e), fxBuy = Number(e.fxBuy) > 0 ? Number(e.fxBuy) : fxNow, share = portShare(e);
+  const lots = Array.isArray(e.lots) ? e.lots : [];
+  let qty = qtyP, invNative = perUnit ? qtyP * buyP : buyP, invBase = invNative * fxBuy;
+  lots.forEach(l => {
+    const lq = Number(l.qty) || 0, lp = Number(l.price) || 0, nat = (perUnit ? lq * lp : lp) + (Number(l.fees) || 0);
+    invNative += nat; invBase += nat * (Number(l.fx) > 0 ? Number(l.fx) : fxBuy);
+    if (perUnit) qty += lq;
+  });
+  const totalInv = invBase * share;
+  const currVal  = (perUnit ? qty * curP : curP) * fxNow * share;
 
   const gainLoss  = currVal - totalInv;
   const roi       = totalInv > 0 ? ((currVal - totalInv) / totalInv) * 100 : 0;
   const profitPct = totalInv > 0 ? (gainLoss / totalInv) * 100 : 0;
-  return { totalInvestment: totalInv, currentValue: currVal, gainLoss, roi, profitPct };
+  return { totalInvestment: totalInv, currentValue: currVal, gainLoss, roi, profitPct,
+           qtyTotal: qty, avgCost: perUnit && qty > 0 ? invNative / qty : buyP, fxNowUsed: fxNow, fxBuyUsed: fxBuy };
 }
 
 // ── PORTFOLIO FILTERS ──────────────────────────────────────────────────────
@@ -11329,7 +11638,10 @@ function filterPortAsset(type) {
   const idMap = { 
     Gold:'port-nav-gold', Silver:'port-nav-silver', RealEstate:'port-nav-realestate', 
     MutualFund:'port-nav-mf', Bonds:'port-nav-bonds', Stocks:'port-nav-stocks', 
-    Crypto:'port-nav-crypto', FixedDeposit:'port-nav-fd', RecurringDeposit:'port-nav-rd', all:'port-nav-all' 
+    Crypto:'port-nav-crypto', FixedDeposit:'port-nav-fd', RecurringDeposit:'port-nav-rd', all:'port-nav-all',
+    Cash:'port-nav-cash', Retirement:'port-nav-retirement', International:'port-nav-international', ETFs:'port-nav-etfs',
+    REITs:'port-nav-reits', Alternatives:'port-nav-alternatives', Commodities:'port-nav-commodities',
+    Collectibles:'port-nav-collectibles', DigitalAssets:'port-nav-digital', Business:'port-nav-business'
   };
   const navEl = document.getElementById(idMap[type]);
   
@@ -16523,6 +16835,7 @@ function renderPortTable() {
   if (!data.length) {
     tbody.innerHTML = `<tr><td colspan="14"><div class="empty-state"><i class="fas fa-gem"></i><p>No portfolio entries for the selected filter</p></div></td></tr>`;
     document.getElementById('port-summary-panel').style.display = 'none';
+    renderPortClassPanel([]);
     return;
   }
 
@@ -16544,16 +16857,16 @@ function renderPortTable() {
       <td style="font-weight:600">
         <span style="display:inline-flex;align-items:center;gap:6px">
           <span style="width:7px;height:7px;border-radius:50%;background:${dotColor};flex-shrink:0;display:inline-block"></span>
-          ${assetTypeLabel(e.assetType)}
+          ${assetTypeLabel(e.assetType)}${portTag(e)}
         </span>
       </td>
-      <td style="color:var(--text-muted);font-size:0.8rem">${e.subType || '-'}</td>
+      <td style="color:var(--text-muted);font-size:0.8rem">${portSubCell(e)}</td>
       <td style="color:var(--text-muted);font-family:'DM Mono',monospace;font-size:0.72rem">${fmtDate(e.date)}</td>
-      <td style="text-align:right;font-family:'DM Mono',monospace">${e.quantity}</td>
+      <td style="text-align:right;font-family:'DM Mono',monospace">${e.lots && e.lots.length && isQtyBased(e.assetType) ? +e.qtyTotal.toFixed(4) : e.quantity}</td>
       <td style="color:var(--text-muted);font-size:0.75rem">${e.unit}</td>
-      <td style="text-align:right;font-family:'DM Mono',monospace">${fmt(e.purchasePrice)}</td>
+      <td style="text-align:right;font-family:'DM Mono',monospace">${portFmtNative(e.avgCost, e)}</td>
       <td style="text-align:right;font-family:'DM Mono',monospace">${fmt(e.totalInvestment)}</td>
-      <td style="text-align:right;font-family:'DM Mono',monospace">${fmt(e.currentPrice)}</td>
+      <td style="text-align:right;font-family:'DM Mono',monospace">${portFmtNative(e.currentPrice, e)}</td>
       <td style="text-align:right;font-family:'DM Mono',monospace;color:var(--c-inv)">${fmt(e.currentValue)}</td>
       <td style="text-align:right"><span class="roi-chip ${roiClass}">${e.roi.toFixed(0)}%</span></td>
       <td style="text-align:right;font-family:'DM Mono',monospace;color:var(--c-inc)">${e.profitPct.toFixed(1)}%</td>
@@ -16565,11 +16878,12 @@ function renderPortTable() {
         ${e.status === 'sold'
           ? `<i class="fas fa-rotate-left" style="cursor:pointer;color:#34d39990;font-size:0.72rem;margin-right:8px" onclick="markPortActive(${e.id})" title="Mark Active"></i>`
           : `<i class="fas fa-tag" style="cursor:pointer;color:#f472b690;font-size:0.72rem;margin-right:8px" onclick="markPortSold(${e.id})" title="Mark Sold"></i>`}
-        <i class="fas fa-edit edit-icon" onclick="editPortEntry(${e.id})" title="Edit"></i><i class="fas fa-trash" style="cursor:pointer;color:#ef444460;font-size:0.72rem" onclick="deletePortItem(${e.id})"></i></td>
+        <i class="fas fa-folder-open" style="cursor:pointer;color:#a78bfa;font-size:0.72rem;margin-right:8px" onclick="openPortDetail(${e.id})" title="Details, history & documents"></i><i class="fas fa-edit edit-icon" onclick="editPortEntry(${e.id})" title="Edit"></i><i class="fas fa-trash" style="cursor:pointer;color:#ef444460;font-size:0.72rem" onclick="deletePortItem(${e.id})"></i></td>
     </tr>`;
   });
   tbody.innerHTML = portHtmlRows;
 
+  renderPortClassPanel(data);
   renderPortSummary(data);
 }
 
@@ -16584,7 +16898,7 @@ function renderPortSummary(data) {
     byType[key].roi.push(e.roi);
     byType[key].profit.push(e.profitPct);
     byType[key].gain += e.gainLoss;
-    byType[key].qty  += e.quantity;
+    byType[key].qty  += (e.qtyTotal != null ? e.qtyTotal : e.quantity);
     byType[key].val  += e.currentValue;
     byType[key].price.push(e.currentPrice);
     byType[key].inv  += e.totalInvestment;
@@ -21665,31 +21979,37 @@ function deleteItem(id) {
 }
 
 // ── PORTFOLIO ENTRY MODAL ──────────────────────────────────────────────────
-const _PORT_KEYS = ['Gold','Silver','MutualFund','RealEstate','Stocks','Crypto'];
+const _PORT_KEYS = Object.keys(ASSET_CATALOG);
 let _portDup = '';
 const _pEl = id => document.getElementById(id);
 const _pType = () => normalizeAssetType(_pEl('p-assetType').value.trim());
-function setPortType(v) { _pEl('p-assetType').value = v; _pEl('p-unit').dataset.auto = '1'; _pEl('p-currPrice').dataset.auto = '1'; if (v === '') { _pEl('p-assetType').style.display = 'block'; _pEl('p-assetType').focus(); } updatePortUnit(); portAutofill(); }
+function setPortType(v) {
+  _pEl('p-assetType').value = v; _pEl('p-unit').dataset.auto = '1'; _pEl('p-currPrice').dataset.auto = '1';
+  if (v === '') { _pEl('p-assetType').style.display = 'block'; _pEl('p-assetType').focus(); }
+  // International assets are usually priced in a foreign currency — start on USD (changeable) for a new entry
+  if (v === 'International' && !editingPortId && portSelCur() === portBaseCode()) { _pEl('p-currency').value = 'USD'; portCurSync(true); }
+  updatePortUnit(); portAutofill();
+}
 // Chips, labels and the Total field depend on the asset type. Gold/Silver are priced per unit;
 // funds, stocks, crypto and real estate store TOTAL amounts (that is how the app already computes them).
 function portUiSync() {
   const t = _pType(), perUnit = !t || isQtyBased(t);
   document.querySelectorAll('#p-type-seg button').forEach(b => b.classList.toggle('on', !!t && b.dataset.t === t));
   _pEl('p-assetType').style.display = (t && !_PORT_KEYS.includes(t)) || (!t && _pEl('p-assetType').style.display === 'block') ? 'block' : 'none';
-  _pEl('p-lbl-buy').textContent  = perUnit ? 'Purchase Price / unit (₹)' : 'Amount Invested (₹)';
-  _pEl('p-lbl-cur').textContent  = perUnit ? 'Current Price / unit (₹)'  : 'Current Value (₹)';
-  _pEl('p-lbl-sell').textContent = perUnit ? 'Sell Price / unit (₹)'     : 'Sold For (₹)';
+  const sym = portSym(portSelCur());
+  const more = _pEl('p-type-more'); if (more) more.value = t && PORT_SEG_TYPES.indexOf(t) < 0 && ASSET_CATALOG[t] ? t : '';
+  _pEl('p-lbl-buy').textContent  = perUnit ? 'Purchase Price / unit (' + sym + ')' : 'Amount Invested (' + sym + ')';
+  _pEl('p-lbl-cur').textContent  = perUnit ? 'Current Price / unit (' + sym + ')'  : 'Current Value (' + sym + ')';
+  _pEl('p-lbl-sell').textContent = perUnit ? 'Sell Price / unit (' + sym + ')'     : 'Sold For (' + sym + ')';
+  _pEl('p-lbl-total').textContent = 'Total paid (' + sym + ')';
+  if (_pMetaType !== t) portRenderExtra(t);
   _pEl('p-total-grp').style.display = perUnit ? '' : 'none';
   const subs = {}; portDb.forEach(r => { if (!t || normalizeAssetType(r.assetType) === t) { const k = (r.subType || '').trim(); if (k) subs[k] = (subs[k] || 0) + 1; } });
   _pEl('p-sub-list').innerHTML = Object.entries(subs).sort((a, b) => b[1] - a[1]).map(x => `<option value="${_esc(x[0])}">`).join('');
 }
 function updatePortUnit() {
   const t = _pType();
-  let unit = 'units';
-  if (t === 'Gold' || t === 'Silver') unit = 'grams';
-  else if (t === 'RealEstate') unit = 'sq.ft';
-  else if (t === 'Stocks') unit = 'shares';
-  else if (t === 'Crypto') unit = 'tokens';
+  const unit = (ASSET_CATALOG[t] && ASSET_CATALOG[t].unit) || 'units';
   const u = _pEl('p-unit');
   if (!u.value || u.dataset.auto === '1') { u.value = unit; u.dataset.auto = '1'; }   // never overwrite a unit you typed / saved
   _pEl('p-unit-hint').textContent = '(' + unit + ')';
@@ -21729,26 +22049,8 @@ function togglePortSellFields() {
 }
 
 function calcPortPreview() {
-  const assetType = document.getElementById('p-assetType').value.trim();
-  const qty  = parseFloat(document.getElementById('p-qty').value) || 0;
-  const buy  = parseFloat(document.getElementById('p-buyPrice').value) || 0;
-  const isSold = document.getElementById('p-status') && document.getElementById('p-status').value === 'sold';
-  const cur  = isSold
-    ? (parseFloat(document.getElementById('p-sellPrice').value) || parseFloat(document.getElementById('p-currPrice').value) || 0)
-    : (parseFloat(document.getElementById('p-currPrice').value) || 0);
-
-  let totalInv, currVal;
-  if (isQtyBased(assetType)) {
-    totalInv = qty * buy;
-    currVal  = qty * cur;
-  } else {
-    totalInv = buy;
-    currVal  = cur;
-  }
-
-  const gain = currVal - totalInv;
-  const roi  = totalInv > 0 ? ((currVal - totalInv) / totalInv) * 100 : 0;
-  const prof = totalInv > 0 ? (gain / totalInv) * 100 : 0;
+  const c = portCalc(portDraftRecord());   // same rule as the Portfolio pages: currency, extra purchases and ownership share included
+  const totalInv = c.totalInvestment, currVal = c.currentValue, gain = c.gainLoss, roi = c.roi, prof = c.profitPct;
 
   document.getElementById('calc-invested').textContent = fmt(totalInv);
   document.getElementById('calc-value').textContent    = fmt(currVal);
@@ -21772,11 +22074,12 @@ function openPortModal() {
   _pEl('p-status').value = 'active';
   const last = portDb.slice().sort((a, b) => b.id - a.id)[0];            // start on your most recently used asset type
   if (last) _pEl('p-assetType').value = normalizeAssetType(last.assetType);
+  portResetExtra();
   togglePortSellFields(); updatePortUnit(); portAutofill();
   _pEl('port-modal').style.display = 'flex';
   setTimeout(() => { const el = _pEl('p-subType'); if (el) el.focus(); }, 60);
 }
-function closePortModal() { _pEl('port-modal').style.display = 'none'; }
+function closePortModal() { _pEl('port-modal').style.display = 'none'; _pendingDocs = []; _pRemoveDocs = []; }
 
 function editPortEntry(id) {
   const entry = portDb.find(x => x.id === id);
@@ -21801,6 +22104,7 @@ function editPortEntry(id) {
   ['p-qty-chips','p-buy-chips','p-cur-hint'].forEach(id => _pEl(id).innerHTML = '');
   _pEl('p-unit-hint').textContent = '(' + entry.unit + ')';
   portUiSync(); syncPortTotal('qty');
+  portLoadExtra(entry);
   togglePortSellFields();
   calcPortPreview();
   document.getElementById('port-modal').style.display = 'flex';
@@ -21816,13 +22120,16 @@ function deleteCurrentPortEntry() {
 function savePortEntry(another) {
   const assetType = normalizeAssetType(_pEl('p-assetType').value.trim());
   const subType = _pEl('p-subType').value.trim(), date = _pEl('p-date').value;
-  const quantity = parseFloat(_pEl('p-qty').value), unit = _pEl('p-unit').value.trim() || 'units';
+  let quantity = parseFloat(_pEl('p-qty').value); const unit = _pEl('p-unit').value.trim() || 'units';
   const purchasePrice = parseFloat(_pEl('p-buyPrice').value), currentPrice = parseFloat(_pEl('p-currPrice').value);
   const notes = _pEl('p-notes').value.trim();
   const status = _pEl('p-status').value === 'sold' ? 'sold' : 'active';
   const sellDate = status === 'sold' ? _pEl('p-sellDate').value : '';
   const sellRaw = _pEl('p-sellPrice').value, sellPrice = status === 'sold' && sellRaw !== '' ? parseFloat(sellRaw) : '';
   const err = _pEl('port-err'), perUnit = !assetType || isQtyBased(assetType);
+  // new total-value classes (cash, retirement, collectibles …) are single items — quantity defaults to 1
+  if (!(quantity > 0) && ASSET_CATALOG[assetType] && !isQtyBased(assetType) && PORT_QTY_LEGACY.indexOf(assetType) < 0) quantity = 1;
+  const ex = portCollectExtra(assetType);
   document.querySelectorAll('#port-modal .input-field.err').forEach(e => e.classList.remove('err'));
   const bad = [];
   if (!assetType) bad.push(['p-assetType', 'asset type']);
@@ -21831,6 +22138,7 @@ function savePortEntry(another) {
   if (!(currentPrice > 0)) bad.push(['p-currPrice', perUnit ? 'current price' : 'current value']);
   if (!date) bad.push(['p-date', 'purchase date']);
   if (status === 'sold' && !sellDate) bad.push(['p-sellDate', 'sell date']);
+  portValidateExtra(ex, bad);
   err.style.color = '';
   if (bad.length) {
     bad.forEach(b => { _pEl(b[0]).classList.add('err'); });
@@ -21848,11 +22156,17 @@ function savePortEntry(another) {
   }
   _portDup = '';
 
+  const core = { assetType, subType, date, quantity, unit, purchasePrice, currentPrice, notes, status, sellDate, sellPrice };
+  let savedRec = null;
   if (editingPortId) {
     const idx = portDb.findIndex(x => x.id === editingPortId);
-    if (idx >= 0) portDb[idx] = { ...portDb[idx], assetType, subType, date, quantity, unit, purchasePrice, currentPrice, notes, status, sellDate, sellPrice };
+    if (idx >= 0) { const old = portDb[idx]; savedRec = { ...old, ...core, ...ex }; portSyncValuation(savedRec, old); portDb[idx] = savedRec; }
   } else {
-    portDb.push({ id: Date.now(), assetType, subType, date, quantity, unit, purchasePrice, currentPrice, notes, status, sellDate, sellPrice });
+    savedRec = { id: Date.now(), ...core, ...ex }; portSyncValuation(savedRec, null); portDb.push(savedRec);
+  }
+  if (savedRec) {
+    portCommitDocs(savedRec);
+    if (savedRec.currency) portSetFxRate(savedRec.currency, savedRec.fxNow, true);   // today's rate applies to every holding in that currency
   }
   scheduleSave();
   buildPortDropdowns();
@@ -21863,6 +22177,7 @@ function savePortEntry(another) {
 
   if (another === true && !editingPortId) {   // keep type, name, date, unit & current price — clear the per-purchase fields
     ['p-qty','p-buyPrice','p-total','p-notes'].forEach(id => _pEl(id).value = '');
+    _pendingDocs = []; _pRemoveDocs = []; portRenderDocsList();
     err.style.color = '#34d399'; err.textContent = '✓ Saved ' + (subType || assetTypeLabel(assetType)) + ' — add the next one';
     portAutofill(); calcPortPreview(); _pEl('p-qty').focus();
   } else closePortModal();
@@ -21912,6 +22227,429 @@ function deletePortItem(id) {
     
     showUndoToast(`Deleted ${assetTypeLabel(deletedItem.assetType)} holding`, 'portfolio', [deletedItem]);
   }
+}
+
+// ══════════════════════════════════════════════════════════════════════════════
+// PHASE 1 — ASSET EXPANSION
+// Sub-categories & asset-specific fields · multi-currency · purchase / valuation history ·
+// ownership details · document attachments · per-class summary · per-holding detail view.
+// Everything here is additive: records without the new fields behave exactly as before.
+// ══════════════════════════════════════════════════════════════════════════════
+const _pRand = () => Date.now() + Math.floor(Math.random() * 100000);
+let _pMetaType = null;          // asset type the dynamic form fields were last built for
+let _pendingDocs = [];          // files chosen in the entry form, saved with the holding
+let _pRemoveDocs = [];          // ids of attachments removed in the entry form, deleted on save
+let _detailId = null;           // holding open in the detail view
+
+// ── Currency / FX helpers ────────────────────────────────────────────────────
+function portBaseCode() {
+  const s = (localStorage.getItem('fos_currency') || '₹').trim();
+  for (const c in FX_CURRENCIES) if (FX_CURRENCIES[c].sym.trim() === s) return c;
+  return 'INR';
+}
+function portSym(code) { const c = FX_CURRENCIES[String(code || '').toUpperCase()]; return c ? c.sym.trim() : (localStorage.getItem('fos_currency') || '₹'); }
+function portIsForeign(e) { const c = String((e && e.currency) || '').toUpperCase(); return !!c && c !== portBaseCode(); }
+function portFxTable() { try { return JSON.parse(localStorage.getItem('fos_fx_v1')) || {}; } catch (err) { return {}; } }
+function portFxNow(e) {
+  if (!portIsForeign(e)) return 1;
+  const c = String(e.currency).toUpperCase();
+  if (Number(e._fxNow) > 0) return Number(e._fxNow);          // live value typed in the entry form
+  if (Number(e.fxNow) > 0) return Number(e.fxNow);
+  const t = portFxTable(); if (Number(t[c]) > 0) return Number(t[c]);
+  return Number(e.fxBuy) > 0 ? Number(e.fxBuy) : 1;
+}
+function portShare(e) { const p = Number(e && e.ownershipPct); return p > 0 && p <= 100 ? p / 100 : 1; }
+// Sets today's rate for one currency on the rate table AND on every holding in that currency (so it syncs with the holdings).
+function portSetFxRate(code, rate, silent) {
+  code = String(code || '').toUpperCase(); rate = Number(rate);
+  if (!code || !(rate > 0) || code === portBaseCode()) return;
+  const t = portFxTable(); t[code] = rate; t._updated = localISO();
+  localStorage.setItem('fos_fx_v1', JSON.stringify(t));
+  portDb.forEach(r => { if (String(r.currency || '').toUpperCase() === code) r.fxNow = rate; });
+  if (!silent) scheduleSave();
+}
+// Display a native-currency amount (the holding's own currency, not converted)
+function portFmtNative(n, e) {
+  if (!portIsForeign(e)) return fmt(n);
+  const v = Number(n); if (!isFinite(v)) return '-';
+  return portSym(e.currency) + v.toLocaleString((localStorage.getItem('fos_number_system') || 'indian') === 'indian' ? 'en-IN' : 'en-US', { maximumFractionDigits: 2 });
+}
+function portRefreshViews() {
+  buildPortDropdowns();
+  if (activeView === 'port-overview') renderPortOverview();
+  else if (activeView === 'port-table') renderPortTable();
+  else if (activeView === 'port-analytics') renderPortAnalytics();
+  else if (activeView === 'dashboard') renderDashboard();
+}
+
+// ── Document storage (IndexedDB, this device only) ───────────────────────────
+function _docDb() {
+  return new Promise((res, rej) => {
+    if (!window.indexedDB) return rej(new Error('IndexedDB is not available in this browser'));
+    const r = indexedDB.open('fos_docs_v1', 1);
+    r.onupgradeneeded = () => r.result.createObjectStore('docs');
+    r.onsuccess = () => res(r.result);
+    r.onerror = () => rej(r.error);
+  });
+}
+async function _docTx(mode, fn) {
+  const d = await _docDb();
+  return new Promise((res, rej) => {
+    const tx = d.transaction('docs', mode), st = tx.objectStore('docs'), rq = fn(st);
+    tx.oncomplete = () => { d.close(); res(rq ? rq.result : undefined); };
+    tx.onerror = tx.onabort = () => { d.close(); rej(tx.error || new Error('Storage error')); };
+  });
+}
+function fosDocPut(id, blob) { return _docTx('readwrite', s => s.put(blob, id)); }
+function fosDocGet(id) { return _docTx('readonly', s => s.get(id)); }
+function fosDocDel(id) { return _docTx('readwrite', s => s.delete(id)); }
+function fosDocClear() { return _docTx('readwrite', s => s.clear()); }
+const PORT_DOC_MAX = 5 * 1024 * 1024, PORT_DOC_LIMIT = 12;
+const PORT_DOC_TYPES = ['Ownership proof', 'Certificate', 'Statement', 'Agreement / Deed', 'Invoice / Receipt', 'Valuation report', 'Other'];
+const PORT_DOC_ACCEPT = '.pdf,.png,.jpg,.jpeg,.webp,.heic,.doc,.docx,.xls,.xlsx,.csv,.txt';
+function _kb(n) { return n >= 1048576 ? (n / 1048576).toFixed(1) + ' MB' : Math.max(1, Math.round(n / 1024)) + ' KB'; }
+function _docToast(msg, kind) { try { showDeviceLockToast(msg, kind || 'info'); } catch (e) { alert(msg); } }
+function portCheckDocFiles(files, existingCount) {
+  const ok = [];
+  Array.from(files || []).forEach(f => {
+    if (existingCount + ok.length >= PORT_DOC_LIMIT) { _docToast('Maximum ' + PORT_DOC_LIMIT + ' documents per holding', 'error'); return; }
+    if (f.size > PORT_DOC_MAX) { _docToast(f.name + ' is larger than 5 MB — not attached', 'error'); return; }
+    ok.push(f);
+  });
+  return ok;
+}
+async function portOpenDoc(rid, did, download) {
+  const rec = portDb.find(x => x.id === rid), meta = rec && (rec.docs || []).find(d => d.id === did);
+  if (!meta) return;
+  try {
+    const blob = await fosDocGet(did);
+    if (!blob) { _docToast('“' + meta.name + '” is not stored on this device (attachments stay on the device that added them). Re-attach it here.', 'error'); return; }
+    const url = URL.createObjectURL(blob), a = document.createElement('a');
+    a.href = url; if (download) a.download = meta.name; else a.target = '_blank';
+    a.rel = 'noopener'; document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 60000);
+  } catch (err) { _docToast('Could not open the file: ' + (err && err.message || err), 'error'); }
+}
+// Entry-form attachments --------------------------------------------------------
+function portPickDocs(inp) {
+  const rec = editingPortId ? portDb.find(x => x.id === editingPortId) : null;
+  const have = (rec ? (rec.docs || []).length - _pRemoveDocs.length : 0) + _pendingDocs.length;
+  const type = _pEl('p-docType').value;
+  portCheckDocFiles(inp.files, have).forEach(f => _pendingDocs.push({ file: f, docType: type }));
+  inp.value = ''; portRenderDocsList();
+}
+function portRenderDocsList() {
+  const box = _pEl('p-docs-list'); if (!box) return;
+  const rec = editingPortId ? portDb.find(x => x.id === editingPortId) : null;
+  const old = rec ? (rec.docs || []).filter(d => _pRemoveDocs.indexOf(d.id) < 0) : [];
+  const rows = old.map(d => `<div class="p1-doc"><i class="fas fa-file-alt"></i><span class="p1-doc-n">${_esc(d.name)}</span><span class="p1-doc-m">${_esc(d.docType)} · ${_kb(d.size)}</span><a onclick="portOpenDoc(${rec.id},'${d.id}')">Open</a><a class="x" onclick="portQueueRemoveDoc('${d.id}')" title="Remove">✕</a></div>`)
+    .concat(_pendingDocs.map((p, i) => `<div class="p1-doc new"><i class="fas fa-file-upload"></i><span class="p1-doc-n">${_esc(p.file.name)}</span><span class="p1-doc-m">${_esc(p.docType)} · ${_kb(p.file.size)} · will be saved</span><a class="x" onclick="_pendingDocs.splice(${i},1);portRenderDocsList()" title="Remove">✕</a></div>`));
+  box.innerHTML = rows.join('');
+  const n = old.length + _pendingDocs.length, c = _pEl('p-docs-count'); if (c) c.textContent = n ? '(' + n + ')' : '';
+}
+function portQueueRemoveDoc(id) { if (_pRemoveDocs.indexOf(id) < 0) _pRemoveDocs.push(id); portRenderDocsList(); }
+function portCommitDocs(rec) {
+  rec.docs = Array.isArray(rec.docs) ? rec.docs.slice() : [];
+  _pRemoveDocs.forEach(id => { rec.docs = rec.docs.filter(d => d.id !== id); fosDocDel(id).catch(() => {}); });
+  _pendingDocs.forEach(p => {
+    const id = 'd' + _pRand();
+    rec.docs.push({ id, name: p.file.name, size: p.file.size, mime: p.file.type || '', docType: p.docType, added: localISO() });
+    fosDocPut(id, p.file).catch(err => _docToast('Could not store ' + p.file.name + ' on this device: ' + (err && err.message || err), 'error'));
+  });
+  _pendingDocs = []; _pRemoveDocs = [];
+}
+
+// ── Entry form: sub-category, asset-specific fields, currency, ownership ─────
+function portInitTypeMore() {
+  const sel = _pEl('p-type-more'); if (!sel || sel.options.length > 1) return;
+  sel.innerHTML = '<option value="">More asset types…</option>' + Object.keys(ASSET_CATALOG).filter(k => PORT_SEG_TYPES.indexOf(k) < 0).map(k => `<option value="${k}">${_esc(ASSET_CATALOG[k].label)}</option>`).join('');
+  const cs = _pEl('p-currency');
+  if (cs && !cs.options.length) cs.innerHTML = Object.keys(FX_CURRENCIES).map(c => `<option value="${c}">${c} (${_esc(FX_CURRENCIES[c].sym.trim())})</option>`).join('');
+  const dt = _pEl('p-docType'); if (dt && !dt.options.length) dt.innerHTML = PORT_DOC_TYPES.map(t => `<option>${t}</option>`).join('');
+}
+function portMoreType(sel) { if (sel.value) setPortType(sel.value); }
+function portSelCur() { const s = _pEl('p-currency'); return s && s.value ? s.value : portBaseCode(); }
+function portCurChange() { portCurSync(true); portUiSync(); calcPortPreview(); }
+// Shows / hides the exchange-rate inputs and fills them from the saved rate table.
+function portCurSync(fill) {
+  const cur = portSelCur(), foreign = cur !== portBaseCode(), base = portBaseCode();
+  _pEl('p-fxNow-grp').style.display = foreign ? '' : 'none';
+  _pEl('p-fxBuy-grp').style.display = foreign ? '' : 'none';
+  if (!foreign) return;
+  _pEl('p-lbl-fxNow').textContent = 'Today’s rate (' + portSym(base) + ' per 1 ' + cur + ')';
+  _pEl('p-lbl-fxBuy').textContent = 'Rate at purchase';
+  if (fill) {
+    const t = portFxTable();
+    if (!_pEl('p-fxNow').value && t[cur] > 0) _pEl('p-fxNow').value = t[cur];
+    if (!_pEl('p-fxBuy').value && _pEl('p-fxNow').value) _pEl('p-fxBuy').value = _pEl('p-fxNow').value;
+  }
+}
+// Builds the sub-category list and the asset-specific input fields for a type (once per type change).
+function portRenderExtra(t, meta, sub) {
+  _pMetaType = t;
+  const c = ASSET_CATALOG[t], sel = _pEl('p-subCategory'), box = _pEl('p-meta-fields'), hint = _pEl('p-sec-details-hint');
+  const keepSub = sub !== undefined ? sub : '', keepMeta = meta || portReadMeta();
+  const subs = c ? c.subs.slice() : [];
+  if (keepSub && subs.indexOf(keepSub) < 0) subs.push(keepSub);
+  sel.innerHTML = '<option value="">' + (c ? 'Select sub-category' : 'None') + '</option>' + subs.map(s => `<option>${_esc(s)}</option>`).join('');
+  sel.value = keepSub && subs.indexOf(keepSub) >= 0 ? keepSub : '';
+  _pEl('p-subcat-grp').style.display = c ? '' : 'none';
+  if (!c) { box.innerHTML = ''; _pEl('p-sec-details').style.display = 'none'; return; }
+  _pEl('p-sec-details').style.display = '';
+  hint.textContent = '(' + c.label + ')';
+  box.innerHTML = c.fields.map(f => {
+    const id = 'pm-' + f.k, v = keepMeta && keepMeta[f.k] != null ? keepMeta[f.k] : '';
+    if (f.t === 'select') return `<div class="input-group"><label>${_esc(f.l)}</label><select id="${id}" class="input-field port-focus"><option value="">—</option>${f.o.map(o => `<option${o === v ? ' selected' : ''}>${_esc(o)}</option>`).join('')}</select></div>`;
+    return `<div class="input-group"><label>${_esc(f.l)}</label><input id="${id}" class="input-field port-focus" type="${f.t === 'number' ? 'number' : f.t === 'date' ? 'date' : 'text'}"${f.t === 'number' ? ' step="any" inputmode="decimal"' : ''} placeholder="${_esc(f.o || '')}" value="${_esc(v)}"></div>`;
+  }).join('');
+}
+function portReadMeta() {
+  const out = {};
+  document.querySelectorAll('#p-meta-fields [id^="pm-"]').forEach(el => { if (el.value !== '') out[el.id.slice(3)] = el.value; });
+  return out;
+}
+function portResetExtra() {
+  portInitTypeMore();
+  _pMetaType = null; _pendingDocs = []; _pRemoveDocs = [];
+  _pEl('p-subCategory').value = ''; _pEl('p-meta-fields').innerHTML = '';
+  _pEl('p-currency').value = portBaseCode(); _pEl('p-fxNow').value = ''; _pEl('p-fxBuy').value = '';
+  ['p-owner', 'p-ownPct', 'p-jointHolders', 'p-nominee', 'p-heldAt'].forEach(id => _pEl(id).value = '');
+  _pEl('p-holdMode').value = '';
+  ['p-sec-own', 'p-sec-docs'].forEach(id => _pEl(id).open = false);
+  portRenderDocsList(); portCurSync(false);
+}
+function portLoadExtra(entry) {
+  portInitTypeMore();
+  _pendingDocs = []; _pRemoveDocs = [];
+  _pEl('p-currency').value = entry.currency && FX_CURRENCIES[String(entry.currency).toUpperCase()] ? String(entry.currency).toUpperCase() : portBaseCode();
+  _pEl('p-fxNow').value = entry.fxNow || ''; _pEl('p-fxBuy').value = entry.fxBuy || '';
+  portCurSync(true);
+  portRenderExtra(_pType(), entry.meta || {}, entry.subCategory || '');
+  _pEl('p-owner').value = entry.owner || ''; _pEl('p-ownPct').value = entry.ownershipPct || '';
+  _pEl('p-holdMode').value = entry.holdingMode || '';
+  _pEl('p-jointHolders').value = entry.jointHolders || ''; _pEl('p-nominee').value = entry.nominee || ''; _pEl('p-heldAt').value = entry.heldAt || '';
+  _pEl('p-sec-own').open = !!(entry.owner || entry.ownershipPct || entry.holdingMode || entry.jointHolders || entry.nominee || entry.heldAt);
+  _pEl('p-sec-docs').open = !!(entry.docs && entry.docs.length);
+  portRenderDocsList();
+}
+function portCollectExtra(t) {
+  const cur = portSelCur(), foreign = cur !== portBaseCode(), now = parseFloat(_pEl('p-fxNow').value), buy = parseFloat(_pEl('p-fxBuy').value);
+  const pct = parseFloat(_pEl('p-ownPct').value);
+  return {
+    subCategory: _pEl('p-subCategory').value, meta: portReadMeta(),
+    currency: foreign ? cur : '', fxNow: foreign && now > 0 ? now : '', fxBuy: foreign ? (buy > 0 ? buy : (now > 0 ? now : '')) : '',
+    owner: _pEl('p-owner').value.trim(), ownershipPct: pct > 0 ? pct : '', holdingMode: _pEl('p-holdMode').value,
+    jointHolders: _pEl('p-jointHolders').value.trim(), nominee: _pEl('p-nominee').value.trim(), heldAt: _pEl('p-heldAt').value.trim()
+  };
+}
+function portValidateExtra(ex, bad) {
+  if (ex.currency && !(Number(ex.fxNow) > 0)) bad.push(['p-fxNow', 'today’s exchange rate']);
+  const raw = _pEl('p-ownPct').value;
+  if (raw !== '' && !(parseFloat(raw) > 0 && parseFloat(raw) <= 100)) bad.push(['p-ownPct', 'ownership share between 0 and 100']);
+}
+// Draft record built from the form — feeds the live preview through the same portCalc the rest of the app uses.
+function portDraftRecord() {
+  const g = id => _pEl(id), old = editingPortId ? portDb.find(x => x.id === editingPortId) : null;
+  const cur = portSelCur(), foreign = cur !== portBaseCode(), pct = parseFloat(g('p-ownPct').value);
+  return {
+    assetType: g('p-assetType').value.trim(), quantity: parseFloat(g('p-qty').value) || 0, purchasePrice: parseFloat(g('p-buyPrice').value) || 0,
+    currentPrice: parseFloat(g('p-currPrice').value) || 0, sellPrice: g('p-sellPrice').value, status: g('p-status').value === 'sold' ? 'sold' : 'active',
+    currency: foreign ? cur : '', fxBuy: foreign ? (parseFloat(g('p-fxBuy').value) || parseFloat(g('p-fxNow').value) || 0) : '', _fxNow: foreign ? (parseFloat(g('p-fxNow').value) || 0) : 0,
+    ownershipPct: pct > 0 ? pct : '', lots: old && Array.isArray(old.lots) ? old.lots : []
+  };
+}
+function portSyncValuation(rec, old) {
+  const v = Array.isArray(rec.valuations) ? rec.valuations.slice() : [], price = Number(rec.currentPrice);
+  if (old === null || price !== Number(old.currentPrice)) {
+    const today = localISO(), i = v.findIndex(x => x.date === today);
+    if (i >= 0) v[i] = { ...v[i], price }; else v.push({ id: _pRand(), date: today, price, note: old ? 'Updated' : 'Initial valuation' });
+  }
+  rec.valuations = v;
+}
+function portApplyLatestValuation(rec) {
+  const v = (rec.valuations || []).slice().sort((a, b) => a.date < b.date ? -1 : a.date > b.date ? 1 : a.id - b.id);
+  if (v.length) rec.currentPrice = Number(v[v.length - 1].price);
+}
+
+// ── FX manager ───────────────────────────────────────────────────────────────
+function openFxModal() {
+  const base = portBaseCode(), t = portFxTable(), used = {};
+  portDb.forEach(r => { if (portIsForeign(r)) used[String(r.currency).toUpperCase()] = 1; });
+  const codes = Object.keys(FX_CURRENCIES).filter(c => c !== base).sort((a, b) => (used[b] || 0) - (used[a] || 0));
+  _pEl('fx-modal-body').innerHTML = codes.map(c => `<div class="p1-fxrow"><div><b>${c}</b> <span>${_esc(FX_CURRENCIES[c].name)}${used[c] ? ' · in use' : ''}</span></div><div class="p1-fxin">1 ${c} = ${_esc(portSym(base))} <input type="number" step="any" inputmode="decimal" class="input-field" data-fx="${c}" value="${t[c] > 0 ? t[c] : ''}" placeholder="rate"></div></div>`).join('');
+  _pEl('fx-modal-note').textContent = t._updated ? 'Rates last updated ' + fmtDate(t._updated) + '.' : 'Enter today’s rate for each currency you hold. Rates are not fetched automatically.';
+  _pEl('fx-modal').style.display = 'flex';
+}
+function closeFxModal() { _pEl('fx-modal').style.display = 'none'; }
+function saveFxRates() {
+  let n = 0;
+  document.querySelectorAll('#fx-modal-body [data-fx]').forEach(i => { const v = parseFloat(i.value); if (v > 0) { portSetFxRate(i.dataset.fx, v, true); n++; } });
+  scheduleSave(); closeFxModal(); portRefreshViews();
+  if (_detailId) renderPortDetail();
+  if (_pEl('port-modal').style.display === 'flex') { portCurSync(false); const t = portFxTable(), c = portSelCur(); if (t[c] > 0) _pEl('p-fxNow').value = t[c]; calcPortPreview(); }
+}
+
+// ── Per-class summary (shown above the Holdings Register when a class is selected) ──
+function portClassHighlights(key, rows) {
+  const out = [], today = localISO();
+  const num = (r, k) => Number(r.meta && r.meta[k]) || 0;
+  const amt = (r, k) => num(r, k) * (r.fxNowUsed || 1);
+  const add = (l, v, s) => { if (v !== null && v !== undefined && v !== '') out.push([l, v, s || '']); };
+  const soonest = k => { const c = rows.filter(r => r.meta && r.meta[k] && r.meta[k] >= today).sort((a, b) => a.meta[k] < b.meta[k] ? -1 : 1)[0]; return c ? [fmtDate(c.meta[k]), c.subType || assetTypeLabel(c.assetType)] : null; };
+  const wavg = k => { const w = rows.filter(r => num(r, k)); const inv = w.reduce((a, r) => a + r.totalInvestment, 0); return inv > 0 ? w.reduce((a, r) => a + num(r, k) * r.totalInvestment, 0) / inv : null; };
+  const pct = v => v === null ? null : v.toFixed(2) + '%';
+  const yearly = (k, base) => { const w = rows.filter(r => num(r, k)); return w.length ? w.reduce((a, r) => a + (r[base || 'totalInvestment'] * num(r, k) / 100), 0) : null; };
+  const nx = k => { const s = soonest(k); return s; };
+  const totQty = rows.reduce((a, r) => a + (r.qtyTotal || 0), 0), totInv = rows.reduce((a, r) => a + r.totalInvestment, 0), totVal = rows.reduce((a, r) => a + r.currentValue, 0);
+  switch (key) {
+    case 'Gold': case 'Silver': add('Total weight', +totQty.toFixed(3) + ' g'); add('Avg. cost / g', totQty > 0 ? fmt(totInv / totQty) : null); break;
+    case 'RealEstate': { const rent = rows.reduce((a, r) => a + amt(r, 'monthlyRent'), 0); add('Total area', +totQty.toFixed(2) + ' sq.ft'); if (rent) { add('Monthly rent', fmt(rent)); add('Gross rental yield', totVal > 0 ? (rent * 12 / totVal * 100).toFixed(2) + '%' : null); } break; }
+    case 'MutualFund': { const sip = rows.reduce((a, r) => a + amt(r, 'sipAmount'), 0); if (sip) add('Monthly SIPs', fmt(sip), fmt(sip * 12) + ' a year'); break; }
+    case 'Bonds': { const n = nx('maturityDate'); if (n) add('Next maturity', n[0], n[1]); add('Avg. coupon', pct(wavg('couponRate'))); const y = yearly('couponRate'); if (y !== null) add('Est. annual interest', fmt(y)); break; }
+    case 'Stocks': add('Avg. dividend yield', pct(wavg('dividendYield'))); { const y = yearly('dividendYield', 'currentValue'); if (y !== null) add('Est. annual dividends', fmt(y)); } break;
+    case 'Crypto': { const cold = rows.filter(r => r.meta && r.meta.walletType === 'Cold wallet').reduce((a, r) => a + r.currentValue, 0); if (totVal > 0 && rows.some(r => r.meta && r.meta.walletType)) add('Self-custody (cold)', (cold / totVal * 100).toFixed(0) + '%'); break; }
+    case 'FixedDeposit': case 'RecurringDeposit': case 'Cash': {
+      const n = nx('maturityDate'); if (n) add('Next maturity', n[0], n[1]);
+      add('Avg. interest rate', pct(wavg('interestRate'))); const y = yearly('interestRate'); if (y !== null) add('Est. annual interest', fmt(y));
+      if (key === 'RecurringDeposit') { const m = rows.reduce((a, r) => a + amt(r, 'installment'), 0); if (m) add('Monthly instalments', fmt(m)); }
+      break;
+    }
+    case 'Retirement': { const m = rows.reduce((a, r) => a + amt(r, 'employeeContribution') + amt(r, 'employerContribution'), 0); if (m) add('Monthly contributions', fmt(m), fmt(m * 12) + ' a year'); add('Avg. return', pct(wavg('interestRate'))); const n = nx('maturityDate'); if (n) add('Next maturity', n[0], n[1]); break; }
+    case 'International': { const by = {}; rows.forEach(r => { const c = portIsForeign(r) ? String(r.currency).toUpperCase() : portBaseCode(); by[c] = (by[c] || 0) + r.currentValue; }); const tot = Object.values(by).reduce((a, b) => a + b, 0); if (tot > 0) add('Currency exposure', Object.entries(by).sort((a, b) => b[1] - a[1]).map(x => x[0] + ' ' + (x[1] / tot * 100).toFixed(0) + '%').join(' · ')); break; }
+    case 'ETFs': add('Avg. expense ratio', pct(wavg('expenseRatio'))); break;
+    case 'REITs': add('Avg. distribution yield', pct(wavg('distributionYield'))); { const y = yearly('distributionYield', 'currentValue'); if (y !== null) add('Est. annual distributions', fmt(y)); } break;
+    case 'Alternatives': { const c = rows.reduce((a, r) => a + amt(r, 'commitment'), 0), d = rows.reduce((a, r) => a + amt(r, 'calledCapital'), 0); if (c) { add('Committed', fmt(c)); add('Called so far', fmt(d), (c > 0 ? (d / c * 100).toFixed(0) : 0) + '% of commitment'); add('Still to be called', fmt(Math.max(0, c - d))); } const n = nx('lockInEnd'); if (n) add('Next lock-in end', n[0], n[1]); break; }
+    case 'Commodities': { const n = nx('contractExpiry'); if (n) add('Next contract expiry', n[0], n[1]); break; }
+    case 'Collectibles': { const ins = rows.reduce((a, r) => a + amt(r, 'insuredValue'), 0); if (ins) add('Insured value', fmt(ins), totVal > ins ? 'Under-insured by ' + fmt(totVal - ins) : 'Fully covered'); break; }
+    case 'DigitalAssets': { const c = rows.reduce((a, r) => a + amt(r, 'annualCost'), 0), m = rows.reduce((a, r) => a + amt(r, 'monthlyRevenue'), 0); if (c) add('Renewal cost / year', fmt(c)); if (m) add('Monthly revenue', fmt(m)); const n = nx('renewalDate'); if (n) add('Next renewal', n[0], n[1]); break; }
+    case 'Business': { const r1 = rows.reduce((a, r) => a + amt(r, 'annualRevenue'), 0), p1 = rows.reduce((a, r) => a + amt(r, 'annualProfit'), 0); if (r1) add('Annual revenue (100%)', fmt(r1)); if (p1) add('Annual profit (100%)', fmt(p1)); break; }
+  }
+  return out;
+}
+function renderPortClassPanel(rows) {
+  const el = document.getElementById('port-class-panel'); if (!el) return;
+  const key = portAssetFilter, c = ASSET_CATALOG[key];
+  if (key === 'all' || !c) { el.innerHTML = ''; return; }
+  const color = assetColor(key), act = portDb.filter(r => normalizeAssetType(r.assetType) === key && r.status !== 'sold');
+  const allActive = portDb.filter(r => r.status !== 'sold').reduce((a, r) => a + portCalc(r).currentValue, 0);
+  const sum = (k) => rows.reduce((a, r) => a + (r[k] || 0), 0);
+  const inv = sum('totalInvestment'), val = sum('currentValue'), gain = val - inv, roi = inv > 0 ? gain / inv * 100 : 0;
+  const shareVal = act.reduce((a, r) => a + portCalc(r).currentValue, 0), share = allActive > 0 ? shareVal / allActive * 100 : 0;
+  const subs = {}; rows.forEach(r => { const k = r.subCategory || 'Unclassified'; subs[k] = (subs[k] || 0) + r.currentValue; });
+  const subTot = Object.values(subs).reduce((a, b) => a + b, 0);
+  const subHtml = subTot > 0 ? Object.entries(subs).sort((a, b) => b[1] - a[1]).map(([k, v]) => `<div class="p1-bar"><span>${_esc(k)}</span><div><i style="width:${(v / subTot * 100).toFixed(1)}%;background:${color}"></i></div><b>${(v / subTot * 100).toFixed(0)}%</b></div>`).join('') : '';
+  const hl = rows.length ? portClassHighlights(key, rows) : [];
+  const g = gain >= 0 ? 'var(--c-inc)' : 'var(--danger)';
+  const k = (l, v, s, col) => `<div class="p1-kpi"><div class="l">${l}</div><div class="v"${col ? ` style="color:${col}"` : ''}>${v}</div>${s ? `<div class="s">${s}</div>` : ''}</div>`;
+  el.innerHTML = `<div class="glass-panel p1-class" style="--p1c:${color}">
+    <div class="p1-class-head"><div class="p1-class-ico"><i class="${c.iconFab ? 'fab' : 'fas'} ${c.icon}"></i></div>
+      <div style="flex:1;min-width:0"><div class="p1-class-t">${_esc(c.label)}</div><div class="p1-class-s">${_esc(c.blurb)}</div></div>
+      <button type="button" class="btn-secondary" onclick="openPortModal();setPortType('${key}')"><i class="fas fa-plus"></i> Add ${_esc(c.short)}</button></div>
+    ${rows.length ? `<div class="p1-kpis">${k('Holdings', rows.length)}${k('Invested', fmt(inv))}${k('Current value', fmt(val))}${k('Gain / loss', fmt(gain), roi.toFixed(1) + '% ROI', g)}${k('Share of portfolio', share.toFixed(1) + '%', 'active holdings')}</div>
+    ${hl.length ? `<div class="p1-hl">${hl.map(h => `<div class="p1-hl-i"><div class="l">${_esc(h[0])}</div><div class="v">${_esc(h[1])}</div>${h[2] ? `<div class="s">${_esc(h[2])}</div>` : ''}</div>`).join('')}</div>` : ''}
+    ${subHtml ? `<div class="p1-subs"><div class="l">By sub-category</div>${subHtml}</div>` : ''}` : `<div class="p1-empty">No ${_esc(c.label)} holdings match the current filters. Use “Add ${_esc(c.short)}” to record one.</div>`}
+  </div>`;
+}
+
+// ── Holding detail view: overview, purchase history, valuation history, ownership, documents ──
+function openPortDetail(id) { _detailId = id; _pEl('port-detail-modal').style.display = 'flex'; renderPortDetail(); }
+function closePortDetail() { _detailId = null; _pEl('port-detail-modal').style.display = 'none'; }
+function portDetailEdit() { const id = _detailId; closePortDetail(); if (id != null) editPortEntry(id); }
+function _spark(points, color) {
+  if (points.length < 2) return '<div class="p1-empty" style="padding:14px">Add a valuation to start the value history.</div>';
+  const W = 320, H = 70, xs = points.map(p => new Date(p.date).getTime()), ys = points.map(p => p.v);
+  const x0 = Math.min.apply(null, xs), x1 = Math.max.apply(null, xs), y0 = Math.min.apply(null, ys), y1 = Math.max.apply(null, ys);
+  const px = t => x1 === x0 ? W / 2 : 6 + (t - x0) / (x1 - x0) * (W - 12), py = v => y1 === y0 ? H / 2 : H - 8 - (v - y0) / (y1 - y0) * (H - 16);
+  const d = points.map((p, i) => (i ? 'L' : 'M') + px(new Date(p.date).getTime()).toFixed(1) + ' ' + py(p.v).toFixed(1)).join(' ');
+  return `<svg viewBox="0 0 ${W} ${H}" preserveAspectRatio="none" style="width:100%;height:70px"><path d="${d}" fill="none" stroke="${color}" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>${points.map(p => `<circle cx="${px(new Date(p.date).getTime()).toFixed(1)}" cy="${py(p.v).toFixed(1)}" r="2.6" fill="${color}"/>`).join('')}</svg>`;
+}
+function _yearsSince(d) { const ms = Date.now() - new Date(d).getTime(); if (!(ms > 0)) return '—'; const days = Math.floor(ms / 86400000); return days >= 730 ? (days / 365.25).toFixed(1) + ' years' : days >= 60 ? Math.floor(days / 30.4) + ' months' : days + ' days'; }
+function renderPortDetail() {
+  const rec = portDb.find(x => x.id === _detailId), body = _pEl('port-detail-body');
+  if (!rec) { closePortDetail(); return; }
+  const t = normalizeAssetType(rec.assetType), c = ASSET_CATALOG[t], perUnit = isQtyBased(t), pc = portCalc(rec), color = assetColor(t), foreign = portIsForeign(rec);
+  const N = n => portFmtNative(n, rec), lots = Array.isArray(rec.lots) ? rec.lots : [];
+  const gcol = pc.gainLoss >= 0 ? 'var(--c-inc)' : 'var(--danger)';
+  const first = rec.date; const allDates = [rec.date].concat(lots.map(l => l.date)).filter(Boolean).sort();
+  // purchase history
+  const baseRow = `<tr><td>${fmtDate(rec.date)}</td><td class="r">${perUnit ? rec.quantity : '—'}</td><td class="r">${N(rec.purchasePrice)}</td><td class="r">—</td><td class="r">${N((perUnit ? rec.quantity * rec.purchasePrice : rec.purchasePrice))}</td><td>Original purchase</td><td></td></tr>`;
+  const lotRows = lots.slice().sort((a, b) => a.date < b.date ? -1 : 1).map(l => `<tr><td>${fmtDate(l.date)}</td><td class="r">${perUnit ? l.qty : '—'}</td><td class="r">${N(l.price)}</td><td class="r">${l.fees ? N(l.fees) : '—'}</td><td class="r">${N((perUnit ? l.qty * l.price : l.price) + (Number(l.fees) || 0))}</td><td>${_esc(l.note || 'Additional purchase')}</td><td><a class="p1-x" onclick="portDeleteLot(${l.id})" title="Remove">✕</a></td></tr>`).join('');
+  // valuation history
+  const vals = (rec.valuations || []).slice().sort((a, b) => a.date < b.date ? -1 : a.date > b.date ? 1 : a.id - b.id);
+  const pts = [{ date: rec.date, v: Number(rec.purchasePrice) }].concat(vals.map(v => ({ date: v.date, v: Number(v.price) })));
+  const valRows = vals.map((v, i) => { const prev = i ? Number(vals[i - 1].price) : Number(rec.purchasePrice), ch = prev > 0 ? (Number(v.price) - prev) / prev * 100 : 0; return `<tr><td>${fmtDate(v.date)}</td><td class="r">${N(v.price)}</td><td class="r" style="color:${ch >= 0 ? 'var(--c-inc)' : 'var(--danger)'}">${ch >= 0 ? '+' : ''}${ch.toFixed(1)}%</td><td>${_esc(v.note || '')}</td><td><a class="p1-x" onclick="portDeleteValuation(${v.id})" title="Remove">✕</a></td></tr>`; }).reverse().join('');
+  // details / ownership / docs
+  const meta = rec.meta || {}, metaRows = c ? c.fields.filter(f => meta[f.k] !== undefined && meta[f.k] !== '').map(f => `<div class="p1-kv"><span>${_esc(f.l)}</span><b>${_esc(f.t === 'date' ? fmtDate(meta[f.k]) : meta[f.k])}</b></div>`).join('') : '';
+  const own = [['Owner', rec.owner || 'Self'], ['Your share', (rec.ownershipPct || 100) + '%'], ['Holding mode', rec.holdingMode], ['Joint holder(s)', rec.jointHolders], ['Nominee', rec.nominee], ['Held with', rec.heldAt]].filter(x => x[1]).map(x => `<div class="p1-kv"><span>${x[0]}</span><b>${_esc(x[1])}</b></div>`).join('');
+  const docs = (rec.docs || []).map(d => `<div class="p1-doc"><i class="fas fa-file-alt"></i><span class="p1-doc-n">${_esc(d.name)}</span><span class="p1-doc-m">${_esc(d.docType)} · ${_kb(d.size)} · ${fmtDate(d.added)}</span><a onclick="portOpenDoc(${rec.id},'${d.id}')">Open</a><a onclick="portOpenDoc(${rec.id},'${d.id}',true)">Download</a><a class="x" onclick="portDeleteDoc('${d.id}')" title="Remove">✕</a></div>`).join('');
+  const today = localISO();
+  body.innerHTML = `
+  <div class="p1-dhead" style="--p1c:${color}">
+    <div class="p1-class-ico"><i class="${c && c.iconFab ? 'fab' : 'fas'} ${c ? c.icon : 'fa-gem'}"></i></div>
+    <div style="flex:1;min-width:0"><div class="p1-class-t">${_esc(rec.subType || assetTypeLabel(t))}</div>
+      <div class="p1-class-s">${_esc(assetTypeLabel(t))}${rec.subCategory ? ' · ' + _esc(rec.subCategory) : ''}${foreign ? ' · ' + _esc(String(rec.currency).toUpperCase()) : ''} · <span class="roi-chip ${rec.status === 'sold' ? 'bad' : 'good'}">${rec.status === 'sold' ? 'Sold' : 'Active'}</span></div></div>
+    <button type="button" class="btn-secondary" onclick="portDetailEdit()"><i class="fas fa-edit"></i> Edit</button>
+    <button type="button" class="btn-secondary" onclick="closePortDetail()">Close</button>
+  </div>
+  <div class="p1-kpis">
+    <div class="p1-kpi"><div class="l">Invested</div><div class="v">${fmt(pc.totalInvestment)}</div></div>
+    <div class="p1-kpi"><div class="l">Current value</div><div class="v">${fmt(pc.currentValue)}</div></div>
+    <div class="p1-kpi"><div class="l">Gain / loss</div><div class="v" style="color:${gcol}">${fmt(pc.gainLoss)}</div><div class="s">${pc.roi.toFixed(1)}% ROI</div></div>
+    <div class="p1-kpi"><div class="l">Held for</div><div class="v">${_yearsSince(allDates[0] || first)}</div><div class="s">since ${fmtDate(allDates[0] || first)}</div></div>
+    ${perUnit ? `<div class="p1-kpi"><div class="l">Quantity</div><div class="v">${+pc.qtyTotal.toFixed(4)}</div><div class="s">${_esc(rec.unit || '')} · avg ${N(pc.avgCost)}</div></div>` : ''}
+    ${foreign ? `<div class="p1-kpi"><div class="l">Rate</div><div class="v">${pc.fxNowUsed}</div><div class="s">${_esc(portSym(portBaseCode()))} per 1 ${_esc(String(rec.currency).toUpperCase())} · <a onclick="openFxModal()" style="cursor:pointer;color:var(--accent)">edit</a></div></div>` : ''}
+  </div>
+  <div class="p1-sect"><div class="p1-sect-t"><span><i class="fas fa-shopping-cart"></i> Purchase history</span></div>
+    <div class="p1-tw"><table class="p1-t"><thead><tr><th>Date</th><th class="r">${perUnit ? 'Qty' : ''}</th><th class="r">${perUnit ? 'Price / unit' : 'Amount'}</th><th class="r">Fees</th><th class="r">Total</th><th>Note</th><th></th></tr></thead><tbody>${baseRow}${lotRows}</tbody></table></div>
+    <div class="p1-add"><input type="date" id="pd-l-date" class="input-field" value="${today}">${perUnit ? '<input type="number" step="any" id="pd-l-qty" class="input-field" placeholder="Qty">' : ''}<input type="number" step="any" id="pd-l-price" class="input-field" placeholder="${perUnit ? 'Price / unit' : 'Amount'}${foreign ? ' (' + _esc(String(rec.currency).toUpperCase()) + ')' : ''}"><input type="number" step="any" id="pd-l-fees" class="input-field" placeholder="Fees"><input type="text" id="pd-l-note" class="input-field" placeholder="Note"><button type="button" class="btn-add" onclick="portAddLot()">Add purchase</button></div></div>
+  <div class="p1-sect"><div class="p1-sect-t"><span><i class="fas fa-chart-line"></i> Valuation history</span></div>
+    ${_spark(pts, color)}
+    ${valRows ? `<div class="p1-tw"><table class="p1-t"><thead><tr><th>Date</th><th class="r">${perUnit ? 'Price / unit' : 'Value'}</th><th class="r">Change</th><th>Note</th><th></th></tr></thead><tbody>${valRows}</tbody></table></div>` : ''}
+    <div class="p1-add"><input type="date" id="pd-v-date" class="input-field" value="${today}"><input type="number" step="any" id="pd-v-price" class="input-field" placeholder="${perUnit ? 'Price / unit' : 'Current value'}${foreign ? ' (' + _esc(String(rec.currency).toUpperCase()) + ')' : ''}"><input type="text" id="pd-v-note" class="input-field" placeholder="Note (e.g. appraisal, statement)"><button type="button" class="btn-add" onclick="portAddValuation()">Add valuation</button></div>
+    <div class="qa-hint">The most recent valuation becomes the holding’s current ${perUnit ? 'price' : 'value'}.</div></div>
+  <div class="p1-two">
+    <div class="p1-sect"><div class="p1-sect-t"><span><i class="fas fa-user-shield"></i> Ownership</span></div>${own || '<div class="p1-empty" style="padding:10px">No ownership details saved.</div>'}</div>
+    <div class="p1-sect"><div class="p1-sect-t"><span><i class="fas fa-sliders-h"></i> ${c ? _esc(c.label) + ' details' : 'Details'}</span></div>${metaRows || '<div class="p1-empty" style="padding:10px">No extra details saved.</div>'}${rec.notes ? `<div class="p1-kv"><span>Notes</span><b>${_esc(rec.notes)}</b></div>` : ''}</div>
+  </div>
+  <div class="p1-sect"><div class="p1-sect-t"><span><i class="fas fa-paperclip"></i> Documents</span>
+      <span class="p1-docadd2"><select id="pd-docType" class="input-field">${PORT_DOC_TYPES.map(x => `<option>${x}</option>`).join('')}</select><label class="btn-secondary p1-filebtn"><i class="fas fa-upload"></i> Attach<input type="file" multiple accept="${PORT_DOC_ACCEPT}" style="display:none" onchange="portDetailAddDocs(this)"></label></span></div>
+    ${docs || '<div class="p1-empty" style="padding:10px">No documents attached. Add ownership proof, certificates or statements.</div>'}
+    <div class="qa-hint">Files stay on this device (up to 5 MB each); only their names sync to your account.</div></div>`;
+}
+function _detailRec() { return portDb.find(x => x.id === _detailId); }
+function _detailCommit() { scheduleSave(); portRefreshViews(); renderPortDetail(); }
+function portAddLot() {
+  const rec = _detailRec(); if (!rec) return;
+  const perUnit = isQtyBased(rec.assetType), v = id => { const e = _pEl(id); return e ? e.value : ''; };
+  const date = v('pd-l-date'), qty = perUnit ? parseFloat(v('pd-l-qty')) : 1, price = parseFloat(v('pd-l-price')), fees = parseFloat(v('pd-l-fees')) || 0;
+  if (!date || !(price > 0) || !(qty > 0)) { _docToast('Enter a date' + (perUnit ? ', quantity' : '') + ' and ' + (perUnit ? 'price' : 'amount') + ' for the purchase', 'error'); return; }
+  rec.lots = (rec.lots || []).concat([{ id: _pRand(), date, qty, price, fees, fx: portIsForeign(rec) ? portFxNow(rec) : '', note: v('pd-l-note').trim() }]);
+  _detailCommit();
+}
+function portDeleteLot(id) { const rec = _detailRec(); if (!rec || !confirm('Remove this purchase from the history?')) return; rec.lots = (rec.lots || []).filter(l => l.id !== id); _detailCommit(); }
+function portAddValuation() {
+  const rec = _detailRec(); if (!rec) return;
+  const date = _pEl('pd-v-date').value, price = parseFloat(_pEl('pd-v-price').value);
+  if (!date || !(price > 0)) { _docToast('Enter a date and a value', 'error'); return; }
+  rec.valuations = (rec.valuations || []).concat([{ id: _pRand(), date, price, note: _pEl('pd-v-note').value.trim() }]);
+  portApplyLatestValuation(rec); _detailCommit();
+}
+function portDeleteValuation(id) { const rec = _detailRec(); if (!rec || !confirm('Remove this valuation?')) return; rec.valuations = (rec.valuations || []).filter(v => v.id !== id); portApplyLatestValuation(rec); _detailCommit(); }
+function portDetailAddDocs(inp) {
+  const rec = _detailRec(); if (!rec) return;
+  const files = portCheckDocFiles(inp.files, (rec.docs || []).length), type = _pEl('pd-docType').value;
+  _pendingDocs = files.map(f => ({ file: f, docType: type })); _pRemoveDocs = [];
+  portCommitDocs(rec); inp.value = ''; _detailCommit();
+}
+function portDeleteDoc(did) { const rec = _detailRec(); if (!rec || !confirm('Remove this document from the holding?')) return; rec.docs = (rec.docs || []).filter(d => d.id !== did); fosDocDel(did).catch(() => {}); _detailCommit(); }
+
+// Small table helpers
+function portSubCell(e) {
+  return `<a class="p1-link" onclick="openPortDetail(${e.id})" title="Open details, history and documents">${_esc(e.subType || '-')}</a>` + (e.subCategory ? `<div class="p1-subtag">${_esc(e.subCategory)}</div>` : '');
+}
+function portTag(e) {
+  const n = (e.docs || []).length;
+  return (portIsForeign(e) ? `<span class="p1-chip" title="Held in ${_esc(String(e.currency).toUpperCase())}">${_esc(String(e.currency).toUpperCase())}</span>` : '') + (n ? `<span class="p1-chip" title="${n} document(s)"><i class="fas fa-paperclip"></i> ${n}</span>` : '');
 }
 
 // ── BUDGET MODAL ───────────────────────────────────────────────────────────
