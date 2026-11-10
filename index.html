@@ -7436,6 +7436,17 @@ function passAppLockGate() {
         <div class="panel-title fhs-title"><span><i class="fas fa-bell" style="margin-right:7px;color:var(--brand,#20CDB5)"></i>Recurring Payments &mdash; Not Entered Yet</span><small id="dash-rem-scope"></small></div>
         <div id="dash-rem"></div>
       </div>
+      <script>
+      (function () {
+        var K = 'fos_rem_minimized', p = document.getElementById('dash-rem-panel'), t = p.querySelector('.fhs-title');
+        var b = document.createElement('button'); b.type = 'button'; b.id = 'dash-rem-min';
+        b.style.cssText = 'margin-left:auto;background:rgba(255,255,255,.06);border:1px solid var(--border-color,rgba(255,255,255,.12));color:var(--text-muted);border-radius:8px;width:28px;height:28px;cursor:pointer;flex:none';
+        t.style.display = 'flex'; t.style.alignItems = 'center'; t.style.gap = '8px'; t.appendChild(b);
+        function apply(min) { document.getElementById('dash-rem').style.display = min ? 'none' : ''; b.innerHTML = '<i class="fas fa-chevron-' + (min ? 'down' : 'up') + '"></i>'; b.title = min ? 'Expand' : 'Minimize'; b.setAttribute('aria-expanded', String(!min)); }
+        b.onclick = function () { var m = localStorage.getItem(K) !== '1'; localStorage.setItem(K, m ? '1' : '0'); apply(m); };
+        apply(localStorage.getItem(K) === '1');
+      })();
+      </script>
 
       <div class="charts-3col" style="margin-top:1.3rem">
         <div class="glass-panel" style="margin-bottom:0">
@@ -34714,7 +34725,7 @@ body.light-mode .txa-advhead h2 i{color:#0f766e}
 .pol-chip{border:1px solid rgba(128,128,128,.35);border-radius:999px;padding:3px 11px;font-size:.74rem;cursor:pointer;color:var(--text-muted)}
 .pol-chip.on{border-color:var(--accent);color:var(--accent)}.pol-chip a{margin-left:6px;opacity:.7}
 .pol-card{margin-bottom:14px;padding:14px 16px}.pol-un{border:1px dashed rgba(128,128,128,.4);border-radius:12px;font-size:.82rem}
-.pol-un ul,.pol-two ul{margin:6px 0 0 16px;padding:0;font-size:.8rem;line-height:1.55}
+.pol-un ul,.pol-two ul,#pol-smart ul{margin:6px 0 0 18px;padding:0 0 0 2px;font-size:.8rem;line-height:1.55}#pol-smart li{padding-left:2px}
 .pol-h{font-size:.66rem;font-weight:800;text-transform:uppercase;letter-spacing:.06em;color:var(--accent)}
 .pol-me-h{display:flex;align-items:center;gap:8px;margin-bottom:10px}
 .pol-nav{background:transparent;border:1px solid rgba(128,128,128,.35);color:inherit;border-radius:8px;width:28px;height:28px;cursor:pointer}.pol-nav:disabled{opacity:.3;cursor:default}
