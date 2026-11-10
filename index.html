@@ -7319,12 +7319,19 @@ function passAppLockGate() {
           <div class="panel-title" style="margin-bottom:0; display:flex; align-items:center; gap:8px;">
             <i class="fas fa-satellite-dish" style="color:#38bdf8;"></i> LIVE MARKET OVERVIEW
           </div>
-          <div style="font-size:0.65rem; color:var(--text-muted); display:flex; align-items:center; gap:6px;">
-            <div class="live-dot"></div> Live Data Feed
+          <div style="font-size:0.65rem; color:var(--text-muted); display:flex; align-items:center; gap:8px; flex-wrap:wrap; justify-content:flex-end;">
+            <label title="Turn live market pricing on or off. Off = no requests, all holdings use manual valuation." style="display:flex;align-items:center;gap:4px;cursor:pointer"><input type="checkbox" id="mq-toggle" checked onchange="MD.toggle(this.checked)"> Live pricing</label>
+            <span id="mq-status">Checking sources…</span>
+            <button id="mq-refresh" class="btn-secondary" style="font-size:0.65rem; padding:4px 8px;" onclick="MD.refresh(true)"><i class="fas fa-rotate"></i> Refresh Prices</button>
           </div>
         </div>
         <div class="market-pulse-grid" id="market-pulse-grid">
           </div>
+      </div>
+
+<div class="glass-panel draggable-section" data-drag-id="dash-port-live" id="port-live-panel" style="margin-bottom: 1.3rem;">
+        <div class="panel-title" style="display:flex; align-items:center; gap:8px;"><i class="fas fa-wallet" style="color:#a78bfa;"></i> PERSONAL PORTFOLIO LIVE VALUATION</div>
+        <div id="pl-body"></div>
       </div>
 
 <div class="glass-panel draggable-section tv-mobile-hide" id="tv-panel" style="margin-bottom: 1.3rem; padding-bottom: 0;">
@@ -11594,7 +11601,9 @@ function portCalc(e) {
   // Phase 1: foreign-currency holdings convert to the base currency (purchase at the purchase-time rate,
   // value at today's rate), extra purchases (lots) add to cost, and ownership share scales the result.
   // A holding with none of these fields calculates exactly as before.
-  const fxNow = portFxNow(e), fxBuy = Number(e.fxBuy) > 0 ? Number(e.fxBuy) : fxNow, share = portShare(e);
+  const mk = window.MD ? window.MD.unitPrice(e) : null;                                  // separate market quote (never stored in the record)
+  const fxManual = portFxNow(e), fxBuy = Number(e.fxBuy) > 0 ? Number(e.fxBuy) : fxManual, share = portShare(e);
+  const fxNow = mk ? mk.fx : fxManual;
   const lots = Array.isArray(e.lots) ? e.lots : [];
   let qty = qtyP, invNative = perUnit ? qtyP * buyP : buyP, invBase = invNative * fxBuy;
   lots.forEach(l => {
@@ -11603,13 +11612,15 @@ function portCalc(e) {
     if (perUnit) qty += lq;
   });
   const totalInv = invBase * share;
-  const currVal  = (perUnit ? qty * curP : curP) * fxNow * share;
+  const mQty = qtyP + lots.reduce((t, l) => t + (Number(l.qty) || 0), 0);
+  const useMk = !!mk && mQty > 0;                                                       // no valid quantity -> keep manual valuation
+  const currVal  = useMk ? mQty * mk.p * fxNow * share : (perUnit ? qty * curP : curP) * (mk ? fxManual : fxNow) * share;
 
   const gainLoss  = currVal - totalInv;
   const roi       = totalInv > 0 ? ((currVal - totalInv) / totalInv) * 100 : 0;
   const profitPct = totalInv > 0 ? (gainLoss / totalInv) * 100 : 0;
   return { totalInvestment: totalInv, currentValue: currVal, gainLoss, roi, profitPct,
-           qtyTotal: qty, avgCost: perUnit && qty > 0 ? invNative / qty : buyP, fxNowUsed: fxNow, fxBuyUsed: fxBuy };
+           qtyTotal: useMk ? mQty : qty, avgCost: perUnit && qty > 0 ? invNative / qty : buyP, fxNowUsed: fxNow, fxBuyUsed: fxBuy, marketLinked: useMk, marketState: useMk ? mk.v.state : 'manual' };
 }
 
 // ── PORTFOLIO FILTERS ──────────────────────────────────────────────────────
@@ -26863,288 +26874,169 @@ async function confirmRestore() {
 }
 
 // ── INIT ───────────────────────────────────────────────────────────────────
-// ── AUTO-SYNC LIVE METALS TO PORTFOLIO ─────────────────────────────────────
-function syncMetalPricesToPortfolio(liveGold24, liveSilver) {
-  let updated = false;
-  
-  portDb.forEach(item => {
-    const type = normalizeAssetType(item.assetType);
-    
-    // Update Gold (Force 22K price for all Gold holdings)
-    if (type === 'Gold' && liveGold24) {
-      // Always calculate and apply the 22K price (91.67% of 24K spot)
-      let appliedPrice = liveGold24 * (22/24);
-      
-      // Only trigger an update if the price changed by more than ₹1 to prevent micro-stutters
-      if (Math.abs(item.currentPrice - appliedPrice) > 1) {
-        item.currentPrice = appliedPrice;
-        updated = true;
-      }
-    }
-    
-    // Update Silver
-    if (type === 'Silver' && liveSilver) {
-      if (Math.abs(item.currentPrice - liveSilver) > 0.5) {
-        item.currentPrice = liveSilver;
-        updated = true;
-      }
-    }
-  });
-
-  // If prices changed, save to localStorage and silently re-render the view
-  if (updated) {
-    scheduleSave();
-    if (activeView === 'port-table') renderPortTable();
-    if (activeView === 'port-overview') renderPortOverview();
-    if (activeView === 'port-analytics') renderPortAnalytics();
-    if (activeView === 'dashboard') renderDashboardImmediate();
-  }
-}
-
 // ══════════════════════════════════════════════════════════════════════════════
-// LIVE MARKET PULSE ENGINE (OPTION A: GLOBAL API + 22K GOLD + ICON FIX)
+// MARKET DATA SERVICE — the single source of truth for every live price in FinanceOS.
+// Dashboard cards, Portfolio OS valuation (portCalc), Portfolio Snapshot and the Live Valuation panel all read from here.
+// Quotes live in their own cache (fos_mq_v1) and are NEVER written into portDb, so purchase price, lots,
+// invested amount and manual valuation history stay untouched. Holdings without a valid mapping keep manual valuation.
 // ══════════════════════════════════════════════════════════════════════════════
-const MarketEngine = {
-  charts: {},
-  assets: [
-    // Precious Metals
-    { id: 'gold24', name: '24K Gold', cat: 'Precious Metals', icon: 'fa-cubes', color: '#f59e0b', price: 7245.00, prefix: '₹', unit: '/ gram', fast: true, hist: [] },
-    { id: 'gold22', name: '22K Gold', cat: 'Precious Metals', icon: 'fa-cube', color: '#fbbf24', price: 6641.00, prefix: '₹', unit: '/ gram', fast: true, hist: [] },
-    { id: 'silver', name: 'Silver', cat: 'Precious Metals', icon: 'fa-coins', color: '#94a3b8', price: 85.50, prefix: '₹', unit: '/ gram', fast: true, hist: [] },
-    
-    // Markets & Indices
-    { id: 'nifty', name: 'Nifty 50', cat: 'Markets & Indices', icon: 'fa-chart-line', color: '#a855f7', price: 22453.20, prefix: '', unit: 'pts', fast: true, hist: [] },
-    { id: 'sensex', name: 'Sensex', cat: 'Markets & Indices', icon: 'fa-chart-area', color: '#8b5cf6', price: 73924.80, prefix: '', unit: 'pts', fast: true, hist: [] }, // Icon fixed here!
-    
-    // Currency
-    { id: 'usd', name: 'USD vs INR', cat: 'Currency', icon: 'fa-money-bill-transfer', color: '#10b981', price: 83.45, prefix: '₹', unit: '', fast: true, hist: [] },
-    
-    // Fuel & Energy
-    { id: 'crude', name: 'Crude Oil', cat: 'Fuel & Energy', icon: 'fa-oil-well', color: '#64748b', price: 6842.00, prefix: '₹', unit: '/ bbl', fast: true, hist: [] },
-    { id: 'petrol', name: 'Petrol', cat: 'Fuel & Energy', icon: 'fa-gas-pump', color: '#34d399', price: 102.65, prefix: '₹', unit: '/ L', fast: false, hist: [] },
-    { id: 'diesel', name: 'Diesel', cat: 'Fuel & Energy', icon: 'fa-truck-droplet', color: '#3b82f6', price: 94.25, prefix: '₹', unit: '/ L', fast: false, hist: [] },
-    { id: 'lpg', name: 'LPG Gas', cat: 'Fuel & Energy', icon: 'fa-fire-flame-simple', color: '#f97316', price: 805.50, prefix: '₹', unit: '/ cyl', fast: false, hist: [] }
-  ],
-
-  init() {
-    const grid = document.getElementById('market-pulse-grid');
-    if (!grid) return;
-    
-    let html = '';
-    this.assets.forEach(a => {
-      // Seed history for charts
-      let currentPrice = a.price;
-      for(let i=0; i<15; i++) {
-        a.hist.unshift(currentPrice);
-        currentPrice -= (currentPrice * (Math.random() * 0.004 - 0.002));
-      }
-
-      html += `
-        <div class="market-card" id="mc-card-${a.id}" onclick="selectMarketCard('${a.id}')" style="cursor: pointer;">
-          <div class="mc-header">
-            <div>
-              <div class="mc-cat">${a.cat}</div>
-              <div class="mc-name">${a.name}</div>
-            </div>
-            <div class="mc-icon-wrap" style="background:${a.color}20; color:${a.color}; border: 1px solid ${a.color}40">
-              <i class="fas ${a.icon}"></i>
-            </div>
-          </div>
-          <div class="mc-price-wrap">
-            <div class="mc-price" id="mc-price-${a.id}">${a.prefix}${a.price.toLocaleString('en-IN', {minimumFractionDigits: 2})}</div>
-            <div class="mc-unit">${a.unit}</div>
-          </div>
-          <div class="mc-change mc-neutral" id="mc-change-${a.id}">
-            <i class="fas fa-minus"></i> 0.00 (0.00%)
-          </div>
-          <div class="mc-spark"><canvas id="mc-spark-${a.id}"></canvas></div>
-          <div class="mc-footer">
-            <span id="mc-diff-${a.id}">Change: 0.00</span>
-            <span id="mc-time-${a.id}">Just now</span>
-          </div>
-        </div>
-      `;
-    });
-    grid.innerHTML = html;
-
-    // Initialize Sparklines
-    this.assets.forEach(a => {
-      const ctx = document.getElementById(`mc-spark-${a.id}`).getContext('2d');
-      const grad = ctx.createLinearGradient(0, 0, 0, 45);
-      grad.addColorStop(0, a.color + '60');
-      grad.addColorStop(1, 'transparent');
-
-      this.charts[a.id] = new Chart(ctx, {
-        type: 'line',
-        data: { labels: new Array(15).fill(''), datasets: [{ data: [...a.hist], borderColor: a.color, backgroundColor: grad, borderWidth: 2, fill: true, tension: 0.4, pointRadius: 0 }] },
-        options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false }, tooltip: { enabled: false } }, scales: { x: { display: false }, y: { display: false } }, animation: { duration: 0 } }
-      });
-    });
-
-    // Start Loops
-    setInterval(() => { if (!document.hidden) this.fetchUpdates(true); }, 8000); 
-    setInterval(() => { if (!document.hidden) this.fetchUpdates(false); }, 20000);
-  },
-
-  animateValue(element, start, end, prefix) {
-    const duration = 800;
-    let startTimestamp = null;
-    const step = (timestamp) => {
-      if (!startTimestamp) startTimestamp = timestamp;
-      const progress = Math.min((timestamp - startTimestamp) / duration, 1);
-      const easeProgress = 1 - Math.pow(1 - progress, 3);
-      const current = start + easeProgress * (end - start);
-      element.innerHTML = `${prefix}${current.toLocaleString('en-IN', {minimumFractionDigits: 2, maximumFractionDigits: 2})}`;
-      if (progress < 1) window.requestAnimationFrame(step);
-    };
-    window.requestAnimationFrame(step);
-  },
-
-  async fetchUpdates(isFastUpdate) {
-    const nowStr = new Date().toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', second: '2-digit' });
-
-    const updateCardUI = (asset, newPrice) => {
-      if (asset.price === newPrice) return; 
-
-      const oldPrice = asset.price;
-      asset.price = newPrice;
-      
-      const diff = asset.price - asset.hist[asset.hist.length-1]; 
-      const diffPct = (diff / asset.hist[asset.hist.length-1]) * 100;
-
-      const card = document.getElementById(`mc-card-${asset.id}`);
-      const priceEl = document.getElementById(`mc-price-${asset.id}`);
-      const changeEl = document.getElementById(`mc-change-${asset.id}`);
-      
-      this.animateValue(priceEl, oldPrice, asset.price, asset.prefix);
-      
-      const isUp = diff >= 0;
-      changeEl.className = `mc-change ${isUp ? 'mc-up' : 'mc-down'}`;
-      changeEl.innerHTML = `<i class="fas ${isUp ? 'fa-arrow-trend-up' : 'fa-arrow-trend-down'}"></i> ${asset.prefix}${Math.abs(diff).toFixed(2)} (${isUp?'+':''}${diffPct.toFixed(2)}%)`;
-      
-      document.getElementById(`mc-diff-${asset.id}`).innerHTML = `Change: <span style="color:${isUp?'#34d399':'#ef4444'}">${isUp?'+':'-'}${asset.prefix}${Math.abs(oldPrice - asset.price).toFixed(2)}</span>`;
-      document.getElementById(`mc-time-${asset.id}`).textContent = nowStr;
-
-      card.classList.remove('update-flash');
-      void card.offsetWidth; 
-      card.classList.add('update-flash');
-
-      asset.hist.push(asset.price);
-      if(asset.hist.length > 15) asset.hist.shift();
-      this.charts[asset.id].data.datasets[0].data = [...asset.hist];
-      this.charts[asset.id].update();
-    };
-
-    // ==========================================
-    // 1. FETCH REAL LIVE DATA (Fast Update Loop)
-    // ==========================================
-    if (isFastUpdate) {
-      try {
-        // Fetch Live USD to INR
-        const fxRes = await fetch('https://open.er-api.com/v6/latest/USD');
-        if (fxRes.ok) {
-          const fxData = await fxRes.json();
-          const liveUsdInr = fxData.rates.INR;
-          const usdAsset = this.assets.find(a => a.id === 'usd');
-          if (usdAsset) updateCardUI(usdAsset, liveUsdInr);
-        }
-
-        // Fetch Live Gold & Silver (Using PaxG and Kinesis-Silver proxies mapped to INR)
-        const metalsRes = await fetch('https://api.coingecko.com/api/v3/simple/price?ids=pax-gold,kinesis-silver&vs_currencies=inr');
-        if (metalsRes.ok) {
-          const metalsData = await metalsRes.json();
-          
-          // Apply ~18% Local Premium (15% Import Duty + 3% GST) to approximate local retail
-          const localPremium = 1.18; 
-          
-          let liveGold24 = null;
-          let liveSilver = null;
-
-          if (metalsData['pax-gold']) {
-            // 1 Troy Ounce = 31.1034768 grams
-            liveGold24 = (metalsData['pax-gold'].inr / 31.1034768) * localPremium;
-            
-            // Update 24K Gold Dashboard Card
-            const gold24Asset = this.assets.find(a => a.id === 'gold24');
-            if (gold24Asset) updateCardUI(gold24Asset, liveGold24);
-            
-            // Calculate and Update 22K Gold Dashboard Card (91.67% purity)
-            const liveGold22Inr = liveGold24 * (22 / 24);
-            const gold22Asset = this.assets.find(a => a.id === 'gold22');
-            if (gold22Asset) updateCardUI(gold22Asset, liveGold22Inr);
-          }
-
-          if (metalsData['kinesis-silver']) {
-            liveSilver = (metalsData['kinesis-silver'].inr / 31.1034768) * localPremium;
-            
-            // Update Silver Dashboard Card
-            const silverAsset = this.assets.find(a => a.id === 'silver');
-            if (silverAsset) updateCardUI(silverAsset, liveSilver);
-          }
-
-          // Trigger the Portfolio Sync!
-          syncMetalPricesToPortfolio(liveGold24, liveSilver);
-        }
-      } catch (err) {
-        console.warn("Live API fetch failed, falling back to cached state.", err);
-      }
-    }
-
-    // ==========================================
-    // 2. FETCH INDICES & CRUDE (Yahoo Finance Proxy)
-    // ==========================================
-    if (isFastUpdate) {
-      try {
-        const yfRes = await fetch('https://query1.finance.yahoo.com/v7/finance/quote?symbols=^NSEI,^BSESN,CL=F');
-        if (yfRes.ok) {
-          const yfData = await yfRes.json();
-          const quotes = yfData.quoteResponse.result;
-
-          quotes.forEach(quote => {
-            if (quote.symbol === '^NSEI') {
-              const niftyAsset = this.assets.find(a => a.id === 'nifty');
-              if (niftyAsset) updateCardUI(niftyAsset, quote.regularMarketPrice);
-            }
-            if (quote.symbol === '^BSESN') {
-              const sensexAsset = this.assets.find(a => a.id === 'sensex');
-              if (sensexAsset) updateCardUI(sensexAsset, quote.regularMarketPrice);
-            }
-            if (quote.symbol === 'CL=F') { // Crude Oil WTI (in USD)
-               const crudeAsset = this.assets.find(a => a.id === 'crude');
-               // Convert USD Crude to INR using the live exchange rate we just pulled
-               const usdAsset = this.assets.find(a => a.id === 'usd');
-               const currentUsdInr = usdAsset ? usdAsset.price : 83.45; // fallback
-               const crudeInr = quote.regularMarketPrice * currentUsdInr; 
-               if (crudeAsset) updateCardUI(crudeAsset, crudeInr);
-            }
-          });
-        }
-      } catch (err) {
-        console.warn("Stock Indices fetch failed.", err);
-      }
-    }
-
-    // ==========================================
-    // 3. CHENNAI LOCAL FUEL & LPG (Static Daily Rates)
-    // ==========================================
-    if (!isFastUpdate) { // Updates on the slow loop so it doesn't flash constantly
-      const chennaiRates = {
-        petrol: 103.67,
-        diesel: 95.25,
-        lpg: 928.50 
-      };
-
-      const petrolAsset = this.assets.find(a => a.id === 'petrol');
-      if (petrolAsset) updateCardUI(petrolAsset, chennaiRates.petrol);
-
-      const dieselAsset = this.assets.find(a => a.id === 'diesel');
-      if (dieselAsset) updateCardUI(dieselAsset, chennaiRates.diesel);
-
-      const lpgAsset = this.assets.find(a => a.id === 'lpg');
-      if (lpgAsset) updateCardUI(lpgAsset, chennaiRates.lpg);
-    }
+window.MD = (() => {
+  const ld = (k, d) => { try { return JSON.parse(localStorage.getItem(k)) || d; } catch (e) { return d; } };
+  const sv = (k, v) => { try { localStorage.setItem(k, JSON.stringify(v)); } catch (e) {} };
+  const TTL = { equity: 60e3, cmdty: 300e3, metal: 300e3, crypto: 45e3, fx: 300e3, mf: 6 * 36e5 };   // refresh interval per source
+  const CLOSED_TTL = 6 * 36e5, FAIL_MAX = 18e5, DAY = 864e5;
+  const q = ld('fos_mq_v1', {}), hist = ld('fos_mq_hist_v1', {}), manual = ld('fos_mq_manual_v1', {}), vh = ld('fos_mq_valhist_v1', []);
+  const errs = {}, nextOk = {}, fails = {}; let on = localStorage.getItem('fos_mq_on') !== '0', busy = false, lastOk = +localStorage.getItem('fos_mq_lastok') || 0, dbn = null;
+  const K = i => i.t + ':' + i.s + (i.x ? ':' + i.x : '');
+  // Dashboard cards. Index/commodity symbols are provider symbols — confirm them against your Twelve Data plan.
+  const DASH = [
+    { id: 'gold24', name: '24K Gold', cat: 'Precious Metals', icon: 'fa-cubes', color: '#f59e0b', unit: '/ gram', src: { t: 'metal', s: 'XAU' }, f: 1 },
+    { id: 'gold22', name: '22K Gold', cat: 'Precious Metals', icon: 'fa-cube', color: '#fbbf24', unit: '/ gram', src: { t: 'metal', s: 'XAU' }, f: 22 / 24 },
+    { id: 'silver', name: 'Silver', cat: 'Precious Metals', icon: 'fa-coins', color: '#94a3b8', unit: '/ gram (spot)', src: { t: 'metal', s: 'XAG' }, f: 1 },
+    { id: 'nifty', name: 'Nifty 50', cat: 'Markets & Indices', icon: 'fa-chart-line', color: '#a855f7', unit: 'pts', src: { t: 'equity', s: 'NIFTY', x: 'NSE' }, f: 1, nse: 1 },
+    { id: 'sensex', name: 'Sensex', cat: 'Markets & Indices', icon: 'fa-chart-area', color: '#8b5cf6', unit: 'pts', src: { t: 'equity', s: 'SENSEX', x: 'BSE' }, f: 1, nse: 1 },
+    { id: 'usd', name: 'USD vs INR', cat: 'Currency', icon: 'fa-money-bill-transfer', color: '#10b981', unit: '₹ per $', src: { t: 'fx', s: 'USD/INR' }, f: 1 },
+    { id: 'crude', name: 'Crude Oil (WTI)', cat: 'Fuel & Energy', icon: 'fa-oil-well', color: '#64748b', unit: '$ / bbl', src: { t: 'cmdty', s: 'WTI/USD' }, f: 1 },
+    { id: 'petrol', name: 'Chennai Petrol', cat: 'Fuel & Energy', icon: 'fa-gas-pump', color: '#34d399', unit: '/ L', manual: 1 },
+    { id: 'diesel', name: 'Chennai Diesel', cat: 'Fuel & Energy', icon: 'fa-truck-droplet', color: '#3b82f6', unit: '/ L', manual: 1 },
+    { id: 'lpg', name: 'Chennai LPG', cat: 'Fuel & Energy', icon: 'fa-fire-flame-simple', color: '#f97316', unit: '/ 14.2 kg cyl', manual: 1 }
+  ];
+  const SYM = { INR: '₹', USD: '$', EUR: '€', GBP: '£', JPY: '¥' };
+  const money = (n, c) => (SYM[c] || (c ? c + ' ' : '₹')) + Number(n).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  const ist = ms => ms ? new Date(ms).toLocaleString('en-IN', { timeZone: 'Asia/Kolkata', day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit', hour12: true }) + ' IST' : '—';
+  function nseOpen() { const p = new Intl.DateTimeFormat('en-GB', { timeZone: 'Asia/Kolkata', weekday: 'short', hour: '2-digit', minute: '2-digit', hour12: false }).formatToParts(new Date()).reduce((o, x) => (o[x.type] = x.value, o), {}); const m = (+p.hour % 24) * 60 + +p.minute; return !/Sat|Sun/.test(p.weekday) && m >= 555 && m <= 930; }  // 09:15–15:30 IST; holidays: provider is_market_open flag takes over
+  // ── freshness: a quote is only 'live' when its source is live AND it is inside its freshness window ──
+  function view(id) {
+    const v = q[id]; if (!v) return null; const age = Date.now() - v.got, g = v.g;
+    const win = v.kind === 'eod' ? 4 * DAY : v.kind === 'reference' ? 2 * DAY : v.open === false ? 4 * DAY : TTL[g] * 3;
+    const stale = age > win;
+    return Object.assign({}, v, { age, stale, state: stale ? 'stale' : v.kind });
   }
-};
+  const LABEL = { paused: 'Paused', live: 'Live', delayed: 'Delayed', eod: 'End of day', indicative: 'Indicative', reference: 'Daily reference', manual: 'Manual', stale: 'Stale', unavailable: 'Unavailable' };
+  // ── holding → quote mapping. Returns null when no valid mapping exists (manual valuation then continues unchanged) ──
+  function link(r) {
+    if (!r || r.status === 'sold') return null;
+    const t = normalizeAssetType(r.assetType), m = r.meta || {}, sub = String(r.subCategory || '');
+    const tk = String(m.ticker || '').trim().toUpperCase(), ex = String(m.exchange || '').trim().toUpperCase();
+    if (t === 'Gold' && /sovereign|digital/i.test(sub) || t === 'Gold' && !/^(24K|22K|18K)$/.test(String(m.purity || ''))) return null;   // SGB / digital gold / unknown purity: own instrument or manual
+    if (t === 'Gold') return { id: 'metal:XAU', f: { '24K': 1, '22K': 22 / 24, '18K': 0.75 }[m.purity] };
+    if (t === 'Silver') { const n = parseFloat(m.purity); const p = n > 100 ? n / 1000 : n > 1 ? n / 100 : n; return p > 0.3 && p <= 1 ? { id: 'metal:XAG', f: p } : null; }
+    if (t === 'MutualFund') return /^\d{4,8}$/.test(String(m.schemeCode || '').trim()) ? { id: 'mf:' + String(m.schemeCode).trim(), f: 1 } : null;
+    if (t === 'Crypto') return /^[a-z0-9\-]{2,60}$/.test(String(m.coinId || '').trim().toLowerCase()) ? { id: 'crypto:' + String(m.coinId).trim().toLowerCase(), f: 1 } : null;
+    if (['Stocks', 'ETFs', 'REITs', 'International', 'Bonds', 'Commodities'].indexOf(t) >= 0 && /^[A-Z0-9.\-&^]{1,20}$/.test(tk)) {
+      if (t === 'Commodities') return { id: 'cmdty:' + tk, f: 1 };
+      const x = ex || (t === 'International' ? '' : 'NSE'); return { id: 'equity:' + tk + (x ? ':' + x : ''), f: 1 };
+    }
+    return null;
+  }
+  // Price per unit for valuation: { p: native unit price, fx: to-INR rate, ccy, v: view }. Null if no usable quote (never substitutes another instrument).
+  function unitPrice(r) {
+    if (!on) return null;   // live pricing switched off: every holding uses its manual valuation
+    const L = link(r); if (!L) return null; const v = view(L.id); if (!v) return null;
+    let fx = 1; if (v.ccy && v.ccy !== 'INR') { const f = view('fx:' + v.ccy + '/INR'); if (!f) return null; fx = f.price; }
+    return { p: v.price * L.f, fx, ccy: v.ccy, v, L, changeNative: v.change != null ? v.change * L.f : null };
+  }
+  // ── network: one proxy endpoint, batching + dedupe + per-source TTL + backoff + 429 handling ──
+  async function pull(items) {
+    const h = { 'Content-Type': 'application/json', apikey: SUPABASE_ANON_KEY }; let tok = SUPABASE_ANON_KEY;
+    try { const s = await sb.auth.getSession(); if (s && s.data && s.data.session) tok = s.data.session.access_token; } catch (e) {}
+    h.Authorization = 'Bearer ' + tok;
+    const ep = localStorage.getItem('fos_mq_endpoint') || (SUPABASE_URL + '/functions/v1/market-quotes');
+    const r = await fetch(ep, { method: 'POST', headers: h, body: JSON.stringify({ items }) });
+    if (r.status === 429) { const e = new Error('Rate limited (HTTP 429)'); e.retry = (+r.headers.get('retry-after') || 60) * 1000; throw e; }
+    if (!r.ok) throw new Error(r.status === 404 ? 'Market-data function not deployed (404)' : 'HTTP ' + r.status);
+    const j = await r.json(); if (!j || typeof j.quotes !== 'object') throw new Error('Malformed provider response'); return j;
+  }
+  function wanted() {
+    const m = {}; DASH.forEach(d => { if (d.src) m[K(d.src)] = d.src; });
+    portDb.forEach(r => { const L = link(r); if (!L) return; const [t, s, x] = L.id.split(':'); m[L.id] = { t, s, x }; });
+    Object.keys(m).slice().forEach(k => { const v = m[k], r = q[k]; if (r && r.ccy && r.ccy !== 'INR') m['fx:' + r.ccy + '/INR'] = { t: 'fx', s: r.ccy + '/INR' }; });   // currency conversion for foreign quotes
+    return m;
+  }
+  async function refresh(force) {
+    if (!on) { paintStatus(); return; }
+    if (busy) return; if (!navigator.onLine) { paintStatus('Offline — showing last known prices'); return; }
+    const w = wanted(), now = Date.now(), due = [];
+    Object.keys(w).forEach(k => { const it = w[k], g = it.t, v = q[k]; if (!force && nextOk[g] > now) return;
+      let ttl = TTL[g]; if (v && (v.open === false || (g === 'equity' && !nseOpen() && v.got > now - DAY * 4 && /^(NSE|BSE)$/.test(it.x || '')))) ttl = CLOSED_TTL;   // no repeated requests while the market is closed
+      if (g === 'mf' && v && v.asOf && now - v.got < ttl) return; if (force || !v || now - v.got >= ttl) due.push(it); });
+    if (!due.length) { paintStatus(); return; }
+    busy = true; setBtn(true);
+    try { const j = await pull(due), got = Date.now(); let ok = 0;
+      due.forEach(it => { const k = K(it), n = j.quotes[k];
+        if (n && typeof n.price === 'number' && isFinite(n.price) && n.price > 0) { q[k] = Object.assign({}, n, { g: it.t, got, id: k }); delete errs[k]; fails[it.t] = 0; ok++;
+          const h = hist[k] = hist[k] || [], l = h[h.length - 1]; if (!l || (got - l[0] > 6e4 && l[1] !== n.price)) { h.push([got, n.price]); if (h.length > 80) h.shift(); } }
+        else { errs[k] = (j.errors && j.errors[k]) || 'No quote returned'; fails[it.t] = (fails[it.t] || 0) + 1; nextOk[it.t] = got + Math.min(TTL[it.t] * Math.pow(2, fails[it.t]), FAIL_MAX); } });
+      if (ok) { lastOk = got; localStorage.setItem('fos_mq_lastok', lastOk); sv('fos_mq_v1', q); sv('fos_mq_hist_v1', hist); changed(); }
+      paintStatus(ok ? null : 'No valid quotes returned');
+    } catch (e) { const g = {}; due.forEach(it => g[it.t] = 1); Object.keys(g).forEach(t => { fails[t] = (fails[t] || 0) + 1; nextOk[t] = Date.now() + (e.retry || Math.min(TTL[t] * Math.pow(2, fails[t]), FAIL_MAX)); });
+      due.forEach(it => errs[K(it)] = e.message); paintStatus('Refresh failed: ' + e.message + ' — showing last known prices (marked stale when old)'); changed(); }
+    finally { busy = false; setBtn(false); }
+  }
+  // ── targeted, debounced re-render (never the whole app on a timer) ──
+  function changed() { clearTimeout(dbn); dbn = setTimeout(() => { paintCards(); paintPanel(); try { if (activeView === 'port-table') renderPortTable(); else if (activeView === 'port-overview') renderPortOverview(); else if (activeView === 'port-analytics') renderPortAnalytics(); else if (activeView === 'dashboard') renderDashboardImmediate(); } catch (e) { console.warn(e); } }, 1200); }
+  const cardState = d => { if (d.manual) { const m = manual[d.id]; return m ? { price: m.price, ccy: 'INR', kind: 'manual', asOf: m.at, state: 'manual', provider: 'Entered by you' } : null; }
+    const v = view(K(d.src)); return v ? Object.assign({}, v, { price: v.price * d.f, change: v.change != null ? v.change * d.f : null }, on ? {} : { state: 'paused' }) : null; };
+  const stateColor = s => s === 'paused' ? '#94a3b8' : s === 'live' ? '#10b981' : s === 'delayed' || s === 'indicative' || s === 'reference' ? '#f59e0b' : s === 'eod' || s === 'manual' ? '#38bdf8' : '#ef4444';
+  function paintCards() {
+    DASH.forEach(d => { const c = document.getElementById('mc-card-' + d.id); if (!c) return; const v = cardState(d);
+      const $ = s => document.getElementById(s + d.id), px = $('mc-price-'), ch = $('mc-change-'), ft = $('mc-diff-'), tm = $('mc-time-'), sp = $('mc-spark-');
+      if (!v) { px.textContent = 'Unavailable'; ch.className = 'mc-change mc-neutral'; ch.textContent = (errs[d.src ? K(d.src) : ''] || (d.manual ? 'No verified live source — enter today’s rate' : 'No quote yet')); ft.innerHTML = d.manual ? '<a href="#" onclick="event.stopPropagation();MD.setManual(\'' + d.id + '\');return false" style="color:#38bdf8">Set rate</a>' : 'Source: —'; tm.textContent = ''; return; }
+      px.textContent = money(v.price, v.ccy); const up = (v.change || 0) >= 0;
+      if (v.change != null && v.changePct != null) { ch.className = 'mc-change ' + (up ? 'mc-up' : 'mc-down'); ch.innerHTML = '<i class="fas ' + (up ? 'fa-arrow-trend-up' : 'fa-arrow-trend-down') + '"></i> ' + Math.abs(v.change).toFixed(2) + ' (' + (up ? '+' : '') + v.changePct.toFixed(2) + '%)' + (v.note === '24h change' ? ' · 24h' : ''); }
+      else { ch.className = 'mc-change mc-neutral'; ch.textContent = 'Change n/a (no previous close from source)'; }
+      const mkt = d.nse ? (nseOpen() && v.open !== false ? 'NSE/BSE open' : 'Market closed') : d.src && d.src.t === 'metal' ? 'Spot · no import duty/GST' : '';
+      ft.innerHTML = '<span style="color:' + stateColor(v.state) + ';font-weight:700">' + LABEL[v.state] + '</span> · ' + v.provider + (mkt ? ' · ' + mkt : '') + (d.manual ? ' · <a href="#" onclick="event.stopPropagation();MD.setManual(\'' + d.id + '\');return false" style="color:#38bdf8">Edit</a>' : '');
+      tm.textContent = ist(v.asOf || v.got) + (v.stale ? ' · STALE' : '');
+      const h = d.src ? (hist[K(d.src)] || []).map(x => x[1] * d.f) : [];
+      if (sp) { const wrap = sp.parentElement; if (h.length >= 2) { wrap.style.opacity = 1; const ch2 = MD._charts[d.id]; if (!ch2) { const ctx = sp.getContext('2d'), g = ctx.createLinearGradient(0, 0, 0, 45); g.addColorStop(0, d.color + '60'); g.addColorStop(1, 'transparent');
+            MD._charts[d.id] = new Chart(ctx, { type: 'line', data: { labels: h.map(() => ''), datasets: [{ data: h, borderColor: d.color, backgroundColor: g, borderWidth: 2, fill: true, tension: 0.3, pointRadius: 0 }] }, options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false }, tooltip: { enabled: false } }, scales: { x: { display: false }, y: { display: false } }, animation: { duration: 0 } } }); }
+          else { ch2.data.labels = h.map(() => ''); ch2.data.datasets[0].data = h; ch2.update(); } }
+        else wrap.style.opacity = 0.35; }
+      c.classList.remove('update-flash'); void c.offsetWidth; c.classList.add('update-flash'); });
+    paintStatus();
+  }
+  function paintStatus(msg) {
+    const st = document.getElementById('mq-status'); if (!st) return;
+    const tg = document.getElementById('mq-toggle'); if (tg) { tg.checked = on; } const rb = document.getElementById('mq-refresh'); if (rb) rb.disabled = !on || busy;
+    if (!on) { st.innerHTML = '<span style="width:6px;height:6px;border-radius:50%;background:#94a3b8;display:inline-block"></span> Live pricing OFF — portfolio uses manual valuations'; return; }
+    const states = DASH.map(d => cardState(d)).filter(Boolean).map(v => v.state);
+    const anyLive = states.indexOf('live') >= 0, anyStale = states.indexOf('stale') >= 0;
+    const label = msg || (anyLive ? 'Live (mixed sources — see each card)' : states.length ? (anyStale ? 'Stale data — refresh' : 'Delayed / reference data') : 'No data yet');
+    st.innerHTML = '<span style="width:6px;height:6px;border-radius:50%;background:' + (anyLive && !msg ? '#10b981' : msg || anyStale || !states.length ? '#ef4444' : '#f59e0b') + ';display:inline-block"></span> ' + label + (lastOk ? ' · last success ' + ist(lastOk) : '');
+  }
+  function setBtn(spin) { const b = document.getElementById('mq-refresh'); if (!b) return; b.disabled = spin || !on; b.innerHTML = spin ? '<i class="fas fa-spinner fa-spin"></i> Refreshing…' : '<i class="fas fa-rotate"></i> Refresh Prices'; if (!spin) { b.title = 'Last refresh finished ' + new Date().toLocaleTimeString('en-IN', { timeZone: 'Asia/Kolkata' }); } }
+  // ── portfolio live valuation (same portCalc as everywhere else) ──
+  function summary() {
+    let inv = 0, val = 0, today = 0, todayOk = false, live = 0, stale = 0, manualN = 0; const rows = [];
+    portDb.filter(r => r.status !== 'sold').forEach(r => { const pc = portCalc(r); inv += pc.totalInvestment; val += pc.currentValue; const mk = unitPrice(r);
+      if (!mk) { manualN++; return; } if (mk.v.stale) { stale++; return; } live++;
+      const fx = mk.fx, sh = portShare(r); let dayChg = null; if (mk.changeNative != null) { dayChg = pc.qtyTotal * mk.changeNative * fx * sh; today += dayChg; todayOk = true; }
+      rows.push({ name: r.assetName || r.name || r.description || assetTypeLabel(r.assetType), val: pc.currentValue, price: mk.p, ccy: mk.ccy, pct: mk.v.changePct, state: mk.v.state }); });
+    rows.sort((a, b) => b.val - a.val); return { inv, val, gain: val - inv, roi: inv > 0 ? (val - inv) / inv * 100 : 0, today, todayOk, live, stale, manualN, rows: rows.slice(0, 5) };
+  }
+  function paintPanel() {
+    const el = document.getElementById('pl-body'); if (!el) return; const s = summary(), f = n => (typeof fmt === 'function' ? fmt(n) : '₹' + Math.round(n).toLocaleString('en-IN')), col = n => n >= 0 ? 'var(--c-inc)' : 'var(--c-exp)';
+    const k = (l, v, c) => '<div class="kpi-card" style="padding:.6rem"><div class="kpi-label">' + l + '</div><div class="kpi-value" style="font-size:1.05rem' + (c ? ';color:' + c : '') + '">' + v + '</div></div>';
+    el.innerHTML = '<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:.6rem">' + k('Total invested', f(s.inv)) + k('Current value', f(s.val)) + k('Unrealised gain/loss', f(s.gain), col(s.gain)) + k('Portfolio ROI', s.roi.toFixed(2) + '%', col(s.roi)) +
+      k('Today (live-linked only)', s.todayOk ? f(s.today) : 'n/a', s.todayOk ? col(s.today) : '') + '</div>' +
+      '<div style="font-size:.7rem;color:var(--text-muted);margin:.6rem 0">Live-linked: <b>' + s.live + '</b> · Stale: <b>' + s.stale + '</b> · Manual valuation: <b>' + s.manualN + '</b> · Last successful price update: <b>' + ist(lastOk) + '</b>. Manual and stale holdings are never counted as live.</div>' +
+      (s.rows.length ? s.rows.map(r => '<div style="display:flex;justify-content:space-between;font-size:.75rem;padding:.25rem 0;border-top:1px solid var(--border-color,#ffffff14)"><span>' + _esc(String(r.name)) + ' <span style="color:' + stateColor(r.state) + '">· ' + LABEL[r.state] + '</span></span><span>' + money(r.p, r.ccy) + (r.pct != null ? ' <b style="color:' + col(r.pct) + '">' + (r.pct >= 0 ? '+' : '') + r.pct.toFixed(2) + '%</b>' : '') + ' · ' + f(r.val) + '</span></div>').join('') : '<div style="font-size:.75rem;color:var(--text-muted)">No holdings are linked to a market quote yet. Add a ticker, AMFI scheme code, CoinGecko id or gold/silver purity to a holding.</div>');
+    if (s.live) { const d = new Date().toLocaleDateString('en-CA', { timeZone: 'Asia/Kolkata' }); if (!vh.length || vh[vh.length - 1].d !== d) { vh.push({ d, inv: Math.round(s.inv), val: Math.round(s.val) }); sv('fos_mq_valhist_v1', vh.slice(-800)); } }   // one valuation record per day
+  }
+  function badge(r) { const mk = unitPrice(r); if (!mk) return '<span title="Manual valuation" style="font-size:.6rem;color:#38bdf8">Manual</span>'; return '<span title="' + mk.v.provider + ' · ' + ist(mk.v.asOf || mk.v.got) + '" style="font-size:.6rem;color:' + stateColor(mk.v.state) + '">' + LABEL[mk.v.state] + '</span>'; }
+  function setManual(id) { const d = DASH.find(x => x.id === id), cur = manual[id]; const v = prompt('Enter today\'s verified rate for ' + d.name + ' (₹ ' + d.unit + '). It will be labelled "Manual".', cur ? cur.price : ''); if (v === null) return; const n = parseFloat(v); if (!(n > 0)) { alert('Enter a positive number.'); return; } manual[id] = { price: n, at: Date.now() }; sv('fos_mq_manual_v1', manual); paintCards(); }
+  function toggle(v) { on = typeof v === 'boolean' ? v : !on; localStorage.setItem('fos_mq_on', on ? '1' : '0'); paintCards(); paintPanel(); paintStatus(); try { if (activeView === 'port-table') renderPortTable(); else if (activeView === 'port-overview') renderPortOverview(); else if (activeView === 'port-analytics') renderPortAnalytics(); else if (activeView === 'dashboard') renderDashboardImmediate(); } catch (e) {} if (on) refresh(true); }
+  function init() {
+    const grid = document.getElementById('market-pulse-grid'); if (!grid) return;
+    grid.innerHTML = DASH.map(d => '<div class="market-card" id="mc-card-' + d.id + '" onclick="selectMarketCard(\'' + d.id + '\')" style="cursor:pointer"><div class="mc-header"><div><div class="mc-cat">' + d.cat + '</div><div class="mc-name">' + d.name + '</div></div><div class="mc-icon-wrap" style="background:' + d.color + '20;color:' + d.color + ';border:1px solid ' + d.color + '40"><i class="fas ' + d.icon + '"></i></div></div><div class="mc-price-wrap"><div class="mc-price" id="mc-price-' + d.id + '">…</div><div class="mc-unit">' + d.unit + '</div></div><div class="mc-change mc-neutral" id="mc-change-' + d.id + '">Loading…</div><div class="mc-spark"><canvas id="mc-spark-' + d.id + '"></canvas></div><div class="mc-footer"><span id="mc-diff-' + d.id + '"></span><span id="mc-time-' + d.id + '"></span></div></div>').join('');
+    paintCards(); paintPanel(); refresh(false);
+    setInterval(() => { if (!document.hidden) refresh(false); }, 15000);   // scheduler tick only; each source decides if it is actually due
+    document.addEventListener('visibilitychange', () => { if (!document.hidden) refresh(false); }); window.addEventListener('online', () => refresh(true)); window.addEventListener('offline', () => paintStatus('Offline — showing last known prices'));
+  }
+  return { init, toggle, isOn: () => on, refresh, view, link, unitPrice, summary, badge, setManual, paintPanel, paintCards, _q: q, _charts: {}, _hist: hist, _vh: vh, _DASH: DASH, _parseNav: null };
+})();
+const MarketEngine = { init() { MD.init(); }, fetchUpdates() { return MD.refresh(true); } };   // compatibility shim for window.onload
 
 // ── NEW: Handle clicking and highlighting market cards ──
 function selectMarketCard(assetId) {
