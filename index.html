@@ -7440,7 +7440,7 @@ function passAppLockGate() {
       (function () {
         var K = 'fos_rem_minimized', p = document.getElementById('dash-rem-panel'), t = p.querySelector('.fhs-title');
         var b = document.createElement('button'); b.type = 'button'; b.id = 'dash-rem-min';
-        b.style.cssText = 'margin-left:auto;background:rgba(255,255,255,.06);border:1px solid var(--border-color,rgba(255,255,255,.12));color:var(--text-muted);border-radius:8px;width:28px;height:28px;cursor:pointer;flex:none';
+        b.style.cssText = 'margin-left:auto;margin-right:34px;background:rgba(255,255,255,.06);border:1px solid var(--border-color,rgba(255,255,255,.12));color:var(--text-muted);border-radius:8px;width:28px;height:28px;cursor:pointer;flex:none';
         t.style.display = 'flex'; t.style.alignItems = 'center'; t.style.gap = '8px'; t.appendChild(b);
         function apply(min) { document.getElementById('dash-rem').style.display = min ? 'none' : ''; b.innerHTML = '<i class="fas fa-chevron-' + (min ? 'down' : 'up') + '"></i>'; b.title = min ? 'Expand' : 'Minimize'; b.setAttribute('aria-expanded', String(!min)); }
         b.onclick = function () { var m = localStorage.getItem(K) !== '1'; localStorage.setItem(K, m ? '1' : '0'); apply(m); };
