@@ -10883,7 +10883,7 @@ const ASSET_CATALOG = {
   Commodities: { label: 'Commodities', short: 'Commodities', icon: 'fa-oil-can', mode: 'qty', unit: 'units', blurb: 'Crude oil, natural gas and agricultural commodities.',
     alias: ['commodity'],
     subs: ['Crude Oil', 'Natural Gas', 'Agricultural (Grains / Pulses)', 'Agricultural (Soft)', 'Base Metals', 'Platinum / Palladium'],
-    fields: [_F('instrument', 'Instrument', 'select', ['Physical', 'Futures', 'ETN / Note', 'Other']), _F('contract', 'Contract / exchange', 'text', 'MCX, NYMEX …'), _F('contractExpiry', 'Contract expiry', 'date'), _F('lotSize', 'Lot size', 'number')] },
+    fields: [_F('instrument', 'Instrument', 'select', ['Physical', 'Futures', 'ETN / Note', 'Other']), _F('contract', 'Contract / exchange', 'text', 'MCX, NYMEX …'), _F('ticker', 'Live-price symbol', 'text', 'CL=F, NG=F …'), _F('contractExpiry', 'Contract expiry', 'date'), _F('lotSize', 'Lot size', 'number')] },
   Collectibles: { label: 'Collectibles', short: 'Collectibles', icon: 'fa-gem', mode: 'total', unit: 'items', blurb: 'Watches, artwork, antiques and rare collectibles.',
     alias: ['collectible', 'watches', 'artwork', 'antiques'],
     subs: ['Watches', 'Artwork', 'Antiques', 'Rare Coins & Stamps', 'Wine & Spirits', 'Classic Cars', 'Memorabilia', 'Musical Instruments'],
@@ -22797,7 +22797,7 @@ function renderPortDetail() {
   </div>
   <div class="p1-sect"><div class="p1-sect-t"><span><i class="fas fa-shopping-cart"></i> Purchase history</span></div>
     <div class="p1-tw"><table class="p1-t"><thead><tr><th>Date</th><th class="r">${perUnit ? 'Qty' : ''}</th><th class="r">${perUnit ? 'Price / unit' : 'Amount'}</th><th class="r">Fees</th><th class="r">Total</th><th>Note</th><th></th></tr></thead><tbody>${baseRow}${lotRows}</tbody></table></div>
-    <div class="p1-add"><input type="date" id="pd-l-date" class="input-field" value="${today}">${perUnit ? '<input type="number" step="any" id="pd-l-qty" class="input-field" placeholder="Qty">' : ''}<input type="number" step="any" id="pd-l-price" class="input-field" placeholder="${perUnit ? 'Price / unit' : 'Amount'}${foreign ? ' (' + _esc(String(rec.currency).toUpperCase()) + ')' : ''}"><input type="number" step="any" id="pd-l-fees" class="input-field" placeholder="Fees"><input type="text" id="pd-l-note" class="input-field" placeholder="Note"><button type="button" class="btn-add" onclick="portAddLot()">Add purchase</button></div></div>
+    <div class="p1-add"><input type="date" id="pd-l-date" class="input-field" value="${today}">${perUnit ? '<input type="number" step="any" id="pd-l-qty" class="input-field" placeholder="Qty">' : (['MutualFund', 'Stocks', 'Crypto', 'Bonds'].indexOf(t) >= 0 ? '<input type="number" step="any" id="pd-l-units" class="input-field" placeholder="' + _esc(rec.unit || 'Units') + ' (for live prices)">' : '')}<input type="number" step="any" id="pd-l-price" class="input-field" placeholder="${perUnit ? 'Price / unit' : 'Amount'}${foreign ? ' (' + _esc(String(rec.currency).toUpperCase()) + ')' : ''}"><input type="number" step="any" id="pd-l-fees" class="input-field" placeholder="Fees"><input type="text" id="pd-l-note" class="input-field" placeholder="Note"><button type="button" class="btn-add" onclick="portAddLot()">Add purchase</button></div></div>
   <div class="p1-sect"><div class="p1-sect-t"><span><i class="fas fa-chart-line"></i> Valuation history</span></div>
     ${_spark(pts, color)}
     ${valRows ? `<div class="p1-tw"><table class="p1-t"><thead><tr><th>Date</th><th class="r">${perUnit ? 'Price / unit' : 'Value'}</th><th class="r">Change</th><th>Note</th><th></th></tr></thead><tbody>${valRows}</tbody></table></div>` : ''}
@@ -22819,7 +22819,8 @@ function portAddLot() {
   const perUnit = isQtyBased(rec.assetType), v = id => { const e = _pEl(id); return e ? e.value : ''; };
   const date = v('pd-l-date'), qty = perUnit ? parseFloat(v('pd-l-qty')) : 1, price = parseFloat(v('pd-l-price')), fees = parseFloat(v('pd-l-fees')) || 0;
   if (!date || !(price > 0) || !(qty > 0)) { _docToast('Enter a date' + (perUnit ? ', quantity' : '') + ' and ' + (perUnit ? 'price' : 'amount') + ' for the purchase', 'error'); return; }
-  rec.lots = (rec.lots || []).concat([{ id: _pRand(), date, qty, price, fees, fx: portIsForeign(rec) ? portFxNow(rec) : '', note: v('pd-l-note').trim() }]);
+  const units = parseFloat(v('pd-l-units'));
+  rec.lots = (rec.lots || []).concat([{ id: _pRand(), date, qty, price, fees, units: units > 0 ? units : '', fx: portIsForeign(rec) ? portFxNow(rec) : '', note: v('pd-l-note').trim() }]);
   _detailCommit();
 }
 function portDeleteLot(id) { const rec = _detailRec(); if (!rec || !confirm('Remove this purchase from the history?')) return; rec.lots = (rec.lots || []).filter(l => l.id !== id); _detailCommit(); }
@@ -36649,8 +36650,9 @@ body.light-mode .tx-bar select option,body.light-mode .tx-cls option{color:#111}
       · Exchange rates  → open.er-api.com   (foreign-currency holdings)
       · Mutual fund NAV → api.mfapi.in      (needs the AMFI scheme code on the holding)
       · Crypto price    → CoinGecko         (needs the CoinGecko id on the holding)
-      Gold and silver already follow the Market Pulse feed. Stocks and ETFs stay manual
-      (no reliable keyless source works from a browser page).
+      · Stocks / ETFs / REITs / international / commodities → Yahoo Finance (needs a CORS-friendly
+        route) or Alpha Vantage (user-supplied free key, stored in this browser only; never in the code)
+      Gold and silver already follow the Market Pulse feed.
    2) STRESS TEST view (Portfolio › Intelligence › Stress Test)
    3) Planning pack for the CSV / PDF export and the JSON backup
    ═══════════════════════════════════════════════════════════════════════ */
@@ -36668,7 +36670,7 @@ body.light-mode .tx-bar select option,body.light-mode .tx-cls option{color:#111}
 
   /* ════════════════════ 1. LIVE PRICE REFRESH ════════════════════ */
   const RK = 'fos_refresh_v1';
-  const RDEF = { on: false, mins: 60, fx: true, mf: true, crypto: true, last: 0, run: null };
+  const RDEF = { on: false, mins: 60, fx: true, mf: true, crypto: true, stocks: true, prov: 'yahoo', avKey: '', proxy: '', avCur: 0, last: 0, run: null };
   const rcfg = () => { const o = jget(RK, null); return Object.assign({}, RDEF, o && typeof o === 'object' ? o : {}); };
   const rsave = c => jset(RK, c);
   let busy = false;
@@ -36684,9 +36686,39 @@ body.light-mode .tx-bar select option,body.light-mode .tx-cls option{color:#111}
   const activeHoldings = () => (typeof portDb !== 'undefined' ? portDb : []).filter(e => e && e.status !== 'sold');
   const typeOf = e => normalizeAssetType(e.assetType);
   const metaOf = e => (e && e.meta) || {};
-  const unitsOf = e => num(e.quantity) + (Array.isArray(e.lots) ? e.lots.reduce((s, l) => s + num(l.qty), 0) : 0);
+  const unitsOf = e => { const pu = isQtyBased(e.assetType); return num(e.quantity) + (Array.isArray(e.lots) ? e.lots.reduce((s, l) => s + (pu ? num(l.qty) : num(l.units)), 0) : 0); };
   const hasCode = e => !!String(metaOf(e).schemeCode || '').trim();
   const hasCoin = e => !!String(metaOf(e).coinId || '').trim();
+
+  // ── Listed securities: stocks, ETFs, REITs / InvITs, international holdings, commodity futures ──
+  const EQT = ['Stocks', 'ETFs', 'REITs', 'International', 'Commodities'];
+  const hasTicker = e => !!String(metaOf(e).ticker || '').trim();
+  const YX = { NSE: '.NS', BSE: '.BO', LSE: '.L', LON: '.L', TSX: '.TO', ASX: '.AX', HKEX: '.HK', SGX: '.SI', XETRA: '.DE', FRA: '.F' };   // Yahoo exchange suffixes
+  const AX = { NSE: '.BSE', BSE: '.BSE', LSE: '.LON', LON: '.LON', TSX: '.TRT', XETRA: '.DEX' };                                          // Alpha Vantage suffixes (it has no NSE feed)
+  function liveSym(e, prov) {
+    const m = metaOf(e), t = String(m.ticker || '').trim().toUpperCase().replace(/\s+/g, '');
+    if (!t) return '';
+    if (/[.:=^]/.test(t)) return t;                                   // already a full symbol, e.g. TCS.NS or CL=F
+    const ex = String(m.exchange || '').trim().toUpperCase(), suf = (prov === 'av' ? AX : YX)[ex];
+    return t + (suf || '');
+  }
+  const liveCur = e => portIsForeign(e) ? String(e.currency).toUpperCase() : portBaseCode();
+  async function yahooQuote(sym, c) {
+    let url = 'https://query1.finance.yahoo.com/v8/finance/chart/' + encodeURIComponent(sym) + '?range=1d&interval=1d';
+    if (c.proxy) url = c.proxy + encodeURIComponent(url);
+    const j = await getJSON(url), r = j && j.chart && j.chart.result && j.chart.result[0], m = r && r.meta;
+    let p = m ? num(m.regularMarketPrice) : 0, cur = m && m.currency ? String(m.currency) : '';
+    if (!(p > 0)) throw new Error('no price for ' + sym);
+    if (cur === 'GBp' || cur === 'GBX') { p = p / 100; cur = 'GBP'; }   // London quotes are in pence
+    return { price: p, cur: cur.toUpperCase(), date: m.regularMarketTime ? new Date(m.regularMarketTime * 1000).toISOString().slice(0, 10) : '' };
+  }
+  async function alphaQuote(sym, c) {
+    const j = await getJSON('https://www.alphavantage.co/query?function=GLOBAL_QUOTE&symbol=' + encodeURIComponent(sym) + '&apikey=' + encodeURIComponent(c.avKey));
+    if (j && (j.Note || j.Information)) throw new Error('Alpha Vantage limit reached (free keys allow 25 requests a day)');
+    const q = j && j['Global Quote'], p = q ? parseFloat(q['05. price']) : NaN;
+    if (!(p > 0)) throw new Error('no price for ' + sym);
+    return { price: p, cur: '', date: q['07. latest trading day'] || '' };
+  }
 
   function rfTargets() {
     const A = activeHoldings(), base = portBaseCode();
@@ -36696,6 +36728,7 @@ body.light-mode .tx-bar select option,body.light-mode .tx-cls option{color:#111}
       base, fxCodes,
       mf: mfAll.filter(e => hasCode(e) && !portIsForeign(e)), mfMissing: mfAll.filter(e => !hasCode(e)).length,
       cr: crAll.filter(e => hasCoin(e) && !portIsForeign(e)), crMissing: crAll.filter(e => !hasCoin(e)).length,
+      eq: A.filter(e => EQT.indexOf(typeOf(e)) >= 0 && hasTicker(e)), eqMissing: A.filter(e => EQT.indexOf(typeOf(e)) >= 0 && !hasTicker(e)).length,
       metals: A.filter(e => ['Gold', 'Silver'].indexOf(typeOf(e)) >= 0).length,
       total: A.length
     };
@@ -36771,7 +36804,45 @@ body.light-mode .tx-bar select option,body.light-mode .tx-cls option{color:#111}
       } catch (err) { res.push({ src: 'Crypto prices', ok: false, msg: errMsg(err) + ' — kept your last prices' }); }
     }
 
-    if (!res.length) res.push({ src: 'Nothing to refresh', ok: true, msg: 'Add a scheme code, coin id or a foreign-currency holding first' });
+    if (c.stocks && T.eq.length) {
+      const prov = c.prov === 'av' ? 'av' : 'yahoo', label = prov === 'av' ? 'Alpha Vantage' : 'Yahoo Finance';
+      if (prov === 'av' && !String(c.avKey || '').trim()) {
+        res.push({ src: 'Stocks, ETFs & more', ok: false, msg: 'Alpha Vantage needs your free API key — paste it in the box above' });
+      } else {
+        let syms = Array.from(new Set(T.eq.map(e => liveSym(e, prov))));
+        if (prov === 'av') { const n = syms.length, k = n ? num(c.avCur) % n : 0; syms = syms.slice(k).concat(syms.slice(0, k)).slice(0, 5); c.avCur = n ? (k + 5) % n : 0; }   // free key: 5 calls a minute, rotate through the rest next time
+        else syms = syms.slice(0, 40);
+        const quotes = {}; let fail = 0, firstErr = '', blocked = false, i = 0;
+        const worker = async () => {
+          while (i < syms.length) {
+            const s = syms[i++];
+            try { quotes[s] = prov === 'av' ? await alphaQuote(s, c) : await yahooQuote(s, c); }
+            catch (err) { fail++; if (err && err.name !== 'AbortError' && /failed to fetch|networkerror|load failed/i.test(err.message || '')) blocked = true; firstErr = firstErr || errMsg(err); }
+          }
+        };
+        await Promise.all(Array.from({ length: prov === 'av' ? 1 : 4 }, worker));
+        let n = 0, noUnits = 0, curBad = 0, skipped = 0;
+        T.eq.forEach(e => {
+          const s = liveSym(e, prov), q = quotes[s];
+          if (!q) { if (syms.indexOf(s) < 0) skipped++; return; }
+          if (q.cur && q.cur !== liveCur(e)) { curBad++; return; }
+          const pu = isQtyBased(e.assetType), u = unitsOf(e);
+          if (!pu && !(u > 0)) { noUnits++; return; }
+          const val = pu ? Math.round(q.price * 10000) / 10000 : Math.round(u * q.price * 100) / 100;
+          if (Math.abs(val - num(e.currentPrice)) >= 0.00005) {
+            const old = { currentPrice: e.currentPrice }; e.currentPrice = val; n++;
+            try { portSyncValuation(e, old); const v = (e.valuations || []).filter(x => x.date === localISO())[0]; if (v) v.note = 'Live price · ' + label; } catch (er) { }
+          }
+          stamp(e, label, q.date);
+        });
+        changed += n;
+        const hint = blocked ? ' — the browser blocked the request (CORS) or you are offline. Add a proxy below, or switch to Alpha Vantage' : (firstErr ? ' (' + firstErr + ')' : '');
+        res.push({ src: 'Stocks, ETFs & more · ' + label, ok: fail === 0 && curBad === 0 && noUnits === 0 && skipped === 0,
+          msg: n + ' of ' + T.eq.length + ' updated' + (fail ? ' · ' + fail + ' symbol(s) failed' + hint : '') + (curBad ? ' · ' + curBad + ' skipped: quote currency differs from the holding’s currency' : '') + (noUnits ? ' · ' + noUnits + ' have no quantity entered' : '') + (skipped ? ' · ' + skipped + ' more will be refreshed on the next runs (free-key limit)' : '') });
+      }
+    }
+
+    if (!res.length) res.push({ src: 'Nothing to refresh', ok: true, msg: 'Add a ticker, scheme code, coin id or a foreign-currency holding first' });
     c.last = Date.now(); c.run = { at: new Date().toISOString(), why: why || 'manual', res: res }; rsave(c);
     if (changed > 0) { try { scheduleSave(); } catch (e) { } repaint(); }
     busy = false; rfPaint();
@@ -36786,11 +36857,13 @@ body.light-mode .tx-bar select option,body.light-mode .tx-cls option{color:#111}
     const cover = [
       T.fxCodes.length ? `${T.fxCodes.length} foreign currenc${T.fxCodes.length === 1 ? 'y' : 'ies'} (${T.fxCodes.join(', ')})` : '',
       T.mf.length ? `${T.mf.length} mutual fund${T.mf.length === 1 ? '' : 's'} with a scheme code` : '',
-      T.cr.length ? `${T.cr.length} crypto holding${T.cr.length === 1 ? '' : 's'} with a coin id` : ''
+      T.cr.length ? `${T.cr.length} crypto holding${T.cr.length === 1 ? '' : 's'} with a coin id` : '',
+      T.eq.length ? `${T.eq.length} listed holding${T.eq.length === 1 ? '' : 's'} with a ticker` : ''
     ].filter(Boolean);
     const gaps = [
       T.mfMissing ? `${T.mfMissing} mutual fund${T.mfMissing === 1 ? ' has' : 's have'} no scheme code` : '',
-      T.crMissing ? `${T.crMissing} crypto holding${T.crMissing === 1 ? ' has' : 's have'} no coin id` : ''
+      T.crMissing ? `${T.crMissing} crypto holding${T.crMissing === 1 ? ' has' : 's have'} no coin id` : '',
+      T.eqMissing ? `${T.eqMissing} stock/ETF/REIT/international/commodity holding${T.eqMissing === 1 ? ' has' : 's have'} no ticker` : ''
     ].filter(Boolean);
     el.innerHTML = `
       <div class="rf-row"><div><b>Auto-refresh</b><small>Off by default. When on, prices refresh while the app is open, no more often than the interval below.</small></div>
@@ -36799,7 +36872,13 @@ body.light-mode .tx-bar select option,body.light-mode .tx-cls option{color:#111}
       ${tog('fx', 'Exchange rates', 'open.er-api.com · updates today’s rate on foreign-currency holdings')}
       ${tog('mf', 'Mutual fund NAV', 'api.mfapi.in · needs the AMFI scheme code and your units on the holding')}
       ${tog('crypto', 'Crypto prices', 'CoinGecko · needs the coin id (for example bitcoin) and your quantity')}
-      <div class="tx-note">Covered now: ${cover.length ? esc(cover.join(' · ')) : 'nothing yet'}.${T.metals ? ' ' + T.metals + ' gold/silver holding' + (T.metals === 1 ? '' : 's') + ' already follow the Market Pulse prices.' : ''} Stocks and ETFs stay manual. Anything a source cannot return keeps the price you entered.${gaps.length ? ' <span class="rf-bad">' + esc(gaps.join(' · ')) + '.</span>' : ''}</div>
+      ${tog('stocks', 'Stocks, ETFs, REITs, international & commodities', 'Needs the ticker (and exchange) on the holding and your quantity. Tickers are sent to the source you pick.')}
+      <div class="rf-row"><div>Price source<small>${c.prov === 'av' ? 'Alpha Vantage · free key from alphavantage.co (25 requests a day, so holdings rotate)' : 'Yahoo Finance · no key. Some browsers block it (CORS): if so, add a proxy or use Alpha Vantage'}</small></div>
+        <select class="rf-sel" onchange="rfSet('prov',this.value)"><option value="yahoo"${c.prov !== 'av' ? ' selected' : ''}>Yahoo Finance</option><option value="av"${c.prov === 'av' ? ' selected' : ''}>Alpha Vantage</option></select></div>
+      ${c.prov === 'av'
+        ? `<div class="rf-row"><div>Alpha Vantage API key<small>Stored only in this browser. Not synced and never part of a backup.</small></div><input class="rf-sel" style="width:150px" type="password" autocomplete="off" value="${esc(c.avKey)}" placeholder="paste key" onchange="rfSet('avKey',this.value.trim())"></div>`
+        : `<div class="rf-row"><div>CORS proxy (optional)<small>Prefix that receives the encoded Yahoo URL, for example https://your-proxy.example/?url=</small></div><input class="rf-sel" style="width:190px" type="text" autocomplete="off" value="${esc(c.proxy)}" placeholder="https://…" onchange="rfSet('proxy',this.value.trim())"></div>`}
+      <div class="tx-note">Covered now: ${cover.length ? esc(cover.join(' · ')) : 'nothing yet'}.${T.metals ? ' ' + T.metals + ' gold/silver holding' + (T.metals === 1 ? '' : 's') + ' already follow the Market Pulse prices.' : ''} Anything a source cannot return keeps the price you entered.${gaps.length ? ' <span class="rf-bad">' + esc(gaps.join(' · ')) + '.</span>' : ''}</div>
       <div style="display:flex;gap:8px;margin-top:1rem"><button class="btn-add" style="flex:1;justify-content:center" ${busy ? 'disabled' : ''} onclick="rfNow()"><i class="fas fa-sync-alt${busy ? ' fa-spin' : ''}"></i> ${busy ? 'Refreshing…' : 'Refresh now'}</button>
         <button onclick="rfClose()" class="btn-secondary" style="flex:1;justify-content:center;display:flex">Close</button></div>
       ${run}`;
