@@ -37953,23 +37953,42 @@ body.light-mode .fa-fl{background:#fff}
     });
     Promise.all(jobs).then(function () { n.updatedAt = new Date().toISOString(); scheduleSave(); if (activeNoteId === n.id) render(); renderNotesList(($('notes-search-input') || {}).value || ''); });
   }
-  function recBtn() { var b = $('natt-rec'); if (!b) return; if (rec) { var s = Math.floor((Date.now() - rec.t0) / 1000); b.className = 'natt-btn rec'; b.innerHTML = '<i class="fas fa-stop"></i> Stop · ' + Math.floor(s / 60) + ':' + ('0' + s % 60).slice(-2); } else { b.className = 'natt-btn'; b.innerHTML = '<i class="fas fa-microphone"></i> Record audio'; } }
+  var BARS = ['▁', '▂', '▃', '▄', '▅', '▆', '▇'];
+  function recBtn() { var b = $('natt-rec'); if (!b) return; if (rec) { var s = Math.floor((Date.now() - rec.t0) / 1000); b.className = 'natt-btn rec'; b.innerHTML = '<i class="fas fa-stop"></i> Stop · ' + Math.floor(s / 60) + ':' + ('0' + s % 60).slice(-2) + ' ' + BARS[Math.min(6, Math.floor(Math.sqrt(rec.lvl || 0) * 9))]; } else { b.className = 'natt-btn'; b.innerHTML = '<i class="fas fa-microphone"></i> Record audio'; } }
+  function wav(chunks, rate, gain) {
+    var n = 0; chunks.forEach(function (c) { n += c.length; });
+    var buf = new ArrayBuffer(44 + n * 2), v = new DataView(buf), o = 44;
+    function w(p, t) { for (var i = 0; i < t.length; i++) v.setUint8(p + i, t.charCodeAt(i)); }
+    w(0, 'RIFF'); v.setUint32(4, 36 + n * 2, true); w(8, 'WAVE'); w(12, 'fmt '); v.setUint32(16, 16, true); v.setUint16(20, 1, true); v.setUint16(22, 1, true);
+    v.setUint32(24, rate, true); v.setUint32(28, rate * 2, true); v.setUint16(32, 2, true); v.setUint16(34, 16, true); w(36, 'data'); v.setUint32(40, n * 2, true);
+    chunks.forEach(function (c) { for (var i = 0; i < c.length; i++) { var x = Math.max(-1, Math.min(1, c[i] * gain)); v.setInt16(o, x < 0 ? x * 32768 : x * 32767, true); o += 2; } });
+    return new Blob([buf], { type: 'audio/wav' });
+  }
+  /* Records raw PCM and writes a standard WAV file: plays back in every browser, with a correct duration. */
   function recToggle() {
-    if (rec) { rec.mr.stop(); return; }
-    if (!navigator.mediaDevices || !window.MediaRecorder) { alert('Audio recording is not supported in this browser.'); return; }
+    if (rec) { rec.finish(); return; }
+    var AC = window.AudioContext || window.webkitAudioContext;
+    if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia || !AC) { alert('Audio recording is not supported in this browser.'); return; }
     var nid = activeNoteId;
-    navigator.mediaDevices.getUserMedia({ audio: true }).then(function (stream) {
-      var mt = ['audio/webm;codecs=opus', 'audio/webm', 'audio/mp4', 'audio/ogg'].filter(function (t) { return MediaRecorder.isTypeSupported(t); })[0] || '';
-      var mr = new MediaRecorder(stream, mt ? { mimeType: mt } : {}), ch = [];
-      rec = { mr: mr, t0: Date.now() };
-      mr.ondataavailable = function (e) { if (e.data && e.data.size) ch.push(e.data); };
-      mr.onstop = function () {
-        clearInterval(rec.iv); stream.getTracks().forEach(function (t) { t.stop(); });
-        var type = mr.mimeType || mt || 'audio/webm', ext = /mp4/.test(type) ? 'm4a' : /ogg/.test(type) ? 'ogg' : 'webm', d = new Date();
-        var nm = 'Voice note ' + d.toISOString().slice(0, 10) + ' ' + ('0' + d.getHours()).slice(-2) + '.' + ('0' + d.getMinutes()).slice(-2) + '.' + ext;
-        rec = null; recBtn(); if (ch.length) addFiles([new File(ch, nm, { type: type })], nid);
+    navigator.mediaDevices.getUserMedia({ audio: { echoCancellation: true, noiseSuppression: true, autoGainControl: true } }).then(function (stream) {
+      var ctx = new AC(); if (ctx.resume) ctx.resume();
+      var src = ctx.createMediaStreamSource(stream), proc = ctx.createScriptProcessor(4096, 1, 1), mute = ctx.createGain(), chunks = [], peak = 0, f = ctx.sampleRate >= 44100 ? 2 : 1, rate = ctx.sampleRate / f;
+      mute.gain.value = 0; src.connect(proc); proc.connect(mute); mute.connect(ctx.destination);
+      rec = { t0: Date.now(), lvl: 0 };
+      proc.onaudioprocess = function (e) {
+        var d = e.inputBuffer.getChannelData(0), out = new Float32Array(Math.floor(d.length / f)), sum = 0;
+        for (var i = 0; i < out.length; i++) { var x = f === 2 ? (d[2 * i] + d[2 * i + 1]) / 2 : d[i]; out[i] = x; sum += x * x; var ax = Math.abs(x); if (ax > peak) peak = ax; }
+        rec.lvl = Math.sqrt(sum / (out.length || 1)); chunks.push(out);
       };
-      mr.start(); rec.iv = setInterval(recBtn, 500); recBtn();
+      rec.finish = function () {
+        clearInterval(rec.iv); try { proc.disconnect(); src.disconnect(); } catch (e) {} stream.getTracks().forEach(function (t) { t.stop(); }); try { ctx.close(); } catch (e) {}
+        rec = null; recBtn();
+        if (peak < 0.002) { alert('No sound was picked up from the microphone. Check that the right input device is selected and not muted in your system or browser settings, then record again.'); return; }
+        var gain = peak < 0.5 ? Math.min(30, 0.9 / peak) : 1, d = new Date();
+        var nm = 'Voice note ' + d.toISOString().slice(0, 10) + ' ' + ('0' + d.getHours()).slice(-2) + '.' + ('0' + d.getMinutes()).slice(-2) + '.wav';
+        addFiles([new File([wav(chunks, rate, gain)], nm, { type: 'audio/wav' })], nid);
+      };
+      rec.iv = setInterval(recBtn, 200); recBtn();
     }).catch(function () { alert('Microphone access was blocked. Allow it in your browser settings and try again.'); });
   }
   function stop() { var s = $('nv-stage'); if (!s) return; s.querySelectorAll('audio,video').forEach(function (m) { m.pause(); m.removeAttribute('src'); m.load(); }); s.textContent = ''; if (vu) { URL.revokeObjectURL(vu); vu = null; } }
