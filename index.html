@@ -37877,6 +37877,15 @@ body.light-mode .fa-fl{background:#fff}
 .nv-film button{flex:none;max-width:150px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:#fff;font:inherit;font-size:.7rem;padding:6px 10px;border-radius:8px;border:1px solid rgba(255,255,255,.2);background:rgba(255,255,255,.06);cursor:pointer}
 .nv-film button.on{border-color:#fbbf24;color:#fbbf24}
 @media(max-width:700px){#nv-stage{padding:0 8px}.nv-arrow{top:auto;bottom:70px}}
+.natt-tile.natt-wide{grid-column:1/-1;cursor:default}
+.natt-amedia{height:auto!important;overflow:visible!important;display:block!important;font-size:1rem!important}
+.natt-pl{display:flex;align-items:center;gap:10px;padding:8px 12px;width:100%;box-sizing:border-box;flex-wrap:wrap}
+.natt-pl button{flex:none;width:34px;height:34px;border-radius:50%;border:none;background:#fbbf24;color:#1a1200;cursor:pointer;font-size:.8rem}
+.natt-pl input[type=range]{accent-color:#fbbf24;cursor:pointer;margin:0}
+.natt-pl .sk{flex:1 1 180px;min-width:120px}.natt-pl .vl{flex:0 0 90px;width:90px}
+.natt-pl .tm{font-size:.72rem;min-width:70px;text-align:center;opacity:.85;font-variant-numeric:tabular-nums}
+.natt-pl .pm{flex-basis:100%;font-size:.7rem;color:#f87171}
+.nv-aud .natt-pl{width:min(680px,90vw);font-size:1rem;background:rgba(255,255,255,.07);border-radius:14px}
 </style>
 <script id="notes-att-js">
 /* Notes attachments: images, video, audio, PDF + voice recorder. Files live in IndexedDB (device-only); the note stores just a small list. */
@@ -37894,6 +37903,28 @@ body.light-mode .fa-fl{background:#fff}
   var ICON = { image: 'fa-image', video: 'fa-video', audio: 'fa-microphone', pdf: 'fa-file-pdf', file: 'fa-file' };
   function sz(b) { return b > 1048576 ? (b / 1048576).toFixed(1) + ' MB' : Math.max(1, Math.round(b / 1024)) + ' KB'; }
 
+  function tf(t) { t = isFinite(t) ? t : 0; return Math.floor(t / 60) + ':' + ('0' + Math.floor(t % 60)).slice(-2); }
+  function killPl(root) { root.querySelectorAll('.natt-pl').forEach(function (p) { try { p._au.pause(); } catch (e) {} if (p._url) URL.revokeObjectURL(p._url); }); }
+  /* Landscape audio player: play/pause, seek bar, time and an inline volume slider (no pop-ups that can be clipped). */
+  function player(blob, auto) {
+    var d = el('div', 'natt-pl'), url = URL.createObjectURL(blob), au = new Audio(), pb = el('button'), sk = el('input', 'sk'), tm = el('span', 'tm', '0:00 / 0:00'), vi2 = el('i', 'fas fa-volume-up'), vl = el('input', 'vl'), pm = el('div', 'pm');
+    d._au = au; d._url = url; d.onclick = function (e) { e.stopPropagation(); };
+    au.preload = 'auto'; au.src = url; au.muted = false; au.volume = 1;
+    pb.type = 'button'; pb.innerHTML = '<i class="fas fa-play"></i>'; pb.setAttribute('aria-label', 'Play or pause');
+    sk.type = 'range'; sk.min = 0; sk.max = 1000; sk.value = 0; vl.type = 'range'; vl.min = 0; vl.max = 100; vl.value = 100; vl.title = 'Volume';
+    function upd() { var du = au.duration; tm.textContent = tf(au.currentTime) + ' / ' + tf(du); if (isFinite(du) && du > 0 && !sk._drag) sk.value = Math.round(au.currentTime / du * 1000); }
+    function play() { au.muted = false; var r = au.play(); if (r && r.catch) r.catch(function (e) { pm.textContent = 'Could not play: ' + (e && e.message ? e.message : 'blocked by the browser'); }); }
+    pb.onclick = function () { if (au.paused) play(); else au.pause(); };
+    au.onplay = function () { pb.innerHTML = '<i class="fas fa-pause"></i>'; pm.textContent = ''; };
+    au.onpause = au.onended = function () { pb.innerHTML = '<i class="fas fa-play"></i>'; };
+    au.ontimeupdate = au.onloadedmetadata = au.ondurationchange = upd;
+    au.onerror = function () { pm.textContent = 'This audio file could not be loaded.'; };
+    sk.oninput = function () { sk._drag = true; if (isFinite(au.duration)) au.currentTime = au.duration * sk.value / 1000; }; sk.onchange = function () { sk._drag = false; };
+    vl.oninput = function () { au.volume = vl.value / 100; vi2.className = 'fas ' + (au.volume === 0 ? 'fa-volume-mute' : 'fa-volume-up'); };
+    [pb, sk, tm, vi2, vl, pm].forEach(function (x) { d.appendChild(x); });
+    if (auto) play();
+    return d;
+  }
   function build() {
     if ($('natt')) return;
     var row = document.querySelector('.notes-save-row'); if (!row) return;
@@ -37924,14 +37955,14 @@ body.light-mode .fa-fl{background:#fff}
     }, true);
   }
   function render() {
-    var g = $('natt-grid'); if (!g) return;
+    var g = $('natt-grid'); if (!g) return; killPl(g);
     Object.keys(urls).forEach(function (k) { URL.revokeObjectURL(urls[k]); }); urls = {};
     var n = cur(), L = (n && n.attachments) || [];
     $('natt-count').textContent = L.length ? L.length + ' attached' : '';
     g.innerHTML = L.length ? '' : '<div class="natt-empty">Nothing attached yet. Use Attach files, Record audio, or drop files here.</div>';
     L.forEach(function (a, i) {
       var k = kind(a.type, a.name), t = el('div', 'natt-tile'), m = el('div', 'natt-media', '<i class="fas ' + ICON[k] + '"></i>'), c = el('div', 'natt-cap'), x = el('button', 'natt-x', '✕');
-      c.textContent = a.name + ' · ' + sz(a.size); c.title = a.name; x.type = 'button'; x.title = 'Remove';
+      c.textContent = a.name + ' · ' + sz(a.size) + (a.peak != null ? ' · mic ' + a.peak + '%' : ''); if (k === 'audio') t.classList.add('natt-wide'); c.title = a.name; x.type = 'button'; x.title = 'Remove';
       x.onclick = function (e) { e.stopPropagation(); if (confirm('Remove "' + a.name + '"?')) removeAt(n, i); };
       t.onclick = function () { view(i); };
       t.appendChild(m); t.appendChild(c); t.appendChild(x); g.appendChild(t);
@@ -37939,7 +37970,7 @@ body.light-mode .fa-fl{background:#fff}
         if (!b || !t.isConnected) return; var u = urls[a.id] = URL.createObjectURL(b); m.innerHTML = '';
         if (k === 'image') { var im = el('img'); im.src = u; im.alt = a.name; m.appendChild(im); }
         else if (k === 'video') { var vd = el('video'); vd.src = u + '#t=0.3'; vd.muted = true; vd.preload = 'metadata'; m.appendChild(vd); m.appendChild(el('div', 'natt-play', '<i class="fas fa-play-circle"></i>')); }
-        else { var au = el('audio'); au.src = u; au.controls = true; au.onclick = function (e) { e.stopPropagation(); }; m.appendChild(au); }
+        else { m.className = 'natt-media natt-amedia'; m.appendChild(player(b, false)); }
       });
     });
   }
@@ -37949,7 +37980,7 @@ body.light-mode .fa-fl{background:#fff}
     var jobs = Array.prototype.slice.call(files).map(function (f) {
       if (f.size > 100 * 1048576) { alert(f.name + ' is over 100 MB, so it was not added.'); return null; }
       var id = 'a' + Date.now() + Math.random().toString(36).slice(2, 7);
-      return put(id, f).then(function () { n.attachments.push({ id: id, name: f.name, type: f.type || '', size: f.size, at: new Date().toISOString() }); }).catch(function () { alert('Could not save ' + f.name + ' (browser storage is full or blocked).'); });
+      return put(id, f).then(function () { n.attachments.push({ id: id, name: f.name, type: f.type || '', size: f.size, peak: f.__peak, at: new Date().toISOString() }); }).catch(function () { alert('Could not save ' + f.name + ' (browser storage is full or blocked).'); });
     });
     Promise.all(jobs).then(function () { n.updatedAt = new Date().toISOString(); scheduleSave(); if (activeNoteId === n.id) render(); renderNotesList(($('notes-search-input') || {}).value || ''); });
   }
@@ -37986,12 +38017,12 @@ body.light-mode .fa-fl{background:#fff}
         if (peak < 0.002) { alert('No sound was picked up from the microphone. Check that the right input device is selected and not muted in your system or browser settings, then record again.'); return; }
         var gain = peak < 0.5 ? Math.min(30, 0.9 / peak) : 1, d = new Date();
         var nm = 'Voice note ' + d.toISOString().slice(0, 10) + ' ' + ('0' + d.getHours()).slice(-2) + '.' + ('0' + d.getMinutes()).slice(-2) + '.wav';
-        addFiles([new File([wav(chunks, rate, gain)], nm, { type: 'audio/wav' })], nid);
+        var fl = new File([wav(chunks, rate, gain)], nm, { type: 'audio/wav' }); fl.__peak = Math.round(Math.min(1, peak) * 100); addFiles([fl], nid);
       };
       rec.iv = setInterval(recBtn, 200); recBtn();
     }).catch(function () { alert('Microphone access was blocked. Allow it in your browser settings and try again.'); });
   }
-  function stop() { var s = $('nv-stage'); if (!s) return; s.querySelectorAll('audio,video').forEach(function (m) { m.pause(); m.removeAttribute('src'); m.load(); }); s.textContent = ''; if (vu) { URL.revokeObjectURL(vu); vu = null; } }
+  function stop() { var s = $('nv-stage'); if (!s) return; killPl(s); s.querySelectorAll('audio,video').forEach(function (m) { m.pause(); m.removeAttribute('src'); m.load(); }); s.textContent = ''; if (vu) { URL.revokeObjectURL(vu); vu = null; } }
   function closeV() { stop(); $('natt-view').classList.remove('on'); }
   function view(i) {
     var n = cur(), L = (n && n.attachments) || []; if (!L.length) { closeV(); return; }
@@ -38005,7 +38036,7 @@ body.light-mode .fa-fl{background:#fff}
       vu = URL.createObjectURL(b); var k = kind(b.type || a.type, a.name), e; s.textContent = '';
       if (k === 'image') { e = el('img'); e.src = vu; e.alt = a.name; }
       else if (k === 'video') { e = el('video'); e.src = vu; e.controls = true; e.autoplay = true; e.playsInline = true; }
-      else if (k === 'audio') { e = el('div', 'nv-aud', '<i class="fas fa-headphones"></i>'); var au = el('audio'); au.src = vu; au.controls = true; au.autoplay = true; e.appendChild(au); }
+      else if (k === 'audio') { e = el('div', 'nv-aud', '<i class="fas fa-headphones"></i>'); e.appendChild(player(b, true)); }
       else if (k === 'pdf') { e = el('iframe'); e.src = vu; e.title = a.name; }
       else { e = el('div', '', 'No preview for this file type. Use Download.'); }
       s.appendChild(e); $('nv-dl').href = vu; $('nv-dl').download = a.name; $('nv-open').href = vu;
