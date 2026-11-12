@@ -36643,6 +36643,11 @@ body.light-mode .tx-bar select option,body.light-mode .tx-cls option{color:#111}
 .rf-sel{background:transparent;color:inherit;border:1px solid rgba(167,139,250,.3);border-radius:8px;padding:.25rem .45rem;font-size:.76rem}
 .rf-sel option{color:#111}
 .rf-ok{color:#34d399}.rf-bad{color:#f59e0b}
+/* Live prices close icon: same turn-and-turn-red hover as the Settings / Analytics close icon */
+.rf-close-x{display:inline-flex;align-items:center;justify-content:center;width:40px;height:40px;padding:0!important;border-radius:12px;font-size:1rem;cursor:pointer;flex-shrink:0;margin:-6px -6px 0 0;transition:all .16s ease}
+#rf-modal .rf-close-x:hover,#rf-modal .rf-close-x:focus-visible{color:#fff;background:rgba(239,68,68,.85);border-color:transparent;transform:rotate(90deg)}
+#rf-modal .rf-close-x:active{transform:rotate(90deg) scale(.92)}
+@media(prefers-reduced-motion:reduce){#rf-modal .rf-close-x{transition:none}#rf-modal .rf-close-x:hover,#rf-modal .rf-close-x:focus-visible{transform:none}}
 </style>
 <script id="fos-refresh-stress">
 /* ═══════════════════════════════════════════════════════════════════════
@@ -36978,11 +36983,13 @@ body.light-mode .tx-bar select option,body.light-mode .tx-cls option{color:#111}
     let m = $('rf-modal');
     if (!m) {
       m = document.createElement('div'); m.className = 'modal-overlay'; m.id = 'rf-modal';
-      m.innerHTML = '<div class="modal-box rf-box"><div class="modal-title"><i class="fas fa-bolt" style="margin-right:8px;color:#a78bfa"></i>Live prices</div><div id="rf-body"></div></div>';
+      m.innerHTML = '<div class="modal-box rf-box"><div class="modal-title" style="display:flex;align-items:center;justify-content:space-between;gap:10px"><span><i class="fas fa-bolt" style="margin-right:8px;color:#a78bfa"></i>Live prices</span><button type="button" onclick="rfClose()" class="btn-secondary rf-close-x" aria-label="Close live prices" title="Close (Esc)"><i class="fas fa-times"></i></button></div><div id="rf-body"></div></div>';
+      m.addEventListener('mousedown', ev => { if (ev.target === m) rfClose(); });
       document.body.appendChild(m);
     }
     m.style.display = 'flex'; rfPaint();
   };
+  document.addEventListener('keydown', ev => { if (ev.key === 'Escape') { const m = $('rf-modal'); if (m && m.style.display === 'flex') rfClose(); } });
   window.rfClose = function () { const m = $('rf-modal'); if (m) m.style.display = 'none'; };
   window.rfSet = function (k, v) { const c = rcfg(); c[k] = v; rsave(c); rfPaint(); if (k === 'on' && v && Date.now() - c.last > c.mins * 60000) runRefresh('auto'); };
   window.rfNow = function () { runRefresh('manual'); };
