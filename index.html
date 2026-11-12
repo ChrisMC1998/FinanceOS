@@ -3772,6 +3772,36 @@ body.light-mode #settings-modal .badge.bg-inc{color:#047857} body.light-mode #se
 #set-tab-about .set-row .set-desc[style*="DM Mono"]{font-size:.8rem !important}
 @media(max-width:900px){#set-tab-about .set-row>:not(.set-label-block){white-space:normal}}
 </style>
+<style id="fos-tour-css">
+#fos-tour{position:fixed;inset:0;z-index:2000000;display:none;font-family:inherit}
+#fos-tour.on{display:block}
+#fos-tour .ft-block{position:absolute;inset:0;background:transparent}
+#fos-tour.ft-center .ft-block{background:rgba(2,6,8,.8);backdrop-filter:blur(2px)}
+#fos-tour .ft-spot{position:fixed;border-radius:12px;pointer-events:none;box-shadow:0 0 0 9999px rgba(2,6,8,.78),0 0 0 2px var(--accent,#34d399),0 0 26px 4px color-mix(in srgb,var(--accent,#34d399) 55%,transparent);transition:top .28s ease,left .28s ease,width .28s ease,height .28s ease,opacity .2s}
+#fos-tour.ft-center .ft-spot{opacity:0}
+#fos-tour .ft-card{position:fixed;width:min(380px,calc(100vw - 24px));box-sizing:border-box;padding:18px 18px 14px;border-radius:16px;color:var(--text-main,#e6f1ee);background:var(--glass-bg,#0c1413);background:linear-gradient(160deg,#0f1b19,#0a1211);border:1px solid color-mix(in srgb,var(--accent,#34d399) 45%,transparent);box-shadow:0 18px 50px rgba(0,0,0,.55),0 0 28px color-mix(in srgb,var(--accent,#34d399) 18%,transparent);transition:top .28s ease,left .28s ease,opacity .18s}
+#fos-tour .ft-step{font-size:.64rem;font-weight:700;letter-spacing:1.2px;text-transform:uppercase;color:var(--accent,#34d399);margin-bottom:8px;display:flex;justify-content:space-between;align-items:center}
+#fos-tour .ft-bar{height:3px;border-radius:3px;background:rgba(255,255,255,.08);overflow:hidden;margin-bottom:12px}
+#fos-tour .ft-bar i{display:block;height:100%;background:var(--accent,#34d399);border-radius:3px;transition:width .3s ease}
+#fos-tour .ft-title{font-size:1.02rem;font-weight:700;margin-bottom:6px;color:#fff}
+#fos-tour .ft-body{font-size:.8rem;line-height:1.55;color:rgba(230,241,238,.78)}
+#fos-tour .ft-todo{margin-top:10px;padding:8px 10px;border-radius:9px;font-size:.76rem;line-height:1.45;color:var(--accent,#34d399);border:1px solid color-mix(in srgb,var(--accent,#34d399) 35%,transparent);background:color-mix(in srgb,var(--accent,#34d399) 8%,transparent)}
+#fos-tour .ft-actions{display:flex;align-items:center;gap:8px;margin-top:14px}
+#fos-tour .ft-actions .ft-sp{flex:1}
+#fos-tour button{font:inherit;cursor:pointer;border-radius:9px;padding:8px 14px;font-size:.78rem;font-weight:600}
+#fos-tour .ft-next{background:var(--accent,#34d399);color:#04130e;border:none}
+#fos-tour .ft-next:hover{filter:brightness(1.08)}
+#fos-tour .ft-back{background:transparent;color:rgba(230,241,238,.85);border:1px solid rgba(255,255,255,.16)}
+#fos-tour .ft-skip{background:transparent;border:none;color:rgba(230,241,238,.6);text-decoration:underline;padding:8px 4px}
+#fos-tour .ft-skip:hover{color:#fff}
+body.light-mode #fos-tour .ft-card{background:#fff;color:#0f172a;box-shadow:0 18px 50px rgba(15,23,42,.28)}
+body.light-mode #fos-tour .ft-title{color:#0f172a}
+body.light-mode #fos-tour .ft-body{color:#334155}
+body.light-mode #fos-tour .ft-back{color:#0f172a;border-color:#cbd5e1}
+body.light-mode #fos-tour .ft-skip{color:#64748b}
+body.light-mode #fos-tour .ft-next{color:#fff}
+@media(prefers-reduced-motion:reduce){#fos-tour .ft-spot,#fos-tour .ft-card{transition:none}}
+</style>
 </head>
 <!-- ═══════════════════════════════════════════════════════
      LOGIN OVERLAY — shown before the dashboard loads
@@ -10463,6 +10493,7 @@ function passAppLockGate() {
           </div>
           <div class="trk-actions">
             <button type="button" class="btn-add" onclick="downloadUserGuidePDF()" style="justify-content:center"><i class="fas fa-download"></i> Download User Guide</button>
+            <button type="button" class="btn-secondary" onclick="fosAcademyOpen()" style="justify-content:center"><i class="fas fa-graduation-cap"></i> Open Tutorial Academy</button>
           </div>
         </div>
 
@@ -37292,6 +37323,520 @@ body.light-mode .tx-bar select option,body.light-mode .tx-cls option{color:#111}
     set('fos_admin_config_v1', d.adminConfig); set('fos_fx_v1', d.fxRates);
     set(RK, d.refreshSettings); set(SK, d.stressSettings);
   };
+})();
+</script>
+
+<script id="fos-tour-js">
+/* ── New-user tutorial (product tour) ─────────────────────────────────────────
+   Shows once for a newly created account, can be replayed from Settings > About FinanceOS.
+   Exactly three "Skip tour" points: the welcome step, the middle step, and the step before the last. */
+(function () {
+  var NAV = '#finance-sidebar ';
+  var DESK = [
+    { t: 'Welcome to FinanceOS', b: 'Take a quick tour of the main areas so you know where everything is. It takes about a minute.', todo: 'You can skip now and replay it any time from Settings > About FinanceOS.' },
+    { s: ['#fin-nav-dashboard'], t: 'Dashboard', b: 'Your live overview: totals, cash flow, spending mix, portfolio and credit charts, and milestone badges. It fills up as you add data.' },
+    { s: ['.topbar-right .btn-add[onclick="openModal()"]'], t: 'New Entry', b: 'Start here. Record income or an expense with a category, subcategory, payee and tags.', todo: 'Try it: click New Entry and add your first transaction.' },
+    { s: ['#fin-nav-transactions'], t: 'Transactions', b: 'Every income and expense in one list. Filter, edit and review them. Debt and emergency-fund entries are kept in their own pane so they do not mix with daily spending.' },
+    { s: ['#fin-nav-investments'], t: 'Investments', b: 'Track gold, silver, real estate, mutual funds, bonds, stocks, crypto, FDs and RDs, with live prices where available and portfolio analytics.' },
+    { s: ['#fin-nav-loans'], t: 'Loans & credit cards', b: 'Loans & EMI shows what you owe and your EMIs. Credit Tracker and CC Utilization show how much of each card limit you are using.', todo: 'Add your loans and cards here so Fin AI can plan your debt.' },
+    { s: [NAV + '.nav-item[onclick="openBudgetModal()"]'], t: 'Budgets', b: 'Set a monthly limit for each category and watch your progress. You get an alert as you get close to a limit.', todo: 'Set budgets for your main spending categories.' },
+    { s: ['#fin-nav-analytics'], t: 'Analytics & Net Worth', b: 'See spending patterns, payee insights, and how your assets minus liabilities change over time.' },
+    { s: ['#fin-nav-scenario'], t: 'Tools', b: 'Scenario is a SIP planner. Rough Board is a quick spreadsheet with formulas and CSV/Excel import. Calculator is a built-in scientific calculator.' },
+    { s: ['#fin-nav-insurance'], t: 'Insurance & Subscriptions', b: 'Keep policies, claims, renewals and recurring subscriptions in one place, with expiry reminders and a readiness score for each policy.' },
+    { s: ['#fin-nav-finai'], t: 'Fin AI', b: 'Your built-in assistant: health score, what is coming up, a 30-day forecast, a debt planner and goals. Ask it things like "Am I overspending?". It runs on your device.' },
+    { s: ['.topbar-right button[onclick="openSearch()"]'], t: 'Quick search', b: 'Jump to any section or action in seconds.', todo: 'Press Ctrl + K any time to open it.' },
+    { s: ['.sidebar-footer-expanded [onclick="openBackupModal()"]', '.sidebar-footer-collapsed [onclick="openBackupModal()"]'], t: 'Backup & Export', b: 'Download a JSON backup regularly, and export CSV or PDF reports. If you use Manual JSON mode, this backup is your only copy.' },
+    { s: ['.sidebar-footer-expanded [onclick="openSettingsModal()"]'], t: 'Settings', b: 'Theme, notifications, shortcuts, Device Lock, password, Data Tracking Mode (cloud or manual) and this tutorial all live here.', todo: 'You are all set. Add your first entry to get started!', last: true }
+  ];
+  var MOB = [
+    { t: 'Welcome to FinanceOS', b: 'Take a quick tour of the main areas so you know where everything is. It takes about a minute.', todo: 'You can skip now and replay it any time from Settings > About FinanceOS.' },
+    { s: ['.hamburger'], t: 'Your menu', b: 'Tap the menu button (top right) to reach every section of the app.' },
+    { t: 'Add Entry', b: 'Open the menu and choose Add Entry to record income or an expense with a category, subcategory, payee and tags.', todo: 'Try it: add your first transaction.' },
+    { t: 'Transactions & Budgets', b: 'Transactions lists everything you have recorded. Budgets lets you set a monthly limit per category and warns you as you approach it.' },
+    { t: 'Investments, loans & more', b: 'Loans & Credit are in the menu. Under "More" you will find Investments, Analytics and Net Worth. Insurance, Notes and Fin AI are there too, and everything works best on a larger screen.' },
+    { t: 'Fin AI', b: 'Your built-in assistant. Ask it "Am I overspending?" or for a 30-day forecast. It works things out on your device from your own data.' },
+    { t: 'Backup & Export', b: 'Download a JSON backup regularly and export CSV or PDF reports from the menu. In Manual JSON mode that backup is your only copy.' },
+    { t: 'Settings', b: 'Theme, notifications, Device Lock, password and Data Tracking Mode are in Settings. You can replay this tutorial from Settings > About FinanceOS.', todo: 'You are all set. Add your first entry to get started!', last: true }
+  ];
+  var root, spot, card, steps = [], idx = 0, active = false, uidActive = null, checkedUid = null;
+
+  function mobile() { try { return window.matchMedia('(max-width:900px)').matches; } catch (e) { return false; } }
+  function skipSet(n) { var o = {}; o[0] = 1; o[Math.floor(n / 2)] = 1; o[n - 2] = 1; return o; }
+  function findEl(sels) {
+    for (var i = 0; sels && i < sels.length; i++) {
+      var el = document.querySelector(sels[i]);
+      if (el && el.getBoundingClientRect().width > 0 && el.getBoundingClientRect().height > 0) return el;
+    }
+    return null;
+  }
+  function build() {
+    if (root) return;
+    root = document.createElement('div'); root.id = 'fos-tour';
+    root.setAttribute('role', 'dialog'); root.setAttribute('aria-modal', 'true'); root.setAttribute('aria-label', 'FinanceOS tutorial');
+    root.innerHTML = '<div class="ft-block"></div><div class="ft-spot"></div><div class="ft-card"></div>';
+    document.body.appendChild(root);
+    spot = root.querySelector('.ft-spot'); card = root.querySelector('.ft-card');
+    window.addEventListener('resize', function () { if (active) place(); });
+    document.addEventListener('keydown', function (e) {
+      if (!active) return;
+      if (e.key === 'ArrowRight' || e.key === 'Enter') { e.preventDefault(); go(1); }
+      else if (e.key === 'ArrowLeft') { e.preventDefault(); go(-1); }
+    });
+  }
+  function esc(t) { return String(t).replace(/&/g, '&amp;').replace(/</g, '&lt;'); }
+  function render() {
+    var st = steps[idx], n = steps.length, skips = skipSet(n), isLast = idx === n - 1;
+    var h = '<div class="ft-step"><span>' + (idx === 0 ? 'Tutorial' : 'Step ' + (idx + 1) + ' of ' + n) + '</span><span>' + Math.round(((idx + 1) / n) * 100) + '%</span></div>' +
+      '<div class="ft-bar"><i style="width:' + (((idx + 1) / n) * 100) + '%"></i></div>' +
+      '<div class="ft-title">' + esc(st.t) + '</div><div class="ft-body">' + esc(st.b) + '</div>' +
+      (st.todo ? '<div class="ft-todo">' + esc(st.todo) + '</div>' : '') +
+      '<div class="ft-actions">' +
+        (skips[idx] ? '<button type="button" class="ft-skip" data-a="skip">Skip tour</button>' : '') +
+        '<span class="ft-sp"></span>' +
+        (idx > 0 ? '<button type="button" class="ft-back" data-a="back">Back</button>' : '') +
+        '<button type="button" class="ft-next" data-a="next">' + (idx === 0 ? 'Start tour' : isLast ? 'Finish' : 'Next') + '</button>' +
+      '</div>';
+    card.innerHTML = h;
+    card.querySelectorAll('button').forEach(function (b) {
+      b.onclick = function () { var a = b.getAttribute('data-a'); if (a === 'skip') finish(); else go(a === 'back' ? -1 : 1); };
+    });
+    var nx = card.querySelector('.ft-next'); if (nx) nx.focus({ preventScroll: true });
+    place();
+  }
+  function place() {
+    var st = steps[idx], el = findEl(st.s), cw, ch, x, y, vw = window.innerWidth, vh = window.innerHeight, m = 12;
+    if (el) { try { el.scrollIntoView({ block: 'nearest', inline: 'nearest' }); } catch (e) {} }
+    root.classList.toggle('ft-center', !el);
+    cw = card.offsetWidth; ch = card.offsetHeight;
+    if (!el) {
+      card.style.left = Math.max(m, (vw - cw) / 2) + 'px'; card.style.top = Math.max(m, (vh - ch) / 2) + 'px'; return;
+    }
+    var r = el.getBoundingClientRect(), pad = 6;
+    spot.style.left = (r.left - pad) + 'px'; spot.style.top = (r.top - pad) + 'px';
+    spot.style.width = (r.width + pad * 2) + 'px'; spot.style.height = (r.height + pad * 2) + 'px';
+    if (vw - r.right - pad >= cw + 18) { x = r.right + pad + 14; y = r.top + r.height / 2 - ch / 2; }       // right of target
+    else if (vh - r.bottom - pad >= ch + 18) { x = r.left + r.width / 2 - cw / 2; y = r.bottom + pad + 14; } // below
+    else if (r.top - pad >= ch + 18) { x = r.left + r.width / 2 - cw / 2; y = r.top - pad - 14 - ch; }      // above
+    else { x = (vw - cw) / 2; y = vh - ch - m; }
+    card.style.left = Math.min(Math.max(m, x), vw - cw - m) + 'px';
+    card.style.top = Math.min(Math.max(m, y), vh - ch - m) + 'px';
+  }
+  function go(d) {
+    var n = idx + d;
+    if (n >= steps.length) { finish(); return; }
+    if (n < 0) return;
+    idx = n; render();
+  }
+  function markDone() {
+    try {
+      var uid = uidActive || (cloudSession && cloudSession.user && cloudSession.user.id);
+      if (uid) localStorage.setItem('fos_tour_done_' + uid, '1');
+      if (typeof sb !== 'undefined' && cloudSession) sb.auth.updateUser({ data: { fos_tour_done: true } }).catch(function () {});
+    } catch (e) {}
+  }
+  function finish() {
+    active = false; if (root) root.classList.remove('on');
+    markDone();
+    try { window.scrollTo(0, 0); } catch (e) {}
+  }
+  function start(force) {
+    build();
+    steps = mobile() ? MOB : DESK;
+    uidActive = cloudSession && cloudSession.user ? cloudSession.user.id : null;
+    idx = 0; active = true; root.classList.add('on'); render();
+    // card height depends on content; re-place once fonts/layout settle
+    setTimeout(function () { if (active) place(); }, 120);
+  }
+  function eligible() {
+    if (!cloudSession || !cloudSession.user) return false;
+    var u = cloudSession.user, meta = u.user_metadata || {};
+    if (meta.fos_tour_done || localStorage.getItem('fos_tour_done_' + u.id)) return false;
+    var created = u.created_at ? Date.parse(u.created_at) : 0;
+    return !!created && (Date.now() - created) < 14 * 86400000;   // new accounts only
+  }
+  function appVisible() {
+    var lo = document.getElementById('login-overlay'), lk = document.getElementById('app-lock-overlay'), sp = document.getElementById('app-splash');
+    if (lo && !lo.classList.contains('hidden')) return false;
+    if (lk && !lk.classList.contains('hidden')) return false;
+    if (sp && sp.style.display !== 'none' && !sp.classList.contains('fade-out')) return false;
+    return true;
+  }
+  function tick() {
+    if (active || !cloudSession || !cloudSession.user || !appVisible()) return;
+    var uid = cloudSession.user.id;
+    if (checkedUid === uid) return;
+    if (typeof fosRecoveryMode !== 'undefined' && fosRecoveryMode) return;
+    var open = document.querySelector('.modal-overlay.open, .modal-overlay.active, .modal-overlay.show');
+    if (open) return;
+    checkedUid = uid;
+    if (eligible()) setTimeout(function () { if (!active && appVisible()) { if (window.fosAcademyFull) window.fosAcademyFull(); else start(false); } }, 900);
+  }
+  setInterval(tick, 1500);
+  window.fosTourStart = function () { try { if (typeof closeSettingsModal === 'function') closeSettingsModal(); } catch (e) {} setTimeout(function () { start(true); }, 350); };
+})();
+</script>
+<style id="fos-academy-css">
+#fa-root{position:fixed;inset:0;z-index:2000100;display:none;font-family:inherit;--fa-ac:var(--accent,#34d399)}
+#fa-root.on{display:block}
+#fa-root *{box-sizing:border-box}
+.fa-dim{position:absolute;inset:0;background:rgba(2,6,8,.82);backdrop-filter:blur(3px)}
+#fa-root.fa-play .fa-dim{background:transparent;backdrop-filter:none}
+#fa-root.fa-play.fa-center .fa-dim{background:rgba(2,6,8,.8)}
+.fa-spot{position:fixed;border-radius:12px;pointer-events:none;box-shadow:0 0 0 9999px rgba(2,6,8,.78),0 0 0 2px var(--fa-ac),0 0 26px 4px color-mix(in srgb,var(--fa-ac) 50%,transparent);transition:all .28s ease}
+#fa-root.fa-soft .fa-spot{box-shadow:0 0 0 2px var(--fa-ac),0 0 22px 2px color-mix(in srgb,var(--fa-ac) 40%,transparent)}
+#fa-root.fa-center .fa-spot,#fa-root.fa-hub .fa-spot,#fa-root.fa-min .fa-spot{opacity:0}
+#fa-root.fa-min .fa-dim{pointer-events:none;background:transparent}
+.fa-card,.fa-hub{color:var(--text-main,#e6f1ee);background:linear-gradient(160deg,#0f1b19,#0a1211);border:1px solid color-mix(in srgb,var(--fa-ac) 40%,transparent);box-shadow:0 22px 60px rgba(0,0,0,.6),0 0 30px color-mix(in srgb,var(--fa-ac) 14%,transparent);border-radius:18px}
+.fa-card{position:fixed;width:min(420px,calc(100vw - 24px));max-height:calc(100vh - 24px);overflow:auto;padding:16px 18px 14px;transition:top .28s ease,left .28s ease,opacity .18s}
+#fa-root.fa-hub .fa-card,#fa-root.fa-min .fa-card{display:none}
+.fa-top{display:flex;justify-content:space-between;align-items:center;font-size:.64rem;font-weight:700;letter-spacing:1.1px;text-transform:uppercase;color:var(--fa-ac);margin-bottom:7px;gap:8px}
+.fa-top button{background:none;border:none;color:inherit;font:inherit;cursor:pointer;text-transform:inherit;letter-spacing:inherit;padding:2px 0;opacity:.85}
+.fa-top button:hover{opacity:1;text-decoration:underline}
+.fa-bar{height:3px;border-radius:3px;background:rgba(255,255,255,.09);margin-bottom:12px;overflow:hidden}
+.fa-bar i{display:block;height:100%;background:var(--fa-ac);transition:width .3s}
+.fa-title{font-size:1.06rem;font-weight:700;color:#fff;margin-bottom:8px}
+.fa-sec{margin:7px 0;padding:8px 10px;border-radius:10px;font-size:.78rem;line-height:1.5;background:rgba(255,255,255,.04);color:rgba(230,241,238,.82)}
+.fa-sec b.fa-k{display:block;font-size:.6rem;letter-spacing:1.1px;text-transform:uppercase;margin-bottom:2px;color:var(--fa-ac)}
+.fa-sec.fa-do{background:color-mix(in srgb,var(--fa-ac) 9%,transparent);border:1px solid color-mix(in srgb,var(--fa-ac) 32%,transparent)}
+.fa-sec.fa-tip{background:rgba(250,204,21,.07);border:1px solid rgba(250,204,21,.25)}
+.fa-sec.fa-tip b.fa-k{color:#facc15}
+.fa-sec em{font-style:normal;color:#fff;font-weight:600}
+.fa-act{display:flex;gap:8px;align-items:center;margin-top:12px}.fa-act .fa-sp{flex:1}
+#fa-root button.fa-b{font:inherit;cursor:pointer;border-radius:9px;padding:8px 14px;font-size:.78rem;font-weight:600;background:transparent;color:rgba(230,241,238,.88);border:1px solid rgba(255,255,255,.16)}
+#fa-root button.fa-b:hover{background:rgba(255,255,255,.07)}
+#fa-root button.fa-b.fa-p{background:var(--fa-ac);color:#04130e;border:none}
+#fa-root button.fa-b.fa-p:hover{filter:brightness(1.08)}
+.fa-pill{position:fixed;right:18px;bottom:18px;display:none;gap:8px;align-items:center;padding:10px 16px;border-radius:999px;cursor:pointer;font-size:.8rem;font-weight:700;color:#04130e;background:var(--fa-ac);border:none;box-shadow:0 10px 30px rgba(0,0,0,.5)}
+#fa-root.fa-min .fa-pill{display:flex}
+/* hub */
+.fa-hub{position:fixed;inset:4vh 0 auto 0;margin:0 auto;width:min(980px,calc(100vw - 24px));max-height:92vh;overflow:auto;padding:22px;display:none}
+#fa-root.fa-hub .fa-hub{display:block}
+.fa-h1{font-size:1.35rem;font-weight:800;color:#fff;display:flex;justify-content:space-between;align-items:flex-start;gap:12px}
+.fa-sub{font-size:.8rem;color:rgba(230,241,238,.7);margin:4px 0 14px;max-width:640px;line-height:1.5}
+.fa-x{background:none;border:1px solid rgba(255,255,255,.16);color:#fff;border-radius:9px;width:34px;height:34px;cursor:pointer;font-size:1rem}
+.fa-meter{display:flex;align-items:center;gap:10px;font-size:.74rem;margin-bottom:14px;color:rgba(230,241,238,.8)}
+.fa-meter .fa-bar{flex:1;margin:0}
+.fa-tools{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px}
+.fa-tools input{flex:1;min-width:180px;padding:9px 12px;border-radius:10px;border:1px solid rgba(255,255,255,.14);background:rgba(255,255,255,.04);color:#fff;font:inherit;font-size:.8rem}
+.fa-grp{font-size:.66rem;letter-spacing:1.3px;text-transform:uppercase;font-weight:700;margin:16px 0 8px;color:var(--fa-ac)}
+.fa-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(270px,1fr));gap:10px}
+.fa-ch{text-align:left;font:inherit;cursor:pointer;color:inherit;padding:12px 14px;border-radius:13px;border:1px solid rgba(255,255,255,.1);background:rgba(255,255,255,.035);transition:.16s;display:block;width:100%}
+.fa-ch:hover,.fa-ch:focus-visible{border-color:var(--fa-ac);background:color-mix(in srgb,var(--fa-ac) 8%,transparent);outline:none}
+.fa-ch .fa-ct{display:flex;justify-content:space-between;gap:8px;font-weight:700;font-size:.88rem;color:#fff}
+.fa-ch .fa-cd{font-size:.72rem;line-height:1.45;margin-top:4px;color:rgba(230,241,238,.68)}
+.fa-ch .fa-cm{font-size:.65rem;margin-top:7px;color:var(--fa-ac);font-weight:600}
+.fa-ch.fa-done{border-color:color-mix(in srgb,var(--fa-ac) 55%,transparent)}
+.fa-gl{display:none;margin-top:12px}.fa-gl.on{display:block}
+.fa-gl dl{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:8px;margin:0}
+.fa-gl div{padding:9px 11px;border-radius:10px;background:rgba(255,255,255,.04);font-size:.76rem;line-height:1.45;color:rgba(230,241,238,.8)}
+.fa-gl dt{font-weight:700;color:#fff;margin-bottom:2px}.fa-gl dd{margin:0}
+.fa-fl{position:fixed;right:18px;bottom:18px;z-index:9000;width:44px;height:44px;border-radius:50%;border:1px solid rgba(var(--brand-rgb,52,211,153),.5);background:#0b1514;color:var(--accent,#34d399);cursor:pointer;font-size:1rem;box-shadow:0 8px 24px rgba(0,0,0,.45)}
+.fa-fl:hover{filter:brightness(1.2)}
+@media(max-width:900px){.fa-fl{display:none}}
+body.light-mode .fa-card,body.light-mode .fa-hub{background:#fff;color:#0f172a;box-shadow:0 22px 60px rgba(15,23,42,.3)}
+body.light-mode .fa-title,body.light-mode .fa-h1,body.light-mode .fa-ch .fa-ct,body.light-mode .fa-gl dt,body.light-mode .fa-sec em{color:#0f172a}
+body.light-mode .fa-sec,body.light-mode .fa-sub,body.light-mode .fa-ch .fa-cd,body.light-mode .fa-meter,body.light-mode .fa-gl div{color:#334155}
+body.light-mode .fa-sec,body.light-mode .fa-ch,body.light-mode .fa-gl div{background:#f1f5f9;border-color:#e2e8f0}
+body.light-mode .fa-tools input{background:#f8fafc;color:#0f172a;border-color:#cbd5e1}
+body.light-mode .fa-x,body.light-mode #fa-root button.fa-b{color:#0f172a;border-color:#cbd5e1}
+body.light-mode #fa-root button.fa-b.fa-p{color:#fff}
+body.light-mode .fa-fl{background:#fff}
+@media(prefers-reduced-motion:reduce){.fa-spot,.fa-card,.fa-bar i{transition:none}}
+</style>
+<script id="fos-academy-js">
+/* ── FinanceOS Tutorial Academy ──────────────────────────────────────────────
+   Hub of chapters + guided player. Each step can switch view / open a modal, spotlight an element,
+   and explain: what it is, what you get, what to try, and a pro tip. Progress is stored per browser.
+   Open with fosAcademyOpen(), fosAcademyOpen('chapter-id'), the floating "?" button, or Settings > About. */
+(function () {
+  var NB = '#finance-sidebar ', PB = '#portfolio-sidebar ';
+  function cat(n) { return NB + '.nav-cat-toggle[data-cat-name="' + n + '"]'; }
+  function pcat(n) { return PB + '.nav-cat-toggle[data-cat-name="' + n + '"]'; }
+  function fin(id) { return '#fin-nav-' + id; }
+  function por(id) { return '#port-nav-' + id; }
+  function st(a) { return "[onclick^=\"switchSettingsTab('" + a + "'\"]"; }
+
+  /* step: v=view, g=group ('finance'|'portfolio'), o=modal to open, s=[selectors], t=title,
+     w=what it is, r=what you get, d=what to try, p=pro tip */
+  var CH = [
+  /* ═════════ FINANCEOS ═════════ */
+  { id: 'layout', grp: 'FinanceOS', ic: '🧭', t: 'Get your bearings', m: 5, sum: 'The sidebar, its categories, the top bar and the status pills. Start here if the app is new to you.', steps: [
+    { v: 'dashboard', t: 'Two apps in one window', s: ['#finance-sidebar'], w: 'The app has two workspaces side by side. The left sidebar is FinanceOS (cash flow, debt, planning). The second sidebar is Portfolio OS (everything you own: metals, property, stocks, deposits and more).', r: 'Day-to-day money and long-term wealth stay separate, so a stock purchase does not pollute your spending analysis.', d: 'Click any item in either sidebar; the main page switches instantly.', p: 'The small arrow on the sidebar edge collapses it to icons only. Press B to toggle.' },
+    { s: [cat('Finance'), cat('Tools'), cat('Playbook'), cat('Insights'), cat('My Zone')], t: 'Sidebar categories', w: 'FinanceOS groups pages into five categories: Finance (loans, investments, credit), Tools (Scenario), Playbook (Rough Board, Calculator), Insights (Analytics, Net Worth, Budgets, Notifications) and My Zone (Insurance, Notes, Fin AI).', r: 'You always know which "kind" of page you are on: record, plan, analyse or personal.', d: 'Click a category heading to fold it. Each remembers its own state.', p: 'Fold the categories you rarely use to keep the sidebar short.' },
+    { s: ['#cloud-status-pill'], t: 'Cloud / sync status', w: 'The coloured dot under your name tells you where your data is saved: Offline (this device only), or synced to your private cloud account.', r: 'Confidence that your numbers show on phone and PC alike.', d: 'Click it to see sync details or reconnect.', p: 'Rough Board, Fin AI goals and shortcuts stay on the device. Use a JSON backup to move them.' },
+    { s: ['.topbar-right [onclick^="setFilterMode(\'only\'"]', '.topbar-right [onclick^="setFilterMode"]'], t: 'Period filter: Only / Cumulative', w: '*Only* shows just the chosen month. *Cumulative* adds everything up to and including it, which is how a running balance works.', r: 'Compare one month in isolation, or see your total position as of that month.', d: 'Pick a month, then flip between the two modes and watch the dashboard numbers change.' },
+    { s: ['.topbar-right [onclick="connectLocalDrive()"]'], t: 'Local drive auto-save', w: 'Connects a file on your computer so the app can write your data to it automatically.', r: 'A second copy that lives outside the browser, in addition to cloud sync and manual backups.', p: 'Settings can warn you if the drive auto-sync ever fails to save.' },
+    { s: ['.topbar-right [onclick="toggleTheme()"]'], t: 'Light / dark theme', w: 'Switches the whole app between dark and light.', r: 'Comfortable reading day or night.' },
+    { s: ['.topbar-right button[onclick="openSearch()"]'], t: 'Quick search (Ctrl + K)', w: 'A command palette that jumps to any page or action by typing its name.', r: 'The fastest way to move around once you know what you want.', d: 'Press Ctrl + K, type "net", press Enter.' },
+    { s: ['.topbar-right .btn-add[onclick="openModal()"]'], t: 'New Entry', w: 'The main button for recording money in or out.', r: 'Every chart, score and forecast in the app is built from entries like these.', d: 'Press T for a quick entry, from anywhere.' }
+  ]},
+  { id: 'dashboard', grp: 'FinanceOS', ic: '📊', t: 'Dashboard', m: 4, sum: 'Every headline number on the home page and exactly how to read it.', steps: [
+    { v: 'dashboard', t: 'The six headline numbers', s: ['#view-dashboard'], w: '*Net Balance* is income minus outflows. *Total Income* is money in. *Loan Outflow* is what you paid toward debt. *Investments* is money you moved into assets. *Savings Rate* is the share of income you kept. *Credit Outstanding* is the total balance due on credit.', r: 'A one-glance health check of the selected period.', d: 'Add a few entries, then come back: the numbers fill in live.', p: 'A negative Net Balance with a high Investments figure usually just means you invested more than you saved that month, not that you overspent.' },
+    { v: 'dashboard', t: 'Saving streak and achievements', s: ['#view-dashboard'], w: '*Saving Streak* counts consecutive days you stayed under budget. *Achievements* are badges (out of 8) you unlock by hitting milestones.', r: 'Light gamification that rewards consistency, not one-off wins.', d: 'Set a budget (Budgets chapter) to make the streak meaningful.' },
+    { v: 'dashboard', t: 'Charts and the drill-down doughnut', s: ['#view-dashboard'], w: 'The expense doughnut is interactive: click a slice to drill from *category* into *subcategory* and then *payee*. Further down are portfolio and credit charts, a market ticker, and the Consistency journey (Weekly Pulse, Half-Year Report, Year in Review).', r: 'You can answer "where did my money actually go?" down to a single merchant.', d: 'Click the biggest slice, then keep clicking.' }
+  ]},
+  { id: 'entries', grp: 'FinanceOS', ic: '🧾', t: 'Entries & Transactions', m: 4, sum: 'Recording money correctly: categories, subcategories, payees, tags and the transaction list.', steps: [
+    { o: 'entry', t: 'The entry form', s: ['#modal .modal-box'], w: 'One form for income or expense with a name, amount, date, *category*, *subcategory*, *payee* and *tags*, plus recurring and notes.', r: 'Good categories now mean accurate analytics, budgets and Fin AI advice later.', d: 'Be consistent: pick the same category for the same kind of spend each time.', p: 'Mark rent, salary and subscriptions as recurring so forecasts and reminders know about them.' },
+    { v: 'transactions', g: 'finance', t: 'Transactions list', s: [fin('transactions')], w: 'Everything you have recorded. The top strip shows *Total Income*, *Total Expenses*, *Net Total* and how many entries match.', r: 'A searchable ledger with sorting on name, category, date and amount.', d: 'Click a column heading to sort.', p: 'Debt and emergency-fund entries live in their own pane so they never distort daily spending.' },
+    { v: 'transactions', g: 'finance', t: 'Tags, filters and bulk delete', s: ['#view-list'], w: 'Tags are labels that cut across categories ("trip", "office"). Filter by tag, tick several rows, then clear or delete the selection in one go.', r: 'Cleaning up mistakes and slicing spending by any theme you invent.', d: 'Manage the tag list in Settings > Tags.' }
+  ]},
+  { id: 'debt', grp: 'FinanceOS', ic: '💳', t: 'Loans, Credit & Cards', m: 4, sum: 'Everything you owe: EMIs, lenders, and how hard each card limit is working.', steps: [
+    { v: 'loans', g: 'finance', t: 'Loans & EMI', s: [fin('loans')], w: 'Each loan with its EMI (the fixed monthly instalment) and what is still owed.', r: 'Your true monthly obligation and the shape of your debt in one view.', d: 'Add each loan as an entry of type Loan.' },
+    { v: 'credit', g: 'finance', t: 'Credit Tracker', s: [fin('credit')], w: 'A record per lender: principal, outstanding balance, interest rate, monthly EMI, due date, tenure, status and remarks.', r: 'Due-date reminders and the inputs Fin AI needs for its debt planner.', p: 'Fill the interest rate. It lets the Debt Command Center rank which loan to pay off first.' },
+    { v: 'ccutil', g: 'finance', t: 'CC Utilization', s: [fin('ccutil')], w: '*Utilization* = amount used ÷ credit limit. You choose the bank, network (Visa, Mastercard, RuPay), the limit and what is used.', r: 'A live utilization bar per card. Staying low (commonly under about 30%) is generally better for your credit score.', d: 'Enter only limit and used amount.', p: 'You do not need to store your full card number or CVV for utilization tracking. Leaving them out is safer.' },
+    { v: 'investments', g: 'finance', t: 'Investments in FinanceOS', s: [fin('investments')], w: 'The money-flow side of investing: purchases recorded as entries, with live prices where available.', r: 'Investments show up in your cash-flow picture and feed Portfolio OS.', p: 'Portfolio OS is the detailed home for holdings. See the Portfolio chapters.' }
+  ]},
+  { id: 'budget', grp: 'FinanceOS', ic: '🎯', t: 'Budgets & Notifications', m: 3, sum: 'Monthly limits and the notification centre that warns you about them.', steps: [
+    { o: 'budget', t: 'Budgets', s: ['#budget-modal .modal-box'], w: 'Set a monthly spending limit for each category. Progress bars fill as you spend, and you are warned as you approach a limit.', r: 'A guardrail that works before you overspend. It also powers the Saving Streak.', d: 'Set limits for your top three spending categories first.' },
+    { v: 'dashboard', g: 'finance', t: 'Notifications centre', s: [fin('notifications')], w: 'Every alert in one panel: large transactions, unusual spending, bills and EMIs, budget limits, goals and sync status. A red dot means unread.', r: 'Nothing important gets missed.', d: 'Use "Clear All" to reset the list.' }
+  ]},
+  { id: 'tools', grp: 'FinanceOS', ic: '🛠️', t: 'Tools & Playbook', m: 3, sum: 'Scenario planner, Rough Board spreadsheet and the calculator.', steps: [
+    { v: 'scenario', g: 'finance', t: 'Scenario (SIP planner)', s: [fin('scenario')], w: 'A what-if planner for investing a fixed amount every month (a SIP) at an assumed return for a number of years.', r: 'See how small monthly amounts compound, before committing real money.', d: 'Try the same amount at two different time horizons. Time matters more than size.' },
+    { v: 'roughboard', g: 'finance', t: 'Rough Board', s: [fin('roughboard')], w: 'A scratch spreadsheet with formulas and CSV / Excel import.', r: 'Quick calculations that do not belong in your real records.', p: 'It stays on this device only. Include it in your JSON backup.' },
+    { v: 'calculator', g: 'finance', t: 'Calculator', s: [fin('calculator')], w: 'A built-in scientific calculator.', r: 'No need to leave the app for quick maths.' }
+  ]},
+  { id: 'insights', grp: 'FinanceOS', ic: '🔍', t: 'Analytics & Net Worth', m: 4, sum: 'Spending patterns, trends and your total wealth over time.', steps: [
+    { v: 'analytics', g: 'finance', t: 'Advanced Analytics', s: [fin('analytics')], w: 'Pick a period (3 / 6 / 12 months, or all) to see *Avg Monthly Savings*, *Spending Trend* vs the last period, *Top Expense Category* and your *Busiest Spending Day*.', r: 'Patterns you cannot see in a list: which weekday you overspend, whether spending is rising.', d: 'Switch to Last 12 Months and read the Income vs Outflow trend.' },
+    { v: 'analytics', g: 'finance', t: 'Analytics charts', s: ['#view-analytics'], w: 'Income vs Outflow, a daily pattern, spend by day of week, plus expense category, investment portfolio and loan distribution charts.', r: 'Spot the one category or weekday quietly draining your money.' },
+    { v: 'networth', g: 'finance', t: 'Net Worth tracker', s: [fin('networth')], w: '*Net Worth* = Total Assets − Total Liabilities. It also shows Portfolio Value and Monthly Growth.', r: 'The single most honest number about your finances. Rising over time means you are winning.', d: 'Toggle 12M vs All on the trajectory chart.' },
+    { v: 'networth', g: 'finance', t: 'Retention, energy and leverage', s: ['#view-networth'], w: '*Capital Retention* is your savings %. *Financial Energy Meter* summarises overall momentum. *System Leverage* is debt ÷ assets: lower means less borrowed against what you own.', r: 'Three quick gauges for how safe and strong your position is.' }
+  ]},
+  { id: 'myzone', grp: 'FinanceOS', ic: '🧠', t: 'My Zone: Insurance, Notes, Fin AI', m: 5, sum: 'Policies and claims, notes, and your on-device financial assistant.', steps: [
+    { v: 'insurance', g: 'finance', t: 'Insurance', s: [fin('insurance')], w: 'Motor, health, life, term, accident, home and travel policies with type-specific forms, claims, documents and renewal dates. Subscriptions are tracked here too.', r: 'A readiness score per policy, expiry reminders and smart insights on gaps.', d: 'Add your renewal dates first so alerts can fire.' },
+    { v: 'notes', g: 'finance', t: 'Notes', s: [fin('notes')], w: 'Free-form notes beside your finances.', r: 'Account details, reminders and decisions in one place.' },
+    { v: 'finai', g: 'finance', t: 'Fin AI: health score', s: [fin('finai'), '#view-finai'], w: 'A Financial Health Score built from Savings Rate, Top Spend Category, Debt-to-Income, Portfolio P/L, Credit Card Usage and Insurance Cover.', r: 'One score and six reasons behind it, so you know exactly what to fix first.', p: 'Everything is calculated on your device from your own data.' },
+    { v: 'finai', g: 'finance', t: 'Coming up, forecast & debt planner', s: ['#view-finai'], w: '*Coming Up* lists today / this week / this month. The *30-Day Forecast* projects your cash. The *Debt Command Center* models paying extra per month. *Goals* tracks savings targets.', r: 'See crunch days before they arrive, and see how much interest an extra payment saves.', d: 'Add one goal, then ask Fin AI "Am I overspending?".' }
+  ]},
+  /* ═════════ PORTFOLIO OS ═════════ */
+  { id: 'port-start', grp: 'Portfolio OS', ic: '🗂️', t: 'Portfolio OS: first steps', m: 5, sum: 'What Portfolio OS is, how to add an asset, and the filters that control every page.', steps: [
+    { v: 'port-overview', g: 'portfolio', t: 'What Portfolio OS is', s: ['#portfolio-sidebar'], w: 'The home for everything you own, physical and digital: gold, silver, property, mutual funds, bonds, stocks, crypto, deposits, retirement assets and more.', r: 'Your net investment position, how each asset performs and where the risk is.', p: 'Think of FinanceOS as your cash flow and Portfolio OS as your balance sheet.' },
+    { o: 'port', t: 'New Asset Entry', s: ['#port-modal .modal-box'], w: 'Add a holding: the asset type, quantity, buy price, date and, once you sell, the sale details.', r: 'Each holding gets its own ROI, gain/loss and status, and rolls into every chart.', d: 'Add one holding. Press A anywhere to open this form.', p: 'Record each purchase separately. Separate dates make the timeline and tax pages accurate.' },
+    { v: 'port-overview', g: 'portfolio', t: 'Holding Status: Active / Sold / All', s: ['#port-status-active', PB + '.port-filter-box'], w: '*Active* = holdings you still own. *Sold* = closed positions. *All* = both.', r: 'Separate what you hold now (unrealized) from what you have already cashed out (realized).', d: 'Toggle Sold to see only closed positions.' },
+    { v: 'port-overview', g: 'portfolio', t: 'View mode: Only / Cumul. / All', s: ['#port-mode-only', PB + '.port-filter-box'], w: 'Together with the month and year selectors: *Only* = the chosen period, *Cumul.* = everything up to it, *All* = no period filter.', r: 'Measure how much you added in a month, or the total position as of that month.', d: 'Choose a month, then try each mode.' }
+  ]},
+  { id: 'port-core', grp: 'Portfolio OS', ic: '📈', t: 'Summary, Holdings & Analytics', m: 6, sum: 'The three core pages: totals, the full register, and deep performance charts.', steps: [
+    { v: 'port-overview', g: 'portfolio', t: 'Summary: the six KPIs', s: [por('overview'), '#view-port-overview'], w: '*Total Invested* is what you paid. *Current Value* is worth today. *Total Gain/Loss* is the difference. *Portfolio ROI %* is gain ÷ invested. *Avg per Holding %* is the average return per position. *Total Qty/Units* is how much you hold.', r: 'Your overall position at a glance.', p: 'ROI % = Gain/Loss ÷ Total Invested × 100.' },
+    { v: 'port-overview', g: 'portfolio', t: 'Breakdown, Health Radar & Insights', s: ['#view-port-overview'], w: '*Asset Value Breakdown* shows how your money splits across asset types. *Portfolio Health Radar* scores 5 dimensions at once. *Portfolio Insights* are plain-language "at a glance" notes.', r: 'See concentration risk (too much in one asset) instantly.', d: 'A lopsided radar means your portfolio leans hard in one direction.' },
+    { v: 'port-overview', g: 'portfolio', t: 'Performance charts', s: ['#view-port-overview'], w: 'ROI% by Asset Type, Gain/Loss by Asset, Best Performers, Active vs Sold, Unrealized vs Realized Gain/Loss and a monthly Buy / Sell Rhythm.', r: 'Which assets earn their place, and whether you buy and sell with discipline.' },
+    { v: 'port-table', g: 'portfolio', t: 'Holdings Table', s: [por('table'), '#view-port-table'], w: 'The Holdings Register: asset, sub-type, date, qty, unit, buy price, total invested, current price, current value, ROI %, profit %, gain/loss and status. All sortable.', r: 'The single source of truth for every position. A "Summary by Asset Type" below groups the averages and totals.', d: 'Sort by ROI % to find winners and laggards.' },
+    { v: 'port-analytics', g: 'portfolio', t: 'Port. Analytics', s: [por('analytics'), '#view-port-analytics'], w: 'Appreciation Timeline, ROI distribution scatter, Gain/Loss Waterfall, Investment vs Current Value, Profit% distribution and Sold vs Active capital.', r: 'See how value built up over time and where gains and losses came from.' },
+    { v: 'port-analytics', g: 'portfolio', t: 'Advanced Portfolio Diagnostics', s: ['#view-port-analytics'], w: '*Sector ROI Velocity* shows how quickly each sector earns. *Capital Gains Engine* breaks down realized vs unrealized gains. *Liquidity Matrix* shows how quickly you could turn assets to cash. *Systemic Exposure* compares your actual mix with an ideal one for your age bracket (set in Settings > Account).', r: 'Rebalancing signals backed by your own numbers.' }
+  ]},
+  { id: 'port-intel', grp: 'Portfolio OS', ic: '🧬', t: 'Intelligence: Insights, Tax, Stress', m: 4, sum: 'The Intelligence category: smarter analysis, tax view and a what-if shock test.', steps: [
+    { s: [pcat('Intelligence')], t: 'The Intelligence category', w: 'Three advanced pages grouped together: Portfolio Intelligence, Tax and Stress Test.', r: 'Moves you from "what do I own" to "what should I do about it".' },
+    { v: 'port-intel', g: 'portfolio', t: 'Portfolio Intelligence', s: [por('intel'), '#view-port-intel'], w: 'Automated analysis of your holdings: concentration, balance, goal funding and suggestions.', r: 'A guided review, like a quarterly portfolio check-up.', d: 'Tag holdings to goals; the export menu can include "Goal funding".' },
+    { v: 'port-tax', g: 'portfolio', t: 'Tax', s: [por('tax'), '#view-port-tax'], w: 'A view of your *realized* gains, the profit you locked in by selling.', r: 'A ready summary for filing, also available as a "Tax summary" section in Export.', p: 'Only sold holdings create realized gains. Unsold gains are paper profits.' },
+    { v: 'port-stress', g: 'portfolio', t: 'Stress Test', s: [por('stress'), '#view-port-stress'], w: 'Applies a hypothetical market shock to your current holdings.', r: 'How much you could lose in a bad scenario, before it happens.', d: 'Run a scenario, then export "Stress test (current scenario)".' }
+  ]},
+  { id: 'port-assets', grp: 'Portfolio OS', ic: '🏷️', t: 'By Asset: every category', m: 6, sum: 'All 20 asset categories explained: what each one means and what belongs in it.', steps: [
+    { s: [pcat('By Asset')], t: 'How "By Asset" works', w: 'Each item filters every Portfolio OS page to one asset class. Choose one and the Summary, Table and Analytics show only that class.', r: 'Deep-dive one class without clutter.', d: 'Click any asset below. Pick All Assets to reset.' },
+    { s: [por('gold'), por('silver')], t: 'Gold & Silver', w: 'Precious metals: physical, coins, bars, jewellery or paper/digital forms.', r: 'A classic inflation hedge. Prices track the live metal rate where available.' },
+    { s: [por('realestate'), por('reits')], t: 'Real Estate & REITs / InvITs', w: '*Real Estate* is property you own directly. *REITs & InvITs* are listed units that own property or infrastructure.', r: 'Property exposure with or without direct ownership. REITs are far more liquid.' },
+    { s: [por('mf'), por('stocks'), por('etfs'), por('international')], t: 'Mutual Funds, Stocks, ETFs, International', w: 'Market-linked growth assets. Funds pool many securities; stocks are direct company shares; ETFs are baskets traded like stocks; International covers overseas holdings.', r: 'Your growth engine, and also your biggest swings.' },
+    { s: [por('crypto'), por('digital')], t: 'Crypto & Digital Assets', w: '*Crypto* is coins and tokens with live prices. *Digital Assets* covers other digital holdings.', r: 'High-risk, high-volatility exposure tracked separately so it cannot hide in the totals.', p: 'Live crypto prices need the CoinGecko id (e.g. bitcoin). See the Live prices chapter.' },
+    { s: [por('bonds'), por('fd'), por('rd')], t: 'Bonds, Fixed Deposit, Recurring Deposit', w: 'Fixed-income assets. *Bonds* pay interest, *FD* locks a lump sum for a term, *RD* collects a fixed amount every month.', r: 'Stability and predictable returns that balance market risk.' },
+    { s: [por('cash'), por('retirement')], t: 'Cash & Retirement', w: '*Cash & Equivalents* is savings and liquid funds. *Retirement Assets* are long-lock-in accounts built for later life.', r: 'Your safety net vs your long-term base, kept visibly apart.' },
+    { s: [por('alternatives'), por('commodities'), por('collectibles'), por('business')], t: 'Alternatives, Commodities, Collectibles, Business', w: 'Non-traditional holdings: *Alternatives* (private deals), *Commodities* (physical goods), *Collectibles* (art, watches, coins) and *Business Ownership* (stake in a company you run or part-own).', r: 'Assets that cannot be placed anywhere else are still counted in your wealth.' },
+    { s: [por('all')], t: 'All Assets', w: 'Removes the asset filter so every class appears together.', r: 'The complete picture, back to normal.', d: 'Use this after exploring a single class.' }
+  ]},
+  /* ═════════ DATA & SETTINGS ═════════ */
+  { id: 'export', grp: 'Data & Settings', ic: '📤', t: 'Export: reports & CSV', m: 4, sum: 'Choose exactly what goes into a report and produce a PDF, Advanced PDF or CSV.', steps: [
+    { o: 'export', t: 'Choose what to include', s: ['#export-modal .modal-box'], w: 'Tick any mix of: *Transactions*, *Loans & EMI*, *Credit Tracker*, *Investments*, *Holdings Table*, *All Assets*, *Goal funding* (holdings tagged to goals), *Tax summary* (realised gains) and *Stress test* (current scenario).', r: 'A report built for one purpose: a loan application, a tax filing, a review with an adviser.', d: 'Tick two sections to see how they combine.' },
+    { o: 'export', t: 'Date range (optional)', s: ['#export-modal .panel-title', '#export-modal .modal-box'], w: 'A From and To date limit the exported rows. Leave both blank to include everything.', r: 'A clean slice, for example "April to March" for a financial year.' },
+    { o: 'export', t: 'PDF, Advanced PDF, CSV', s: ['#export-modal .modal-box'], w: '*Export PDF Report* is a clean printable report. *Advanced PDF Report* opens a fuller, more detailed report builder. *Download CSV* gives raw rows for Excel or Sheets.', r: 'PDF to share or print; CSV to analyse or archive.', p: 'CSV is for reading and analysis. Use Backup (JSON) to move or restore the whole app.' }
+  ]},
+  { id: 'backup', grp: 'Data & Settings', ic: '💾', t: 'Backup & Restore', m: 4, sum: 'Protect your data, move it to another device, or recover from a mistake.', steps: [
+    { o: 'backup', t: 'What a backup contains', s: ['#backup-stats', '#backup-modal .modal-box'], w: 'The counters show what is currently stored: Transactions, Holdings, Credit Entries and Budgets. A backup is a single JSON file holding all of it, including your settings toggles.', r: 'A full snapshot you can keep anywhere.', p: 'In Manual JSON mode this file is your only copy. Treat it that way.' },
+    { o: 'backup', t: 'Download JSON Backup', s: ['#backup-modal .backup-option', '#backup-modal .modal-box'], w: 'Saves everything to a file on your device.', r: 'Peace of mind, and the easiest way to move to a new phone or PC.', d: 'Download one now, then store a copy outside this device (cloud drive or USB).', p: 'Make it a habit: monthly, and before any restore.' },
+    { o: 'backup', t: 'Restore from Backup', s: ['#restore-drop-zone', '#backup-modal .modal-box'], w: 'Drag a .json backup onto the box or click to choose it. A preview shows what is inside before anything changes.', r: 'Recovery after a mistake, or setup on a new device.', d: 'Read the preview, then press Confirm Restore only if it is the right file.', p: 'Restore *replaces* your current data. Back up the current state first.' }
+  ]},
+  { id: 'live', grp: 'Data & Settings', ic: '⚡', t: 'Live prices', m: 3, sum: 'Fetch current market prices into your holdings.', steps: [
+    { o: 'live', t: 'Refresh prices', s: ['.rf-box', '#portfolio-sidebar .btn-port-add'], w: 'Pulls current prices from public sources (CoinGecko for crypto and metals, Yahoo Finance for stocks and indices) and updates your holdings.', r: 'Current Value, ROI and gain/loss reflect today, not the day you typed them.', d: 'Holdings with a gap show what is missing, such as a CoinGecko id or a ticker.', p: 'For crypto use the CoinGecko id (bitcoin, ethereum). For stocks add the ticker and, if asked, the exchange.' }
+  ]},
+  { id: 'settings', grp: 'Data & Settings', ic: '⚙️', t: 'Settings: every tab', m: 6, sum: 'Account, security, regional formats, notifications, shortcuts, tags and privacy.', steps: [
+    { o: 'settings', tab: 'general', t: 'Account & security', s: ['#settings-modal .modal-box'], w: 'Profile (name, *age bracket*, income range, work type), Reset Password, Security Question and *Device Lock* (Face ID / fingerprint / passkey, plus a separate PC Lock).', r: 'The age bracket drives your ideal exposure targets in Portfolio OS. Device Lock protects the app on a shared device.', d: 'Fill in the age bracket and save your profile.' },
+    { o: 'settings', tab: 'general', t: 'Appearance, formats & interface', s: ['#settings-modal .modal-box'], w: 'Dark mode, default currency (INR / USD / EUR), number system (Indian 1,00,000 or Global 100,000), time and date formats, first day of week, sidebar animation and "Remember last page".', r: 'The app speaks the way you read numbers.' },
+    { o: 'settings', tab: 'notifications', t: 'Notifications', s: ['#settings-modal .modal-box'], w: 'A master switch, a sound toggle, security alerts (large transactions with your own threshold, unusual spending), reminders (daily summary, bills and loans, budget limits, portfolio updates) and milestone/sync alerts.', r: 'Only the alerts you want, at the volume you want.', p: 'The Large Transactions threshold is yours to set. Pick a number that is rare for you.' },
+    { o: 'settings', tab: 'shortcuts', t: 'Keyboard shortcuts', s: ['#settings-modal .modal-box'], w: 'Ctrl+K search, B sidebar, ? help, Esc close, T new entry, A new asset, D dashboard, P portfolio, C credit, L loans. Click any key to rebind it.', r: 'Move through the app without the mouse.' },
+    { o: 'settings', tab: 'tags', t: 'Tags', s: ['#settings-modal .modal-box'], w: 'Create and remove the tags you can attach to transactions.', r: 'A custom label system (such as "client", "holiday") for filtering later.' },
+    { o: 'settings', tab: 'about', t: 'About, storage & privacy', s: ['#settings-modal .modal-box'], w: 'Explains where data lives: always in this browser, optionally in your private cloud account, and which public services are contacted for prices and logos. You can also download the PDF User Guide and open this Academy.', r: 'Full transparency about your data.' }
+  ]}
+  ];
+
+  var GLOSS = [
+    ['Net Balance', 'Income minus outflows for the period.'], ['Savings Rate', 'Share of income you kept: (income − spend) ÷ income.'],
+    ['EMI', 'Equated Monthly Instalment: the fixed loan payment each month.'], ['Credit Utilization', 'Used amount ÷ credit limit. Lower is healthier.'],
+    ['Net Worth', 'Everything you own minus everything you owe.'], ['ROI %', 'Return on investment: gain ÷ amount invested × 100.'],
+    ['Unrealized gain', 'Profit on paper: you still hold the asset.'], ['Realized gain', 'Profit locked in by selling. This is what tax looks at.'],
+    ['SIP', 'Systematic Investment Plan: investing a fixed amount on a schedule.'], ['Cumulative', 'Running total up to and including a period.'],
+    ['Liquidity', 'How fast an asset can be turned into cash.'], ['Leverage', 'Debt compared with assets. Higher means more borrowed.']
+  ];
+
+  /* ── helpers ── */
+  var tourAll = false;
+  var KEY = 'fos_academy_v1', root, spot, card, hubEl, pill, ch = null, idx = 0, mode = 'closed', prog = { done: {}, last: null };
+  function load() { try { var p = JSON.parse(localStorage.getItem(KEY) || 'null'); if (p && p.done) prog = p; } catch (e) {} }
+  function save() { try { localStorage.setItem(KEY, JSON.stringify(prog)); } catch (e) {} }
+  function esc(t) { return String(t == null ? '' : t).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;'); }
+  function fmt(t) { return esc(t).replace(/\*([^*]+)\*/g, '<em>$1</em>'); }
+  function mobile() { try { return matchMedia('(max-width:900px)').matches; } catch (e) { return false; } }
+  function vis(el) { var r = el.getBoundingClientRect(); return r.width > 0 && r.height > 0; }
+  function find(sels) { for (var i = 0; sels && i < sels.length; i++) { try { var el = document.querySelector(sels[i]); if (el && vis(el)) return el; } catch (e) {} } return null; }
+  function byId(i) { return document.getElementById(i); }
+  function hide(id) { var m = byId(id); if (m) m.style.display = 'none'; }
+
+  function closeAll() {
+    hide('export-modal'); hide('backup-modal'); hide('budget-modal'); hide('port-modal'); hide('modal');
+    try { var s = byId('settings-modal'); if (s && s.style.display !== 'none') { s.classList.remove('fos-open', 'fos-closing'); s.style.display = 'none'; } } catch (e) {}
+    try { var rf = document.querySelector('.rf-box'); if (rf) { var ov = rf.closest('.modal-overlay'); if (ov) ov.remove(); } } catch (e) {}
+  }
+  function prep(s) {
+    closeAll();
+    try {
+      if (s.v) switchView(s.v, byId((s.g === 'portfolio' ? 'port-nav-' : 'fin-nav-') + s.v.replace(/^port-/, '')) , s.g || 'finance');
+      if (s.o === 'entry' && window.openModal) openModal();
+      else if (s.o === 'budget' && window.openBudgetModal) openBudgetModal();
+      else if (s.o === 'port' && window.openPortModal) openPortModal();
+      else if (s.o === 'export' && window.openExportModal) openExportModal();
+      else if (s.o === 'backup' && window.openBackupModal) openBackupModal();
+      else if (s.o === 'live' && window.rfOpen) rfOpen();
+      else if (s.o === 'settings' && window.openSettingsModal) {
+        openSettingsModal();
+        var tb = document.querySelector(st(s.tab || 'general')); if (tb && window.switchSettingsTab) switchSettingsTab(s.tab || 'general', tb);
+      }
+    } catch (e) {}
+  }
+
+  /* ── UI ── */
+  function build() {
+    if (root) return;
+    root = document.createElement('div'); root.id = 'fa-root';
+    root.setAttribute('role', 'dialog'); root.setAttribute('aria-modal', 'true'); root.setAttribute('aria-label', 'FinanceOS Tutorial Academy');
+    root.innerHTML = '<div class="fa-dim"></div><div class="fa-spot"></div><div class="fa-card" tabindex="-1"></div><div class="fa-hub"></div><button type="button" class="fa-pill fa-pillbtn">▶ Resume tutorial</button>';
+    document.body.appendChild(root);
+    spot = root.querySelector('.fa-spot'); card = root.querySelector('.fa-card'); hubEl = root.querySelector('.fa-hub'); pill = root.querySelector('.fa-pillbtn');
+    pill.onclick = function () { root.classList.remove('fa-min'); place(); };
+    window.addEventListener('resize', function () { if (mode === 'play') place(); });
+    window.addEventListener('scroll', function () { if (mode === 'play') place(); }, true);
+    document.addEventListener('keydown', function (e) {
+      if (mode === 'closed') return;
+      if (e.key === 'Escape') { e.preventDefault(); e.stopImmediatePropagation(); if (mode === 'play' && !root.classList.contains('fa-min')) showHub(); else closeAcademy(); }
+      else if (mode === 'play' && e.target && !/INPUT|TEXTAREA|SELECT/.test(e.target.tagName)) {
+        if (e.key === 'ArrowRight') { e.preventDefault(); go(1); } else if (e.key === 'ArrowLeft') { e.preventDefault(); go(-1); }
+      }
+    }, true);
+    var fl = document.createElement('button'); fl.type = 'button'; fl.className = 'fa-fl'; fl.title = 'Tutorial Academy'; fl.setAttribute('aria-label', 'Open Tutorial Academy'); fl.textContent = '?';
+    fl.onclick = function () { open(); }; document.body.appendChild(fl);
+  }
+  function total() { return CH.length; }
+  function doneN() { var n = 0; CH.forEach(function (c) { if (prog.done[c.id]) n++; }); return n; }
+
+  function showHub(q) {
+    mode = 'hub'; tourAll = false; root.className = 'on fa-hub'; closeAll();
+    var p = Math.round(doneN() / total() * 100), groups = {}, order = [], last = prog.last && CH.filter(function (c) { return c.id === prog.last.id; })[0];
+    CH.forEach(function (c) {
+      if (q && (c.t + ' ' + c.sum + ' ' + c.steps.map(function (s) { return s.t + ' ' + s.w; }).join(' ')).toLowerCase().indexOf(q) < 0) return;
+      if (!groups[c.grp]) { groups[c.grp] = []; order.push(c.grp); } groups[c.grp].push(c);
+    });
+    var h = '<div class="fa-h1"><span>🎓 FinanceOS Tutorial Academy</span><button type="button" class="fa-x" data-a="close" aria-label="Close">✕</button></div>' +
+      '<p class="fa-sub">Learn every part of FinanceOS and Portfolio OS at your own pace. Each lesson jumps to the real screen, highlights it, and explains what it is, what you get from it, and what to try. Pick any chapter, in any order.</p>' +
+      '<div class="fa-meter"><span>' + doneN() + ' of ' + total() + ' chapters done</span><div class="fa-bar"><i style="width:' + p + '%"></i></div><span>' + p + '%</span></div>' +
+      '<div class="fa-tools"><input type="search" id="fa-q" placeholder="Search a feature (e.g. backup, ROI, budget)…" value="' + esc(q || '') + '" aria-label="Search tutorials">' +
+      (last ? '<button type="button" class="fa-b fa-p" data-a="resume">Resume: ' + esc(last.t) + '</button>' : '<button type="button" class="fa-b fa-p" data-a="first">▶ Start complete tutorial</button>') +
+      (last ? '<button type="button" class="fa-b" data-a="first">▶ Complete tutorial from start</button>' : '') + '<button type="button" class="fa-b" data-a="quick">1-minute quick tour</button><button type="button" class="fa-b" data-a="gloss">Glossary</button></div>';
+    order.forEach(function (g) {
+      h += '<div class="fa-grp">' + esc(g) + '</div><div class="fa-grid">';
+      groups[g].forEach(function (c) {
+        h += '<button type="button" class="fa-ch' + (prog.done[c.id] ? ' fa-done' : '') + '" data-ch="' + c.id + '"><div class="fa-ct"><span>' + c.ic + ' ' + esc(c.t) + '</span><span>' + (prog.done[c.id] ? '✓' : '') + '</span></div><div class="fa-cd">' + esc(c.sum) + '</div><div class="fa-cm">' + c.steps.length + ' steps · ~' + c.m + ' min</div></button>';
+      });
+      h += '</div>';
+    });
+    if (!order.length) h += '<p class="fa-sub" style="margin-top:16px">No chapter matches. Try a simpler word.</p>';
+    h += '<div class="fa-gl" id="fa-gl"><div class="fa-grp">Glossary</div><dl>' + GLOSS.map(function (g) { return '<div><dt>' + esc(g[0]) + '</dt><dd>' + esc(g[1]) + '</dd></div>'; }).join('') + '</dl></div>';
+    hubEl.innerHTML = h;
+    hubEl.scrollTop = 0;
+    hubEl.querySelectorAll('[data-ch]').forEach(function (b) { b.onclick = function () { play(b.getAttribute('data-ch'), 0); }; });
+    hubEl.querySelectorAll('[data-a]').forEach(function (b) {
+      b.onclick = function () {
+        var a = b.getAttribute('data-a');
+        if (a === 'close') closeAcademy();
+        else if (a === 'first') openFull();
+        else if (a === 'resume') { tourAll = true; play(prog.last.id, prog.last.i || 0); }
+        else if (a === 'quick') { closeAcademy(); if (window.__fosQuickTour) window.__fosQuickTour(); }
+        else if (a === 'gloss') { var g = byId('fa-gl'); g.classList.toggle('on'); if (g.classList.contains('on')) g.scrollIntoView({ behavior: 'smooth', block: 'start' }); }
+      };
+    });
+    var qi = byId('fa-q'); qi.oninput = function () { var v = qi.value.toLowerCase().trim(), pos = qi.selectionStart; showHub(v); var n = byId('fa-q'); n.focus(); try { n.setSelectionRange(pos, pos); } catch (e) {} };
+    if (!q) { var f = hubEl.querySelector('.fa-p'); if (f) f.focus({ preventScroll: true }); }
+  }
+
+  function play(id, i) {
+    ch = CH.filter(function (c) { return c.id === id; })[0]; if (!ch) return;
+    idx = Math.max(0, Math.min(i || 0, ch.steps.length - 1)); mode = 'play'; root.className = 'on fa-play'; show();
+  }
+  function show() {
+    var s = ch.steps[idx], n = ch.steps.length, last = idx === n - 1;
+    prog.last = { id: ch.id, i: idx }; save();
+    prep(s);
+    var sec = function (cls, k, v) { return v ? '<div class="fa-sec ' + cls + '"><b class="fa-k">' + k + '</b>' + fmt(v) + '</div>' : ''; };
+    card.innerHTML =
+      '<div class="fa-top"><span>' + ch.ic + ' ' + esc(ch.t) + ' · ' + (tourAll ? 'Step ' + gpos() + ' of ' + gtot() : (idx + 1) + '/' + n) + '</span><span><button type="button" data-a="hub">☰ Chapters</button> &nbsp; <button type="button" data-a="skip">Skip tutorial ✕</button></span></div>' +
+      '<div class="fa-bar"><i style="width:' + (tourAll ? gpos() / gtot() * 100 : (idx + 1) / n * 100) + '%"></i></div>' +
+      '<div class="fa-title">' + esc(s.t) + '</div>' +
+      sec('', 'What it is', s.w) + sec('', 'What you get', s.r) + sec('fa-do', 'Try it', s.d) + sec('fa-tip', 'Pro tip', s.p) +
+      (mobile() ? '<div class="fa-sec"><b class="fa-k">On mobile</b>Open the menu (top right) to reach this screen.</div>' : '') +
+      '<div class="fa-act">' + (s.d ? '<button type="button" class="fa-b" data-a="try">Let me try</button>' : '') + '<span class="fa-sp"></span>' +
+      ((idx > 0 || (tourAll && CH.indexOf(ch) > 0)) ? '<button type="button" class="fa-b" data-a="back">Back</button>' : '') +
+      '<button type="button" class="fa-b fa-p" data-a="next">' + (last ? (tourAll && CH.indexOf(ch) < CH.length - 1 ? 'Next chapter →' : 'Finish ✓') : 'Next') + '</button></div>';
+    card.querySelectorAll('[data-a]').forEach(function (b) {
+      b.onclick = function () {
+        var a = b.getAttribute('data-a');
+        if (a === 'next') go(1); else if (a === 'back') go(-1); else if (a === 'hub') showHub(); else if (a === 'skip') skipAll();
+        else if (a === 'try') { root.classList.add('fa-min'); }
+      };
+    });
+    root.classList.remove('fa-min');
+    setTimeout(function () { if (mode === 'play') { place(); var nx = card.querySelector('.fa-p'); if (nx) nx.focus({ preventScroll: true }); } }, 260);
+    place();
+  }
+  function place() {
+    if (mode !== 'play' || !card) return;
+    var s = ch.steps[idx], el = find(s.s), vw = innerWidth, vh = innerHeight, m = 12, cw = card.offsetWidth, chh = card.offsetHeight, x, y;
+    root.classList.remove('fa-soft');
+    if (!el) { root.classList.add('fa-center'); card.style.left = Math.max(m, (vw - cw) / 2) + 'px'; card.style.top = Math.max(m, (vh - chh) / 2) + 'px'; return; }
+    root.classList.remove('fa-center');
+    try { var r0 = el.getBoundingClientRect(); if (r0.top < 0 || r0.bottom > vh) el.scrollIntoView({ block: 'center' }); } catch (e) {}
+    var r = el.getBoundingClientRect(), pad = 6;
+    spot.style.left = (r.left - pad) + 'px'; spot.style.top = (r.top - pad) + 'px'; spot.style.width = (r.width + pad * 2) + 'px'; spot.style.height = Math.min(r.height + pad * 2, vh - 4) + 'px';
+    if (r.height > vh * 0.6 || r.width > vw * 0.7) { root.classList.add('fa-soft'); x = vw - cw - m; y = vh - chh - m; }
+    else if (vw - r.right - pad >= cw + 18) { x = r.right + pad + 14; y = r.top + r.height / 2 - chh / 2; }
+    else if (r.left - pad >= cw + 18) { x = r.left - pad - 14 - cw; y = r.top + r.height / 2 - chh / 2; }
+    else if (vh - r.bottom - pad >= chh + 18) { x = r.left + r.width / 2 - cw / 2; y = r.bottom + pad + 14; }
+    else if (r.top - pad >= chh + 18) { x = r.left + r.width / 2 - cw / 2; y = r.top - pad - 14 - chh; }
+    else { x = vw - cw - m; y = vh - chh - m; }
+    card.style.left = Math.min(Math.max(m, x), vw - cw - m) + 'px'; card.style.top = Math.min(Math.max(m, y), vh - chh - m) + 'px';
+  }
+  function go(d) {
+    var n = idx + d;
+    if (n >= ch.steps.length) { prog.done[ch.id] = true; prog.last = null; save(); var i = CH.indexOf(ch); if (tourAll) { if (i < CH.length - 1) { ch = CH[i + 1]; idx = 0; show(); } else { finishAll(); } return; } showHub(); return; }
+    if (n < 0) { var ci = CH.indexOf(ch); if (tourAll && ci > 0) { ch = CH[ci - 1]; idx = ch.steps.length - 1; show(); } return; } idx = n; show();
+  }
+  function gtot() { var n = 0; CH.forEach(function (c) { n += c.steps.length; }); return n; }
+  function gpos() { var n = 0; for (var i = 0; i < CH.length && CH[i] !== ch; i++) n += CH[i].steps.length; return n + idx + 1; }
+  function markDone() { try { var u = cloudSession && cloudSession.user; if (u) localStorage.setItem('fos_tour_done_' + u.id, '1'); if (typeof sb !== 'undefined' && cloudSession) sb.auth.updateUser({ data: { fos_tour_done: true } }).catch(function () {}); } catch (e) {} }
+  function skipAll() { tourAll = false; markDone(); closeAcademy(); }
+  function finishAll() { tourAll = false; markDone(); CH.forEach(function (c) { prog.done[c.id] = true; }); prog.last = null; save(); closeAcademy(); }
+  function openFull() { build(); load(); try { if (typeof closeSettingsModal === 'function') closeSettingsModal(); } catch (e) {} prog.last = null; tourAll = true; play(CH[0].id, 0); }
+  function open(id) {
+    build(); load(); try { if (typeof closeSettingsModal === 'function') closeSettingsModal(); } catch (e) {}
+    if (id && CH.some(function (c) { return c.id === id; })) play(id, 0); else showHub();
+  }
+  function closeAcademy() { mode = 'closed'; if (root) root.className = ''; closeAll(); try { var d = byId('fin-nav-dashboard'); if (d && window.switchView) switchView('dashboard', d, 'finance'); } catch (e) {} }
+
+  window.__fosQuickTour = window.fosTourStart;      // keep the original 1-minute tour reachable from the hub
+  window.fosAcademyOpen = function (id) { setTimeout(function () { open(id); }, 200); };
+  window.fosAcademyFull = function () { setTimeout(openFull, 200); };
+  window.fosTourStart = window.fosAcademyFull;     // Settings > About > "Replay Tutorial" now opens the Academy
 })();
 </script>
 
