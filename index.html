@@ -5024,20 +5024,20 @@ body:not(.light-mode) .pins-bar { background: rgba(180,220,218,.08); }
       <div id="forgot-email-step">
         <div class="back-link" onclick="showLoginPanel()"><i class="fas fa-arrow-left"></i> Back to Sign In</div>
         <div class="login-logo" style="font-size:1.2rem;margin-bottom:0.3rem">Reset Password</div>
-        <div class="login-sub" style="margin-bottom:1.4rem">Enter your email to answer your security question</div>
+        <div class="login-sub" style="margin-bottom:1.4rem">Enter your account email and we'll send you a link to set a new password</div>
 
         <label class="login-label">Email Address</label>
         <input class="login-input" id="forgot-email-input" type="email" placeholder="you@gmail.com or you@outlook.com">
 
         <div class="login-error" id="forgot-error">❌ Please enter a valid email.</div>
-        <button class="login-btn" onclick="sendVerificationCode()">Continue</button>
+        <button class="login-btn" onclick="sendVerificationCode()">Send Reset Link</button>
       </div>
 
       <!-- ── STEP 3: Answer Security Question ── -->
       <div id="forgot-otp-step" style="display:none;">
-        <div class="back-link" onclick="document.getElementById('forgot-otp-step').style.display='none'; document.getElementById('forgot-email-step').style.display='block'"><i class="fas fa-arrow-left"></i> Back</div>
-        <div class="login-logo" style="font-size:1.2rem;margin-bottom:0.3rem">Security Question</div>
-        <div class="login-sub" id="otp-hint" style="margin-bottom:1.4rem">Answer the question you set up for this account</div>
+        <div class="back-link" id="recovery-back-link" onclick="document.getElementById('forgot-otp-step').style.display='none'; document.getElementById('forgot-email-step').style.display='block'"><i class="fas fa-arrow-left"></i> Back</div>
+        <div class="login-logo" style="font-size:1.2rem;margin-bottom:0.3rem">New Password</div>
+        <div class="login-sub" id="otp-hint" style="margin-bottom:1.4rem">Choose a new password for your account</div>
 
         <label class="login-label" id="secq-question-label">Your Security Question</label>
         <input class="login-input" id="secq-answer-input" type="text" placeholder="Your answer" autocomplete="off">
@@ -5048,9 +5048,9 @@ body:not(.light-mode) .pins-bar { background: rgba(180,220,218,.08); }
         <!-- ── STEP 4: Set New Password ── -->
         <div id="new-password-step" style="display:none; margin-top:1.2rem;">
           <label class="login-label">New Password</label>
-          <input class="login-input" id="new-pass-input" type="password" placeholder="New password">
+          <input class="login-input" id="new-pass-input" type="password" placeholder="New password (min 6 characters)" autocomplete="new-password">
           <label class="login-label">Confirm Password</label>
-          <input class="login-input" id="confirm-pass-input" type="password" placeholder="Confirm password">
+          <input class="login-input" id="confirm-pass-input" type="password" placeholder="Confirm password" autocomplete="new-password">
           <div class="login-error" id="newpass-error">❌ Passwords do not match.</div>
           <button class="login-btn" onclick="saveNewPassword()">Save New Password</button>
         </div>
@@ -5093,7 +5093,8 @@ body:not(.light-mode) .pins-bar { background: rgba(180,220,218,.08); }
           <button type="button" class="login-pass-toggle" onclick="toggleLoginPass('signup-confirm',this)" tabindex="-1"><i class="fas fa-eye"></i></button>
         </div>
 
-        <label class="login-label">Security Question <span style="color:var(--text-muted);font-weight:400">(used to reset your password without the old one)</span></label>
+        <div style="display:none" aria-hidden="true">
+        <label class="login-label">Security Question</label>
         <select class="login-input" id="signup-secq" style="cursor:pointer">
           <option value="">Select a security question…</option>
           <option value="pet">What was the name of your first pet?</option>
@@ -5106,6 +5107,7 @@ body:not(.light-mode) .pins-bar { background: rgba(180,220,218,.08); }
 
         <label class="login-label">Security Answer</label>
         <input class="login-input" id="signup-seca" type="text" placeholder="Your answer" autocomplete="off">
+        </div>
 
         <div class="login-error" id="signup-error">❌ Please fill in all fields.</div>
         <button class="login-btn" onclick="obNextFromAccount()">Continue →</button>
@@ -5267,6 +5269,25 @@ body:not(.light-mode) .pins-bar { background: rgba(180,220,218,.08); }
 </div>
 
 <script>
+// ── Password-recovery link detection ─────────────────────────────────────────
+// Must run BEFORE the Supabase client is created: the client consumes and strips
+// the #access_token=…&type=recovery hash, after which we could no longer tell that
+// this page load came from a "reset password" email. Without this the app silently
+// signed the person into their account (the recovery link creates a real session)
+// instead of showing the "set a new password" screen.
+const FOS_RECOVERY = (function () {
+  try {
+    const h = new URLSearchParams((location.hash || '').replace(/^#/, ''));
+    const q = new URLSearchParams(location.search || '');
+    const err = h.get('error_description') || q.get('error_description') || '';
+    const errCode = h.get('error_code') || q.get('error_code') || '';
+    const isRecovery = h.get('type') === 'recovery' || q.get('type') === 'recovery';
+    const hasLinkError = !!(err || errCode) && (/otp|expired|invalid|denied/i.test(err + ' ' + errCode));
+    return { active: isRecovery, linkError: hasLinkError ? (errCode === 'otp_expired' || /expired/i.test(err) ? 'expired' : 'invalid') : '' };
+  } catch (e) { return { active: false, linkError: '' }; }
+})();
+let fosRecoveryMode = FOS_RECOVERY.active;   // true while the person is setting a new password
+
 // ── Supabase Cloud (Auth + Sync) ─────────────────────────────────────────────
 const SUPABASE_URL = 'https://fvkzhydshoklketmfqzz.supabase.co';
 const SUPABASE_ANON_KEY = 'sb_publishable_Vh1YqfNaC8VTZOmXVsZQ1g_nUwSMHYO';
@@ -5615,12 +5636,12 @@ function obNextFromAccount() {
     errEl.textContent = '❌ Please fill in all fields.';
     errEl.style.display = 'block'; return;
   }
-  if (password !== confirm) {
-    errEl.textContent = '❌ Passwords do not match.';
+  if (password.length < 6) {
+    errEl.textContent = '❌ Password must be at least 6 characters.';
     errEl.style.display = 'block'; return;
   }
-  if (!secQ || !secA) {
-    errEl.textContent = '❌ Please select a security question and provide an answer.';
+  if (password !== confirm) {
+    errEl.textContent = '❌ Passwords do not match.';
     errEl.style.display = 'block'; return;
   }
   // Duplicate-account checking now happens server-side by Supabase Auth on
@@ -5886,141 +5907,77 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 });
 
-// Toggles between "current password" verification and "security question" bypass
-let pwResetUsingSecQ = false;
-function togglePwResetMode() {
-  pwResetUsingSecQ = !pwResetUsingSecQ;
-  const currWrap = document.getElementById('pwreset-currpass-wrap');
-  const secqWrap = document.getElementById('pwreset-secq-wrap');
-  const link     = document.getElementById('pwreset-toggle-link');
-  const modeDesc = document.getElementById('pwreset-mode-desc');
-  const errEl    = document.getElementById('pwreset-error');
-  if (errEl) errEl.style.display = 'none';
-
-  if (pwResetUsingSecQ) {
-    const currUser = JSON.parse(localStorage.getItem('fos_current_user') || '{}');
-    const users = getUsers();
-    const user = users.find(u => u.identifier === currUser.identifier || u.email === currUser.identifier);
-
-    if (!user || !user.securityQuestion || !user.securityAnswerHash) {
-      if (errEl) {
-        errEl.textContent = '❌ No security question is set up on this account yet. Set one up below first, or use your current password.';
-        errEl.style.display = 'block';
-      }
-      pwResetUsingSecQ = false;
-      return;
-    }
-
-    document.getElementById('pwreset-secq-label').textContent = (SECURITY_QUESTIONS[user.securityQuestion] || 'Security Question').toUpperCase();
-    currWrap.style.display = 'none';
-    secqWrap.style.display = 'block';
-    link.textContent = 'Use my current password instead';
-    modeDesc.textContent = 'Answer your security question to set a new password';
-  } else {
-    currWrap.style.display = 'block';
-    secqWrap.style.display = 'none';
-    link.textContent = "I don't have my current password";
-    modeDesc.textContent = 'Enter your current password to set a new one';
-  }
-}
-
-// Reset the logged-in user's password from Settings — requires current password,
-// or a correct security-question answer as a bypass when the password isn't known.
-function resetPasswordFromSettings(btn) {
+let pwResetUsingSecQ = false; // legacy flag, always false now
+// Reset the logged-in user's password from Settings. This changes the REAL
+// cloud (Supabase) password: the current password is verified against Supabase
+// first, then the new one is saved. If the person has forgotten the current
+// password, "I don't have my current password" emails them a reset link instead.
+async function resetPasswordFromSettings(btn) {
   const reasonSel    = document.getElementById('pwreset-reason');
   const otherText    = document.getElementById('pwreset-other-text');
   const newPwEl      = document.getElementById('pwreset-new');
   const confirmPwEl  = document.getElementById('pwreset-confirm');
   const currPwEl     = document.getElementById('pwreset-current');
-  const secqAnswerEl = document.getElementById('pwreset-secq-answer');
   const errEl        = document.getElementById('pwreset-error');
+  const fail = function (m) { errEl.textContent = '❌ ' + m; errEl.style.display = 'block'; };
 
-  const reason     = reasonSel ? reasonSel.value : '';
-  const newPw      = newPwEl ? newPwEl.value : '';
-  const confirmPw  = confirmPwEl ? confirmPwEl.value : '';
-
+  const newPw     = newPwEl ? newPwEl.value : '';
+  const confirmPw = confirmPwEl ? confirmPwEl.value : '';
   errEl.style.display = 'none';
 
-  const currUser = JSON.parse(localStorage.getItem('fos_current_user') || '{}');
-  let users = JSON.parse(localStorage.getItem('fos_users') || '[]');
-  const userIdx = users.findIndex(u => u.identifier === currUser.identifier || u.email === currUser.identifier);
-
-  if (userIdx === -1) {
-    errEl.textContent = '❌ Could not find your account. Please sign in again.';
-    errEl.style.display = 'block'; return;
+  if (!cloudSession || !cloudSession.user || !cloudSession.user.email) {
+    return fail('You need to be signed in to your cloud account to change its password.');
   }
-
-  // ── Identity verification: current password OR security question ──
-  if (pwResetUsingSecQ) {
-    const answer = secqAnswerEl ? secqAnswerEl.value : '';
-    if (!answer || !checkSecurityAnswer(answer, users[userIdx].securityAnswerHash)) {
-      errEl.textContent = '❌ That answer doesn\'t match our records.';
-      errEl.style.display = 'block'; return;
-    }
-  } else {
-    const currPw = currPwEl ? currPwEl.value : '';
-    if (!currPw) {
-      errEl.textContent = '❌ Please enter your current password.';
-      errEl.style.display = 'block'; return;
-    }
-    if (users[userIdx].password !== currPw) {
-      errEl.textContent = '❌ Current password is incorrect.';
-      errEl.style.display = 'block'; return;
-    }
-  }
-
-  if (!reason) {
-    errEl.textContent = '❌ Please select a reason for the password change.';
-    errEl.style.display = 'block'; return;
-  }
-  if (reason === 'other' && (!otherText || !otherText.value.trim())) {
-    errEl.textContent = '❌ Please specify your reason.';
-    errEl.style.display = 'block'; return;
-  }
-  if (!newPw || !confirmPw) {
-    errEl.textContent = '❌ Please enter and confirm your new password.';
-    errEl.style.display = 'block'; return;
-  }
-  if (newPw.length < 6) {
-    errEl.textContent = '❌ Password must be at least 6 characters.';
-    errEl.style.display = 'block'; return;
-  }
-  if (newPw !== confirmPw) {
-    errEl.textContent = '❌ Passwords do not match.';
-    errEl.style.display = 'block'; return;
-  }
-
-  // Update password
-  users[userIdx].password = newPw;
-
-  // Log the reset reason for audit purposes (kept locally, not shown elsewhere)
-  if (!Array.isArray(users[userIdx].passwordResetLog)) users[userIdx].passwordResetLog = [];
-  users[userIdx].passwordResetLog.push({
-    reason: reason === 'other' ? (otherText.value.trim() || 'Other') : reason,
-    verifiedVia: pwResetUsingSecQ ? 'security-question' : 'current-password',
-    at: new Date().toISOString()
-  });
-
-  localStorage.setItem('fos_users', JSON.stringify(users));
-
-  // Clear the form
-  if (reasonSel) reasonSel.value = '';
-  if (otherText) otherText.value = '';
-  const otherWrap = document.getElementById('pwreset-other-wrap');
-  if (otherWrap) otherWrap.style.display = 'none';
-  newPwEl.value = '';
-  confirmPwEl.value = '';
-  if (currPwEl) currPwEl.value = '';
-  if (secqAnswerEl) secqAnswerEl.value = '';
-
-  // Reset back to default (current-password) mode for next time
-  if (pwResetUsingSecQ) togglePwResetMode();
-
-  if (typeof showSettingsToast === 'function') showSettingsToast('Password reset successfully');
+  const currPw = currPwEl ? currPwEl.value : '';
+  if (!currPw) return fail('Please enter your current password, or use "I don\'t have my current password" to get an email link.');
+  if (!newPw || !confirmPw) return fail('Please enter and confirm your new password.');
+  if (newPw.length < 6) return fail('Password must be at least 6 characters.');
+  if (newPw !== confirmPw) return fail('Passwords do not match.');
+  if (newPw === currPw) return fail('Your new password must be different from the current one.');
 
   const origHtml = btn.innerHTML;
-  btn.innerHTML = '<i class="fas fa-check-double"></i> Password Reset!';
-  setTimeout(() => btn.innerHTML = origHtml, 2500);
+  btn.disabled = true; btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Checking…';
+  try {
+    // Verify the current password with a throwaway client so the app's own session is untouched.
+    const tmp = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY, { auth: { persistSession: false, autoRefreshToken: false, detectSessionInUrl: false } });
+    const chk = await tmp.auth.signInWithPassword({ email: cloudSession.user.email, password: currPw });
+    if (chk.error) { fail('Current password is incorrect.'); return; }
+
+    const { error } = await sb.auth.updateUser({ password: newPw });
+    if (error) { fail(error.message); return; }
+
+    if (reasonSel) reasonSel.value = '';
+    if (otherText) otherText.value = '';
+    const otherWrap = document.getElementById('pwreset-other-wrap');
+    if (otherWrap) otherWrap.style.display = 'none';
+    newPwEl.value = ''; confirmPwEl.value = ''; if (currPwEl) currPwEl.value = '';
+    if (typeof showSettingsToast === 'function') showSettingsToast('Password updated');
+    btn.innerHTML = '<i class="fas fa-check-double"></i> Password Updated!';
+    setTimeout(function () { btn.innerHTML = origHtml; }, 2500);
+    return;
+  } catch (e) {
+    fail('Could not reach the server. Check your connection and try again.');
+  } finally {
+    btn.disabled = false;
+    if (btn.innerHTML.indexOf('Checking') !== -1) btn.innerHTML = origHtml;
+  }
+}
+
+// "I don't have my current password" → email a real reset link to the account address.
+async function togglePwResetMode() {
+  const errEl = document.getElementById('pwreset-error');
+  const link  = document.getElementById('pwreset-toggle-link');
+  if (errEl) errEl.style.display = 'none';
+  if (!cloudSession || !cloudSession.user || !cloudSession.user.email) {
+    if (errEl) { errEl.textContent = '❌ Sign in to your cloud account first.'; errEl.style.display = 'block'; }
+    return;
+  }
+  const email = cloudSession.user.email;
+  if (link) link.textContent = 'Sending…';
+  const { error } = await sb.auth.resetPasswordForEmail(email, { redirectTo: window.location.origin + window.location.pathname });
+  if (link) link.textContent = "I don't have my current password";
+  if (error) { if (errEl) { errEl.textContent = '❌ ' + error.message; errEl.style.display = 'block'; } return; }
+  if (typeof showSettingsToast === 'function') showSettingsToast('Reset link sent to ' + email);
 }
 
 // Sets or updates the security question used to bypass password verification
@@ -6087,7 +6044,10 @@ async function checkSession() {
   const minSplashTime = new Promise(res => setTimeout(res, 350));
   const sessionCheck = sb.auth.getSession();
 
-  const [{ data }] = await Promise.all([sessionCheck, minSplashTime]);
+  const [{ data: _sd }] = await Promise.all([sessionCheck, minSplashTime]);
+  // Opened from a password-reset email: the recovery session is only a ticket to
+  // change the password — do NOT treat it as a normal sign-in.
+  const data = fosRecoveryMode ? { session: null } : _sd;
 
   if (data.session) {
     await onCloudSignedIn(data.session);
@@ -6110,6 +6070,9 @@ async function checkSession() {
     document.getElementById('login-overlay').classList.add('hidden');
   }
 
+  if (fosRecoveryMode) { handlePasswordRecovery(); return; }
+  if (FOS_RECOVERY.linkError) { showRecoveryLinkError(FOS_RECOVERY.linkError); return; }
+
   // No existing session, but the person's last successful sign-in was via
   // passkey — go straight to the Face ID / Fingerprint prompt instead of
   // making them tap "Sign in with Face ID / Fingerprint" every time.
@@ -6122,9 +6085,11 @@ async function checkSession() {
 // and catch the recovery-link redirect for the "set new password" flow.
 sb.auth.onAuthStateChange((event, session) => {
   if (event === 'PASSWORD_RECOVERY') {
+    fosRecoveryMode = true;
     handlePasswordRecovery();
     return;
   }
+  if (fosRecoveryMode && event !== 'SIGNED_OUT') return;   // ignore the temporary recovery session
   if (event === 'SIGNED_OUT') {
     cloudSession = null;
     setCloudStatus('offline');
@@ -6154,6 +6119,7 @@ function showLoginPanel() {
   document.getElementById('forgot-email-step').style.display = 'block';
   document.getElementById('forgot-otp-step').style.display   = 'none';
   document.getElementById('new-password-step').style.display = 'none';
+  resetRecoveryPanelUi();
   document.querySelector('.login-box').classList.remove('onboarding-active');
 }
 
@@ -6182,11 +6148,17 @@ async function sendVerificationCode() {
   errEl.style.display = 'none';
   if (btn) { btn.disabled = true; btn.textContent = 'Sending…'; }
 
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+    errEl.textContent = '❌ Please enter a valid email.';
+    errEl.style.display = 'block';
+    if (btn) { btn.disabled = false; btn.textContent = 'Send Reset Link'; }
+    return;
+  }
   const { error } = await sb.auth.resetPasswordForEmail(email, {
-    redirectTo: window.location.href.split('#')[0].split('?')[0]
+    redirectTo: window.location.origin + window.location.pathname
   });
 
-  if (btn) { btn.disabled = false; btn.textContent = 'Continue'; }
+  if (btn) { btn.disabled = false; btn.textContent = 'Send Reset Link'; }
 
   if (error) {
     errEl.textContent = '❌ ' + error.message;
@@ -6206,18 +6178,58 @@ async function saveNewPassword() {
   const cp  = document.getElementById('confirm-pass-input').value;
   const err = document.getElementById('newpass-error');
 
-  if (!np || np !== cp) { err.style.display = 'block'; return; }
+  if (!np || !cp) { err.textContent = '❌ Please enter and confirm your new password.'; err.style.display = 'block'; return; }
+  if (np.length < 6) { err.textContent = '❌ Password must be at least 6 characters.'; err.style.display = 'block'; return; }
+  if (np !== cp) { err.textContent = '❌ Passwords do not match.'; err.style.display = 'block'; return; }
   err.style.display = 'none';
 
+  const saveBtn = document.querySelector('#new-password-step .login-btn');
+  if (saveBtn) { saveBtn.disabled = true; saveBtn.textContent = 'Saving…'; }
+
   const { error } = await sb.auth.updateUser({ password: np });
+  if (saveBtn) { saveBtn.disabled = false; saveBtn.textContent = 'Save New Password'; }
   if (error) {
     err.textContent = '❌ ' + error.message;
     err.style.display = 'block';
     return;
   }
 
-  alert('✅ Password updated! Please sign in with your new password.');
+  // Done — end the temporary recovery session so the person signs in fresh with
+  // the new password, and clean the recovery tokens out of the address bar.
+  try { await sb.auth.signOut({ scope: 'local' }); } catch (e) {}
+  fosRecoveryMode = false;
+  cloudSession = null;
+  try { history.replaceState(null, '', window.location.pathname); } catch (e) {}
+  document.getElementById('new-pass-input').value = '';
+  document.getElementById('confirm-pass-input').value = '';
+  resetRecoveryPanelUi();
   showLoginPanel();
+  document.getElementById('login-overlay').classList.remove('hidden');
+  const li = document.getElementById('login-error');
+  if (li) { li.textContent = '✅ Password updated. Sign in with your new password.'; li.style.display = 'block'; li.style.color = '#34d399'; setTimeout(function () { li.style.color = ''; }, 8000); }
+}
+
+// Puts the forgot-password panel back to its normal "enter your email" state.
+function resetRecoveryPanelUi() {
+  const ids = { 'secq-question-label': '', 'secq-answer-input': '' };
+  Object.keys(ids).forEach(function (id) { const el = document.getElementById(id); if (el) el.style.display = ''; });
+  const back = document.getElementById('recovery-back-link'); if (back) back.style.display = '';
+  const verifyBtn = document.querySelector('#forgot-otp-step > button.login-btn'); if (verifyBtn) verifyBtn.style.display = '';
+  const hint = document.getElementById('otp-hint'); if (hint) hint.textContent = 'Choose a new password for your account';
+}
+
+// Shown when the emailed link is expired or already used (Supabase links are single-use).
+function showRecoveryLinkError(kind) {
+  try { history.replaceState(null, '', window.location.pathname); } catch (e) {}
+  showForgotPanel();
+  document.getElementById('login-overlay').classList.remove('hidden');
+  const errEl = document.getElementById('forgot-error');
+  if (errEl) {
+    errEl.textContent = kind === 'expired'
+      ? '❌ That reset link has expired or was already used. Enter your email to get a fresh one.'
+      : '❌ That reset link is not valid. Enter your email to get a new one.';
+    errEl.style.display = 'block';
+  }
 }
 
 // Supabase redirects here with type=recovery after the user clicks the emailed
@@ -6233,9 +6245,14 @@ async function handlePasswordRecovery() {
   document.getElementById('secq-answer-input').style.display   = 'none';
   const verifyBtn = document.querySelector('#forgot-otp-step > button.login-btn');
   if (verifyBtn) verifyBtn.style.display = 'none';
+  const back = document.getElementById('recovery-back-link'); if (back) back.style.display = 'none';
   document.getElementById('otp-hint').textContent = 'Set a new password for your account';
   document.getElementById('new-password-step').style.display = 'block';
+  // Make sure nothing else (splash, app lock, dashboard) sits on top of this screen.
+  const splash = document.getElementById('app-splash');
+  if (splash) { splash.classList.add('fade-out'); splash.style.display = 'none'; }
   document.getElementById('login-overlay').classList.remove('hidden');
+  const npi = document.getElementById('new-pass-input'); if (npi) setTimeout(function () { npi.focus(); }, 50);
 }
 
 function toggleLoginPass(inputId, btn) {
@@ -9835,7 +9852,7 @@ function passAppLockGate() {
               <div style="width:28px; height:28px; border-radius:50%; background:rgba(239,68,68,0.15); color:#ef4444; display:flex; align-items:center; justify-content:center"><i class="fas fa-key"></i></div>
               <div class="set-label-block">
                 <div class="set-lbl readable-white">Reset Password</div>
-                <div class="set-desc" style="margin-top:0" id="pwreset-mode-desc">Enter your current password to set a new one</div>
+                <div class="set-desc" style="margin-top:0" id="pwreset-mode-desc">Change your cloud account password (requires your current password)</div>
               </div>
             </div>
 
@@ -9891,7 +9908,7 @@ function passAppLockGate() {
             </div>
           </div>
 
-          <div class="set-card" style="padding: 1rem;">
+          <div class="set-card" style="padding: 1rem; display:none;" aria-hidden="true" id="legacy-secq-card">
             <div style="display:flex; gap:10px; align-items:center; margin-bottom: 0.8rem;">
               <div style="width:28px; height:28px; border-radius:50%; background:rgba(167,139,250,0.15); color:#a78bfa; display:flex; align-items:center; justify-content:center"><i class="fas fa-shield-halved"></i></div>
               <div class="set-label-block">
@@ -10334,10 +10351,10 @@ function passAppLockGate() {
             <div style="width:32px; height:32px; border-radius:50%; background:rgba(var(--brand-rgb),0.15); color:var(--accent); display:flex; align-items:center; justify-content:center"><i class="fas fa-cube"></i></div>
             <div class="set-label-block">
               <div class="set-lbl readable-white">What is FinanceOS?</div>
-              <div class="set-desc" style="margin-top:0">Version v7.1.2</div>
+              <div class="set-desc" style="margin-top:0">Version v7.2.0 &middot; Nov 2026</div>
             </div>
           </div>
-          <div class="set-desc" style="font-size:0.78rem; line-height:1.6; margin-top:0;">FinanceOS is a personal finance dashboard that runs in your browser on computer, tablet and phone. Record what you earn, spend, owe and invest, and it turns that into live charts, summaries and alerts so you can see where you stand at a glance. Your data is kept on your device first, and can also be synced to your cloud account or backed up as JSON &mdash; you choose in Data Tracking Mode.</div>
+          <div class="set-desc" style="font-size:0.78rem; line-height:1.6; margin-top:0;">FinanceOS is a personal finance dashboard that runs in your browser on computer, tablet and phone and can be installed like an app. Record what you earn, spend, owe, insure and invest, and it turns that into live charts, a proactive Fin AI assistant, reminders and reports so you can see where you stand at a glance. You sign in with your own account (email and password, or Face ID / fingerprint passkey). Your data is kept on your device first, and can also be synced to your private cloud account or backed up as JSON &mdash; you choose in Data Tracking Mode.</div>
         </div>
 
         <div class="set-card">
@@ -10351,15 +10368,15 @@ function passAppLockGate() {
           <div class="about-feat-grid">
           <div style="display:flex; gap:10px; align-items:flex-start; padding:9px 10px; border:1px solid var(--glass-border); border-radius:10px; background:rgba(255,255,255,0.02);">
             <i class="fas fa-chart-pie" style="color:var(--accent); width:18px; text-align:center; margin-top:2px;"></i>
-            <div><div class="set-lbl readable-white" style="font-size:0.78rem">Dashboard</div><div class="set-desc" style="margin-top:2px">Live overview: totals, cash flow, spending mix, portfolio and credit charts, market ticker, milestone badges.</div></div>
+            <div><div class="set-lbl readable-white" style="font-size:0.78rem">Dashboard</div><div class="set-desc" style="margin-top:2px">Live totals and cash flow, an interactive expense doughnut (category &rarr; subcategory &rarr; payee), portfolio and credit charts, market ticker, milestone badges and the Consistency journey (Weekly Pulse, Half-Year Report, Year in Review).</div></div>
           </div>
           <div style="display:flex; gap:10px; align-items:flex-start; padding:9px 10px; border:1px solid var(--glass-border); border-radius:10px; background:rgba(255,255,255,0.02);">
             <i class="fas fa-list" style="color:var(--c-inc); width:18px; text-align:center; margin-top:2px;"></i>
-            <div><div class="set-lbl readable-white" style="font-size:0.78rem">Transactions</div><div class="set-desc" style="margin-top:2px">Income and expenses with filters and custom tags; debt and emergency-fund entries kept separate.</div></div>
+            <div><div class="set-lbl readable-white" style="font-size:0.78rem">Transactions</div><div class="set-desc" style="margin-top:2px">Income and expenses with category, subcategory, payee and custom tags, plus filters and per-transaction analytics. Debt and emergency-fund entries are kept separate.</div></div>
           </div>
           <div style="display:flex; gap:10px; align-items:flex-start; padding:9px 10px; border:1px solid var(--glass-border); border-radius:10px; background:rgba(255,255,255,0.02);">
             <i class="fas fa-coins" style="color:var(--c-inv); width:18px; text-align:center; margin-top:2px;"></i>
-            <div><div class="set-lbl readable-white" style="font-size:0.78rem">Investments</div><div class="set-desc" style="margin-top:2px">Gold, silver, real estate, mutual funds, bonds, stocks, crypto, FDs and RDs with analytics.</div></div>
+            <div><div class="set-lbl readable-white" style="font-size:0.78rem">Investments</div><div class="set-desc" style="margin-top:2px">Gold, silver, real estate, mutual funds, bonds, stocks, crypto, FDs and RDs with holdings table, portfolio analytics, live prices where available and goal tagging.</div></div>
           </div>
           <div style="display:flex; gap:10px; align-items:flex-start; padding:9px 10px; border:1px solid var(--glass-border); border-radius:10px; background:rgba(255,255,255,0.02);">
             <i class="fas fa-landmark" style="color:var(--c-loan); width:18px; text-align:center; margin-top:2px;"></i>
@@ -10367,23 +10384,23 @@ function passAppLockGate() {
           </div>
           <div style="display:flex; gap:10px; align-items:flex-start; padding:9px 10px; border:1px solid var(--glass-border); border-radius:10px; background:rgba(255,255,255,0.02);">
             <i class="fas fa-credit-card" style="color:#fba96a; width:18px; text-align:center; margin-top:2px;"></i>
-            <div><div class="set-lbl readable-white" style="font-size:0.78rem">Credit Tracker & CC Utilization</div><div class="set-desc" style="margin-top:2px">Credit entries and how much of each card limit you use.</div></div>
+            <div><div class="set-lbl readable-white" style="font-size:0.78rem">Credit Tracker & CC Utilization</div><div class="set-desc" style="margin-top:2px">Credit entries and how much of each card limit you use, with bank and network logos.</div></div>
           </div>
           <div style="display:flex; gap:10px; align-items:flex-start; padding:9px 10px; border:1px solid var(--glass-border); border-radius:10px; background:rgba(255,255,255,0.02);">
             <i class="fas fa-sliders-h" style="color:var(--c-net); width:18px; text-align:center; margin-top:2px;"></i>
-            <div><div class="set-lbl readable-white" style="font-size:0.78rem">Budgets</div><div class="set-desc" style="margin-top:2px">Monthly limits per category with live progress.</div></div>
+            <div><div class="set-lbl readable-white" style="font-size:0.78rem">Budgets</div><div class="set-desc" style="margin-top:2px">Monthly limits per category with live progress and over-budget alerts.</div></div>
           </div>
           <div style="display:flex; gap:10px; align-items:flex-start; padding:9px 10px; border:1px solid var(--glass-border); border-radius:10px; background:rgba(255,255,255,0.02);">
             <i class="fas fa-chart-line" style="color:#38bdf8; width:18px; text-align:center; margin-top:2px;"></i>
-            <div><div class="set-lbl readable-white" style="font-size:0.78rem">Analytics & Net Worth</div><div class="set-desc" style="margin-top:2px">Spending patterns and assets-minus-liabilities over time.</div></div>
+            <div><div class="set-lbl readable-white" style="font-size:0.78rem">Analytics & Net Worth</div><div class="set-desc" style="margin-top:2px">Spending patterns, payee insights and assets-minus-liabilities over time, with net-worth milestones.</div></div>
           </div>
           <div style="display:flex; gap:10px; align-items:flex-start; padding:9px 10px; border:1px solid var(--glass-border); border-radius:10px; background:rgba(255,255,255,0.02);">
             <i class="fas fa-flask" style="color:var(--c-gold); width:18px; text-align:center; margin-top:2px;"></i>
-            <div><div class="set-lbl readable-white" style="font-size:0.78rem">Scenario, Rough Board & Calculator</div><div class="set-desc" style="margin-top:2px">SIP planner, quick spreadsheet and a built-in scientific calculator.</div></div>
+            <div><div class="set-lbl readable-white" style="font-size:0.78rem">Scenario, Rough Board & Calculator</div><div class="set-desc" style="margin-top:2px">SIP planner, a quick spreadsheet with formulas and CSV/Excel import, and a built-in scientific calculator.</div></div>
           </div>
           <div style="display:flex; gap:10px; align-items:flex-start; padding:9px 10px; border:1px solid var(--glass-border); border-radius:10px; background:rgba(255,255,255,0.02);">
             <i class="fas fa-shield-heart" style="color:var(--c-exp); width:18px; text-align:center; margin-top:2px;"></i>
-            <div><div class="set-lbl readable-white" style="font-size:0.78rem">Insurance & Subscriptions</div><div class="set-desc" style="margin-top:2px">Policies (personal/corporate) and recurring subscriptions in one place.</div></div>
+            <div><div class="set-lbl readable-white" style="font-size:0.78rem">Insurance & Subscriptions</div><div class="set-desc" style="margin-top:2px">Insurance management for motor, health, life, term, accident, home and travel cover: type-specific forms, claims, documents, readiness score, expiry intelligence and smart insights. Subscriptions are tracked alongside.</div></div>
           </div>
           <div style="display:flex; gap:10px; align-items:flex-start; padding:9px 10px; border:1px solid var(--glass-border); border-radius:10px; background:rgba(255,255,255,0.02);">
             <i class="fas fa-note-sticky" style="color:var(--text-mid); width:18px; text-align:center; margin-top:2px;"></i>
@@ -10391,11 +10408,15 @@ function passAppLockGate() {
           </div>
           <div style="display:flex; gap:10px; align-items:flex-start; padding:9px 10px; border:1px solid var(--glass-border); border-radius:10px; background:rgba(255,255,255,0.02);">
             <svg class="fos-ai" viewBox="0 0 24 24" width="18" height="18" aria-hidden="true" style="margin-top:2px"><use href="#fos-ai"/></svg>
-            <div><div class="set-lbl readable-white" style="font-size:0.78rem">Fin AI</div><div class="set-desc" style="margin-top:2px">Financial health score and insights from your own data.</div></div>
+            <div><div class="set-lbl readable-white" style="font-size:0.78rem">Fin AI</div><div class="set-desc" style="margin-top:2px">Financial health score, a &ldquo;Coming up&rdquo; view for today / this week / this month, a 30-day cash forecast, Debt Command Center, savings goals, suggestions, what-if answers and ask-me-anything questions &mdash; all worked out on your device from your own data.</div></div>
           </div>
           <div style="display:flex; gap:10px; align-items:flex-start; padding:9px 10px; border:1px solid var(--glass-border); border-radius:10px; background:rgba(255,255,255,0.02);">
             <i class="fas fa-bell" style="color:var(--warning); width:18px; text-align:center; margin-top:2px;"></i>
-            <div><div class="set-lbl readable-white" style="font-size:0.78rem">Notifications</div><div class="set-desc" style="margin-top:2px">Alerts for large transactions, unusual spending and reminders.</div></div>
+            <div><div class="set-lbl readable-white" style="font-size:0.78rem">Notifications</div><div class="set-desc" style="margin-top:2px">Alerts for large transactions, unusual spending, bills and loan EMIs, budget limits, portfolio updates, goals and sync status &mdash; each can be switched on or off.</div></div>
+          </div>
+          <div style="display:flex; gap:10px; align-items:flex-start; padding:9px 10px; border:1px solid var(--glass-border); border-radius:10px; background:rgba(255,255,255,0.02);">
+            <i class="fas fa-file-export" style="color:#38bdf8; width:18px; text-align:center; margin-top:2px;"></i>
+            <div><div class="set-lbl readable-white" style="font-size:0.78rem">Reports & Export</div><div class="set-desc" style="margin-top:2px">CSV, PDF and Advanced PDF reports for any mix of transactions, loans, credit, investments and holdings, with optional goal-funding, tax-summary and stress-test sections and a date range.</div></div>
           </div>
           <div style="display:flex; gap:10px; align-items:flex-start; padding:9px 10px; border:1px solid var(--glass-border); border-radius:10px; background:rgba(255,255,255,0.02);">
             <i class="fas fa-cloud" style="color:var(--accent); width:18px; text-align:center; margin-top:2px;"></i>
@@ -10403,7 +10424,11 @@ function passAppLockGate() {
           </div>
           <div style="display:flex; gap:10px; align-items:flex-start; padding:9px 10px; border:1px solid var(--glass-border); border-radius:10px; background:rgba(255,255,255,0.02);">
             <i class="fas fa-fingerprint" style="color:var(--c-inc); width:18px; text-align:center; margin-top:2px;"></i>
-            <div><div class="set-lbl readable-white" style="font-size:0.78rem">Device Lock</div><div class="set-desc" style="margin-top:2px">Face ID, fingerprint, passkey or PC Lock to protect this device.</div></div>
+            <div><div class="set-lbl readable-white" style="font-size:0.78rem">Sign-in & Device Lock</div><div class="set-desc" style="margin-top:2px">Email sign-in with a password reset link, Face ID / fingerprint passkeys, and PC Lock to protect this device.</div></div>
+          </div>
+          <div style="display:flex; gap:10px; align-items:flex-start; padding:9px 10px; border:1px solid var(--glass-border); border-radius:10px; background:rgba(255,255,255,0.02);">
+            <i class="fas fa-user-shield" style="color:var(--c-net); width:18px; text-align:center; margin-top:2px;"></i>
+            <div><div class="set-lbl readable-white" style="font-size:0.78rem">Admin Panel</div><div class="set-desc" style="margin-top:2px">PIN-protected controls for how FinanceOS calculates, alerts and unlocks: Calculation Lab, backups &amp; versions and an audit log.</div></div>
           </div>
           </div>
         </div>
@@ -10413,7 +10438,7 @@ function passAppLockGate() {
             <div style="width:32px; height:32px; border-radius:50%; background:rgba(167,139,250,0.15); color:var(--c-net); display:flex; align-items:center; justify-content:center"><i class="fas fa-book-open"></i></div>
             <div class="set-label-block">
               <div class="set-lbl readable-white">User Guide (PDF)</div>
-              <div class="set-desc" style="margin-top:0">A simple manual: getting started, every section, backups and security. Works offline.</div>
+              <div class="set-desc" style="margin-top:0">Updated for v7.2: getting started, every section, Fin AI, insurance, backups, password reset and security. Works offline.</div>
             </div>
           </div>
           <div class="trk-actions">
@@ -10445,22 +10470,30 @@ function passAppLockGate() {
           <div class="set-row">
             <div class="set-label-block">
               <div class="set-lbl readable-white" style="font-size:0.8rem">Cloud Storage (Supabase)</div>
-              <div class="set-desc">While signed in, that same data is synced to your private account in the cloud — this is what lets your phone and PC show the same numbers.</div>
+              <div class="set-desc">While signed in with Cloud Tracking on, your transactions, investments, loans &amp; credit, credit cards, insurance, subscriptions, notes and budgets are synced to your private Supabase account — this is what lets your phone and PC show the same numbers. Rough Board, Fin AI goals, shortcuts and Admin overrides stay on this device (use JSON backup to move them).</div>
             </div>
             <div class="badge bg-loan" id="about-cloud-badge">Checking…</div>
           </div>
 
           <div class="set-row">
             <div class="set-label-block">
+              <div class="set-lbl readable-white" style="font-size:0.8rem">Live Market Data & Logos</div>
+              <div class="set-desc">To show prices and logos, FinanceOS contacts public services directly from your browser: CoinGecko (gold/silver proxy and crypto prices), Yahoo Finance (index and stock quotes), open.er-api.com (exchange rates), TradingView (ticker and chart widgets) and Google / Clearbit (bank and card logos). Requests only name public things such as a currency, coin or ticker symbol — never your amounts, transactions, notes or account details. TradingView widgets load from TradingView and follow its own policies.</div>
+            </div>
+            <div class="badge bg-loan">Public data only</div>
+          </div>
+
+          <div class="set-row">
+            <div class="set-label-block">
               <div class="set-lbl readable-white" style="font-size:0.8rem">Third-Party Analytics & Ads</div>
-              <div class="set-desc">No data is sold, shared, or sent to any third-party analytics, tracking, or advertising service — it only ever moves between you and your own account.</div>
+              <div class="set-desc">Your financial data is never sold or shared, and there is no analytics, tracking or advertising service in FinanceOS. Fin AI runs on your device — nothing is sent to an AI service. Your data only moves between you and your own cloud account.</div>
             </div>
             <div class="badge" style="background:rgba(239,68,68,0.15); color:#ef4444;">None</div>
           </div>
 
           <div class="set-row" style="border-top:1px solid var(--glass-border); padding-top:0.7rem; margin-top:0.2rem;">
             <div class="set-label-block" style="max-width:100%;">
-              <div class="set-desc" style="font-size:0.68rem; line-height:1.5;"><i class="fas fa-circle-info" style="margin-right:4px;color:var(--text-muted)"></i>Earlier versions of this page described FinanceOS as "local-first" with "zero cloud dependencies." That stopped being accurate once account sign-in and cross-device sync were added — the rows above reflect how it actually works today: local-first for speed, cloud-backed for continuity.</div>
+              <div class="set-desc" style="font-size:0.68rem; line-height:1.5;"><i class="fas fa-circle-info" style="margin-right:4px;color:var(--text-muted)"></i>FinanceOS is local-first for speed and cloud-backed for continuity. This page was last reviewed for v7.2.0 (Nov 2026).</div>
             </div>
           </div>
         </div>
@@ -10488,6 +10521,30 @@ function passAppLockGate() {
               <div class="set-desc">Your records are scoped to your account at the database level — no other FinanceOS user can query, see, or export your data.</div>
             </div>
             <div class="badge" style="background:rgba(167,139,250,0.15); color:#a78bfa;">Account-scoped</div>
+          </div>
+
+          <div class="set-row">
+            <div class="set-label-block">
+              <div class="set-lbl readable-white" style="font-size:0.8rem">Sign-In & Passwords</div>
+              <div class="set-desc">Accounts use email and password through Supabase Auth, with email confirmation on sign-up. Your password is handled and hashed by Supabase — FinanceOS never stores it or shows it to you, so it can be changed but not viewed.</div>
+            </div>
+            <div class="badge bg-inc">Supabase Auth</div>
+          </div>
+
+          <div class="set-row">
+            <div class="set-label-block">
+              <div class="set-lbl readable-white" style="font-size:0.8rem">Password Reset</div>
+              <div class="set-desc">Forgot it? &ldquo;Forgot password?&rdquo; on the sign-in screen emails you a single-use reset link that opens a set-new-password screen. Signed in already? Change it under Settings &gt; General &gt; Account (current password required, or request the email link).</div>
+            </div>
+            <div class="badge" style="background:rgba(167,139,250,0.15); color:#a78bfa;">Email link</div>
+          </div>
+
+          <div class="set-row">
+            <div class="set-label-block">
+              <div class="set-lbl readable-white" style="font-size:0.8rem">Passkeys (Face ID / Fingerprint)</div>
+              <div class="set-desc">Optional passwordless sign-in using your device&rsquo;s own security (WebAuthn). Your fingerprint or face never leaves the device and is never sent to FinanceOS or Supabase.</div>
+            </div>
+            <div class="badge bg-inc">Optional</div>
           </div>
 
           <div class="set-row">
@@ -10579,7 +10636,7 @@ function passAppLockGate() {
               <div class="set-desc">Local client version.</div>
             </div>
             <div style="display:flex; align-items:center; gap:10px;">
-              <div class="set-desc" style="font-family:'DM Mono',monospace; font-weight:700;">v7.1.2</div>
+              <div class="set-desc" style="font-family:'DM Mono',monospace; font-weight:700;">v7.2.0</div>
               <div class="badge bg-inc">Up to date</div>
             </div>
           </div>
@@ -11098,7 +11155,7 @@ async function handleLogout() {
 }
 
 // ── About: embedded User Guide PDF (works offline, no network needed) ──
-const FOS_USER_GUIDE_B64 = 'JVBERi0xLjQKJZOMi54gUmVwb3J0TGFiIEdlbmVyYXRlZCBQREYgZG9jdW1lbnQgKG9wZW5zb3VyY2UpCjEgMCBvYmoKPDwKL0YxIDIgMCBSIC9GMiAzIDAgUgo+PgplbmRvYmoKMiAwIG9iago8PAovQmFzZUZvbnQgL0hlbHZldGljYSAvRW5jb2RpbmcgL1dpbkFuc2lFbmNvZGluZyAvTmFtZSAvRjEgL1N1YnR5cGUgL1R5cGUxIC9UeXBlIC9Gb250Cj4+CmVuZG9iagozIDAgb2JqCjw8Ci9CYXNlRm9udCAvSGVsdmV0aWNhLUJvbGQgL0VuY29kaW5nIC9XaW5BbnNpRW5jb2RpbmcgL05hbWUgL0YyIC9TdWJ0eXBlIC9UeXBlMSAvVHlwZSAvRm9udAo+PgplbmRvYmoKNCAwIG9iago8PAovQ29udGVudHMgMTMgMCBSIC9NZWRpYUJveCBbIDAgMCA1OTUuMjc1NiA4NDEuODg5OCBdIC9QYXJlbnQgMTIgMCBSIC9SZXNvdXJjZXMgPDwKL0ZvbnQgMSAwIFIgL1Byb2NTZXQgWyAvUERGIC9UZXh0IC9JbWFnZUIgL0ltYWdlQyAvSW1hZ2VJIF0KPj4gL1JvdGF0ZSAwIC9UcmFucyA8PAoKPj4gCiAgL1R5cGUgL1BhZ2UKPj4KZW5kb2JqCjUgMCBvYmoKPDwKL0NvbnRlbnRzIDE0IDAgUiAvTWVkaWFCb3ggWyAwIDAgNTk1LjI3NTYgODQxLjg4OTggXSAvUGFyZW50IDEyIDAgUiAvUmVzb3VyY2VzIDw8Ci9Gb250IDEgMCBSIC9Qcm9jU2V0IFsgL1BERiAvVGV4dCAvSW1hZ2VCIC9JbWFnZUMgL0ltYWdlSSBdCj4+IC9Sb3RhdGUgMCAvVHJhbnMgPDwKCj4+IAogIC9UeXBlIC9QYWdlCj4+CmVuZG9iago2IDAgb2JqCjw8Ci9Db250ZW50cyAxNSAwIFIgL01lZGlhQm94IFsgMCAwIDU5NS4yNzU2IDg0MS44ODk4IF0gL1BhcmVudCAxMiAwIFIgL1Jlc291cmNlcyA8PAovRm9udCAxIDAgUiAvUHJvY1NldCBbIC9QREYgL1RleHQgL0ltYWdlQiAvSW1hZ2VDIC9JbWFnZUkgXQo+PiAvUm90YXRlIDAgL1RyYW5zIDw8Cgo+PiAKICAvVHlwZSAvUGFnZQo+PgplbmRvYmoKNyAwIG9iago8PAovQ29udGVudHMgMTYgMCBSIC9NZWRpYUJveCBbIDAgMCA1OTUuMjc1NiA4NDEuODg5OCBdIC9QYXJlbnQgMTIgMCBSIC9SZXNvdXJjZXMgPDwKL0ZvbnQgMSAwIFIgL1Byb2NTZXQgWyAvUERGIC9UZXh0IC9JbWFnZUIgL0ltYWdlQyAvSW1hZ2VJIF0KPj4gL1JvdGF0ZSAwIC9UcmFucyA8PAoKPj4gCiAgL1R5cGUgL1BhZ2UKPj4KZW5kb2JqCjggMCBvYmoKPDwKL0NvbnRlbnRzIDE3IDAgUiAvTWVkaWFCb3ggWyAwIDAgNTk1LjI3NTYgODQxLjg4OTggXSAvUGFyZW50IDEyIDAgUiAvUmVzb3VyY2VzIDw8Ci9Gb250IDEgMCBSIC9Qcm9jU2V0IFsgL1BERiAvVGV4dCAvSW1hZ2VCIC9JbWFnZUMgL0ltYWdlSSBdCj4+IC9Sb3RhdGUgMCAvVHJhbnMgPDwKCj4+IAogIC9UeXBlIC9QYWdlCj4+CmVuZG9iago5IDAgb2JqCjw8Ci9Db250ZW50cyAxOCAwIFIgL01lZGlhQm94IFsgMCAwIDU5NS4yNzU2IDg0MS44ODk4IF0gL1BhcmVudCAxMiAwIFIgL1Jlc291cmNlcyA8PAovRm9udCAxIDAgUiAvUHJvY1NldCBbIC9QREYgL1RleHQgL0ltYWdlQiAvSW1hZ2VDIC9JbWFnZUkgXQo+PiAvUm90YXRlIDAgL1RyYW5zIDw8Cgo+PiAKICAvVHlwZSAvUGFnZQo+PgplbmRvYmoKMTAgMCBvYmoKPDwKL1BhZ2VNb2RlIC9Vc2VOb25lIC9QYWdlcyAxMiAwIFIgL1R5cGUgL0NhdGFsb2cKPj4KZW5kb2JqCjExIDAgb2JqCjw8Ci9BdXRob3IgKEZpbmFuY2VPUykgL0NyZWF0aW9uRGF0ZSAoRDoyMDI2MTAwMTAyMDEwMyswMCcwMCcpIC9DcmVhdG9yIChcKHVuc3BlY2lmaWVkXCkpIC9LZXl3b3JkcyAoKSAvTW9kRGF0ZSAoRDoyMDI2MTAwMTAyMDEwMyswMCcwMCcpIC9Qcm9kdWNlciAoUmVwb3J0TGFiIFBERiBMaWJyYXJ5IC0gXChvcGVuc291cmNlXCkpIAogIC9TdWJqZWN0IChcKHVuc3BlY2lmaWVkXCkpIC9UaXRsZSAoRmluYW5jZU9TIFVzZXIgR3VpZGUpIC9UcmFwcGVkIC9GYWxzZQo+PgplbmRvYmoKMTIgMCBvYmoKPDwKL0NvdW50IDYgL0tpZHMgWyA0IDAgUiA1IDAgUiA2IDAgUiA3IDAgUiA4IDAgUiA5IDAgUiBdIC9UeXBlIC9QYWdlcwo+PgplbmRvYmoKMTMgMCBvYmoKPDwKL0ZpbHRlciBbIC9BU0NJSTg1RGVjb2RlIC9GbGF0ZURlY29kZSBdIC9MZW5ndGggNTA3Cj4+CnN0cmVhbQpHYXNiVj8jLzFLJ1NjKVQvKUpJUCJCQ1dYXFtyVTFoJGNjUEdIamZjPGA2LStTNFE8cnMxWWUmVk0tU0UwRjVVQmBIZSVyYldzQGxrLUgoWWdCS1YyJSNncmFKZEVYSkkpQjVnck1eKCkvUz5FRDhtcy5SQEM+NXEsLUlxIjVGNUNgWSwtXl5OIzYlNlU7dWk5VSopY0BfYVM5XCNhXDFVMGAxaihCZ1NkV3FYRVhAMWg2aEpgSkxuVTEuXDByJkNfS0IxQkkiZVIqJzcmWXJLImBBZT5yPSwiRz9UYEhpPDRdJ2s3WlhvSkNxJC1kQkZmOT5kQ1Izbz5VNVhGSzokNmxralJYc1pYL1JecV1SQS8xWT5qQDwsY1dqYCI+WCtDNHBxI2lTSWk1Pihqa2pINGRaN2RKXkQoLzE2b11hc1pATlpDY00oa2lUMGdrNzVLQFdaYGxCbj9cJk5HUTVCSk1Acj5KdS40c05TTDUlPkZeaF8hMzEoU0M5VjZWXCNqN2kpZUNrZzVXKy5SZlRPUylEaC9tOTM6PHFtLDNjRilLOyIxOFUlX3M3X2UuZWJ0KkwmIkJ1SUMwQ2k0TG0/O3Mla0ZJQkBlU1VaZ0dFNDdNaVRxRmhyXUByTXFSW1Nxb3IqbzlkQXQvRyI/THJAWWo6YVQsWj9efj5lbmRzdHJlYW0KZW5kb2JqCjE0IDAgb2JqCjw8Ci9GaWx0ZXIgWyAvQVNDSUk4NURlY29kZSAvRmxhdGVEZWNvZGUgXSAvTGVuZ3RoIDE4MDYKPj4Kc3RyZWFtCkdiISNcPyNTSVUnUmU8MlxFSyxcMzMiN1laRmtyJT5MPS9MW1xkbigkajYmZTlAb0lKTSxbJXJZNHE3KzhCRzRTWjVRbE5bNyhhdSZwYHEva00tUytVKERmIXMiZ140SVtcYVdNaG4qcGsiQ1RPXzNqQiJkKik3PGEwWWI6bDVuMCRVZ0ZZbEJmWzsoJ1REcjMkSD5xIjlkWlo7REY7cEc1IlU/Oig9KzBDTklycFI5SURbI0JsSHBBK1okakRWSztVWVlia0s9UklhQEdKIlpUbkdQTCwnZDNzZkBpVWxudVtwbTtqKzcrNFc4JTJdY1wyUUlmVl9nc2giR2spQUklNyFINE44bmw/QUBOOkk9O2MsMWoqNkhaJjxXNiJuWy1iLzx0czUwKW9tJG9ObmxHLzNQWytLVXBMNVM7Iz9BVGNjdElka0xVQUtsUSorWTxDR1hBay5KdEBoMEBxJl8rJEM4ckFMbGgpYVo3J0ZRNC86PWFdaz5BOiUjWnIqcyYyKHJYOmVKXWhAb1M3MFFGL0pIaGc6YD4lTGtWLV4xKERFU1wuKjtKZWtBRW0zOT8wWypXIiovMDVSXFsibExULFU4a2s5YXBPaUVfKVpAPCRYTCguPj0/RzQtKTgsTDlMcHFfMFs2J2JNUXFEQUIrdGdePiNpaj01YVJlZjkmQ09iJyElRyNTKD1rZE9xaW40WFpzS0pQaVUtIWYiZzpBYlkrPUpoX3BGM01bZWRcJ1ElRkdCIT0tJzJeTyxlTWsvSyk9ZlhGJ0N1YGooRDd0SD5RVixraUciTDslRCgvUUtrJVNjOW4nZ2I8XUksZipGZkNeUmM5J2liLl8nNVAjOmlrJ0dWRC9NaTRyI1tqMVckdWNsO05vSihSQzRnZEtWalwqOz8+VWhISkk0MyZoImhbLUtOK0w9dV9JdEhyWllFXj5EQldBbzlML25YVz1fKjZgRE1xRlFMbSFOKUxzbDsvSmpWb0coc0tEL0RZcE44PVgjZUIidE5eODg9WnVzRjhGSUhgNVlfYSttbGtLWGlwPDprL2FaWW8iVSxgZmUlWWNISUd0UjZsI0w4XFZDYHElNUM1UTQpc0g9LXJcaktqPyZibSNpNU01U3RERGlXZyZTTnI4ayxLNSgoWTwqdVc0LS1fUHBeWzpOQTsuO1hqWCFTaWRdKTVPJC1GVUEzIURcbXU2LiNdRFkoOSQmYy9TTlBvLnM8ND9kLlFMKTEpV18hPzo+PVtQPjRdSlJcSXNZOG0lcSVDLnFnPVdyZltNLDBOXXNDZXFsWG8nS24sVHJMX2VdN00zWkc3NVZTQGRSPy9NPCJcSCdjJU9pTWVsUGYuM1hiZGgybSUvcGpkRW8iVz1UKzooTEwoPiNgbi9iX0djZHFXXE1BOmhuXl1Eb0BmPGomLHIvakV0JDxCVytgcjo7SixKczQlQWkjUD4lXlRzIS1jYlBAS0FObWsyYDdrcWxvSkRAOW0zJGJlJ1tGLFsjX05aUi02QD1BQGo1XmZ0NFAwX1xfXVpma0NtaEpARTg+ZSoobyomImlyYGJxSmdtTy9bMydERDRGakhPT1JmOUgmVkpOWzpCcHJcO18lK25AYjUxSCM2VUddOXJ0cE9DKV8tVW1AUEltV047UyhqJmslMVdRVV51W0JfWzopVFVtXzVnVTFjOCtdOzAsMygkdUZkUjFAUikvUUhATmhmaFFqUFBWcUtcKXBKYE9pY0BHQnFmTmY7RVZyPkU9XlkrdDw1Xk9PRHIyblwiKWJCVGg5XFRMVzdRP19vKC9eYTJUW2NtInQ1Z3ReZilSR0YlTD4tXT1xbWs1SE4qJ2chUlBaWjdQVWQmOFtNKy4pcDJiIkZnaWk4Xyo9cmlqRSdORkdLWl1ARSNCZmkqJV90OGtfMDJpVG11YSxSKDhDKSRmYGFHc0peKVUnMHEhI0dTImtMX2JrIlNoYj5LOVBSI11yYmlXTTQicG9BRmwkZ0hpMTNUal9jVVdtRjpcUDJEWjw2Lzg0QkxNIS0qXWJXRkVxOS1JaEFeVypOMm81ImpLZDo4RyZOXDhlQ3JgPnIrPiFSaGlEYj1SYkolV2w2YlpdOj5lbGthbm1icl0qZ1UkbFxCPCRxSE5pNVAsLTN1LypATyw3UGc6ZC1xTWZpOSc+c04vTUVgZUwmU0g+Yi5tWzdzKmswYGVlUVgqNHNFLFQ7Jmk3aitvcHRyQlVHLjJHQy1QVVczPXVeWWVUbFxnYDplJSI0bjtLalpfQmIxUzdhRkE7aiUwSDRqMUVcbS0hRGslVmwjXTFkO11bKVk1a05ubiVzPyk7XEE8UDVcIyQ7P2xaNktuO3NJWjhoIU5gdEs/PShgYV1IVFhacTQmZGBBcCxoLSVkRmhtVUk+XyN+PmVuZHN0cmVhbQplbmRvYmoKMTUgMCBvYmoKPDwKL0ZpbHRlciBbIC9BU0NJSTg1RGVjb2RlIC9GbGF0ZURlY29kZSBdIC9MZW5ndGggMjIxNQo+PgpzdHJlYW0KR2F0bTxnTiklLCY6TzpTbHIwc2wxO2dgJjRFU1RnRDs9OGcvIUhCXT9RXXNvJldtMXVKPG5gaG1mRjMmWChmT2IxNVNfV15iM3AoNGtQR2oyWkBqQ3MpQU5mM0ohT2MqLG8vTWJlV2EjKyFyKWZtSCFXc2ZtNHBsIihOaWReVU11cWpFaEE9VChySlNtbDcnciEmPCg9U0Z1LzVCU0JyP20iIjgnW00rVCRSLGZyR2BzUF9fb15gTl5fYCgtal1XWUYoP2JrXy05YEVDc0RtLylEUUwhNSFoJWRZYzM8YT46YGBJOGhSMWQpSFVFZltnJDo+JVdMcjIuSShkc01QaiFWSEZnMGRzMHE5Qi5WVXBvVSJIQyJgWyFkJDsuYD5ocGsnIU5XMytHKlpgWj1BMTdHLlpfW0VAZTwkRDJtLXFOSXJubF4iUyoqY2dYKEohJ2JNKi1sUFRwbWI3RmEuKlZaTVpkIlpAVl49Ny8kJyFbRFZWTm8+KjNKVlxvYVdSI0NjZ1lnLzE6J1tHJ0w1dUQwM0pPRVA4QiRKUW9pIlBXWkg5I0BmSy8wWmE0R3FqbkZzXzFhMlkxNzU8VkJROU1iTHNxci1mXCYoWU9nKmh1TkdeOWc+SUlcOmg6S1BeXztHY2JsJylpWW4kKUl1SjRYLyRgVUJiOEBydUckcUxlSTBLOENfKSxkQ2drT0dAbSs6MFJgTEBcLUxANzA8K3FVa1BVMCRSSmhTI0ZuWkQnOi5zM0lONllRaWo1b2ZeXyU0UyVHbFFIZy1dRFxPNTxsVjgjPT8/TklDOis1KCwicl9BIi1MblVjWEhXJjskXCc0L1I4YEE3LS9kRD1NKmNpbmg3b0xAbUprRiUiWF8zXiteVk9UO1c/VF1CYk5WUjNXaVsxTismV0gxUjxHJiRUVyZWVGZSVEsocC9zIytGLzVeZC1SOFUmRkprYFBcYikjJ1NPbSlyJG1nSjlZNkYobUprIm1HOElVQ0guJ0k2bTMoLWZzcjpDLFRzL2xfXSJMUjIhclZbJUtkJS4kYnBZby9KQTEiIzcmZ1woR0JrUz0kPU1cQickQStTQjhBIUFMa0M9c0BqW3RCaVYvN3FqIlp0KSVaWiFhRFprT3VsJzcoQXRoXmw2REIoXStpcmFsZjgyXiNWZlUqO0JwZlE8bUs2Oj5nN2oociphO09mT09AJ2ZFS05pP19hKEg/NCc7TzxcL2k6bzFCczQsJ2hlajFjW0tlbj8mV1VCbXNCJGYhSV9NYHVLPSNNOEZqRSdNT0ohXE47b0JfQDhsRFRvPnU0XzQjb1tXYXBrcVdQYzcqN3JwX2A1ZCZCRzUnY0cwOkxrQGgmYUozQWZ1Mj1WalpeW2QhKXBSbj5SOVo8VHIicUgqLkFtSFc4SFtuIlk8YG0sUkNxQVhkLWtbIkdlMDU1SVEhZzktZmVCXV9ebyskazcmYnFjMjc3KFJbO1s6OFktLFVGWDA/TkhgTTtKbjRkU2ouSiU2akEuWDU5JW5MI0NtVVUhL21rXztWN1prJU5OWUE6YXNwSkYlc0U0QUI2YEZfLlMtRz9wUmtrXUU9UUdeWi5wWExlLldyPGwjIU9cdGIrVURPY2whTmtdKicrOEZAVCkjZixWQXVQbjQzXmZcRydTR0MuVV0nX2ZyTGxWWkx0aVBdMV4sOiQ9M1tvcjM4YXFvNGpdJVMndDJFO11rQ3JIZnJeaS1jImJ1M10lTWdKPjlNTz40MT9mck5lLjZzPjJsNGFFSjkiLzFKK0ddRDJXVCg/Vzo0XG5dMWcuTV1zJTUoOEtKOGJQMlxONy9FOU8xMiQ+S2NrOD1VJzg+JVNXIWNCSEtoc2FlNWZXND9qP3RQdENBKUVebzJsSzFCa2V0aCNwLzRBQW1FaS9GLV5PPi8/I3I2VkBISkA1alRuVSYyaUwwYWcsQlFrck9BX0ljMGw3X0xrJUxnVGlYJzFRJGdDLFQyMmI9YkFZQ1I4MyhjW0wnY3M2YDlUSTFvRmVYTWcwQS5YN1JWcDwyS1oycmQ3IilWM0A2UjJPJFRANzhYTyUkQmhtT05oV2IwS0w8U0BOZDhrXGUjYXAsZV5EOl4yXiJiIVZFNzdaL2lYbnVOTTNwOD5TZDFxaUlrPFlpcyxiOyJKY09GLTdscFtAISpEMDRYSyhiTEVeazhAdWA9NSkmRV1yI1VMLzwoSihKSy8/PVtfYlRHJVs9Pmo0ZDtYJDdHXjguWjdqbkhnXXI9NjBnWWhfQ0MrbHVqOSVMYSVhK3NoQzdDL3JpZFFCWi1FPGQ4KTFQdWE0RT5AbUhNUzc+YyxbLWZwR2BLcy9YRy9gNFAqK29hY0ciXC5XbDFQVVAsbTJwZEIjInVLOGxiWWJaTlhvVmIwOklIVWovVEA6b206LkxSPEReLXBzcTpLI1gmZT1xVktQRWxmInJkTzBebkk/TTViJilELUREcFVKbGRzJkQ7cC5CZW84b2wsXk1SLz1STUtJMUYzN1cuNS0yOTo5IjdeU2xhJGo7Yl0kW0JJLCxVL1gyZko8cFliOEBWQzlvRV0wa3IxJDc5IU5xXkk2YmMvKk9BKk4taWhfXEBNSWFnZSMwLFxFW2BwYzNvbkw4RmAzT0tjNkM5K0JIUVk2Kl1jKmxLazItRUlEWissQ2s8TTJXXzFeWEtrNSVwVGQ0JCdoaFhHZXBrYlY8LWFKcypDRFdxWHJsOFJSckNxbWJ1PThXSCc2KWUmJlxBXTlYaXVSPSplNF1eUjpFOjRQUTJjXHFLbG5XcUBZUyRSRzEkWTghSy84VzZDaSdeS1JnTkEnVGtMajwlX0dWZnRRNjoqdFBFWElEOUltaS8qTVglV2M1Sy5MVkotblRoST4xVVFRbHVlLzw9TDokaXRQMDs8LFgkci5mdEYtNCE2bTM7RjxgSlFNWmNbZyZLNz1GKSh+PmVuZHN0cmVhbQplbmRvYmoKMTYgMCBvYmoKPDwKL0ZpbHRlciBbIC9BU0NJSTg1RGVjb2RlIC9GbGF0ZURlY29kZSBdIC9MZW5ndGggMjI0Ngo+PgpzdHJlYW0KR2F0bTxnTVliKiY6TWwrYmdYRVgmbGsqKz8xcV1YaFU2OE1wVURVZWE5c1RJJktALVs4TGduQ0lWMSczOy47VWFaOy1OK1tOdEc1YmFGa1QkR2FdM0picVo9ITUraT1vPFNGSyY+akxTK3RuUTQjQyYkZnFLOjpvOGEvUyhgVTNEK1ImJitoISxxNFFebCpkZU0nbnJMbCUsTDVJMWdtSCgxbVQrLEw2bElhVFNJSyhuQ3VUQUJtRTNfXlRzbD5mNTwiJ2A4ZkY1QE9ESShAU0Y8TjRqMnMtYiExUF9DZGk6XWRMTjxkKjNlVGZQWy5yWidXSU1KLVgkOVNqLGZxMEVUU0hyI2dwNiRmV1QpaiNgJ0ZMaFZZLUJBblQnUFlPPmUrXik0XSt1ZDtKIU0/bFUrJWs7WSg1MUtkVThOTlwhRV8+QCpUbitNTFo7Q1Zabyk1YUIjMF5IIl9Qa2YrbGpxI1JDLTtDInNAMlNYJyxUXUw/JjQ/K19xMUY/byhYZC8lQy9DQS5oSTVmPnRdQSRnbkhgOHJ0KlFjXi9jb004MTFoMXNWXHVsIUZBNzBsZFs8OSVwUlMsOVtHJ0A+UF1aYmpuRSdmOGROWlpbKDZuXCgnXEBGKDc9RyZIZ0slR1RlVy08PypcIjlXai1gKGFvPSEjbExMIlFqXFIhUFQzJE1cMWJhKGxYTm03PVVkX11iNFlxVUkmSyRoRTM7I3M5VltdTkIlIXA9XylbJmJqXThfUTdcKy0/WSc/X2RIJ0E2IzNOQkNDKVMpRWk+LCVuaSFnRWdtO1UrQUksW2RpLTUmQi9cYmxNYClITy9hNGlBQ0YsUlRfZjpGSCNnO0FvXUpoIXM6NUtVKmZyb2ArRTVwcyk+XGctKXJHVztiQ0RVOnJ1MThWL2NRV1YzYWZMWHRQZmw5STJeYWg6TkJiJl05bEBAMGxGLUNEV1dCQyQ5YCFgcFAoMzsjKDNMVDAwK0BtRj02PjY/LjdzO1lyZmhnUCNFXFw8WzchLGxfX3RXZVU9TWFbOi5lNGZPRC1WPz9dQ11RY0FDY2ZDYXFvMG4iNEpiZ2lWWCkmKEgyOmJTTFVfL3E+PGVNPkhdViUpLiE+V2c2VSdhTTlORSZuZEtBc2ldW08xcj5sKGJrKFlRbkJHLVFQUFw1bi0wZEZsTDR0XS1eZXNbTV9dLnJpWSIvK11KT3QiT1RMY2suZENmNiF0Xzc8YnVWTD1BKTpsMjZja2BedExPW2cvdVNcMkAha3VYakE6dSouLjEtUlhXQUU9QXJFSSg3YVpqbCc/OmQrdVdVZVVZITJTTmknQjZpaEw4VTxZLCU/NVpsJWppR3RCS18pQSVicFJkKkQlMSs/by5iQFMvZ0xCVEpwVjdSc1kkJkpuNU4pRE8iNSZwNjUnUE5HWWBsb2gtQTNJP0ljVVM3KixVQjRaUCRkckg8KCZwRHQ+N3E/I207Wz8mVCtzRU4xZ2M7Im9hQTFZNiZXLydrUVFPXzlrO05RNGM9ODoyVykrQSlfaDlzWU8vNmYxODtOYldvYWpMYilSVzQ8ZV1HQDppaiQpITFZVWBocXBXOE5gTS9qbHNXPW8mM1tJckU5M2ZMcFRTZE5MUkkpX0VlYUhEVThhcmElQSJZMnVPPiIpZSUiQG02WWJnOTVFb3BfM0IvbWQwVkg7S15CYGVcaDxGUEsuTVtWWWJQVkhBZiliRk4zK3BAIVNuaU03VG1tPitmSE09YldgIjxIPiFfXSFLaktcU0NJUlAjRWxOPEVtUjs4RkZwKVgsWVZiWiQ4VTNFJSpWJ2JPcGlGOzlGTjByKVlKc1kuTE4qTCJyOl8/KF9fS15pcjAxSG8nUGU7KVdNazxxV2JmTmFXaDZmITNZL2BhUWMqQjsrY0NgWGs7XTZINlhySVVuVF1xWVRtMVQ9LWYhX25uREYjXXQ2bSNcJEZgQkZkV3VlRl04WTJQSSQ8QDRcZlprOjV1UEw7b0Rybks9PV4xOHJUIU5qayMpbjdpSD4yPVRNZUs8OTFzbV5VbllYKl9qbzopWD91aiZvWk08aSs/SDNoYmVtJyM8STNDLU0rOklXVXJGNV0oYixLSDJjKGo2dDs9MD9JWmY4XG4nKS9TNTghNiZtPSZxIkZDZTJkVT5ucm8wZz1qLzM3MGgkKFJuXW1vP2BzNXEmUCpQN1kwLWxJPnRndWxwTmxwODxYcG8xZmNxNW88YGRJJ0Iya1cmLFBwPz9WbFR0VUFIVC8tYkopZVpEUEw+WE5AZjVCbnBoWSQ6PzJSKjo4OFdgPkVQJSE2YnBcWEIsWTJwaXUnIkAmazJlPjphZloiI0k2VGUybzBpMyRmNG5zKkFnR2wlNCJEVzE5PG83LyVHO25lKU5UcFJucCk1OlspQmMuYzJZNFdDWDdrcURFSHVtWUQkVGpbK1NQUiJlSzlWSTVASmJBaXVsQHFfTUtOdG1lLz9DVzNQWzdIOzJZOkc/QmovaFkjIShCKDhVJGomaHM3LyhST3NXYzNbXGAzIztrOHQhc1ZORTJsQDU9c1tsNVl0Nm0pYk8mYiUlRD1NRFFeJU4+RmZDKyk1ZjAmXjh0RjNKLlI8OWFcJmdpKFg6O10sVm5FTEUzQjhIPiU9Q1hOYTNVQ0tEa2daNy8vRXErLDVuOXElVzM1IjsnTU8jRCgyXDdXIjFkRzYpUmRIRVBmOCZTc2tPQjIlPXRZZUpSJkRkOlcpQkFZO3IrImY9VGcwLi9TMWNWVWxXLioqKFtscTQuVSJON15sP2RzazcrYlVCaSlrUjhnYnBHPEhsMls+RmpqTWluJT4pNjMtLygrRlRUK04oUlpZLGJJdVVsQyM8b2xRSFd0PTNAMFppVklhWipsbmE4Skk+Py5SWjRBJUokTDojUSc5UU1MRDpjcTlTVTlScydZL2NBIix1TjA4cm9YWS5wXSduY25yKTdSLGRzUUM7IVZOaTkzQylaciMzfj5lbmRzdHJlYW0KZW5kb2JqCjE3IDAgb2JqCjw8Ci9GaWx0ZXIgWyAvQVNDSUk4NURlY29kZSAvRmxhdGVEZWNvZGUgXSAvTGVuZ3RoIDIxMTYKPj4Kc3RyZWFtCkdiITtkZ01ZYjgmOk86U2JZdDI8MlQkaVtNY3E1ZylUUVFFPmhoa2FKS2NgdEVbQHQ7XF1qS2lNWjE9R2JEUmNNWks0SVhnJyJaSm1VXlJmYlcuSUgidG9tZHAxSTgnciZmVUU8dChIJFpOW1M8MVBYUmVHVnFTW0VuNjhoMWJgcGRwOl1LVG5ecUw0cSI+NFhBJmI1cyE0QVUrWFBII0ZTVCpSXykjLlVdQU8uJEdYRlNcdTxxOCFYKy9XdVhUPHFHYV0kPTREIkQzLyJsbVpkOGdrIzlda0ldLjAlYkgoVys7aDNUJTFoL0UkLCtvJydTXUAmTCgjX2tfaT5cU1lyO20tU1tgSktLIz5IRmpHJWtSbHA9NVlTbT9VXigsPVdpb11nMzxQbFcycFFlbyFbaG1WdF9EIXIzSzBxaGVvYi1XczVDTExNYWk9aic2RTw5cEA6PWReLyYoU0ReW2knYVpPSz43ci0wbDopb1Uobjg/RGRpZ08sVyhwayklMmpXUXVgU1M6MmJWVW1YNmBCdCRFdTZCaFtdWSU0LDlqXGdfMV8iL1BVZiMkWHM6WDZULE8oOl02aTdKNUw9YDJUTW8qcU1OI1hCVi1FPVRXVCtkTUArYyhyLVpvVUkvUUYyb1siZ25pLzIiaF5kbl1VM1RaakMuKFdqRjJhT2NEcSU7MV8oUlQtcGNIImgtP2EwPSlzOURZQC9Zazg5YkdkPG8rclVcUC41WCRcVEtzZS5UMjBcSWtSYVRfVTI5IVtrXk1JV3VCW1g+WEhlNjQlYE9yTU9rXVMwcDZnLSMzWDRddWtBSDtwLyZhQl9qRkw0XEouXExHNHBYZzYzWTw2UVtdOFNQKjVIOkxHLnUtXVRRLz5pNV5VQGUnKjdbQ1w8Iz09SjVBIyRyci5TTi5bR3A8Z2FnTypPTEljaVYsXytdPnQ9MTUtSThCQkk1ZCNvWC1uL0ZSZ2QsR2w2XDZEYlRbSzI8aGBsM2Q8PFU2XyxiYTlxSkwwK0RUZzIyOExARHJsIjJUWmMlU09wZDpWX3IwW106cFQ5YzgrN1o6W29uPVtuK11VMCg/Rlo4PCxbL0guRDsmTkR0KVhrTG5jYkRZMD5oYWxTQlg2KDNDQE0jNVQ9OkcvYD1qJTQ6VlxLPlhoWmBiV3FiLHBMOGlsX2RWRF5mMlNlYjA3a2dbbUtaVEFGaEtoSmdmRVhHOTJeUGAjLU00ST8rOU1VPCknRDlhN11WWE9CcjUpIXVdTi0+SEhrcWhRZiFJbGRcW1dNWzA/QzFDPCpFSyg7clpBSF5vYzZlOVMiTldYI2pnUUYoOXVQMENiQTs+Ykk1WkY2NFtSU0tpNGZaSE1eMVUtMEdiWE03QVA6JzYqWDw+IShuTTdWJjdoKkhCVE1MI2E2OmticEpoLCxxNztuJCsxTDEnWUA2VV0qLHJRKiE7VVErR1k4KUNBW3NzaDlGIzJKVGJhIU8hOV9BbHA0PTJhU11kITlANTknJm1zbzQ7N2todG0rOUYlJ0VVc2skN1VfLjszJD47O3NdTHJyNyVmQ0E1VWwmOlljNUJJWSU3MUY4YVBAbU03Z1lHPm8+JFxEIWc2V0EpP1NuKXMxRFBYOyZaNSk3Xz5uLGxvR00rTG5raXM1PU8rOSU4SF1sNHUuO2JRMmhEI0g+WzlOTidyQmUuNU1PJnRuJ1UrOShgTTAwS0UkUUgvYjZJW051LSUyOGM4X05ANSdPTTtLKHNWOTs1cy9kYTNIc2A3TFM1XFhqNnRGWmFQIi0+Lm0iNmFTNE4/bUNBNC1DOVBTMyszNjpLWU1va2FWZmZdSyM6TjUhXk1DNzxHWTwtSWxENXItNk42YCRrTkY/VDYxJGducUMlKVdfUW9pLzIuazUkPicqT0BNcSpyIV9ObnAicDdwT1VTKyslLSttXkxrYDYnTE43KUlVWm48RVNLXjpncFxsRWNqYXRQXDgxKVoqR3NjcldhdGNQVU1hPzNMIllALVtLVTkmXUsjb3FyO2tTbDZuLzpJJiY1T0ZyMEpHYCQsS0xAWU1jUFpML2R1Sk4sYihZalxGMSgwU0xrX3QsUnAtYVddMUNYUis2YzprTzxkTF0mbEM6TGNXTU1qYjZCJG1nKj4lPVtcVGRzITtbYSozUVUpal8zJDouJXFcSVlfcHB1XyhcSGc5aSZNcjpERlZvLm5hM2hiKl0xVTRBSixkZlA5YT1yKlA3W20mUjtVRjZWbVIoQjBXZnRbJW5xYT89YmhQaTs+L2loVEE4ZHJzWVokJ1xMX3I4KUlGbjU1U0xhRSVoNnA7TGlLaWM/LkpVLzNwZiVpcE8kSTJqck9fVTBVdVhVOWZKIW1EaFYiZC4uNkBoW2gvdCd1RSlSdUMyInBOQ2txcjZnNVcnVyctckY/N0UlQ1xzbGBZWnFrIVxCXTB1bzEyTHEjSS0zTGNoUW9sWiFjQTRGSDxLO2htUmRQTkBfKU9DIyhtO1QsajckR3VXQFc1ZEBuMFdCJjRJLilhZTk3Ul9GXkdecGdSPFg2Vzw7TmtkWEshZkgwbChnJV0xNXVNIyFobV9hNDBvKypQPVpfdEhNWCouLFJYSS1MbyZbXydhSUdDc0JgKjVcVWteX1QoYytvQyUnMSxpcWY4TjVsVVxzaltVYjVLMC5YTSlUQExLYVAocVgtK0hmMDtJM0AhPytWZzskM0VtMF9FJFJLPjZfJGdXUGVEI207UDdUJW1obFYuRm9NWCVhZlBhRSkvaUgiaD9MOylhOEktQFJcUztIVVFmcFckZzQzOytNMztYWFk+SVxKfj5lbmRzdHJlYW0KZW5kb2JqCjE4IDAgb2JqCjw8Ci9GaWx0ZXIgWyAvQVNDSUk4NURlY29kZSAvRmxhdGVEZWNvZGUgXSAvTGVuZ3RoIDE1OTAKPj4Kc3RyZWFtCkdiISNbPkJBTFomOldlRG0qY2orK2NeLW9nSWwxIjNVKj9nLFldRyNHbklMI0RKWS8lRVoiZlM9aW5aPDhgN3IqJWdgbVJCZE4wQG1CMVY2IkMxajlxamdhZms+T0BSLCFcOFhjQExxRjBoZkAiXlhMJGY1cUBlTytFPjhBaFhSPWJsaz0+Y3Faa0U2Tz0xTiYwJEZPSlNmV1BbUiE4bzxKKmFaakxdV3JFMFlBa3BqWElnMl5eMytPLUsvYEdBRid0J0omMWNgM1A5aENuSyNyIlVbOF9EY2lvJytcKVNOXERSUDQpWCMuXCNFPlQ8NkxnaC9UIycnIWhFUUwrMihbUy0hPSEhSUVkLkJIPEVZcGxXP1Bocj86cCpobVdcJlhJTj8tOVolaXJGNmtUbTlJT3MjXU5eWDo1RUxJWWYkSjhuOFEzKTNwQm5RWyYrIzRwLkNmLGlXJ1pPVXVXNmJMXGIqRD5tLFlMVllrXUdya004SjZWQl9LIlhrRGNsajJhInFGKTIlck9RXjFLdFJLJ3N0QFknJk1KTmZMKDBiaEAwOmBYaUVFLWhwPkdqSFskPzIuVFpiLWtwV282KjVFOW46Z0s2SHFCXycpJENTZE81TTNwKGU/XWMpVjFWZU1WX0NRSyFQam00cCZSREshUSRuPjFUZGMxaGBlTVZHRSFdREZESlFHL1o6T1lzQ09jLXEwXExYKjFnOD5FN2E9ZmxDOkkuKFdIRmIiOUUoTDRAZy9BRCYsbG91IVAscDtEKVljTzk0XDlpaiQ9Kzp0bi5iYl84Yk9wajVeWldfLVFJcClaRzwrYlZaJ1tlVSsvTEA2bVkjVyspbldPJWM+U2xMVk0vMUdYZV9FLFw2Q0xpZUAqN2g+VV05ZydGQVR1S01qM1clIjo6K05NLyxxZzZEbGdKOzU3N0ghKWViYVBoVV5RYCIwIyNTLVwiUylCbjRuV2VzZ2NCVVhnSUNMYScrZC5zVVBeUFgyTipPdDZONls7QmZLK0JKa3FAU0lIZEs0P0YyPlhmKGgoP2lpPTFxIiU4aSslK2UzXHUpLE1JSDRPVHBNPS9DRT9yQCpfTkxkSExuNE9WXS8vQyJrJyNbLWdCa190L1ddLkshdWtvKiRiY01PL3AsTkhwcnJxb2dmanJtV0wySSIlJWtNOyp1SDBoOUY4QTEzRWE7NSEvSSk1Z1IlY0NgOWJuMyh1ajFSOSxyQGsnLzIkWDtGPW5bOzFOT05jT1onc2swJW5DaWVcbz1DPiY5P1taSykvIyt1LEllSyJRa3EyL0ZdIixaJnNIUWtTXnB1KD9xTTcxckJoQEgxZ1MhYG4/QmhdYSlMPFstPklCMWE8WyNQTkltOk1ySmFnX1VuIV0oRHQ2WUlXLzomWCVRZl1bRFgyJWxEJSpASlg9VGcqJ1I5Tic+Ilplc0snOkFJJi5xcmImI05aYTRCYzk+TnFyZ1ooXCQmMEVsazc6bTM3OUk8XmdVL0kxPj9qVnBDJ1ltaWhVYHMxXGI1UF89aShTQ2VAYiI+dW9bNU9kWHBmKV0+YXAla29YViVbVms4c2lfY2dEQEQpZSpiZjhoUC1RciZZLyhsYyouazg+OU0ubydEXkxOI19zP3JQNFUlW2cnRkVTVW5VJF1DZSZnciomUmQxXFcmZl9LNVUxcWk7UmptREwxWmJIZyxlND5xZiU1SVM1JnIjX3VcUWhFND9nW1NPa1txdWVPUWAhVUIjV2o1SElwViNmNjciIz4oNFdgNzI6QShMNWhBPCZNLGA4WnVvKlJPNyViXTk/aGJgSHBbOGYpJDA5UVwvMy1gXWwiR0thTEdRaCw3NSxmaSYpKChSTVchND8xbDwwRTE8SUErRFYuJVknJC9zLTAxcG9AOyY5ZSZuQVZccUguZUkoU1ktRzlDJGA5MzZvOU9BYmRBJ2Y6ZkwhWjIqQ1EwPz5jUGYrImI0T2Q8QUFBQCtaOkZUV05XMiY1KG9OIkhzQ3Q2XEliY1gzOF9IZiVPKFJ0bzFkZ2VkWEYhIyNjUz8pPWYvVWZWVi9WaFk5PFRtbj5UXjttNmIrPkZSc2Fdcj9wNVM+OmpYOGhEPmBzcF5hY3NOZHF+PmVuZHN0cmVhbQplbmRvYmoKeHJlZgowIDE5CjAwMDAwMDAwMDAgNjU1MzUgZiAKMDAwMDAwMDA2MSAwMDAwMCBuIAowMDAwMDAwMTAyIDAwMDAwIG4gCjAwMDAwMDAyMDkgMDAwMDAgbiAKMDAwMDAwMDMyMSAwMDAwMCBuIAowMDAwMDAwNTI2IDAwMDAwIG4gCjAwMDAwMDA3MzEgMDAwMDAgbiAKMDAwMDAwMDkzNiAwMDAwMCBuIAowMDAwMDAxMTQxIDAwMDAwIG4gCjAwMDAwMDEzNDYgMDAwMDAgbiAKMDAwMDAwMTU1MSAwMDAwMCBuIAowMDAwMDAxNjIxIDAwMDAwIG4gCjAwMDAwMDE5MDUgMDAwMDAgbiAKMDAwMDAwMTk5NSAwMDAwMCBuIAowMDAwMDAyNTkzIDAwMDAwIG4gCjAwMDAwMDQ0OTEgMDAwMDAgbiAKMDAwMDAwNjc5OCAwMDAwMCBuIAowMDAwMDA5MTM2IDAwMDAwIG4gCjAwMDAwMTEzNDQgMDAwMDAgbiAKdHJhaWxlcgo8PAovSUQgCls8NzY2ZjIzM2NlNjAyZTlmMzJiZDhjYzJmOTliMDYwZjM+PDc2NmYyMzNjZTYwMmU5ZjMyYmQ4Y2MyZjk5YjA2MGYzPl0KJSBSZXBvcnRMYWIgZ2VuZXJhdGVkIFBERiBkb2N1bWVudCAtLSBkaWdlc3QgKG9wZW5zb3VyY2UpCgovSW5mbyAxMSAwIFIKL1Jvb3QgMTAgMCBSCi9TaXplIDE5Cj4+CnN0YXJ0eHJlZgoxMzAyNgolJUVPRgo=';
+const FOS_USER_GUIDE_B64 = 'JVBERi0xLjQKJZOMi54gUmVwb3J0TGFiIEdlbmVyYXRlZCBQREYgZG9jdW1lbnQgKG9wZW5zb3VyY2UpCjEgMCBvYmoKPDwKL0YxIDIgMCBSIC9GMiAzIDAgUgo+PgplbmRvYmoKMiAwIG9iago8PAovQmFzZUZvbnQgL0hlbHZldGljYSAvRW5jb2RpbmcgL1dpbkFuc2lFbmNvZGluZyAvTmFtZSAvRjEgL1N1YnR5cGUgL1R5cGUxIC9UeXBlIC9Gb250Cj4+CmVuZG9iagozIDAgb2JqCjw8Ci9CYXNlRm9udCAvSGVsdmV0aWNhLUJvbGQgL0VuY29kaW5nIC9XaW5BbnNpRW5jb2RpbmcgL05hbWUgL0YyIC9TdWJ0eXBlIC9UeXBlMSAvVHlwZSAvRm9udAo+PgplbmRvYmoKNCAwIG9iago8PAovQ29udGVudHMgMTUgMCBSIC9NZWRpYUJveCBbIDAgMCA1OTUuMjc1NiA4NDEuODg5OCBdIC9QYXJlbnQgMTQgMCBSIC9SZXNvdXJjZXMgPDwKL0ZvbnQgMSAwIFIgL1Byb2NTZXQgWyAvUERGIC9UZXh0IC9JbWFnZUIgL0ltYWdlQyAvSW1hZ2VJIF0KPj4gL1JvdGF0ZSAwIC9UcmFucyA8PAoKPj4gCiAgL1R5cGUgL1BhZ2UKPj4KZW5kb2JqCjUgMCBvYmoKPDwKL0NvbnRlbnRzIDE2IDAgUiAvTWVkaWFCb3ggWyAwIDAgNTk1LjI3NTYgODQxLjg4OTggXSAvUGFyZW50IDE0IDAgUiAvUmVzb3VyY2VzIDw8Ci9Gb250IDEgMCBSIC9Qcm9jU2V0IFsgL1BERiAvVGV4dCAvSW1hZ2VCIC9JbWFnZUMgL0ltYWdlSSBdCj4+IC9Sb3RhdGUgMCAvVHJhbnMgPDwKCj4+IAogIC9UeXBlIC9QYWdlCj4+CmVuZG9iago2IDAgb2JqCjw8Ci9Db250ZW50cyAxNyAwIFIgL01lZGlhQm94IFsgMCAwIDU5NS4yNzU2IDg0MS44ODk4IF0gL1BhcmVudCAxNCAwIFIgL1Jlc291cmNlcyA8PAovRm9udCAxIDAgUiAvUHJvY1NldCBbIC9QREYgL1RleHQgL0ltYWdlQiAvSW1hZ2VDIC9JbWFnZUkgXQo+PiAvUm90YXRlIDAgL1RyYW5zIDw8Cgo+PiAKICAvVHlwZSAvUGFnZQo+PgplbmRvYmoKNyAwIG9iago8PAovQ29udGVudHMgMTggMCBSIC9NZWRpYUJveCBbIDAgMCA1OTUuMjc1NiA4NDEuODg5OCBdIC9QYXJlbnQgMTQgMCBSIC9SZXNvdXJjZXMgPDwKL0ZvbnQgMSAwIFIgL1Byb2NTZXQgWyAvUERGIC9UZXh0IC9JbWFnZUIgL0ltYWdlQyAvSW1hZ2VJIF0KPj4gL1JvdGF0ZSAwIC9UcmFucyA8PAoKPj4gCiAgL1R5cGUgL1BhZ2UKPj4KZW5kb2JqCjggMCBvYmoKPDwKL0NvbnRlbnRzIDE5IDAgUiAvTWVkaWFCb3ggWyAwIDAgNTk1LjI3NTYgODQxLjg4OTggXSAvUGFyZW50IDE0IDAgUiAvUmVzb3VyY2VzIDw8Ci9Gb250IDEgMCBSIC9Qcm9jU2V0IFsgL1BERiAvVGV4dCAvSW1hZ2VCIC9JbWFnZUMgL0ltYWdlSSBdCj4+IC9Sb3RhdGUgMCAvVHJhbnMgPDwKCj4+IAogIC9UeXBlIC9QYWdlCj4+CmVuZG9iago5IDAgb2JqCjw8Ci9Db250ZW50cyAyMCAwIFIgL01lZGlhQm94IFsgMCAwIDU5NS4yNzU2IDg0MS44ODk4IF0gL1BhcmVudCAxNCAwIFIgL1Jlc291cmNlcyA8PAovRm9udCAxIDAgUiAvUHJvY1NldCBbIC9QREYgL1RleHQgL0ltYWdlQiAvSW1hZ2VDIC9JbWFnZUkgXQo+PiAvUm90YXRlIDAgL1RyYW5zIDw8Cgo+PiAKICAvVHlwZSAvUGFnZQo+PgplbmRvYmoKMTAgMCBvYmoKPDwKL0NvbnRlbnRzIDIxIDAgUiAvTWVkaWFCb3ggWyAwIDAgNTk1LjI3NTYgODQxLjg4OTggXSAvUGFyZW50IDE0IDAgUiAvUmVzb3VyY2VzIDw8Ci9Gb250IDEgMCBSIC9Qcm9jU2V0IFsgL1BERiAvVGV4dCAvSW1hZ2VCIC9JbWFnZUMgL0ltYWdlSSBdCj4+IC9Sb3RhdGUgMCAvVHJhbnMgPDwKCj4+IAogIC9UeXBlIC9QYWdlCj4+CmVuZG9iagoxMSAwIG9iago8PAovQ29udGVudHMgMjIgMCBSIC9NZWRpYUJveCBbIDAgMCA1OTUuMjc1NiA4NDEuODg5OCBdIC9QYXJlbnQgMTQgMCBSIC9SZXNvdXJjZXMgPDwKL0ZvbnQgMSAwIFIgL1Byb2NTZXQgWyAvUERGIC9UZXh0IC9JbWFnZUIgL0ltYWdlQyAvSW1hZ2VJIF0KPj4gL1JvdGF0ZSAwIC9UcmFucyA8PAoKPj4gCiAgL1R5cGUgL1BhZ2UKPj4KZW5kb2JqCjEyIDAgb2JqCjw8Ci9QYWdlTW9kZSAvVXNlTm9uZSAvUGFnZXMgMTQgMCBSIC9UeXBlIC9DYXRhbG9nCj4+CmVuZG9iagoxMyAwIG9iago8PAovQXV0aG9yIChGaW5hbmNlT1MpIC9DcmVhdGlvbkRhdGUgKEQ6MjAyNjExMTIyMTI4NTUrMDAnMDAnKSAvQ3JlYXRvciAoXCh1bnNwZWNpZmllZFwpKSAvS2V5d29yZHMgKCkgL01vZERhdGUgKEQ6MjAyNjExMTIyMTI4NTUrMDAnMDAnKSAvUHJvZHVjZXIgKFJlcG9ydExhYiBQREYgTGlicmFyeSAtIFwob3BlbnNvdXJjZVwpKSAKICAvU3ViamVjdCAoVXNlciBHdWlkZSBmb3IgRmluYW5jZU9TIHY3LjIuMCkgL1RpdGxlIChGaW5hbmNlT1MgVXNlciBHdWlkZSkgL1RyYXBwZWQgL0ZhbHNlCj4+CmVuZG9iagoxNCAwIG9iago8PAovQ291bnQgOCAvS2lkcyBbIDQgMCBSIDUgMCBSIDYgMCBSIDcgMCBSIDggMCBSIDkgMCBSIDEwIDAgUiAxMSAwIFIgXSAvVHlwZSAvUGFnZXMKPj4KZW5kb2JqCjE1IDAgb2JqCjw8Ci9GaWx0ZXIgWyAvQVNDSUk4NURlY29kZSAvRmxhdGVEZWNvZGUgXSAvTGVuZ3RoIDUzNgo+PgpzdHJlYW0KR2F0biI6UU5zWSZCNCw2J15yUSlAVWRDUmBzajtbJE5kRjk4MCRHcik/UGJaTkxgXCxxIWE1MD1YYCFBPSw5OCUnbWpRTFMiRlBTUXNbQ1FsTik2MWlWQm03PDJhdSU+JWdsUm5bYVRxVVo0clkoLnNdMGtDcSVkU09lUUlJMz5uXUgnVm9XVURsc2thNz5XMj1mRyNNWylkcE9FUU1bJiFxYnIzZ0lUNzxjJi5KJ2smRlE9L0AzbjxqazVeLTFYQzRLW1xvNU5pKHFEMGhVUWFdTk5NSURMRjklN1UzW15kaGpmZ29gSkgvP1BpTkJSWiRzZikvQl5fWVFXNU9oPE5OSkoqUi9pOEY6Q0ImMmglLUxjOy9cVGEqaERKcF9qKGRhYUE3KUghRnJUMXFWLygqa1MlaGNrdUxnNC48XipKUlBwLWZWI1F0RWRmLnNoJDNnay8uWFRDXD9QJVtHdGcqJ0piZGpUZVRVMidzL2BPXGM/N0RPbFQjWWElVEA6XCZzbEpiKDEwPWhyJ3FHU2lPV0lfJCNTPENwXm8qJ2hxOGNdSWVNOS1ZZGowcUheWUlhPDtVUj8pcFcyOFItKlAkZmhtNiQzSUUnP19YKWdTaF1aXW0yamlhVEYiVD4yK0hWZygvazsoa3MkLl4/KFZoQ14jMkJmMlRnWGsuR1c1JilmXmQtYVotKig6TVdiOjpIMyJRfj5lbmRzdHJlYW0KZW5kb2JqCjE2IDAgb2JqCjw8Ci9GaWx0ZXIgWyAvQVNDSUk4NURlY29kZSAvRmxhdGVEZWNvZGUgXSAvTGVuZ3RoIDI0ODUKPj4Kc3RyZWFtCkdhdWBURDMqR10mY1NBLzBjdXNlPS03I3JbVGhbSWdicCpmWUJTKiJJNCxIaChMIU9iaCtGRSVVdDBQNSsrTVV1WjwqTjM+LD8hVzhKJ1hOYUkuPjltMjhBLWljIW9XY1lCMHJmKEE1V1UqdW8zUUQsV3FCYC9IZlpbVkhBTWdmNlokYGJFO1QqT21xUkVRaV5CJ3AwNThKRWMpM1UlUSZNIyxUYEJvb0xXPENGLz0jYyUzKTpAIj5xPShOVkY5WVMtNCRpOENFOWxJWCFRVUxpc1xtR1NbJkEjJjBYKlt1ZllTcjo6cU5CRkVkSj5xajQ/UGZyIm49LUs0P2liWGZMXnIqNCs7X3FhIjsjXENVP1dyQCUhbChYTiopNzpSPE5TPUc2Oy0mblguTjR1IkZcS0krOkJNQ0QuOE8jVVowLTtkJi4vOzBrSmQpaWAyNSNVPDEoIi0pPTwuUDMiJE9XVWIiTFxIVlU9aiNMUjByT1NjdGE1PUomI0RJbiNxV1xHIXNNZTdkTCFhQic6UD5RLmkwKzw0KT5FLjJTbDYuJXReZlhNIXM+NlkvVWllUzNhXCU7aUsrWlpmQiRoM2s6dGM6VTVHLmxOWyJVYm9LNUM/MVVJUDk0V05TYCEwdVsjbT5rPUFgJzJrOjskc1RrWy5HZG8mKSdRJDNqRjhbTj4icyYna09SNDdAKkIzayFiOFlNViZSOHU2QVBnZ2IrRSsjU2g7aVwnVWRiKmVdbVklMnFmUDxSbltfTyRxNnMmS2BVb1ktXSlQI0YwW0V0Ymc9IldhRGFhbz0yOzlOIyElNUxbW0BOMThqOmUqaHQ1Q2tQNjoiVF09WyZbOzo1aEQ7Xyw3UnA7SCY2cWtcbFJoQmshNks0TVFYNzdUcmNeSDJWRE0yOiQ3LF4qL3AvalBGTiIyQnJjPWJfZ0NVP0Q2b0ZCayI0OWRbJ2pkby01Wz1ybDEuXGItUUdbNVd1KlMqX0lqXmZZa1ZwO2MlPmE/XDBNITVcPTEmIXA5QUo2T0IkJzkoOmI/Vzc9bzQ+W0hNRElhck1CKWJAOywlUSQhbT5CWWYlV2dVR1I+blYsMW4sWW5bZVQybEw4SWoocEArKy5hZjl1WzRYNSpJJyNRZ0Y5a0JhXTExYis2cmMlXjQtcE8mZDZySiktIVFFSmBbYThxJUpCWFVZbEhWLChGI09cbEE7LjY1UHNpQDlZdSQsUWVcazxYP3A3PFs5cUZZK1FuaVUoMFIuVi03QlgqWkhcPiwkK0koJEpEbG1WS3EvWEQ7azdcbCVuNT1JJV8kMVhoLTFXW1s1ZzgjMjZtRDliQFZjTyZiU2Zrc0R0REk4Rj5HczgxVWNjJXA3YEhyPENvRGJqVWJlLDBtNk1YLCM+SDNwJEpDOXBaWHJVT3UwPWdINWdtPmtWNiJlQkByM3JtVk1MV1o4JmUxTT0+I2YoakpjWCEmSjg2OyUvOShQNSlRIi5NbUM4MjBXaUY5Sm4mUXRVZXVqY2JFXEFvJypLaE1oWF9cbF8xJjNuJC5tSSpociRuP0RFbUZnOnFoYz48K1t0aGJpTU9lQlAuUmloUypUZ3VAXyhHOyMpczBvZWxCUjpwSWhRKT0ubU1XW3JZSj1ZUjRHXyRkJClQPz0vbU1WVz5JLGEuUEdGPjJLRCtKX1tUKUgpN041bTYrcm9KQjhrRlVpPURiN24/I1BMIlFUJCpoXiwkIktKUUZRRi5dYjtdTUYzQ08/amwiMWRUcUFlI0ctLXBePT1BYCZMdWVLR2tCOWZBaV9objhpUzJKPV5LQ1ViVC5GLCdzOGIkQig+JjlFZjUrbHVUOyU0LkE4LTFcXTgsOGwmQ1o8UmtrSElgPzYjUD9TJzQ9Nk5OYidcbT9GVCtpMUYqU2hIUXFQQV1vdDNFMTw3ZmI3PihqZmdJcikta3AjclcyJiY3SVpSXy9hLylLOXVSUFI9N0csYzslOWg0SEllWzA6NC5RVklULzRMSyxPM0k5Q1QqPEVpZjBaPFVvLSMtNl89YzlSME9sb21kP2NMJ0EtI2dCXFJKR1o2XmptcGFOMj4kYCZnMi0xKjVFV1oyNDRMUCQ9W1lbUToxajlLOVVKIWJfQV1FVnAqQlhWSHRySVNoN2JYSDlTPHJsXnBXYWJdJEZIYGxaQV87WFNzTjY5RV0+ZXU4byojViIlJzZLUXVwTmRsSnQiJ0pYbCRCKnFjYlR1TEApTVNIOk5nIWdhaj10IyVQRmxWcCosYnEiakcxNyMpVThoOzRJMlhqOTBGSWJCJDU5dSlQOCVDODxRV3JDZUomXDQuUGIvVy5CRWxvZlZOU2RGRiRBMWAwI0pSdWErSFNoXiYuZzJlZ1RhVXA2dSpRSGwtZCJhXCFRO3VUbGg4Tj5Ob2VHSk5KYThQRSQxQjozJz8kKlg2PVMlU0QtQmVIPmNhPFdRITlqJ0VmOkNVLiEvN0hoInJmaD9vQ1snM1spY01dKCU5TURxWFlpMyc5PTw/TSZodGwkaXNITFo6Kz8iKyZTa2BTTD1EJWIlZ0pta11AM0U/QCM0KktnKW9JOSg8aSJNMk1EaHJyVDU+SmlsQl9PQ0pEQUxEVllVcGosN1VzKjBrJ11ORz5cS0ZaMjtiT1xiOiYrP0Q9b25DMnFVLCcwZzZaNVRCYS5TYjVOXEZVL1YhNF0vTy1kdVxfc14vRkJOV3BkJnQ6SWo5YnVwSj1ZQFpnWjV1P0MrZydPbVVVK0RDcTtMMzU2P1IiOGZORjRedTw/TEQyV2lsaC1ILzxBZ2Y/YylrYjpuXSE+YmlFbFlqZUQ3OWZEMGQuRlxlJENzPSJHI1NzQVRBT3RgXyp1Pyk1MFs4KF5xJFEoNThyTmQ5aU8yP0U+NCVPWm4uNi5vbVtvX1pYLTcjRDdKWF9VQCRDMW9vVDY0P1xeSERNanBUVkEsP3QtayNnWWVaLmNGVi91IkY9JTZlTjxvSXBOa1IoVj1HPl5FOVtrPHVlWXFqMVNkNC0jN3IsZU8zX08scio0QzA8RyJcVlhSNS5uaUltOV4hcyhiXTlCIllUdGdQdCk8WkRXaTsrSiZyPEpuOGJwKS5mZzVNNFRGb0EnNz5OWW1PcTVyWDRaT1dcbnFFNURgW2MiOW9hMzBuQSlQJEc0Sl49SjQqWF01XVtRQGs3SDEsay1mWDZkWCtdISJcSSdcT0EoXzxYJCR0MFctaE9iazw7WW04b0BMaWIkOGg7cCs8YXJJLHJgQE1aLSIubyU/Sj5OUGowLEoqVWszIVhFcSNvVmtwVWA/MnRfOV9Bfj5lbmRzdHJlYW0KZW5kb2JqCjE3IDAgb2JqCjw8Ci9GaWx0ZXIgWyAvQVNDSUk4NURlY29kZSAvRmxhdGVEZWNvZGUgXSAvTGVuZ3RoIDI2MzcKPj4Kc3RyZWFtCkdhdG09PyQiYVsmcSdHV1ImO0hHOTRtc3FZQzNvMWdbIjNPMDpWUTpoRm03JD9RXXVFKG0rcTsiPi9zKUlmL2toJ01aUVRYTDQ8bUNlNTBtUXBza0kiN2FJTz9kSl8xMTg9QUVxWTgvV2Nfb01YSChibyJtOlgjQzRvK11GKSZgJV1gIzFKKjQ4cm41InMsZFVyQmo/REgpJz5Lb1JcMVNSYjdwNUIvb0UvKlgvN3RIQHNVcUREVVIrOG9nJWFubT48VlY7RnFGbC9zT1EtLjJhS21STjwrXEcjIyNGWUMnPTdYYGwxSVw+RzZGU2MvMW1TPDNTTlpZZCtoPEQsXjY7bDBVaVx0RFFJOlZQIy5pSmphQjA3L1thPCY3c3BpJj5gKUMnR1sqWzw4K2NaZVdgJ1FTa2ZUNyQzYU4vLWpXKjUwLTJqOmohO0ppOVhXWmthU24+I2ZqXFpcbjAzPiVAaXRAPFdfKkloNUFyUjdyImhLQVQkNDM6ZW5HSVZlKEQzOy9tNEdWWi1wIlA4aCE1RmY2LGM/Y0k1JzQmNSxJXzE7Tm5xOFFgNWIpLzojW1NNUDMtckNoR2BtJE05bUg0Z0JDQU1lblI/KU8ySihzIyRISiJyRlhbYG85J1tgc0JxRlwtJ141ZUEjbDFNbG5jUjxlQGs7T0dla2AjRmNCUVsxQztGb3FYT20zJz5XWyYuNzooa20sVXRIJS5QXDAkLGBibk84YFZWSkxJMS4iLGFmVWJFVj8qYyo8VlMoQyhDO1YpdClzXG9pKkxJMDxeLldULCJaMF5YOy9IPSsuWyZtcSQyZ0E2U11rNkhfPkMkcj02XjQ+N0hjKFxHPTJkY0EvcGRGc0Fwajs6X0suWz89JyI3YUI1XSorTmsxKUR1SzwyOl9hT21jUm9IP0ZaMUA6LDFtQGpIPmpNVG5ob2VhJUxwMSMtWjwybF4lNGwuaFJrPVs2QlNFW2RpYVtvXUEmUG1YO1leOSFBPjJjazltLz0sRktoMGllQ2g1bnFDT2AhaSpKXyIxaWxyVSUuWjs5WGBdVEIidFxVUkknUjQiK0NHLkI6KWolLydecmhLI2RNWW5tXiNJI2AnVSZuNC8uU1pYKmVrKTRZWEdoNyFmVkl0Im9HTj9wI1ZuZVw9KnMmcyhkT1RBQG9QcDQ6Km1RcDleKChPJDMrMTJEdCJfbFFPYTZaISIpIUhXZSpGXyU+N01rZnIoZisicUlDdGlObF5MV1hQPzc7R3JhWiRDRF0+V2ZkXixQQSQ/ZyIlRiMpMCVJT0VGKVNhVihzb15iJEZral41dVNzUGl1N1YjcCorcXFnTCdJPWdQSV9sSVk9NTIwXnBHXEQqN05FNXNSQG5UPjMuYD5FPXExXGVLVV9kYVNjO2gjVmBfQSUyJ0tjPCI+PmE7YUtjKGooTGFoNF5KdGpSIUcmTyRmLCVPaWNZIURESWIvbSZtImZKREwhO0dnQERcL0UqRFkycXQtV3FqdGAxUVQ+dHBObl8uXz8yaFZoZ1JdPjVCJiw1YSk4PVsnVl90I1ohSW46OydUJj5sYl8lX2U3MHQiYGMsS2ckXyFCWVhnZSs6VSlkQ1o5ZEJuUVoxQzUpdVZxZmU5IlUqOiRXWllBZV1pIzFYNiw1bkRdIVMmcE9qXDZBXi9cOzo3WnNFQj4jVE06QDJrZDk6LilqMi5JbVhLVVdRZlhzLi0lQShqa1BeTCExV14rRkJgYyVxNGZOYiI+OzRGTCxkUVYwUkAlQGJiQCgwZDFIPHAnJ2w1I2IxOm5oPzhJLCdaaDYiYk9QQiNnbzxmcDAickFmJHFGKGY0RVxPMSVFLydwaC5gPjViTFdFZTgxVjZlUTVZbjpXWUFsYTFmKVg/JSo1XS03Vl9ZI0dmMjVkQzI9b0hGaj9ILSRYcipfXzpZP1NqZmAuJGNDOyNHQ1srZEBlZl8uKSNcTjxsbUdYZlZEJyciZkBhMz9BO2ZIRWg5ciZaYFtaczBxVXBVKVI3PFhdT1VbISFSTlk6LXJDYlEkKDZFZWFyZD9ybEhxaWlCVVg3MFYrNEBOODFgXClwazl0Y3JbXCNvaDtrV1ZUMiFeLyhgTlFlLixJMDU7OWdjV14rWiY1XkchXUVRSDJPdTxuJ2xyQ2JeSWwmUkxZI08wVShSO2pWIjwmIjpoZiwmUzszKT9oYGkvZD5lQDlcPWU/dDpaOGs/MW9gaEEmWTNYPGtQaDZaIyFPV1s9QD5AZU1WZlZUZ282VSU6bG9ZMlZvTCVCRmI4PWt0XEA5XU5TXSktZV1EJTlDNEEhQkFCOSQpVV0xV19mbF1bVjwwYGxrYmozczxEcj03VE9gWS1QQTpuUiInSCYiRE9sVSREUEl1SWJdckNQPCJwYkolWl8pKzBDPThXaV0vOUI0Oj0wYU5dTShHNlBjajU6QVxZTitYNXJOKzZqaVcrUCVsYnIrQVVSWz4iZEI/I1lbVF0rYmlmJWZkI0E6PD9AY0pyJkZfRDNtS2RyIThcKkNPIi9saEAtQ3JELU5YbXVQXHVeLkU6Y21qViIrbDpvcEpVKkxWRSFWJkxpUiFwKG87QmYoPyloSEBQbmltLEViTHNUZGN0W1lkcStoJTtWLDFiPGxqNGg0NUxhcEQtaW5kLzgzL0lsKT4nYTAlIXRXbW9gK21bOWUjPV0uMUk+bzRrKCNjXTUoZW8iVDJnWz8lODlDKSVnPFAlLTtobUQmZEQuZ05JL2IhO2NEJGFkOmhRcGxfakFNMC1NUDZHQEFMYkBTXHE3YERQbDFiV08mbCNya3RQU2MrOCxZMSleJjdLOG8mVDUwYmgmaSUhaSpsUk4jRCdQR2tKJlxNVl0zYGEqTSIkYEJxOGtZaCg0VGNmR0dtTzxEZE5DSlkicmYlJWJQdW9JLGQwIlhRJWdMamxIOGVXK11oXlhyOGNKMmdvc1QiSWNgdE5uQiVyXFctI0BoRDE2a2lOQS9yb0AkWmo2VTFlazllT2tKUWk4ak00OUNOVXVwUSRrV1lCIShcNEZoQ09FIS9sNkY5XVFhZz1dImRZNCJGV1BRTV4rJT1xS0tJVzpkZDlxMD4tLzJdP2REanE2TjlVWnA+JXA8KVZpaD5oLWxBTF1XMzMiXzpQLmBYISdxa0g7O0MnZylvZjBxM3BrMVdvbz5Aa00rPGY6cUhXNyUmbys2c1xAYUQ0cVQzJ2o0bSxTdT1QcEJlXDpJXlZKY2pFPjAvLiltRT5NRE8zZ05IYVEzbEBAZkFuLTVZbkltOk1nQFdRNTRUK3NGckFpIltcQ0A7NCtFQTgqTDw1S15XaTVWJV9bKiFGOV1uNS5dVURaMStVSVtzZyU6aCNLVFhlKitdLS8hPkorSFgrJiE5TnI2Ly1PbyQsOWkxZydiW0lAdW9zVWE4KFkmMDcvJEQpLjA2JDBoW0I9UzEiRFRxJG1saVpYIj9rLl5VQUdIN0wyJCgzQ1FoXy1DXEcudU4+NWk5OTglWTdNLmp+PmVuZHN0cmVhbQplbmRvYmoKMTggMCBvYmoKPDwKL0ZpbHRlciBbIC9BU0NJSTg1RGVjb2RlIC9GbGF0ZURlY29kZSBdIC9MZW5ndGggODQ1Cj4+CnN0cmVhbQpHYXRuJGQ7Ul9tJkI8Vyk9KyQnRlUySEtTNVtHZT5lW2gqSGdKayU2UnJBcFdfOVFqcU1SNVRza0NnOjpbTWk8VyZzdXFMcnBLWz4iYzdvaVpNVV8oXyJlW1dRUCknbUY5LmVmKjdIUzkxZDFZX1pBVkNjVEc1QjVcaydsKjRIZz1acE9eSl8qI0JqMEFQQTJ0aCsqL0liLVtEU0VmbkdqR19HO2dLMWcnR1dUYFkqOkBaNWNfcm5HISdDWjc6KksqbEJoPUFfRmRWP2VMMWVFVUxSL1klckk2O2UpSF5UXkk5PyliQUlvQiEsXjZlQVxYMTFxU2RbZCtQOzJScUI4P1NRJSwybSI6MG5gNl5XJHFJJ09YMTVDYj1SZVBtWW5LcSdOMnEuUmwtKGgkcEdUW0NrSmxRUGFVUWghY0coSW9tcihiTCNjLFdPJF1TI0duYS4lbG5HcTVlcy9CMSwyJm8kTTxxNEdPSz4/PFw+WVojKlhoO2w+O0M4OlE9czgoakdZMk9DLmVcSF1PJzA/SW4uJldoLWIkTSVhJy5YZTxNcS1PJS0xPERLTzdkOzpXZ25YaiJeLGtTNFEzZD51ZmUlIyovKVhIdWopbyJjNzhpZVo9TUFBQGg+NlRBSCFRYFU1RSM4YFMlVWkxI0UyJXMlbj1WTCg0YkxXZTs1ZypiPi5hWlZURDxMTFtLclhSM0RPayZvbm01XU8pVGlZKlkoTjAjIk5BIUBELmUhWFdTM1omQHIsSEVLQz5oNkxqRHV1KEJBQixXai8tLC89OnExNVpxLDhrNk4rdDs9KicuQyokRzdrXzNVVlpvLG0jYWk1TlMzPCEoSG4sOyoxbjFtLnViMi9hTSRCOSldXnFoSls8UmhCb0BhL2MoPG1BT0wlKUVEMW9IVy1uQWAvQTdAODtqT1NUVTxHLylxSWRba0RRbS9fOTxaKT1zXSQ8SzJKcl9nRDBcV1NpQzlDWl4iQWdCYFElcGlwXD05cyhyQmloMURTMlRnXS9RaHIyOCZzIVBfRTo0V2luW1xWLG9dUVFxVVUnZlkjP1c8IjA5K0Q+ZSJRNyw/VVFKPlBRPS1xK1o9SSU0SCcxXGpHPjxGcSRaazFgcUt+PmVuZHN0cmVhbQplbmRvYmoKMTkgMCBvYmoKPDwKL0ZpbHRlciBbIC9BU0NJSTg1RGVjb2RlIC9GbGF0ZURlY29kZSBdIC9MZW5ndGggMzAzOQo+PgpzdHJlYW0KR2F1YFVkPmx0aSZxL1pAKSFvLm8pcV4jbmJIZm9ZPjltcEhEVUc9cUcoXGNVSChjUDw8YFRoSk9dcEFQclYxX29QJT9aPmguVi5wLTtBNnUnWm89JVI1OVZvN2tYZjRtL1ErOWtpRTc6SippQl1lJzNjX15eOTVlPThNMURpcSNVbiZva2grJC89PlhJaVxibE8uPDNKNlZjUWJvNUkxTFJRR2Nda2QvVkIoXU06SEMjSE1YQ2QrVmBTNDleMjY1Nl4mckwsKSo2LUcvQmU3Zytgcl8lPmxHQzdIPT9mLmtGUjRsdFFdNzBNcWgwYnJkQjA6NmJHXTJtQjtnM1tRciZfMEwyIWFpMCIwOid1JDJyR0xIKzdnZjBfRFNxMWNtPCoxUydgaXE7KlotaTclPzdCS1RVXTkyaW1WbmJmZGpUI11eaGVyMWFpPm5zclJHWmM7TEtXYVg7TmlUTkRXQElQJi5Bci9uIVYoZHMkdFs1b0tKJChKWDpfbTg6RGFhJmBkIUpRQCo+b3M+Z0pqPFBGdHBIQVgmKVNhUTBXXCxVdDdfPCUoLCtDNWthKztKaixpQCZINTNfVWQhai9mJlY6UVZEL3EiLSpZXiYtNE0wQjJPPF5aJyJSMW5Jc2g+RHAwO09vXUdgTV1KVTNwOWA0XSciY1ZMNTM7XitpRGQjK0EjKk1HL1AoWWxcbS48Rlw4JGwiOEw0TjknOjFiXlpYXHRxYTlwNDFwbnBBTkU7OlYkbDtJakFxIyhBJ18tNm9SPTlWbmh0LlJaYE1OWTBsc18udE9gayI9Rk5OKVsybG03OlskYitbXjswSWcoZ2BpN0lQKDMqQSIrW2hKZSYzZUE+XlVUdXRUPy9gRXBQNj5WMnQscG5fPi1MJl1aTlgybGhnKys3NnNTZyNmYT4vK2dEZXNKXFtOcGhERGIwYF0hOHUoIlhHYUhKXygsSzZQXF0tcV9fYS4pWWteOT51QjtgOzo0Py1jQ04yWCVdUTdVPjNnQDlAcmBGVFByOU8jKXNRZVtjS0lSP1YnVU8oMk0+aidiLjx0ZzdJLT1VXEBZM0JkKi1VRHM6QShQNFY0XDIqdWRjWi0oNmApTC8kIjxnTmZPYDJhMWsqVEVKMHBicTNeVEQxTz9cXiFXVFIhcFVVcEFsZ0YkQzRgI1RzWjtWb2ZzZjJcSjpOTXI0dGQjV2xoQ0NWXW1AT1JHOjxGUUQzQXArK3BqUzBHOjhrSD4nc05ZS0klQTlPcVhwJTYuMTliLVZiWGBwZE9jbzxjZS87ajwqL1ZHKyxzalVFPmdeNTcmWyc3XE9vaEBULmdnQ25SYkJMaDk6IlE5XkNLb2xsJF5eJ1Y+aWRUaU5FXCc/J09JMWJpajE5IVJYUFxkc05eUl4zNCdPQDlPYztHUFEobGpyZXNJc2dRRjIxZE9fUHVRKXJSQ0JfRUZzWEpWcDM9PHMuVSgydHRHSkIoKjtFaWIlMTJEQTVOXFp1PlxOMFEkMlY/LiNySWNxai9jYik0RS1iSFRQbzJraHU5Pm9EQHIkSyx1P0VCdENwaFNRbiNNUGJfRW1vInQ9PE1hYCpAdTJtaz5BL1o7OWRoUV86XSEjXWVwbihtVyImVjkySj8sbS1vSmpbImA7SCMlPDlcQzQnTWA4O1lLYDE0cUcuJENhQlxYIW1KJkxYZj1LOSYpbig8K1RtZnFMaVFMWS9nV2hFYHEqQTYuLTY6alJZYW8yQHIuRlpKYTFCTTYmQGJOUGgpPzJXI2A5WF1vUS5WJmdjcWBEaT9oSTIkRW43UDFOWSllKkxOMnFPQD1RalcnLCJHbG1cZkd1Ji9cLjBYU29wKT8sNFY3XlonJEQpOTxZYjNTU1JQdF5UR0NnVjNbLC8jJlFNPDUyKF4sY2RDYS8tbkdrVTtgJF9CUiwmLiwjbE42YSNEcy8scCU4dF9ZP01mUmBycmcqViVQdWJRLDY6WnFyLXBkaDltVmBaXkc1UkJWTiw7UmMrbyIhaj06XypfQCh0ayJvSDImXDJ0J25SSUE3b3Q6OCFHXDpJYyI0SV0hS0lZKnRtW2xPJylFNnU+bVU5SCZmdDpnMVRBIjpkW0lQalRcUyMxOW9SaCM+NSY6YkoqRUJlVSZhWHRXWi1mXWxbVU1XK3FZPW5BblcwcXRKaVtGQzJzY28iLWtCWSZTUmRoT1RNPiFkcktJXmdCSGplKDIkMlktRXJATUkqNjRDSzE0RzFbSkdqYCtfSTFtYkNeLWFDTj1NO3BRWz5rNihyKCFfVixcbl5SIiY4dWptaDJyQXJKcWBOU1peQ1FIXmB0NEEqOzA6P1JWNycsLzo+Klxqb3M2RD9zNUJAXy9CS082Ti5vbFNlRlBOTG8oYmhMWlEzc0FnXWNwNTNZV088P083KUxUc0pIbzEyYl0ySk01NzkrYkk1ZjZgOFkocHBIcEtTcnJSOjtfMmJFTSREVGcxZCVaakdART9kJFM6dTRXRlwxXDRdLGMhVVdMLWY8MDJXZCdfK3NdKj06UVZZN0FwJEw4Wz4mIUEodVZgR2dyQjBXcGlxVD83WkxVaVxIXFluc0s0YiYsZ1lcbVRFZldFOic7T1tTcV0mJjVVM008Pk9CcWwoIV9hLFhLZk5bK29WSjkzM1JuPG1xXm46OmRyLW8pbzJNUjZOcHBwbnUkS1pPbDlhSCcqQSpiVC09ckxvKHFxcSVLOSgsMFxVT1VbSCZqREhVZ080RGhLJHU5ZWtcWSglTW4hJFthSj9BQjhjJ2FJPlkmZzQjQ0lgazpkSDI/bTojTHJLNGxuRnFSYENqR1FRXlZrZUlpRiI/aiYycCRCUSdAbEY9a0JCSEA+TD5TUGhHQSxJQkopWj1RaFNrRGpPSj48L2xGRlZiU09fazJsIkBEOChZVUloSy82OFRkJzc2TkI6ODw6LiQmL1xfXV9cRUYzTzUqO2ckTVdoLGlQRFU4UTkjY1Q9MlE5YVomM0dYO25vI2BZcW0sKiNbSjgrOSJNQiJPMGBbZVwvTVdVaDk6XGg6NTk3b2hAYlU3Uy9MUDpkbDpoK0dkWjckSywvS2NOdEI0NWonJWlLV1IoR2IyPGxkJSRiYVd1WSQ1anFbUUg8K0Jsb0slNyInRTUjMHUsQGA/Vk8sdGJrVFZuJzRmdV1gczcxSFZRXGMyUXA0V2FXTEUxQCQ2XCteQ0JcLiUlNWZmUFJYO0IlNXJXaicrQTA7Ki1DQTFiWDpRVyhARl4wNSwhPjQyLzIoSFo4NlRvW2c6OSFfI1s8PlFSJyhbVTFZXj80MUoocVpBM0FSZWM1Kjo7PkRaQkQ3MFRzTilIJV5oVGMvNUI9QyRpWVJjRTk8SWgrb1xAPyFxQDAoZShONi5eXTVRdDpaOywjYDspLV9DWVJxRClyLjNcaDs0KCc8dXIyLDNncTZSMV4kK1ohRGNEbDkoLWpjP2Qua21oODxbPkMjQ281RiptWWNEdVxqa1A0IiVcPWpRaUZdO2g/cSEiSEhWb1JfImZsMGxyRlZGcjxhQyc4ImAmZ3QrYio0c3I+OzlfJG5xUjNxQDZBLl4panEsS25MaVljMzI2JmdQMEJCUnRpK25oL3FnPDlBSSI1byZdXDBkKXI5LXEoU2NjaXFIXCVPZnE+a2heXjZpNyMkRDlhZmkmJVpNKzFeZXBVYi9gUCx0NSw3TlFNbCxUNDlyYF1NVjpGKUpbYkFlU3E/cSxJaTNqMD1kR3A4Vy9pal07QWw5bS0oSWIjIW9Pai5wNkkuQXFPS0NnKHAoaCQoZ0txQFhvQzZeJy07UD0tRDo+TUZQOENVQjM0L1x1JUs0SHQiT09DdTlzOz1fTTcwXClxSFA4MDs/RkBgT1FXVTFiL19ZJTNdYUVWakdcRS02TDRlYS5GPm1SJDlrPSNONC5GZ0A8JjJsM2RfKTdZby4rbkA2JG44NSMtJHNNNilZI11MJW9OcCk2JUQ+YC5GNTNASzIhN01BXjhlOC4+YW8/KihKMFdmNHBKIjdVczdPRiY+YjxiIUs6MT5RTn4+ZW5kc3RyZWFtCmVuZG9iagoyMCAwIG9iago8PAovRmlsdGVyIFsgL0FTQ0lJODVEZWNvZGUgL0ZsYXRlRGVjb2RlIF0gL0xlbmd0aCAyNDE1Cj4+CnN0cmVhbQpHYXVgVD8jU0s7JnEvKjBSKCcrMSZrYys6N0dTJFlFOG9NaGlBdGxEP0QpZ1U8b2NrXjokc0soZFlgU1BqNnJEdExUKmc+UFhJcygrSyE5WlIlNiNoa0tKODVpaWQicE8pcSRTcFttTCI4Ik5OTiRoPT9IVF9pTU5HUTZzR1g2KiduKyhlOiNdUWE5ZidUPjFxYHFCcCdKYGZiRiQoMyk4bj0lbFRUYkdgTFI3SDtRRVA5Sjk2TUVKTC9sRXVwL0RvQDRNI0pmdVUhIm9bLGdsWEpTdS5QOlxHI0deNUtTOzVZSjA9WFlOYyQ+XSlSPiptUCIkZypJbUVOR0YtJlo5MWYoIl5Zb21vUGdGPiJSU0ghbiNYXS0jYShMMTAmI1NFNFRvNE84UU0mOEhuTClAc0MkXDcjIzxUbSMha29UKV4pQ1pSaltyRHBUQC1qJEE1c2RFY25CVjNEZUxjX2EoZT5GVkF0Qk5ANis/M1BmQko0VkRwWFErMT0xY3FEUHFkKVtXIV5EXENAYmUrST5KXDhVdTdbYjMlU2ooQjJsWXBSNWJtSjtyb1FVUm01VWtdISpxc2FGZjtyI2FpNCZePXNGNGk/cGtGJXBKPz9TKzZoUU5jTTRjOihGa0xRZz82PV9cVzlbcShyR2taM1s5bzVRRlxVQ0Q+PydRXmQ4LzsoUTwkYTpaNEhVL1gqTzcmJShHcUVkY0xqWTw9c1dLNG1FKGpyUyYoWksiIk02US84Mig3VEkhMz1kQScuIWFURideUi9ZTmNdUUhNLydzRidbJi5KcGBcXiFVdW1NJmFCODYnZ0tvJDBUUDFhUy5LNE9xTV5lSFhZTTIrOiskSmdzYyJrKlVyM1VOJGdhbXVPQ08nViM3aU1CaGcqNE5CVSEobm1WaDZXMERdTnJpXko9J0IrVkFnTChLMi0iV3MtKEc6PCZaUUNeUjssXzEpKSh0JClrIU1gJkFvJWlBSWBoT0VpJClmPEQsSDIvMGUiK1AyPz5lJVFWNWJBSXNrcC9bRWN1O0VURCFWPiojIlddVikwQ1otcD1UTlI0Ry81OmkiW3NpUWJVaXEnbWpcUkMnMT9NZiQ2VjRNJS4+T0UoV1laRTteM3BnMV4mLjlUcS1pP3VZQVZaPilaOT0tTCIkY05KJyhwYmAhJjt0Y2NlTyEocWxqYSUsVy5jazlgWCo0Zl8xPF0lYTdbYjZDWTc9WypqY2o5LSFgb2ImXmQ9MzBuaDNzPUUuKW5jOi5nJEdSUU5tKERvI1JFMSssO14wbCtzO2c5SWNlW0AuRyJfPissITlbLUYkbHEpL3JRQmU1QiRYQVIjRCk3TyxKVWM8TzdWWFZBV0MtOl4lRiFqOnMyOS9tNWlZIyE+WmltLlxRSGlza1BPRkZzXy1lYzRSQWotRldvKmpRbTdDMV06RS9nU2hhVCRrNUYvIT1gZDVWMj9fVXBlM2ZTclxjZVAhIlg+KUBOLnJqdTdzWGBxOzMmLFFPOS4/LmZRQmQ7LG47Ry5mbUVKYko3byNkWUFdai5qdUZdRD4wOFJdM1EyLTxzMztDbGJQSVJjbWNCQTUhO0tQYyYpbCxBODVtWXBBUlpBJixsOmpkYkpuN3JUKkAtVUxdI2htSVpZIShBPz5zO0IicTYiakRrZzVzRy5PJ2xiLCxlcGM8MnRwOVRIUk5kLGo2UixbcE0kQ1IqQUMrNkpla0FgN1kkU29OSjtVWVtdRk9ZbHFWZTlFQkBDL0BoOyJjWkNWJDFyL2NzM2lmcktWYUdoYjk9ak5GXWk0XmlTYDg7ZjtnTlhbbFsmRnNhVU10J2AkOmlrKzBjKSQjWE1BKko7T24zWENcT01bWG9jbis8WmVNSCoqOGovM2RGNDNHLHNDbmVFTFBKIUoodSdaYls2MmY2PiNwWSJtbl5oIy5ITiElajsrNHRsRCVyUWA2N050RWtlVyxJWiEmRlA8QGNUa0Ysb2o5KjxyWTFzJSslaSNSKmRgVDFWOVsxaWtPbzFObG87JjpVWkJQOlwqRjxWXzwtO2UpOCRVVD5rcy5HJ3BFZDxmTS0rV1kmdUYhViQ1WkUlaUNRPTcoPEo9Ijs7Uy11UGBkbkNuTDxcRUtMJVFUQDQyJkswSU0kLShCISxrdFtzXmFSVVhALlpEV0UxISctVjgkRyRUIlBuUEMmRFolRVRUNi9rLm9wN08/MSE+UjxaIWRaay85OllqPEU3SlNqdFxhRTFTP0BYU1hsO3EwOUcrPSRhW1N0bmtAWlJWV3E7ZDtabktTYmgmQUpGYlMuTXE3VHB0VlJUcUxMUD1cWnVLXElKdC5PcTgocjVWXj1VJW4qQig3YkQ6cWRFa2RlOSFmZHBYKD50cHNtUmNOXEZjKkIpSnVZWkQtKHUiYzhvMEQ8SjNiUE8xSGFWc0A9cW9VQXUldStIbEUsQnFQdSksRVo7UWZuPUNIM1E0NDpecihxQ2YsP2M5WjJJTUFCUTBiRmFTMCFoOmFdTUdGLkdQWGBXLCRiV0BLVHNjVlQxXig+JEBUJGhJPzg5N3M+VGRbNihdK2YqXFZwN2BIdUpOZnFScWYvb3I7aWdiSV5nS0tOK2Y2OWQ7M2UlIjQtMnVFXy0tPHRxIl1wJkJtdE1EcnEhMUw+ZCFFW1pVaHM8US5wdSRlIV8tTGUlaj5URTI3IzFpK1ErJF9KcV9abTdXQmAkL28zYmdlYkMzT0hzSlVPQFtIMDYnPihkMF45bkdhZjRyaCQ0T3B0bjljQmNZLmBJXXNEVlo7YGlJKE5YPSt0TFA1LFtNJjVoUVpbcjt1V0kuJV9lR040S2ByQWstXCo6NCIuLSRAVVwjN2FEXT4kYkYkXyk2SmxORDdBMGc3Vk9ddGgrRFUzYC5VbENYdGlqSEhlVF08PVwhOl5eKlo+Ij1AZSFQLlxIVTlMVl9fVyMhKz9JKEB0dGAlK1hzQCtETC1MKC9aQlYtXmU7cHBVTjNVZz9yJSVSXXIqKFNUK2hRQmAmQUNlJDtvZyRSY2VvOlZSRVhjPz0/WktibCk1TXNbWmxrcC82P1snImxCMGQ1TEVfKz49PyVhbENHV1dXJFApYClDZnEkJ1VsPlc6TC1JYUxqUW1cXVRQaFJDJjlpMl9hKCkqXWxHVj8iRCtkNE0wJCkiRC9XUUtQKStGPmJYUCxLXGpYSSFRS1tfY1BkZ2xNaW5qTV07fj5lbmRzdHJlYW0KZW5kb2JqCjIxIDAgb2JqCjw8Ci9GaWx0ZXIgWyAvQVNDSUk4NURlY29kZSAvRmxhdGVEZWNvZGUgXSAvTGVuZ3RoIDI3MDkKPj4Kc3RyZWFtCkdhdUhNOzAxR14mcTlTWWtiZnFvX01UVWwsanNXb11aclItWFoxOyVcWjxFZGI5MmRRZW1hQUksWz09KU8yI1UmODBBLj5ZYSVsQChvXiRqbVZkRV9eTVovU25eayxJLU9aWVUtTTZIPyxMPDowNGFEU2xkLFk8LTNrPiQ3WiZ1c28wUVAlVElFLkUuQCxSLydZXmFfIzQ+LiVzUGdAUFVoV0Y0Q2NqPDVBYUoyJlpcREFuWGRVWVlXKV4xVkNwbm9pUGRUPVw3SDw1dWcnRSs4MidmaiJnZzVkPytNRChpZ3FROnBTVTwwI2FIIzVELF4+OWVncmtPTklZSjRSJzo9Nz8jVEFgNjs4RWF0Q01TZC9jX3BGJjEmPV5fWDMucjY1NCxkW1pBYzZvNk5fPXJObkUuXzwwL1JxS1koPD5hM0hVVUcnaGQsciQ9WWo4Ti4zRGVHJjpuaCkkXScmJTNwPz5ONXVsckkvJjxOVGFRZz0jbmk8cGZVPHJWUzJfUy9GOiNvSFZ1LCdeWSdqcW9WVk9NaERQNW0nP2ZPK2tVTiEhTFwvJT5ePShxWWhoQjNhN2k5WytbRy1sWzFEa2BPQTNUdW9lKkpsbnM1clpzYzRVN1IiW1RtalAmKmVnXDspY1dXME1QXWQta2UrWz1RLmlRMEs7azMybG1ePy9dRj4tWF06Y2ZiI11lR29XOidzZVk+LEArJnAqNClBYWtuODpQdFQvOjFvQ2g1PWdibEtYTS4kK2tkZlAsVTJfUTZgSnAiWzEvQVhLQ3FzPkw9Xi9hYixbMiZ0NSYsTmUmKDxsLXMjbi8kNyEiWGAxWj0nOy0/Pz5zTls4K2VYXDZQazgtK1BhPCFtZSRyWWcuRlsoRz9XVD9zKE5ZM3RPZz5lSyEhbUppRGovPCFwcyVtO1w4TkhJbjI7LUc0QWdCXVtqIidFXyxEZ19MJlZBSVVOaCl0SEY9WDk1Tzw4RFhXTHVtJCNtSW4oTkI/WCxWbGxGITE+VythMmRHNU1FLFRBJTpPIidldEhxWVFlXUJVJltibC0tcU48K05kcyRbVmhkWmlmKVEwaU8ncmlzbCw/dW1Yc0QzQUtoLzU6QC1JdCY0LGdkOm4iWiRHYHBWV3E3N1o4bWdcY1hqLWwnTnI9XiZYb15lMVo7LnI2ISwkVllxS0xERlotJDwuRCxFUzcibyFNPiYjX0xFIT5pKFVXUl9Laj5xI0A6QVkoa1hWJTteWGlxVDomXldCSE8jYEFSaWpDXW5HXlJyZEp1MGxibzI+PWcvJEM/cy01XE9qbTcuT14jI1NPUklHYlRfZTljUyNeQlNEQGwvdTZGQ2ZYSWBbbm04XnNKUUViPmEzcyFAR01UQUQiU2JIVTdtaiItZ1tpbkd1PV5AOlM7ZjIqakpLJUUlUF8mIVA1XWhDUUhjcW1YJjNMQGshJWhsM2BmTi80PCIiXzFBKjFKRlkvOFBzYlJmSk5nTlgtcj09Y0IkNHFXSkU1WWVePGtZMjkzT05dcDY/SFUjOTBgaiZTQ0YyN15Sb1NjLzEzSD5Pay9NZV8yYV8kVE5eWjRNJyRSYDZVTTRBZkVvTEgsM05yP2U1NVtXQVJKQy1QPTZ1JyEnO1dcVExlciY2Z0pfUmQnbU9bLXJFbzlDQ1cyN0M6MlBSR0tQZHRUdUliWVJwWjUvIWNtNzsxciRjIyNOIkx0SDhJYlZBOU1zIVJbbU1VImM7OzsqR0JnQzNiSDBHJ3BaL3NXMzBlV24jWVdlKyMlbTlTc1xucTApJGdEW1pgRm0mYi1XS0QsPCo/TWNLMSQjQDkvOi4jRnI4XVQjMltPR14+a0M+LzNDXGVGKTAqIUlWMDxZYVE6KWhXVj9rUS1xSlAkRW4lInInb3JRR0lSJFVybz4jQVs/cUM4R0M3ISY7UkApNSw7ZWQsQWVicGdkRG1RYyREPG4xUSlIal5rTUIvbiNaVHMsVz04QEZfST9gUT5rUCNDJ1QoNG1HJDA4PWM3KnRDc3IkIi5ZSF1eIWQnMkhAITQwcGZ1TzhDTDImQVs9JydabXV1aV9tbzVvZE9ESE4qbCFQLjE5JCY5M25qaTtQVD5CX01QdTFlM3Q7bjdDRk9LL2YjdUNhQVwzWU9qZ0AnMz9nRUYkUipuUkAvW0grQkB0bTIvOy86cldVZiVUQU85OCkxY3A6bjFXOy1JWjpyJF1FYmt0QWt0L3A6UiQhV1AkL2UkSD9RNDtZNCJSSSkjdTgvRlJhVkBHOkRNJk9faEJSRU5kOUdQRiQqbTsnLSlJdVdqXWdzM05uTHVKazdjQlowWF89YiRAMiEiWTtec3A5NHE2WT5QS0o7TidUYGpMQWk7Q2pVWytybzU6Wz5KWk4/MWddRmhVb3IzJmcwQTJaNFdcRzNzLztgPkdON0llIi8xMyNhU0hqKFhVXE0uZTopbilIIyI8Kj8tUERncTsjNiZJa29nKyosL1JqXDhTIVEicmskJGpkU3BkQTxpbCQtSlJTa0ctMSc9QU5KSlFWRWo7OSs0SSVhQTRDdSk8RnJGUGRKY0FbZzx0T2g9Il1SXXEwKUJSVWMoIzE7OkpsIWFTKmk6QDopTCxdZiZhXEcqcVBsRWtQYmdUM1VqIWE9dGtFOzclUFQ+Jy9EJTJQTitzcE5HMjhTI2wndG9yJzBtW1hxcFwwX0QhWFxuZTJSWj5NbWEqSHQvJDZoIkM1I0xiUiJIYmRDKmk8SztucGBDYSFRX0Y2LChjSTJAZkopO2w/PGJBcis1RnMtUm8iL1dWYW5aMFMpYDZDVm5eW2lFalghQCllSzsvVyhqVWlBX1gyOFh1Y1dJYVxEOEFMN2JwJDBrbUwwO1t0LjpnKTglOyxfKG1YLF8+KTtzJCRHU2Q+akY1LSEnJDxBJHJiLUk7QmhSKzwoSHFhTStVRikqLj8iNmwtQmdvY29YRD9UMF9iZi4lOytDMUtUIj9lRUdpNCdMSTBfYGpPciNQLic6ajsjNCNpJCdnclVbUT9XcToiTixcKk5gVSVjbWRZRj8ibFw/P1MsNV1xMDokJlpvN3IxTFNkQy07ajtlbSxOJXE2TG0wK0EnTCZcWUY6VWddMGstQmA7YHFaSGdbREZobE9TdDkhYnE2OjBgXERbaChTIj9BYjhOLVFxMGduRlw7Vlo3NUJUKGgqXUZlJDpCZHJGQ0lRJSI4LSsxQlkuNHJVbCIiPUFgZzpVK0opdV1zIl5RUjFbWDlRTjoqJVhqLUcwUFAiT3NMVGcvKi9LIUtCZF5dK01LNiZoJTJOYEBnXms1QmNfQVpQLzFVZUtBMV00PVcpSzsrRSFqLzEzNURdcHQqSTlDJ1FIPS8vNDZTN0lKXWtWJmsrTGAzXTFGJyZWO1VdMiExQjZFLVAzJj9iYEUySmxmSlNBJzB0cjwiLTlLXTZUVz1MX1g4TGY7amdQPG5QQHMiQidONC9fXFshYkVAXS5hOWQxUlpaQCZUW11VQWBqbDtdMCgwVHRXSE8xQkI7ZipnPG1hcmwuKmxDJ2Q+OERUSVdwOTtHMDgidFZPQ0UoZClibVQvPSRTPUI+MDVCTXNFXmdsRiI3JksrOCx+PmVuZHN0cmVhbQplbmRvYmoKMjIgMCBvYmoKPDwKL0ZpbHRlciBbIC9BU0NJSTg1RGVjb2RlIC9GbGF0ZURlY29kZSBdIC9MZW5ndGggMTYzNwo+PgpzdHJlYW0KR2F1YFQ5bG8mSSZBQHNCbSpYKTEjZi4lNVx0bkAzRmlLaiE6MUVuSSRVZDhuQGhOL0xkJkxeU2oxP0VfTVI0cyhwMks7QUBZbj4mcXRBdVduUilcRnJtOkxjPW9jNC1fVjddamU7KjhpQkxrSVdJWHNfXC1VMURcOEUnW2FfVjRuKk8tOzhqNV9BaFNPSEBuWDdBLSI4ImtudFgwdT46OktMLTRfTyUrKmxkZk44dDFXYTJYREpuRFFyXD9nWFZeZS9ESjpAVWZBKVwwKnJkKF43NzU7XVluK2w8L1IvVlgjKWplKiI0OlIpZ0drI2JKWUMlY0FsK1FUclgqQjpHUlA5bVk3Xjc3SlBETEI4Jy1OS3FPNW8uR288OkRbTkhEP00kJXJVMjhNV2xxaCJPJkE9TS1aYWw3bmNjQ1wjLSw0TVJZL1MhM3I1ckFLZTUuRHVZJWFhai8jJi1pX2pvLHIiS11ZM3JHWjVgRS0+OiM2UVBUODMoWUUkVUQkLCZuaTtTRU5RZWpBaU1MMU5lYFVtXEBnMTI7SUc7PUgsbEdyPm8sLzklX3RIVTNbajJZPFJHSzE2OlszbCg4by0uNGsvLHFtUTppLSw1cktiTS1zKCJjNTBrJFNjSzpLKDk4KD9sXjxIJW47UGFDSmo6Li5KSW9mYEZBITk6ajkocGxSY29Hbz8rIiJRbCxqJE1fVmtwbnU9bUpsXl8qU1MlR2FrTG9iTTY9NVVjOEVealhAcGxHMipAUDFeIk1UZWQ6O1kpPideR3QpaiVQXykhWVZLPWpVLVdVXixeZz5lcEpFQ0xvdThyPGJwOz9aMz9LOFF1JicxOl47WDZSNzA0ZWM0PTBzJ2M4KmVmS2BWUy9UQ0RWREBEZ2dzOENQS14oQTVFYUQ0NiZDUmBmMlxlKXM/NFZEMShDK1tibmdgM1QkXDZPbW5aY2RsWTYtJ2R1P0ZoUlo8T2kuPCEvRylwPS4qOzdUcl1pIWEqRi00XT85a1hLW11aWF1yT2JNTWdALVorV0tuLiw4LStoNSk3SW4ycVFEPUUvOUMlTk5xdVUrUV8lWi5dM2ZLa1AvYUMmbi9USFJERi83ZDwrWSo9JVhPX2MhQ2BvLWxMZkJsTk1yLD9yZ0YyLFJWUk1bb0RWU208NEU8L08+UzhMJW1IPGdmRWQ1Ll8tNlIvPGs8Wj5uUF8kbGxmXVEwa2U4J2dyPThJSC5RMEw+MDE/ZnFVLUNaTF5pa2hxdUVIczk0SzFQWUc6RylIa0s9alQmWzs8WjRwUCo3dFpdM1AjZ2NNOlM0MEBjaFJPXCQmTkdBIUAuc3ErLUU4IW46Ti0+biIzQSVHLSpqSDs9JEUjXT9LNkIjcio3ZSM1PmRtJWJvam5ddV1vK2Uoc1IhRUFlZkNwWENucSc1cFxfRE9HWkRsbjgxZjs7OyY5blppT0ppPzNmP2dKQlldLGVGJHEiUD49PHEjKDIhNGIyYCohNEYyJEhSTktVQ0RHbSZEXF10NCNtMGROPGZzKGdVYFEoN241OGQmU1tLdGloXFddU0NFJlY6R05adGRENltsT2tLI0docFRMUCs3WzAiPUwhX3MsQiRraUtmdCkzR18oOSRZYGFeWWdoRlVQdW5kIWdtSUFkVD1IS0RuVSo6SW1pRVZNcllCQyRXSzw4M19vVzwkdUNjKUtecEssMzduYF8oSChiNFZFLGFbTihiLTtZWV8iLmM8IS0pQUorJTlAZSM3cShMZzUmVm9AJWFaQ09jbGNLWC5ZYWtIbnNhLWZuLHBPNks4TyFsOzVoOGckXGFhZUtza1NvYydROzlINl1IUzYhWyU6Ry0ranJTVmErZG5KTGUnSzlvcCRkM087aiprMSYvPylUYWNGP0MxIztJOCpFbChXRTdXT0pVImpdUW1MNUBLXnNyVSdYR1ZrOC9JSVchcSRpWSg/bUVKNWE7MkonOiw8ZUJMWCJcLyVxL09lLSk6ZXI6cyNMLHJfOko+LGxuYjJSN2RzK3FkUj9qJXRnaUFjczFzMEtGaShsM3BGSGwnWExyKjUtW2YqazYwW1VtV0ddUjhbclRfMkYwYkNRamwqOjMiVUcrQyhadWNQO081YEBARzRBInRHT0FgJ3JuOmRdPmRsMl5jUmFVSzJjVzpMVHNdOz4mWS9iKD0qaFIrfj5lbmRzdHJlYW0KZW5kb2JqCnhyZWYKMCAyMwowMDAwMDAwMDAwIDY1NTM1IGYgCjAwMDAwMDAwNjEgMDAwMDAgbiAKMDAwMDAwMDEwMiAwMDAwMCBuIAowMDAwMDAwMjA5IDAwMDAwIG4gCjAwMDAwMDAzMjEgMDAwMDAgbiAKMDAwMDAwMDUyNiAwMDAwMCBuIAowMDAwMDAwNzMxIDAwMDAwIG4gCjAwMDAwMDA5MzYgMDAwMDAgbiAKMDAwMDAwMTE0MSAwMDAwMCBuIAowMDAwMDAxMzQ2IDAwMDAwIG4gCjAwMDAwMDE1NTEgMDAwMDAgbiAKMDAwMDAwMTc1NyAwMDAwMCBuIAowMDAwMDAxOTYzIDAwMDAwIG4gCjAwMDAwMDIwMzMgMDAwMDAgbiAKMDAwMDAwMjMzMyAwMDAwMCBuIAowMDAwMDAyNDM3IDAwMDAwIG4gCjAwMDAwMDMwNjQgMDAwMDAgbiAKMDAwMDAwNTY0MSAwMDAwMCBuIAowMDAwMDA4MzcwIDAwMDAwIG4gCjAwMDAwMDkzMDYgMDAwMDAgbiAKMDAwMDAxMjQzNyAwMDAwMCBuIAowMDAwMDE0OTQ0IDAwMDAwIG4gCjAwMDAwMTc3NDUgMDAwMDAgbiAKdHJhaWxlcgo8PAovSUQgCls8YzY4NzI3ZmY5YjU3Y2JiMDZkYTdiNzk3MTkyM2RhMzY+PGM2ODcyN2ZmOWI1N2NiYjA2ZGE3Yjc5NzE5MjNkYTM2Pl0KJSBSZXBvcnRMYWIgZ2VuZXJhdGVkIFBERiBkb2N1bWVudCAtLSBkaWdlc3QgKG9wZW5zb3VyY2UpCgovSW5mbyAxMyAwIFIKL1Jvb3QgMTIgMCBSCi9TaXplIDIzCj4+CnN0YXJ0eHJlZgoxOTQ3NAolJUVPRgo=';
 function downloadUserGuidePDF() {
   try {
     const bin = atob(FOS_USER_GUIDE_B64);
