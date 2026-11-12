@@ -36705,7 +36705,7 @@ body.light-mode .tx-bar select option,body.light-mode .tx-cls option{color:#111}
   const liveCur = e => portIsForeign(e) ? String(e.currency).toUpperCase() : portBaseCode();
   async function yahooQuote(sym, c) {
     let url = 'https://query1.finance.yahoo.com/v8/finance/chart/' + encodeURIComponent(sym) + '?range=1d&interval=1d';
-    if (c.proxy) url = c.proxy + encodeURIComponent(url);
+    if (c.proxy) url = c.proxy.indexOf('{url}') >= 0 ? c.proxy.replace('{url}', encodeURIComponent(url)) : c.proxy + encodeURIComponent(url);
     const j = await getJSON(url), r = j && j.chart && j.chart.result && j.chart.result[0], m = r && r.meta;
     let p = m ? num(m.regularMarketPrice) : 0, cur = m && m.currency ? String(m.currency) : '';
     if (!(p > 0)) throw new Error('no price for ' + sym);
@@ -36733,6 +36733,75 @@ body.light-mode .tx-bar select option,body.light-mode .tx-cls option{color:#111}
       total: A.length
     };
   }
+
+  // ── Finish-setup rows and the source check shown in the dialog ──
+  let finder = null, chk = null;
+  const gapRow = (e, what, ctl) => `<div class="rf-row"><div>${esc(e.subType || assetTypeLabel(e.assetType))}<small>${what}</small></div>${ctl}</div>`;
+  function rfGapsHtml() {
+    const rows = [];
+    activeHoldings().forEach(e => {
+      const t = typeOf(e), mine = finder && finder.id === e.id;
+      if (t === 'MutualFund' && !hasCode(e)) {
+        if (mine && finder.list) rows.push(gapRow(e, 'Pick the scheme that matches your fund (plan, Growth / IDCW)', `<select class="rf-sel" style="max-width:240px" onchange="rfPickMf(${e.id},this.value)"><option value="">Choose…</option>${finder.list.map(s => `<option value="${esc(s.schemeCode)}">${esc(s.schemeName)}</option>`).join('')}</select>`));
+        else rows.push(gapRow(e, mine && finder.err ? '<span class="rf-bad">' + esc(finder.err) + '</span>' : 'No AMFI scheme code', `<button class="btn-secondary" ${mine && finder.busy ? 'disabled' : ''} onclick="rfFindMf(${e.id})">${mine && finder.busy ? 'Searching…' : 'Find code'}</button>`));
+      } else if (t === 'Crypto' && !hasCoin(e)) {
+        rows.push(gapRow(e, 'No CoinGecko id (for example bitcoin, ethereum)', `<span style="display:flex;gap:4px"><input class="rf-sel" id="rf-in-${e.id}" style="width:110px" placeholder="coin id"><button class="btn-secondary" onclick="rfSaveMeta(${e.id},'coinId')">Save</button></span>`));
+      } else if (EQT.indexOf(t) >= 0 && !hasTicker(e)) {
+        const needEx = ['Stocks', 'ETFs', 'REITs'].indexOf(t) >= 0 && !metaOf(e).exchange;
+        rows.push(gapRow(e, 'No ticker' + (needEx ? ' — pick the exchange too' : ''), `<span style="display:flex;gap:4px"><input class="rf-sel" id="rf-in-${e.id}" style="width:96px" placeholder="ticker">${needEx ? `<select class="rf-sel" id="rf-ex-${e.id}"><option>NSE</option><option>BSE</option></select>` : ''}<button class="btn-secondary" onclick="rfSaveMeta(${e.id},'ticker')">Save</button></span>`));
+      }
+    });
+    if (!rows.length) return '';
+    return `<div class="tx-note" style="margin-top:.8rem"><b>Finish setting up</b> · ${rows.length} holding${rows.length === 1 ? '' : 's'} can’t be refreshed yet</div>` + rows.slice(0, 10).join('') + (rows.length > 10 ? `<div class="tx-note">+ ${rows.length - 10} more — add their codes in each holding’s form.</div>` : '');
+  }
+  window.rfFindMf = async function (id) {
+    const e = portDb.find(x => x.id === id); if (!e) return;
+    finder = { id: id, busy: true }; rfPaint();
+    try {
+      const q = String(e.subType || '').replace(/[^\w\s&]/g, ' ').replace(/\s+/g, ' ').trim();
+      if (!q) throw new Error('Put the fund’s name in the holding first');
+      const ask = s => getJSON('https://api.mfapi.in/mf/search?q=' + encodeURIComponent(s)).then(j => Array.isArray(j) ? j : []);
+      let list = await ask(q);
+      if (!list.length) { const short = q.split(' ').slice(0, 3).join(' '); if (short !== q) list = await ask(short); }
+      if (!list.length) throw new Error('No fund matched “' + q + '” — try a shorter name on the holding');
+      const plan = String(metaOf(e).plan || '').toLowerCase();
+      if (plan) list.sort((a, b) => (String(b.schemeName).toLowerCase().indexOf(plan) >= 0) - (String(a.schemeName).toLowerCase().indexOf(plan) >= 0));
+      finder = { id: id, list: list.slice(0, 25) };
+    } catch (err) { finder = { id: id, err: errMsg(err) }; }
+    rfPaint();
+  };
+  window.rfPickMf = function (id, code) {
+    const e = portDb.find(x => x.id === id); if (!e || !code) return;
+    e.meta = Object.assign({}, e.meta, { schemeCode: String(code) }); finder = null; try { scheduleSave(); } catch (er) { }
+    runRefresh('manual');
+  };
+  window.rfSaveMeta = function (id, k) {
+    const e = portDb.find(x => x.id === id), inp = $('rf-in-' + id), v = inp ? inp.value.trim() : ''; if (!e || !v) return;
+    const upd = {}; upd[k] = k === 'coinId' ? v.toLowerCase() : v.toUpperCase();
+    const ex = $('rf-ex-' + id); if (ex && k === 'ticker') upd.exchange = ex.value;
+    e.meta = Object.assign({}, e.meta, upd); try { scheduleSave(); } catch (er) { }
+    runRefresh('manual');
+  };
+  window.rfCheck = async function () {
+    if (chk && chk.busy) return;
+    const c = rcfg(); chk = { busy: true, res: [] }; rfPaint();
+    const hint = err => (err && err.name !== 'AbortError' && /failed to fetch|networkerror|load failed/i.test(err.message || '')) ? 'blocked by the browser (CORS) or offline' : errMsg(err);
+    const tests = [
+      ['Exchange rates', () => getJSON('https://open.er-api.com/v6/latest/USD').then(j => { if (!j || j.result !== 'success') throw new Error('unexpected reply'); })],
+      ['Mutual fund NAV', () => getJSON('https://api.mfapi.in/mf/search?q=nifty').then(j => { if (!Array.isArray(j)) throw new Error('unexpected reply'); })],
+      ['Crypto prices', () => getJSON('https://api.coingecko.com/api/v3/simple/price?ids=bitcoin&vs_currencies=usd').then(j => { if (!j || !j.bitcoin) throw new Error('unexpected reply'); })]
+    ];
+    tests.push(c.prov === 'av'
+      ? ['Alpha Vantage', () => c.avKey ? alphaQuote('IBM', c) : Promise.reject(new Error('no API key entered'))]
+      : ['Yahoo Finance' + (c.proxy ? ' (via your proxy)' : ''), () => yahooQuote('AAPL', c)]);
+    for (const t of tests) {
+      try { await t[1](); chk.res.push({ src: t[0], ok: true, msg: 'reachable' }); }
+      catch (err) { chk.res.push({ src: t[0], ok: false, msg: hint(err) }); }
+      rfPaint();
+    }
+    chk.busy = false; chk.at = new Date().toISOString(); rfPaint();
+  };
+  const rfChkHtml = () => !chk ? '' : `<div class="tx-note" style="margin-top:.8rem"><b>Source check</b>${chk.busy ? ' · testing…' : chk.at ? ' · ' + esc(new Date(chk.at).toLocaleTimeString()) : ''}</div>` + chk.res.map(r => `<div class="rf-row"><div><span class="${r.ok ? 'rf-ok' : 'rf-bad'}">●</span> ${esc(r.src)}<small>${esc(r.msg)}</small></div></div>`).join('');
 
   function repaint() {
     try { portRefreshViews(); } catch (e) { }
@@ -36842,6 +36911,15 @@ body.light-mode .tx-bar select option,body.light-mode .tx-cls option{color:#111}
       }
     }
 
+    if (T.metals && typeof MarketEngine !== 'undefined' && MarketEngine.fetchUpdates) {
+      const mets = activeHoldings().filter(e => ['Gold', 'Silver'].indexOf(typeOf(e)) >= 0), before = mets.map(e => num(e.currentPrice));
+      try {
+        await MarketEngine.fetchUpdates(true);
+        const n = mets.filter((e, i) => Math.abs(num(e.currentPrice) - before[i]) > 0.0001).length;
+        res.push({ src: 'Gold & silver · Market Pulse', ok: true, msg: n + ' of ' + mets.length + ' updated' + (n ? '' : ' — unchanged (already current, or the metal price feed could not be reached)') });
+      } catch (err) { res.push({ src: 'Gold & silver · Market Pulse', ok: false, msg: errMsg(err) }); }
+    }
+
     if (!res.length) res.push({ src: 'Nothing to refresh', ok: true, msg: 'Add a ticker, scheme code, coin id or a foreign-currency holding first' });
     c.last = Date.now(); c.run = { at: new Date().toISOString(), why: why || 'manual', res: res }; rsave(c);
     if (changed > 0) { try { scheduleSave(); } catch (e) { } repaint(); }
@@ -36877,11 +36955,12 @@ body.light-mode .tx-bar select option,body.light-mode .tx-cls option{color:#111}
         <select class="rf-sel" onchange="rfSet('prov',this.value)"><option value="yahoo"${c.prov !== 'av' ? ' selected' : ''}>Yahoo Finance</option><option value="av"${c.prov === 'av' ? ' selected' : ''}>Alpha Vantage</option></select></div>
       ${c.prov === 'av'
         ? `<div class="rf-row"><div>Alpha Vantage API key<small>Stored only in this browser. Not synced and never part of a backup.</small></div><input class="rf-sel" style="width:150px" type="password" autocomplete="off" value="${esc(c.avKey)}" placeholder="paste key" onchange="rfSet('avKey',this.value.trim())"></div>`
-        : `<div class="rf-row"><div>CORS proxy (optional)<small>Prefix that receives the encoded Yahoo URL, for example https://your-proxy.example/?url=</small></div><input class="rf-sel" style="width:190px" type="text" autocomplete="off" value="${esc(c.proxy)}" placeholder="https://…" onchange="rfSet('proxy',this.value.trim())"></div>`}
+        : `<div class="rf-row"><div>CORS proxy (optional)<small>Address that receives the encoded Yahoo URL. Either end it where the URL is appended (https://proxy.example/?url=) or put {url} where it should go</small></div><input class="rf-sel" style="width:190px" type="text" autocomplete="off" value="${esc(c.proxy)}" placeholder="https://…" onchange="rfSet('proxy',this.value.trim())"></div>`}
       <div class="tx-note">Covered now: ${cover.length ? esc(cover.join(' · ')) : 'nothing yet'}.${T.metals ? ' ' + T.metals + ' gold/silver holding' + (T.metals === 1 ? '' : 's') + ' already follow the Market Pulse prices.' : ''} Anything a source cannot return keeps the price you entered.${gaps.length ? ' <span class="rf-bad">' + esc(gaps.join(' · ')) + '.</span>' : ''}</div>
+      ${rfGapsHtml()}
       <div style="display:flex;gap:8px;margin-top:1rem"><button class="btn-add" style="flex:1;justify-content:center" ${busy ? 'disabled' : ''} onclick="rfNow()"><i class="fas fa-sync-alt${busy ? ' fa-spin' : ''}"></i> ${busy ? 'Refreshing…' : 'Refresh now'}</button>
-        <button onclick="rfClose()" class="btn-secondary" style="flex:1;justify-content:center;display:flex">Close</button></div>
-      ${run}`;
+        <button onclick="rfCheck()" class="btn-secondary" style="flex:1;justify-content:center;display:flex">Check sources</button><button onclick="rfClose()" class="btn-secondary" style="flex:1;justify-content:center;display:flex">Close</button></div>
+      ${run}${rfChkHtml()}`;
   }
 
   window.rfOpen = function () {
