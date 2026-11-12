@@ -37603,7 +37603,7 @@ body.light-mode .fa-fl{background:#fff}
   ]},
   { id: 'myzone', grp: 'FinanceOS', ic: '🧠', t: 'My Zone: Insurance, Notes, Fin AI', m: 5, sum: 'Policies and claims, notes, and your on-device financial assistant.', steps: [
     { v: 'insurance', g: 'finance', t: 'Insurance', s: [fin('insurance')], w: 'Motor, health, life, term, accident, home and travel policies with type-specific forms, claims, documents and renewal dates. Subscriptions are tracked here too.', r: 'A readiness score per policy, expiry reminders and smart insights on gaps.', d: 'Add your renewal dates first so alerts can fire.' },
-    { v: 'notes', g: 'finance', t: 'Notes', s: [fin('notes')], w: 'Free-form notes beside your finances.', r: 'Account details, reminders and decisions in one place.' },
+    { v: 'notes', g: 'finance', t: 'Notes', s: [fin('notes')], w: 'Free-form notes beside your finances, with optional password protection. Each note can also hold attachments: images, video, audio, PDFs, or a voice note you record right there. Click any attachment to open it in a gallery viewer with next/previous, play controls and download.', r: 'Account details, reminders, receipts and voice memos in one place.', p: 'Attachments stay on this device (they are not in cloud sync or the JSON backup).' },
     { v: 'finai', g: 'finance', t: 'Fin AI: health score', s: [fin('finai'), '#view-finai'], w: 'A Financial Health Score built from Savings Rate, Top Spend Category, Debt-to-Income, Portfolio P/L, Credit Card Usage and Insurance Cover.', r: 'One score and six reasons behind it, so you know exactly what to fix first.', p: 'Everything is calculated on your device from your own data.' },
     { v: 'finai', g: 'finance', t: 'Coming up, forecast & debt planner', s: ['#view-finai'], w: '*Coming Up* lists today / this week / this month. The *30-Day Forecast* projects your cash. The *Debt Command Center* models paying extra per month. *Goals* tracks savings targets.', r: 'See crunch days before they arrive, and see how much interest an extra payment saves.', d: 'Add one goal, then ask Fin AI "Am I overspending?".' }
   ]},
@@ -37837,6 +37837,172 @@ body.light-mode .fa-fl{background:#fff}
   window.fosAcademyOpen = function (id) { setTimeout(function () { open(id); }, 200); };
   window.fosAcademyFull = function () { setTimeout(openFull, 200); };
   window.fosTourStart = window.fosAcademyFull;     // Settings > About > "Replay Tutorial" now opens the Academy
+})();
+</script>
+
+<style id="notes-att-css">
+.natt{margin-top:10px;padding:10px 12px;border-radius:12px;border:1px dashed rgba(128,128,128,.4);background:rgba(128,128,128,.06)}
+.natt.drag{border-color:#fbbf24;background:rgba(251,191,36,.1)}
+.natt-bar{display:flex;align-items:center;gap:8px;flex-wrap:wrap;font-size:.76rem}
+.natt-bar b{font-size:.8rem}.natt-bar .natt-sp{flex:1}.natt-bar small{opacity:.65}
+.natt-btn{font:inherit;font-size:.76rem;font-weight:600;cursor:pointer;color:inherit;padding:6px 11px;border-radius:9px;border:1px solid rgba(128,128,128,.4);background:rgba(128,128,128,.1)}
+.natt-btn:hover{border-color:#fbbf24;color:#fbbf24}
+.natt-btn.rec{background:#ef4444;border-color:#ef4444;color:#fff;animation:nattp 1.2s infinite}
+@keyframes nattp{50%{opacity:.7}}
+.natt-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(130px,1fr));gap:8px;margin-top:10px;max-height:190px;overflow:auto}
+.natt-empty{grid-column:1/-1;font-size:.74rem;opacity:.65;padding:6px 0}
+.natt-tile{position:relative;border-radius:10px;overflow:hidden;border:1px solid rgba(128,128,128,.3);background:rgba(128,128,128,.1);cursor:pointer}
+.natt-tile:hover{border-color:#fbbf24}
+.natt-media{height:84px;display:flex;align-items:center;justify-content:center;font-size:1.8rem;opacity:.9;overflow:hidden;position:relative}
+.natt-media img,.natt-media video{width:100%;height:100%;object-fit:cover}
+.natt-media .natt-play{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:1.3rem;color:#fff;background:rgba(0,0,0,.25)}
+.natt-media audio{width:96%;height:32px}
+.natt-cap{padding:4px 7px;font-size:.66rem;line-height:1.3;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.natt-x{position:absolute;top:4px;right:4px;width:22px;height:22px;border-radius:50%;border:none;background:rgba(0,0,0,.6);color:#fff;font-size:.65rem;cursor:pointer;display:none}
+.natt-tile:hover .natt-x{display:block}
+.natt-badge{margin-top:5px;font-size:.66rem;color:#fbbf24}
+#natt-view{position:fixed;inset:0;z-index:2000200;background:rgba(2,6,8,.94);display:none;flex-direction:column;color:#fff}
+#natt-view.on{display:flex}
+.nv-top{display:flex;align-items:center;gap:10px;padding:12px 16px;font-size:.82rem}
+.nv-top .nv-name{flex:1;font-weight:700;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.nv-top a,.nv-top button{color:#fff;font:inherit;font-size:.78rem;text-decoration:none;cursor:pointer;padding:7px 12px;border-radius:9px;border:1px solid rgba(255,255,255,.25);background:rgba(255,255,255,.08)}
+.nv-top a:hover,.nv-top button:hover{background:rgba(255,255,255,.18)}
+#nv-stage{flex:1;min-height:0;display:flex;align-items:center;justify-content:center;padding:0 64px;text-align:center}
+#nv-stage img,#nv-stage video{max-width:100%;max-height:100%;border-radius:8px}
+#nv-stage iframe{width:100%;height:100%;border:0;background:#fff;border-radius:8px}
+.nv-aud{font-size:4rem;display:flex;flex-direction:column;gap:14px;align-items:center}.nv-aud audio{width:min(480px,80vw)}
+.nv-arrow{position:absolute;top:50%;transform:translateY(-50%);width:44px;height:44px;border-radius:50%;border:1px solid rgba(255,255,255,.25);background:rgba(255,255,255,.1);color:#fff;font-size:1.1rem;cursor:pointer}
+.nv-arrow.l{left:12px}.nv-arrow.r{right:12px}
+.nv-film{display:flex;gap:8px;padding:12px 16px;overflow:auto;justify-content:center}
+.nv-film button{flex:none;max-width:150px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:#fff;font:inherit;font-size:.7rem;padding:6px 10px;border-radius:8px;border:1px solid rgba(255,255,255,.2);background:rgba(255,255,255,.06);cursor:pointer}
+.nv-film button.on{border-color:#fbbf24;color:#fbbf24}
+@media(max-width:700px){#nv-stage{padding:0 8px}.nv-arrow{top:auto;bottom:70px}}
+</style>
+<script id="notes-att-js">
+/* Notes attachments: images, video, audio, PDF + voice recorder. Files live in IndexedDB (device-only); the note stores just a small list. */
+(function () {
+  var DB = 'fos_notes_media', ST = 'files', dbp = null, urls = {}, rec = null, vi = 0, vu = null;
+  function $(i) { return document.getElementById(i); }
+  function el(t, c, h) { var e = document.createElement(t); if (c) e.className = c; if (h) e.innerHTML = h; return e; }
+  function idb() { return dbp || (dbp = new Promise(function (res, rej) { var q = indexedDB.open(DB, 1); q.onupgradeneeded = function () { q.result.createObjectStore(ST, { keyPath: 'id' }); }; q.onsuccess = function () { res(q.result); }; q.onerror = function () { rej(q.error); }; })); }
+  function tx(mode, fn) { return idb().then(function (d) { return new Promise(function (res, rej) { var t = d.transaction(ST, mode), r = fn(t.objectStore(ST)); t.oncomplete = function () { res(r && r.result); }; t.onerror = t.onabort = function () { rej(t.error); }; }); }); }
+  function put(id, blob) { return tx('readwrite', function (s) { return s.put({ id: id, blob: blob }); }); }
+  function get(id) { return tx('readonly', function (s) { return s.get(id); }).then(function (r) { return r && r.blob; }); }
+  function del(id) { return tx('readwrite', function (s) { return s.delete(id); }); }
+  function cur() { return typeof notesDb !== 'undefined' ? notesDb.find(function (n) { return n.id === activeNoteId; }) : null; }
+  function kind(t, name) { t = t || ''; if (/^image\//.test(t)) return 'image'; if (/^video\//.test(t)) return 'video'; if (/^audio\//.test(t)) return 'audio'; if (/pdf/.test(t)) return 'pdf'; var e = (name || '').split('.').pop().toLowerCase(); if (/^(png|jpe?g|gif|webp|svg|bmp|avif)$/.test(e)) return 'image'; if (/^(mp4|mov|webm|mkv|m4v)$/.test(e)) return 'video'; if (/^(mp3|wav|m4a|ogg|aac|weba)$/.test(e)) return 'audio'; if (e === 'pdf') return 'pdf'; return 'file'; }
+  var ICON = { image: 'fa-image', video: 'fa-video', audio: 'fa-microphone', pdf: 'fa-file-pdf', file: 'fa-file' };
+  function sz(b) { return b > 1048576 ? (b / 1048576).toFixed(1) + ' MB' : Math.max(1, Math.round(b / 1024)) + ' KB'; }
+
+  function build() {
+    if ($('natt')) return;
+    var row = document.querySelector('.notes-save-row'); if (!row) return;
+    var s = el('div', 'natt'); s.id = 'natt';
+    s.innerHTML = '<div class="natt-bar"><b><i class="fas fa-paperclip"></i> Attachments</b><small id="natt-count"></small><span class="natt-sp"></span>' +
+      '<button type="button" class="natt-btn" id="natt-add"><i class="fas fa-plus"></i> Attach files</button>' +
+      '<button type="button" class="natt-btn" id="natt-rec"><i class="fas fa-microphone"></i> Record audio</button>' +
+      '<input type="file" id="natt-in" multiple accept="image/*,video/*,audio/*,application/pdf" style="display:none"></div>' +
+      '<div class="natt-grid" id="natt-grid"></div>' +
+      '<div style="font-size:.64rem;opacity:.55;margin-top:6px">Images, video, audio and PDF. Drag files here too. Files stay on this device (not in cloud sync or JSON backup).</div>';
+    row.parentNode.insertBefore(s, row);
+    $('natt-add').onclick = function () { $('natt-in').click(); };
+    $('natt-in').onchange = function () { addFiles(this.files); this.value = ''; };
+    $('natt-rec').onclick = recToggle;
+    ['dragenter', 'dragover'].forEach(function (ev) { s.addEventListener(ev, function (e) { e.preventDefault(); s.classList.add('drag'); }); });
+    ['dragleave', 'drop'].forEach(function (ev) { s.addEventListener(ev, function (e) { e.preventDefault(); s.classList.remove('drag'); if (ev === 'drop' && e.dataTransfer) addFiles(e.dataTransfer.files); }); });
+    var v = el('div'); v.id = 'natt-view'; v.setAttribute('role', 'dialog'); v.setAttribute('aria-label', 'Attachment viewer');
+    v.innerHTML = '<div class="nv-top"><span class="nv-name" id="nv-name"></span><span id="nv-count"></span><a id="nv-open" target="_blank" rel="noopener">Open in tab</a><a id="nv-dl">Download</a><button type="button" id="nv-del">Delete</button><button type="button" id="nv-close">✕ Close</button></div>' +
+      '<div style="position:relative;flex:1;min-height:0;display:flex"><button type="button" class="nv-arrow l" id="nv-prev" aria-label="Previous">‹</button><div id="nv-stage"></div><button type="button" class="nv-arrow r" id="nv-next" aria-label="Next">›</button></div><div class="nv-film" id="nv-film"></div>';
+    document.body.appendChild(v);
+    $('nv-close').onclick = closeV; $('nv-prev').onclick = function () { view(vi - 1); }; $('nv-next').onclick = function () { view(vi + 1); };
+    $('nv-del').onclick = function () { var n = cur(); if (n && n.attachments[vi] && confirm('Remove this attachment?')) removeAt(n, vi); };
+    v.addEventListener('click', function (e) { if (e.target === v || e.target.id === 'nv-stage') closeV(); });
+    document.addEventListener('keydown', function (e) {
+      if (!v.classList.contains('on')) return;
+      if (e.key === 'Escape') { e.preventDefault(); e.stopImmediatePropagation(); closeV(); }
+      else if (e.key === 'ArrowRight') { e.preventDefault(); view(vi + 1); } else if (e.key === 'ArrowLeft') { e.preventDefault(); view(vi - 1); }
+    }, true);
+  }
+  function render() {
+    var g = $('natt-grid'); if (!g) return;
+    Object.keys(urls).forEach(function (k) { URL.revokeObjectURL(urls[k]); }); urls = {};
+    var n = cur(), L = (n && n.attachments) || [];
+    $('natt-count').textContent = L.length ? L.length + ' attached' : '';
+    g.innerHTML = L.length ? '' : '<div class="natt-empty">Nothing attached yet. Use Attach files, Record audio, or drop files here.</div>';
+    L.forEach(function (a, i) {
+      var k = kind(a.type, a.name), t = el('div', 'natt-tile'), m = el('div', 'natt-media', '<i class="fas ' + ICON[k] + '"></i>'), c = el('div', 'natt-cap'), x = el('button', 'natt-x', '✕');
+      c.textContent = a.name + ' · ' + sz(a.size); c.title = a.name; x.type = 'button'; x.title = 'Remove';
+      x.onclick = function (e) { e.stopPropagation(); if (confirm('Remove "' + a.name + '"?')) removeAt(n, i); };
+      t.onclick = function () { view(i); };
+      t.appendChild(m); t.appendChild(c); t.appendChild(x); g.appendChild(t);
+      if (k === 'image' || k === 'video' || k === 'audio') get(a.id).then(function (b) {
+        if (!b || !t.isConnected) return; var u = urls[a.id] = URL.createObjectURL(b); m.innerHTML = '';
+        if (k === 'image') { var im = el('img'); im.src = u; im.alt = a.name; m.appendChild(im); }
+        else if (k === 'video') { var vd = el('video'); vd.src = u + '#t=0.3'; vd.muted = true; vd.preload = 'metadata'; m.appendChild(vd); m.appendChild(el('div', 'natt-play', '<i class="fas fa-play-circle"></i>')); }
+        else { var au = el('audio'); au.src = u; au.controls = true; au.onclick = function (e) { e.stopPropagation(); }; m.appendChild(au); }
+      });
+    });
+  }
+  function removeAt(n, i) { var a = n.attachments.splice(i, 1)[0]; if (a) del(a.id); n.updatedAt = new Date().toISOString(); scheduleSave(); render(); renderNotesList(($('notes-search-input') || {}).value || ''); if ($('natt-view').classList.contains('on')) view(Math.min(i, n.attachments.length - 1)); }
+  function addFiles(files, nid) {
+    var n = notesDb.find(function (x) { return x.id === (nid || activeNoteId); }); if (!n) return; n.attachments = n.attachments || [];
+    var jobs = Array.prototype.slice.call(files).map(function (f) {
+      if (f.size > 100 * 1048576) { alert(f.name + ' is over 100 MB, so it was not added.'); return null; }
+      var id = 'a' + Date.now() + Math.random().toString(36).slice(2, 7);
+      return put(id, f).then(function () { n.attachments.push({ id: id, name: f.name, type: f.type || '', size: f.size, at: new Date().toISOString() }); }).catch(function () { alert('Could not save ' + f.name + ' (browser storage is full or blocked).'); });
+    });
+    Promise.all(jobs).then(function () { n.updatedAt = new Date().toISOString(); scheduleSave(); if (activeNoteId === n.id) render(); renderNotesList(($('notes-search-input') || {}).value || ''); });
+  }
+  function recBtn() { var b = $('natt-rec'); if (!b) return; if (rec) { var s = Math.floor((Date.now() - rec.t0) / 1000); b.className = 'natt-btn rec'; b.innerHTML = '<i class="fas fa-stop"></i> Stop · ' + Math.floor(s / 60) + ':' + ('0' + s % 60).slice(-2); } else { b.className = 'natt-btn'; b.innerHTML = '<i class="fas fa-microphone"></i> Record audio'; } }
+  function recToggle() {
+    if (rec) { rec.mr.stop(); return; }
+    if (!navigator.mediaDevices || !window.MediaRecorder) { alert('Audio recording is not supported in this browser.'); return; }
+    var nid = activeNoteId;
+    navigator.mediaDevices.getUserMedia({ audio: true }).then(function (stream) {
+      var mt = ['audio/webm;codecs=opus', 'audio/webm', 'audio/mp4', 'audio/ogg'].filter(function (t) { return MediaRecorder.isTypeSupported(t); })[0] || '';
+      var mr = new MediaRecorder(stream, mt ? { mimeType: mt } : {}), ch = [];
+      rec = { mr: mr, t0: Date.now() };
+      mr.ondataavailable = function (e) { if (e.data && e.data.size) ch.push(e.data); };
+      mr.onstop = function () {
+        clearInterval(rec.iv); stream.getTracks().forEach(function (t) { t.stop(); });
+        var type = mr.mimeType || mt || 'audio/webm', ext = /mp4/.test(type) ? 'm4a' : /ogg/.test(type) ? 'ogg' : 'webm', d = new Date();
+        var nm = 'Voice note ' + d.toISOString().slice(0, 10) + ' ' + ('0' + d.getHours()).slice(-2) + '.' + ('0' + d.getMinutes()).slice(-2) + '.' + ext;
+        rec = null; recBtn(); if (ch.length) addFiles([new File(ch, nm, { type: type })], nid);
+      };
+      mr.start(); rec.iv = setInterval(recBtn, 500); recBtn();
+    }).catch(function () { alert('Microphone access was blocked. Allow it in your browser settings and try again.'); });
+  }
+  function stop() { var s = $('nv-stage'); if (!s) return; s.querySelectorAll('audio,video').forEach(function (m) { m.pause(); m.removeAttribute('src'); m.load(); }); s.textContent = ''; if (vu) { URL.revokeObjectURL(vu); vu = null; } }
+  function closeV() { stop(); $('natt-view').classList.remove('on'); }
+  function view(i) {
+    var n = cur(), L = (n && n.attachments) || []; if (!L.length) { closeV(); return; }
+    vi = (i + L.length) % L.length; var a = L[vi], s = $('nv-stage'); stop(); s.textContent = 'Loading…'; $('natt-view').classList.add('on');
+    $('nv-name').textContent = a.name; $('nv-count').textContent = (vi + 1) + ' / ' + L.length;
+    var f = $('nv-film'); f.innerHTML = '';
+    L.forEach(function (b, j) { var c = el('button', j === vi ? 'on' : '', '<i class="fas ' + ICON[kind(b.type, b.name)] + '"></i> '); c.appendChild(document.createTextNode(b.name)); c.onclick = function () { view(j); }; f.appendChild(c); });
+    $('nv-prev').style.display = $('nv-next').style.display = L.length > 1 ? '' : 'none';
+    get(a.id).then(function (b) {
+      if (!b) { s.textContent = 'This file is not stored on this device. Attachments do not sync between devices.'; return; }
+      vu = URL.createObjectURL(b); var k = kind(b.type || a.type, a.name), e; s.textContent = '';
+      if (k === 'image') { e = el('img'); e.src = vu; e.alt = a.name; }
+      else if (k === 'video') { e = el('video'); e.src = vu; e.controls = true; e.autoplay = true; e.playsInline = true; }
+      else if (k === 'audio') { e = el('div', 'nv-aud', '<i class="fas fa-headphones"></i>'); var au = el('audio'); au.src = vu; au.controls = true; au.autoplay = true; e.appendChild(au); }
+      else if (k === 'pdf') { e = el('iframe'); e.src = vu; e.title = a.name; }
+      else { e = el('div', '', 'No preview for this file type. Use Download.'); }
+      s.appendChild(e); $('nv-dl').href = vu; $('nv-dl').download = a.name; $('nv-open').href = vu;
+    });
+  }
+  /* hook into the existing Notes code */
+  var _l = window.loadNoteIntoEditor; window.loadNoteIntoEditor = function (id) { _l(id); build(); render(); };
+  var _d = window.deleteActiveNote; window.deleteActiveNote = function () { var id = activeNoteId, n = cur(), at = (n && n.attachments) || []; _d(); if (id && !notesDb.some(function (x) { return x.id === id; })) at.forEach(function (a) { del(a.id); }); };
+  var _r = window.renderNotesList; window.renderNotesList = function (q) {
+    _r(q);
+    document.querySelectorAll('#notes-list .note-card').forEach(function (c) {
+      var m = /selectNote\((\d+)\)/.exec(c.getAttribute('onclick') || ''), n = m && notesDb.find(function (x) { return String(x.id) === m[1]; });
+      if (n && n.attachments && n.attachments.length && !c.querySelector('.note-card-locked')) c.appendChild(el('div', 'natt-badge', '<i class="fas fa-paperclip"></i> ' + n.attachments.length + ' attachment' + (n.attachments.length > 1 ? 's' : '')));
+    });
+  };
+  build();
 })();
 </script>
 
