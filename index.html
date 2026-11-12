@@ -26994,7 +26994,7 @@ const MarketEngine = {
     });
 
     // Start Loops
-    setInterval(() => { if (!document.hidden) this.fetchUpdates(true); }, 8000); 
+    setInterval(() => { if (!document.hidden) this.fetchUpdates(true); }, 30000);   // was 8s — too frequent for CoinGecko's free rate limit, which then blocks the gold/silver feed
     setInterval(() => { if (!document.hidden) this.fetchUpdates(false); }, 20000);
   },
 
@@ -36682,7 +36682,7 @@ body.light-mode .tx-bar select option,body.light-mode .tx-cls option{color:#111}
       .then(r => { if (!r.ok) throw new Error('HTTP ' + r.status); return r.json(); })
       .finally(() => { if (t) clearTimeout(t); });
   }
-  const errMsg = e => (e && e.name === 'AbortError') ? 'timed out' : (e && e.message) ? e.message : 'request failed';
+  const errMsg = e => (e && e.name === 'AbortError') ? 'timed out' : (e && /failed to fetch|networkerror|load failed/i.test(e.message || '')) ? 'could not reach the server (blocked by the browser or a network filter, rate-limited, or offline)' : (e && e.message) ? e.message : 'request failed';
   const activeHoldings = () => (typeof portDb !== 'undefined' ? portDb : []).filter(e => e && e.status !== 'sold');
   const typeOf = e => normalizeAssetType(e.assetType);
   const metaOf = e => (e && e.meta) || {};
@@ -36735,7 +36735,7 @@ body.light-mode .tx-bar select option,body.light-mode .tx-cls option{color:#111}
   }
 
   // ── Finish-setup rows and the source check shown in the dialog ──
-  let finder = null, chk = null;
+  let finder = null, chk = null, mfAll = null;
   const gapRow = (e, what, ctl) => `<div class="rf-row"><div>${esc(e.subType || assetTypeLabel(e.assetType))}<small>${what}</small></div>${ctl}</div>`;
   function rfGapsHtml() {
     const rows = [];
@@ -36761,8 +36761,16 @@ body.light-mode .tx-bar select option,body.light-mode .tx-cls option{color:#111}
       const q = String(e.subType || '').replace(/[^\w\s&]/g, ' ').replace(/\s+/g, ' ').trim();
       if (!q) throw new Error('Put the fund’s name in the holding first');
       const ask = s => getJSON('https://api.mfapi.in/mf/search?q=' + encodeURIComponent(s)).then(j => Array.isArray(j) ? j : []);
-      let list = await ask(q);
-      if (!list.length) { const short = q.split(' ').slice(0, 3).join(' '); if (short !== q) list = await ask(short); }
+      // the full list is large, so it is fetched once and filtered here — used when the search address is unreachable
+      const local = async s => {
+        if (!mfAll) { const j = await getJSON('https://api.mfapi.in/mf', 30000); mfAll = Array.isArray(j) ? j : []; }
+        const words = s.toLowerCase().split(' ').filter(w => w.length > 1);
+        return mfAll.filter(x => { const n = String(x.schemeName || '').toLowerCase(); return words.every(w => n.indexOf(w) >= 0); });
+      };
+      let list = [];
+      try { list = await ask(q); if (!list.length) { const short = q.split(' ').slice(0, 3).join(' '); if (short !== q) list = await ask(short); } }
+      catch (e1) { list = await local(q); }
+      if (!list.length) { try { list = await local(q); } catch (e2) { } }
       if (!list.length) throw new Error('No fund matched “' + q + '” — try a shorter name on the holding');
       const plan = String(metaOf(e).plan || '').toLowerCase();
       if (plan) list.sort((a, b) => (String(b.schemeName).toLowerCase().indexOf(plan) >= 0) - (String(a.schemeName).toLowerCase().indexOf(plan) >= 0));
@@ -36851,7 +36859,8 @@ body.light-mode .tx-bar select option,body.light-mode .tx-cls option{color:#111}
         stamp(e, 'mfapi.in', h.date);
       });
       changed += n;
-      res.push({ src: 'Mutual fund NAV', ok: fail === 0 && noUnits === 0, msg: n + ' of ' + T.mf.length + ' updated' + (fail ? ' · ' + fail + ' scheme(s) failed (' + firstErr + ')' : '') + (noUnits ? ' · ' + noUnits + ' have no units entered' : '') });
+      const nd = Object.keys(navs).map(k => navs[k].date).filter(Boolean)[0];
+      res.push({ src: 'Mutual fund NAV', ok: fail === 0 && noUnits === 0, msg: n + ' of ' + T.mf.length + ' updated' + (n === 0 && fail === 0 && noUnits === 0 && Object.keys(navs).length ? ' — already at the latest NAV' + (nd ? ' (' + nd + ')' : '') : '') + (fail ? ' · ' + fail + ' scheme(s) failed (' + firstErr + ')' : '') + (noUnits ? ' · ' + noUnits + ' have no units entered' : '') });
     }
 
     if (c.crypto && T.cr.length) {
@@ -36916,7 +36925,9 @@ body.light-mode .tx-bar select option,body.light-mode .tx-cls option{color:#111}
       try {
         await MarketEngine.fetchUpdates(true);
         const n = mets.filter((e, i) => Math.abs(num(e.currentPrice) - before[i]) > 0.0001).length;
-        res.push({ src: 'Gold & silver · Market Pulse', ok: true, msg: n + ' of ' + mets.length + ' updated' + (n ? '' : ' — unchanged (already current, or the metal price feed could not be reached)') });
+        let reached = true, why = '';
+        if (!n) { try { const j = await getJSON('https://api.coingecko.com/api/v3/simple/price?ids=pax-gold&vs_currencies=inr'); reached = !!(j && j['pax-gold']); if (!reached) why = 'unexpected reply'; } catch (e3) { reached = false; why = errMsg(e3); } }
+        res.push({ src: 'Gold & silver · Market Pulse', ok: n > 0 || reached, msg: n ? n + ' of ' + mets.length + ' updated' : reached ? '0 of ' + mets.length + ' updated — the price feed answered and your holdings already match it' : 'price feed unreachable (' + why + ') — holdings keep their last prices' });
       } catch (err) { res.push({ src: 'Gold & silver · Market Pulse', ok: false, msg: errMsg(err) }); }
     }
 
