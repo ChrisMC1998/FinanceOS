@@ -2125,9 +2125,9 @@ body.light-mode .mc-name, body.light-mode .mc-price { color: #0f172a; }
 #settings-modal { z-index: 99990; } /* above mobile header (300) and the backup banner (9990); below login/lock/tracking dialogs */
 .settings-modal-box {
   display: flex;
-  width: 880px !important;
+  width: 1080px !important;
   max-width: 95vw !important;
-  height: 65vh; 
+  height: min(80vh, 780px); 
   padding: 0 !important;
   overflow: hidden !important; /* Strict click-navigation, no scrolling */
   background: var(--glass-bg, #0c1020);
@@ -3752,6 +3752,26 @@ body.light-mode .p1-t td{border-bottom-color:rgba(15,23,42,.07)}
 .pi-bm{font-size:.78rem;margin-bottom:.7rem}.pi-bm input{width:64px;margin:0 .3rem;padding:.2rem .4rem;border-radius:8px;border:1px solid rgba(167,139,250,.3);background:transparent;color:inherit}
 @media(max-width:820px){.pi-two{grid-template-columns:minmax(0,1fr)}}
 .port-sidebar:not(.collapsed) #pos-cat-by-asset .nav-group-inner{gap:8px;padding:4px 0 6px}.port-sidebar:not(.collapsed) #pos-cat-intel .nav-group-inner{padding:4px 0 6px}.port-sidebar:not(.collapsed) #pos-cat-by-asset .port-nav-item{padding-top:9px;padding-bottom:9px}.port-sidebar:not(.collapsed) .nav-section-label.nav-cat-toggle{margin-top:14px!important;margin-bottom:6px}.pi-cls{display:grid;grid-template-columns:1.4fr 1fr 1fr;gap:.5rem}.pi-hint{font-size:.7rem;opacity:.65;margin-top:.35rem;line-height:1.35}#pi-cs-modal{display:none;position:fixed;inset:0;z-index:100000;background:rgba(0,0,0,.55);align-items:center;justify-content:center;padding:1rem}.pi-cs-box{width:min(440px,100%);max-height:80vh;overflow:auto;background:var(--bg-card,#0f1720);border:1px solid rgba(167,139,250,.3);border-radius:16px;padding:1rem;color:inherit}.pi-cs-h{display:flex;justify-content:space-between;margin-bottom:.7rem}.pi-cs-h span{cursor:pointer;opacity:.7}.pi-cs-r{display:flex;gap:.5rem;margin:.4rem 0}.pi-cs-r.off input{opacity:.45;text-decoration:line-through}@media(max-width:600px){.pi-cls{grid-template-columns:1fr}}#ps-modal{display:none;position:fixed;inset:0;z-index:100001;background:rgba(0,0,0,.55);align-items:center;justify-content:center;padding:1rem}.pi-tin{width:64px;padding:.25rem .4rem;border-radius:8px;border:1px solid rgba(167,139,250,.3);background:transparent;color:inherit;font-size:.78rem}.pi-ctl{display:flex;flex-wrap:wrap;gap:.5rem;align-items:center;font-size:.76rem;margin-bottom:.4rem}.pi-ctl .input-field{width:auto;min-width:150px}.pi-inc-sec{margin-top:1rem;padding:.9rem;border:1px solid rgba(167,139,250,.2);border-radius:14px}.pi-inc-t{font-weight:700;font-size:.85rem;margin-bottom:.5rem}.pi-inc-t span{font-weight:400;opacity:.6;margin-left:.5rem;font-size:.75rem}.pi-inc-f{display:grid;grid-template-columns:130px 120px 110px 1fr auto;gap:.4rem;margin-top:.6rem}@media(max-width:700px){.pi-inc-f{grid-template-columns:1fr 1fr}}</style>
+<style id="fos-premium-badges">
+/* Premium outline badges (Settings only): transparent fill, thin tinted outline, soft glow. Colour follows each badge's own hue. */
+#settings-modal .badge{
+  background:transparent !important; border:1px solid currentColor !important;
+  border:1px solid color-mix(in srgb,currentColor 55%,transparent) !important;
+  border-radius:8px; padding:4px 11px; font-size:.64rem; font-weight:700; letter-spacing:.9px; text-transform:uppercase;
+  white-space:nowrap; line-height:1.2; flex-shrink:0;
+  box-shadow:0 0 0 1px color-mix(in srgb,currentColor 8%,transparent), 0 0 12px color-mix(in srgb,currentColor 28%,transparent), inset 0 0 10px color-mix(in srgb,currentColor 10%,transparent);
+  text-shadow:0 0 8px color-mix(in srgb,currentColor 35%,transparent);
+}
+body.light-mode #settings-modal .badge{ box-shadow:0 0 0 1px color-mix(in srgb,currentColor 8%,transparent), 0 0 8px color-mix(in srgb,currentColor 16%,transparent); text-shadow:none; }
+body.light-mode #settings-modal .badge.bg-inc{color:#047857} body.light-mode #settings-modal .badge.bg-loan{color:#1d4ed8}
+/* Privacy & Updates / About rows: keep labels flexible, values on one line, no shrinking text */
+#set-tab-about .set-row{gap:18px}
+#set-tab-about .set-row>.set-label-block{flex:1 1 auto;min-width:0}
+#set-tab-about .set-row>:not(.set-label-block){flex-shrink:0;white-space:nowrap}
+#about-provider-value,#about-lastsync-value{font-size:.78rem !important;font-weight:600;letter-spacing:.2px;text-align:right}
+#set-tab-about .set-row .set-desc[style*="DM Mono"]{font-size:.8rem !important}
+@media(max-width:900px){#set-tab-about .set-row>:not(.set-label-block){white-space:normal}}
+</style>
 </head>
 <!-- ═══════════════════════════════════════════════════════
      LOGIN OVERLAY — shown before the dashboard loads
