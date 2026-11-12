@@ -35632,11 +35632,11 @@ try{init();paint()}catch(e){}
 /* ── FOS ADMIN: cyan-blue accent, scoped. The app's teal theme is untouched. ── */
 :root{--adm-a:#22d3ee;--adm-b:#0ea5e9;--adm-g:linear-gradient(135deg,#22d3ee,#0ea5e9);--adm-line:rgba(34,211,238,.28);--adm-soft:rgba(34,211,238,.10)}
 body.light-mode{--adm-a:#0891b2;--adm-b:#0369a1;--adm-g:linear-gradient(135deg,#06b6d4,#0284c7);--adm-line:rgba(2,132,199,.30);--adm-soft:rgba(14,165,233,.10)}
-.set-nav-item.set-nav-admin{position:relative;color:var(--adm-a);margin-top:6px;border:1px solid var(--adm-line);background:var(--adm-soft)}
+.set-nav-item.set-nav-admin{position:relative;color:var(--adm-a);margin-top:6px;border:1px solid transparent;background:transparent}
 .set-nav-item.set-nav-admin i{color:var(--adm-a)}
-.set-nav-item.set-nav-admin:hover{background:rgba(34,211,238,.16)}
-.set-nav-item.set-nav-admin.active,body:not(.light-mode) .set-nav-item.set-nav-admin.active,body.light-mode .set-nav-item.set-nav-admin.active{background:var(--adm-g);color:#04202a;font-weight:700;border-color:transparent}
-.set-nav-item.set-nav-admin.active i{color:#04202a}
+.set-nav-item.set-nav-admin:hover{background:rgba(34,211,238,.07)}
+.set-nav-item.set-nav-admin.active,body:not(.light-mode) .set-nav-item.set-nav-admin.active,body.light-mode .set-nav-item.set-nav-admin.active{background:var(--adm-soft);color:var(--adm-a);font-weight:700;border-color:var(--adm-a);box-shadow:0 0 0 1px rgba(34,211,238,.25),0 0 14px rgba(34,211,238,.18)}
+.set-nav-item.set-nav-admin.active i{color:var(--adm-a)}
 .set-nav-admin:focus-visible,#adm-root :focus-visible{outline:2px solid var(--adm-a);outline-offset:2px}
 #adm-root{display:block;min-width:0}
 .adm-top{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;padding:12px 14px;border-radius:14px;background:var(--adm-soft);border:1px solid var(--adm-line);margin-bottom:10px}
