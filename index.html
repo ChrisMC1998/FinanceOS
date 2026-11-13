@@ -1200,6 +1200,28 @@ body.light-mode .finai-chip { background:rgba(var(--brand-2-rgb),0.12); border-c
    pushes the page or the rest of the dashboard around. */
 .cc-cards-panel { display:flex; gap:1.6rem; align-items:flex-start; }
 .cc-stack-col { width:380px; flex-shrink:0; }
+/* Mobile card dropdown — hidden on desktop, enabled inside the max-width:900px block */
+.cc-mobile-picker { display:none; width:100%; }
+.cc-mobile-picker-lbl { font-size:0.68rem; color:var(--text-muted); font-weight:700; letter-spacing:0.5px; text-transform:uppercase; margin:0 2px 6px; display:block; }
+.cc-mobile-picker-wrap { position:relative; }
+.cc-mobile-select {
+  width:100%; appearance:none; -webkit-appearance:none; cursor:pointer;
+  background:rgba(255,255,255,0.05); border:1px solid rgba(255,255,255,0.14);
+  color:var(--text-main); padding:12px 40px 12px 14px; border-radius:12px;
+  font-size:0.9rem; font-weight:600; font-family:'DM Sans',sans-serif; outline:none; min-height:46px;
+  transition:border-color .16s;
+}
+.cc-mobile-select:focus { border-color:rgba(249,115,22,0.6); }
+.cc-mobile-select option { background:#0b0e1e; color:#e5e7eb; }
+.cc-mobile-picker-wrap::after {
+  content:'\f078'; font-family:'Font Awesome 5 Free','Font Awesome 6 Free'; font-weight:900;
+  position:absolute; right:15px; top:50%; transform:translateY(-50%); font-size:0.72rem;
+  color:var(--text-muted); pointer-events:none;
+}
+body.light-mode .cc-mobile-select { background:#ffffff; border-color:rgba(15,23,42,0.18); color:#111827; }
+body.light-mode .cc-mobile-select option { background:#ffffff; color:#111827; }
+body.light-mode .cc-mobile-picker-lbl { color:#475569; }
+body.light-mode .cc-mobile-picker-wrap::after { color:#475569; }
 .cc-stack-col-head { display:flex; align-items:center; justify-content:space-between; margin-bottom:10px; padding:0 2px; }
 .cc-stack-count { font-size:0.68rem; font-weight:700; color:var(--text-main); background:rgba(255,255,255,0.07); padding:3px 10px; border-radius:20px; letter-spacing:0.3px; }
 .cc-stack-hint { font-size:0.63rem; color:var(--text-muted); opacity:0.8; }
@@ -3990,6 +4012,9 @@ body.light-mode #fos-tour .ft-next{color:#fff}
   .cc-cards-panel { width:100% !important; flex:none !important; flex-direction:column !important; gap:1rem !important; }
   .cc-stack-col { width:100% !important; }
   .cc-bank-grid { grid-template-columns:repeat(3,minmax(0,1fr)); }
+  /* CC Utilization (mobile only): swap the card stack for a dropdown; details show right below it */
+  .cc-stack-col { display:none !important; }
+  .cc-mobile-picker { display:block !important; }
 
   /* Calculator: Normal Calculator on top, the second tool right below it */
   #view-calculator > div[style*="grid-template-columns"] { grid-template-columns:minmax(0,1fr) !important; gap:1rem !important; }
@@ -16444,7 +16469,7 @@ function checkAlerts() {
   });
 
   // ── 2. Budget Over-limit Alerts ──────────────────────────────────────
-  if (isNotifEnabled('budget-limits')) Object.entries(budgets).forEach(([cat, monthlyLimit]) => {
+  if (isNotifEnabled('budget-limits')) Object.entries(budgets).filter(([, v]) => Number(v) > 0).forEach(([cat, monthlyLimit]) => {
     const limit = monthlyLimit * budgetMonthsInScope(data);
     const spent = budgetSpent(data, cat);
     const pct   = limit > 0 ? (spent / limit) * 100 : (spent > 0 ? 100 : 0);
@@ -16754,7 +16779,7 @@ function checkAlerts() {
 // ── BUDGET ALERTS ──────────────────────────────────────────────────────────
 function renderBudgetAlerts(data) {
   const container = document.getElementById('budget-alerts-container');
-  const cats = Object.keys(budgets);
+  const cats = Object.keys(budgets).filter(k => Number(budgets[k]) > 0);
   if (!cats.length) { container.innerHTML = ''; return; }
   
   // Check if all months are selected
@@ -16765,7 +16790,7 @@ function renderBudgetAlerts(data) {
   
   let html = '<div style="margin-bottom:1.3rem"><div class="panel-title">Budget Status</div><div class="budget-status-grid">';
   cats.forEach(cat => {
-    const monthlyLimit = budgets[cat];
+    const monthlyLimit = Number(budgets[cat]);
     const _scope = data || getFilteredData();
     const limit = monthlyLimit * budgetMonthsInScope(_scope);
     const spent = budgetSpent(_scope, cat);
@@ -16795,7 +16820,7 @@ function updateBudgetBadge() {
   const multiplier = isAllMonths ? 12 : 1;
   
   let overCount = 0, warnCount = 0;
-  Object.entries(budgets).forEach(([cat, monthlyLimit]) => {
+  Object.entries(budgets).filter(([, v]) => Number(v) > 0).forEach(([cat, monthlyLimit]) => {
     const limit = monthlyLimit * budgetMonthsInScope(data);
     const spent = budgetSpent(data, cat);
     const pct = limit > 0 ? (spent / limit) * 100 : (spent > 0 ? 100 : 0);
@@ -20027,7 +20052,7 @@ function analyticsGenerateInsights(data) {
 
   // ── BUDGET ANALYSIS ────────────────────────────────────────────────────
   let overBudgetCats = [], nearBudgetCats = [];
-  Object.entries(budgets).forEach(([cat, monthlyLimit]) => {
+  Object.entries(budgets).filter(([, v]) => Number(v) > 0).forEach(([cat, monthlyLimit]) => {
     const limit = monthlyLimit * budgetMonthsInScope(data);
     const spent = budgetSpent(data, cat);
     const pct = limit > 0 ? (spent/limit)*100 : (spent > 0 ? 100 : 0);
@@ -26599,7 +26624,7 @@ function renderHealthRadar() {
   if (Object.keys(budgets).length > 0) {
     const data = getFilteredData();
     let overCount = 0;
-    Object.entries(budgets).forEach(([cat, monthlyLimit]) => {
+    Object.entries(budgets).filter(([, v]) => Number(v) > 0).forEach(([cat, monthlyLimit]) => {
       const limit = monthlyLimit * budgetMonthsInScope(data);
       const spent = budgetSpent(data, cat);
       if (spent > limit) overCount++;
@@ -28639,6 +28664,12 @@ function renderCCCards() {
     // through many cards never touches the page's own scroll position — and
     // the detail panel sits beside it, not underneath.
     panel.innerHTML = `
+      <div class="cc-mobile-picker" id="cc-mobile-picker">
+        <label class="cc-mobile-picker-lbl" for="cc-mobile-select">Select Card</label>
+        <div class="cc-mobile-picker-wrap">
+          <select class="cc-mobile-select" id="cc-mobile-select" onchange="setActiveCCCard(Number(this.value))"></select>
+        </div>
+      </div>
       <div class="cc-stack-col">
         <div class="cc-stack-col-head">
           <span class="cc-stack-count" id="cc-stack-count"></span>
@@ -28740,6 +28771,18 @@ function layoutCCStack() {
 
   const countEl = document.getElementById('cc-stack-count');
   if (countEl) countEl.textContent = `${ccCards.length} card${ccCards.length > 1 ? 's' : ''}`;
+
+  // Mobile dropdown: keep options + selection in sync with the stack
+  const mSel = document.getElementById('cc-mobile-select');
+  if (mSel) {
+    mSel.innerHTML = ccCards.map(c => {
+      const p = c.limit > 0 ? Math.min(100, (c.used / c.limit) * 100) : 0;
+      const nm = String(c.nickname || c.bankName || 'Card').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/"/g,'&quot;');
+      const last4 = String(c.number || '').replace(/\D/g,'').slice(-4);
+      return `<option value="${c.id}">${nm}${last4 ? ' ••' + last4 : ''} — ${p.toFixed(0)}%</option>`;
+    }).join('');
+    mSel.value = String(ccActiveId);
+  }
 
   const hint = document.getElementById('cc-stack-hint');
   if (hint) hint.textContent = ccCards.length > 1 ? 'Tap a card • scroll for more' : '';
@@ -33062,6 +33105,20 @@ button.fxb-crumb:hover{border-color:var(--txa-acc)}
 .txa-host .txa-kpi-val{font-family:'DM Mono',monospace;font-size:1.02rem;font-weight:700;color:var(--txa-text);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .txa-host .txa-kpi-sub{margin-top:3px;font-size:.68rem;color:var(--txa-mut);font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 @media (max-width:900px){.fxb-kpis{grid-template-columns:repeat(2,minmax(0,1fr))}.fxb-two{grid-template-columns:1fr}}
+/* Dashboard breakdown: invisible-scrollbar scrolling + opaque popup */
+#dash-expbreak .txa-legend,.fxb-modal .txa-list,.fxb-modal-box{scrollbar-width:none;-ms-overflow-style:none}
+#dash-expbreak .txa-legend::-webkit-scrollbar,.fxb-modal .txa-list::-webkit-scrollbar,.fxb-modal-box::-webkit-scrollbar{display:none;width:0;height:0}
+#dash-expbreak .txa-legend{-webkit-overflow-scrolling:touch;touch-action:pan-y;overscroll-behavior:auto}
+body.fxb-modal-open,body.fxb-modal-open .scroll-area{overflow:hidden !important}
+.fxb-modal{position:fixed;inset:0;z-index:6000;display:flex;align-items:center;justify-content:center;padding:max(12px,env(safe-area-inset-top,0px)) 12px max(12px,env(safe-area-inset-bottom,0px));background:rgba(2,6,10,.72);overscroll-behavior:contain}
+.fxb-modal[hidden]{display:none !important}
+.fxb-modal .fxb-modal-box{position:relative;width:min(100%,780px);max-height:min(88vh,88dvh);overflow-y:auto;overflow-x:hidden;-webkit-overflow-scrolling:touch;overscroll-behavior:contain;background:#0d1519 !important;border:1px solid color-mix(in srgb,var(--cc,#20CDB5) 55%,rgba(255,255,255,.12));border-radius:20px;padding:16px 18px 22px;box-shadow:0 30px 80px rgba(0,0,0,.65);backdrop-filter:none;-webkit-backdrop-filter:none}
+.fxb-modal .fxb-modal-box[hidden]{display:none}
+.fxb-modal .txa-ihead{position:sticky;top:-16px;z-index:2;margin:-16px -18px 12px;padding:14px 18px 10px;background:#0d1519;border-bottom:1px solid var(--txa-border)}
+.fxb-modal .txa-list{max-height:none !important;overflow:visible}
+body.light-mode .fxb-modal{background:rgba(15,23,42,.45)}
+body.light-mode .fxb-modal .fxb-modal-box,body.light-mode .fxb-modal .txa-ihead{background:#ffffff !important}
+body.light-mode .fxb-modal .fxb-modal-box{box-shadow:0 30px 80px rgba(15,23,42,.35)}
 @media (max-width:700px){.txa-host .txa-donut-wrap{flex-direction:column;align-items:stretch}.txa-host .txa-donut{flex:0 0 auto;width:100%;height:250px}.txa-host .txa-legend{max-height:230px}}
 </style>
 <style id="txn-analytics-style">
@@ -33408,12 +33465,12 @@ body.light-mode .txa-badge.det{color:#6d28d9}
     var tabs = '<div class="txa-chips fxb-tabs" role="group" aria-label="Breakdown by">' + ['c', 's', 'p'].map(function (k) {
       return '<button type="button" class="txa-chip' + (I.dim === k ? ' on' : '') + '" data-fxb-dim="' + p + '|' + k + '" aria-pressed="' + (I.dim === k) + '">' + TITLES[k] + '</button>';
     }).join('') + '</div><div class="fxb-scope">' + esc(fosScopeLabel(I.monthId, I.yearId)) + ' · ' + I.rows.length + ' expense transaction' + (I.rows.length === 1 ? '' : 's') + '</div>';
-    if (!I.rows.length) { I.S = []; host.innerHTML = tabs + '<div class="txa-muted-empty">No expense data for this period</div>'; return; }
+    if (!I.rows.length) { I.S = []; if (p === 'dash') fxbModal(false); host.innerHTML = tabs + '<div class="txa-muted-empty">No expense data for this period</div>'; return; }
     I.S = slices(I);
     if (I.sel !== null && !selSlice(I)) { I.sel = null; I.dr = []; }
     host.innerHTML = tabs +
       '<div class="txa-donut-wrap"><div class="txa-chartwrap txa-donut"><canvas id="' + p + '-donut" aria-label="Expense doughnut chart" role="img"></canvas></div><div class="txa-legend" id="' + p + '-legend"></div></div>' +
-      '<section class="txa-card txa-inspect" id="' + p + '-inspect" hidden></section>';
+      (p === 'dash' ? '' : '<section class="txa-card txa-inspect" id="' + p + '-inspect" hidden></section>');
     legend(p); inspect(p, false); chart(p);
   }
   function chart(p) {
@@ -33459,9 +33516,9 @@ body.light-mode .txa-badge.det{color:#6d28d9}
     if (I.chart) { I.chart.data.datasets[0].offset = I.S.map(function (s) { return I.sel !== null && s.key === I.sel ? 14 : 0; }); I.chart.update(); }
   }
   function inspect(p, scroll) {
-    var I = INST[p], box = $(p + '-inspect'); if (!box) return;
+    var I = INST[p], box = p === 'dash' ? fxbModalBox() : $(p + '-inspect'); if (!box) return;
     var s = selSlice(I);
-    if (!s) { box.hidden = true; box.innerHTML = ''; return; }
+    if (!s) { box.hidden = true; box.innerHTML = ''; if (p === 'dash') fxbModal(false); return; }
     var items = s.items.slice();
     I.dr.forEach(function (d) { items = items.filter(function (r) { return txKeyOf(r, d.kind) === d.key; }); });
     var fixed = { c: false, s: false, p: false };
@@ -33471,7 +33528,7 @@ body.light-mode .txa-badge.det{color:#6d28d9}
     var crumbs = '<span class="fxb-crumb cur">' + esc(s.name) + '</span>' + I.dr.map(function (d, i) { return '<span class="fxb-sep">›</span><button type="button" class="fxb-crumb" data-fxb-up="' + p + '|' + i + '" title="Remove filter">' + esc(d.name) + ' ✕</button>'; }).join('');
     var dl = '';
     if (I.prev && !s.others && !I.dr.length) dl = delta(tot, sum(I.prev.filter(function (r) { return txKeyOf(r, I.dim) === s.key; })));
-    var html = '<div class="txa-ihead"><span class="txa-dot" style="--cc:' + s.color + '"></span><div class="fxb-crumbs">' + crumbs + '</div><div class="txa-note">' + cnt + ' transaction' + (cnt === 1 ? '' : 's') + ' · <b class="txa-mono">' + fmt(tot) + '</b> · ' + r1(I.total ? tot / I.total * 100 : 0) + '% of expenses · avg ' + fmt(cnt ? tot / cnt : 0) + ' ' + dl + '</div><button type="button" class="txa-xbtn" data-fxb-clear="' + p + '">Clear</button></div>';
+    var html = '<div class="txa-ihead"><span class="txa-dot" style="--cc:' + s.color + '"></span><div class="fxb-crumbs">' + crumbs + '</div><div class="txa-note">' + cnt + ' transaction' + (cnt === 1 ? '' : 's') + ' · <b class="txa-mono">' + fmt(tot) + '</b> · ' + r1(I.total ? tot / I.total * 100 : 0) + '% of expenses · avg ' + fmt(cnt ? tot / cnt : 0) + ' ' + dl + '</div><button type="button" class="txa-xbtn" data-fxb-clear="' + p + '">' + (p === 'dash' ? 'Close ✕' : 'Clear') + '</button></div>';
     ['c', 's', 'p'].forEach(function (k) {
       if (fixed[k]) return;
       var g = txGroup(items, k, I.maps); if (g.length < 1) return;
@@ -33488,7 +33545,33 @@ body.light-mode .txa-badge.det{color:#6d28d9}
       return '<div class="txa-row"><span class="d">' + dt(r.date) + '</span><div class="n"><span class="nm" title="' + esc(who(r)) + '">' + esc(who(r)) + '</span><em>' + esc(txCategory(r)) + (sub ? ' › ' + esc(sub) : '') + '</em></div><span class="a">' + fmt(_amt(r.amount)) + '</span></div>';
     }).join('') + '</div>' + (sorted.length > LIM ? '<div class="txa-note" style="margin-top:8px">Showing the latest ' + LIM + ' of ' + sorted.length + ' transactions.</div>' : '');
     box.style.setProperty('--cc', s.color); box.innerHTML = html; box.hidden = false;
-    if (scroll) { try { box.scrollIntoView({ behavior: 'smooth', block: 'nearest' }); } catch (e) {} }
+    if (p === 'dash') { fxbModal(true); if (scroll) box.scrollTop = 0; }
+    else if (scroll) { try { box.scrollIntoView({ behavior: 'smooth', block: 'nearest' }); } catch (e) {} }
+  }
+
+  /* Dashboard inspector popup — solid, opaque, lives on <body> (a fixed element inside a backdrop-filter panel
+     would be clipped/see-through), closes via Close / backdrop tap / Esc */
+  function fxbModalBox() {
+    var ov = $('fxb-dash-modal');
+    if (!ov) {
+      ov = document.createElement('div'); ov.id = 'fxb-dash-modal'; ov.className = 'txa-host fxb-modal'; ov.hidden = true;
+      ov.innerHTML = '<section class="txa-card txa-inspect fxb-modal-box" id="dash-inspect" role="dialog" aria-modal="true" aria-label="Expense details"></section>';
+      document.body.appendChild(ov);
+      ov.addEventListener('click', function (e) { if (e.target === ov) fxbClose(); });
+      ov.addEventListener('click', function (e) { if (e.target.closest && e.target.closest('[data-pol]')) fxbModal(false); }, true);
+      document.addEventListener('keydown', function (e) { if (e.key === 'Escape' && !ov.hidden) fxbClose(); });
+    }
+    return $('dash-inspect');
+  }
+  function fxbModal(show) {
+    var ov = $('fxb-dash-modal'); if (!ov && !show) return;
+    fxbModalBox(); ov = $('fxb-dash-modal');
+    ov.hidden = !show;
+    document.body.classList.toggle('fxb-modal-open', !!show);
+  }
+  function fxbClose() {
+    var L = INST.dash; L.sel = null; L.dr = []; legend('dash'); inspect('dash', false);
+    if (L.chart) { L.chart.data.datasets[0].offset = L.S.map(function () { return 0; }); L.chart.update(); }
   }
 
   /* ── Payee insights (Analytics page) ── */
