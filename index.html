@@ -17417,7 +17417,7 @@ function renderPortOverview() {
     // Center score overlay plugin
     const centerPlugin = {
       id: 'centerScore',
-      afterDraw: (chart) => {
+      afterDatasetsDraw: (chart) => {
         const { ctx, chartArea } = chart;
         if (!chartArea) return;
         const cx = (chartArea.left + chartArea.right) / 2;
@@ -18688,7 +18688,7 @@ function renderPortAnalytics() {
   // Center readout: dominant liquidity tier + its %
   const liqCenterPlugin = {
     id: 'liqCenter',
-    afterDraw: (chart) => {
+    afterDatasetsDraw: (chart) => {
       const { ctx, chartArea } = chart;
       if (!chartArea) return;
       const cx = (chartArea.left + chartArea.right) / 2;
@@ -33220,7 +33220,7 @@ body.light-mode .txa-badge.det{color:#6d28d9}
     var S = I.S, colors = S.map(function (s) { return s.color; }), total = I.total;
     var ds = { data: S.map(function (s) { return s.total; }), backgroundColor: colors, borderColor: light() ? 'rgba(255,255,255,0.95)' : 'rgba(5,7,8,0.9)', borderWidth: 2, hoverOffset: 8, offset: S.map(function (s) { return I.sel !== null && s.key === I.sel ? 14 : 0; }) };
     try { if (typeof donutSliceStyle === 'function') Object.assign(ds, donutSliceStyle(cv, colors)); } catch (e) {}
-    var center = { id: 'fxbCenter', afterDraw: function (ch) {
+    var center = { id: 'fxbCenter', afterDatasetsDraw: function (ch) {
       var a = ch.chartArea; if (!a) return;
       var cur = selSlice(I), label = cur ? cur.name : 'Total expenses', val = fmt(cur ? cur.total : total);
       var cx = (a.left + a.right) / 2, cy = (a.top + a.bottom) / 2, maxW = (a.right - a.left) * 0.56, c = ch.ctx;
@@ -33239,7 +33239,7 @@ body.light-mode .txa-badge.det{color:#6d28d9}
         options: { responsive: true, maintainAspectRatio: false, cutout: '68%', layout: { padding: 10 },
           onClick: function (e, els) { if (els && els.length) pick(p, S[els[0].index].key); },
           onHover: function (e, els) { if (e && e.native && e.native.target) e.native.target.style.cursor = els.length ? 'pointer' : 'default'; },
-          plugins: { legend: { display: false }, tooltip: { callbacks: {
+          plugins: { legend: { display: false }, tooltip: { backgroundColor: 'rgb(11,16,18)', callbacks: {
             label: function (c) { var s = S[c.dataIndex]; return ' ' + fmt(s.total) + '  (' + r1(total ? s.total / total * 100 : 0) + '%)'; },
             afterLabel: function (c) { var s = S[c.dataIndex]; return ' ' + s.count + ' transaction' + (s.count === 1 ? '' : 's'); } } } } }
       });
@@ -33673,7 +33673,7 @@ body.light-mode .txa-badge.det{color:#6d28d9}
     try { if (typeof donutSliceStyle === 'function') Object.assign(ds, donutSliceStyle(dc, colors)); } catch (e) {}
     var center = {
       id: 'txaCenter',
-      afterDraw: function (ch) {
+      afterDatasetsDraw: function (ch) {
         var a = ch.chartArea; if (!a) return;
         var cur = findSel(A);
         var label = cur ? cur.name : 'Total expenses', val = money(cur ? cur.total : total);
@@ -33695,7 +33695,7 @@ body.light-mode .txa-badge.det{color:#6d28d9}
         responsive: true, maintainAspectRatio: false, cutout: '68%', layout: { padding: 10 },
         onClick: function (e, els) { if (els && els.length) pickCategory(S[els[0].index].key); },
         onHover: function (e, els) { if (e && e.native && e.native.target) e.native.target.style.cursor = els.length ? 'pointer' : 'default'; },
-        plugins: { legend: { display: false }, tooltip: { callbacks: { label: function (c) { var s = S[c.dataIndex]; return ' ' + money(s.total) + '  (' + r1(total ? s.total / total * 100 : 0) + '%)'; }, afterLabel: function (c) { var s = S[c.dataIndex]; return ' ' + s.count + ' transaction' + (s.count === 1 ? '' : 's'); } } } }
+        plugins: { legend: { display: false }, tooltip: { backgroundColor: 'rgb(11,16,18)', callbacks: { label: function (c) { var s = S[c.dataIndex]; return ' ' + money(s.total) + '  (' + r1(total ? s.total / total * 100 : 0) + '%)'; }, afterLabel: function (c) { var s = S[c.dataIndex]; return ' ' + s.count + ' transaction' + (s.count === 1 ? '' : 's'); } } } }
       }
     });
 
@@ -38108,21 +38108,18 @@ body.light-mode .fa-fl{background:#fff}
     fills.forEach(function (f) { var par = f.parentElement; if (!groups.has(par)) groups.set(par, []); groups.get(par).push(f); });
     groups.forEach(function (list, par) {
       var pw = par.getBoundingClientRect().width || 1;
-      if (list.length > 1 && getComputedStyle(par).display === 'flex') {          // stacked bar (Month-End Forecast): segments run one after another
-        list.forEach(function (f) {
-          var w = f.getBoundingClientRect().width; if (w < 1) return;
-          anims.push(f.animate([{ width: '0px', filter: 'brightness(1.45)' }, { width: w + 'px', filter: 'brightness(1)' }],
-            { duration: Math.max(250, (w / pw) * FILL_MS), delay: (f.offsetLeft / pw) * FILL_MS, easing: 'linear', fill: 'backwards' }));
-        });
-      } else {
-        list.forEach(function (f) {
-          var w = f.getBoundingClientRect().width; if (w < 1) return;
-          anims.push(f.animate([
-            { width: '0px', filter: 'brightness(1.55) saturate(1.2)' },
-            { width: (w * 0.6) + 'px', filter: 'brightness(1.3) saturate(1.1)', offset: 0.6 },
-            { width: w + 'px', filter: 'brightness(1) saturate(1)' }], { duration: FILL_MS, easing: EASE }));
-        });
-      }
+      var stacked = list.length > 1 && getComputedStyle(par).display === 'flex';
+      list.forEach(function (f) {
+        var w = f.getBoundingClientRect().width; if (w < 1) return;
+        f.style.transformOrigin = '0 50%';
+        f.style.willChange = 'transform';
+        var opts = stacked
+          ? { duration: Math.max(250, (w / pw) * FILL_MS), delay: (f.offsetLeft / pw) * FILL_MS, easing: 'linear', fill: 'backwards' }   // segments run one after another
+          : { duration: FILL_MS, easing: EASE };
+        var a = f.animate([{ transform: 'scaleX(0)' }, { transform: 'scaleX(1)' }], opts);
+        a.finished.then(function () { f.style.willChange = ''; }, function () { f.style.willChange = ''; });
+        anims.push(a);
+      });
     });
     return anims;
   }
