@@ -3941,6 +3941,79 @@ body.light-mode #fos-tour .ft-next{color:#fff}
   .kpi-value { font-size:1.05rem; word-break:break-word; }
   .panel-title { font-size:.8rem; }
 }
+
+.mobile-drawer { padding-top:calc(66px + env(safe-area-inset-top)) !important; padding-bottom:calc(1rem + env(safe-area-inset-bottom)) !important; }
+.mobile-drawer .drawer-item { min-height:42px !important; padding:8px 12px !important; }
+.mobile-drawer .drawer-cat > summary { min-height:42px; padding:8px 12px; }
+
+@media (max-width:600px) { .topbar-right > .filter-select { font-size:.8rem !important; padding:0 22px 0 10px !important; } }
+/* ── Update 2: dashboard summary first, compact top bar, drawer footer ── */
+.drawer-actions { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:8px; margin-top:6px; }
+.drawer-actions .export-btn { width:100%; justify-content:center; align-items:center; flex-direction:column; gap:5px; min-height:58px; padding:8px 4px !important; font-size:.68rem !important; line-height:1.15; text-align:center; }
+.drawer-actions .export-btn i { font-size:1rem; }
+@media (max-width:900px) {
+  /* Net Balance / Income / Loans / Investments / Savings / Credit + Portfolio Snapshot always lead the dashboard */
+  #view-dashboard.active { display:flex; flex-direction:column; }
+  #view-dashboard.active > * { flex-shrink:0; min-width:0; }
+  #view-dashboard.active > .mob-kpi  { order:-3; }
+  #view-dashboard.active > .mob-snap { order:-2; }
+  /* Top bar folds away while scrolling down, returns on scroll up */
+  .topbar { transition:padding .18s ease; }
+  .topbar.tb-compact .topbar-right { display:none !important; }
+  .topbar.tb-compact { padding-top:.45rem !important; padding-bottom:.45rem !important; }
+}
+@media (max-width:600px) {
+  .topbar { gap:8px !important; padding:.6rem .85rem !important; }
+  .topbar .page-title { font-size:.95rem; }
+  .topbar-right { grid-template-columns:minmax(0,1fr) 44px 44px !important; gap:8px !important; }
+  .topbar-right > .theme-toggle-btn[onclick*="openSearch"] { grid-column:1 !important; grid-row:1 !important; }
+  .topbar-right > #theme-btn { grid-column:2 !important; grid-row:1 !important; }
+  .topbar-right > .btn-add {
+    grid-column:3 !important; grid-row:1 !important; width:44px !important; min-height:44px !important;
+    padding:0 !important; font-size:0 !important; justify-content:center; gap:0;
+  }
+  .topbar-right > .btn-add i { font-size:1.05rem; margin:0; }
+  .topbar-right > #filter-month { grid-column:1 / 2 !important; grid-row:2 !important; }
+  .topbar-right > #filter-year  { grid-column:2 / 4 !important; grid-row:2 !important; }
+}
+
+@media (max-width:900px) {
+  /* keep real keypad / network pickers in their intended columns */
+  #calc-btns { grid-template-columns:repeat(4,minmax(0,1fr)) !important; }
+  #view-ccutil .cc-panel-box div[style*="grid-template-columns:repeat(3"] { grid-template-columns:repeat(3,minmax(0,1fr)) !important; }
+}
+/* ── Update 3: stacked CC Utilization / Calculator / Notes, notifications close fix ── */
+@media (max-width:900px) {
+  /* CC Utilization: bank picker, then card details, then card stack — one under the other */
+  .cc-view-wrap { flex-direction:column !important; height:auto !important; gap:1rem !important; }
+  .cc-setup-panel { width:100% !important; flex-shrink:1; }
+  .cc-cards-panel { width:100% !important; flex:none !important; flex-direction:column !important; gap:1rem !important; }
+  .cc-stack-col { width:100% !important; }
+  .cc-bank-grid { grid-template-columns:repeat(3,minmax(0,1fr)); }
+
+  /* Calculator: Normal Calculator on top, the second tool right below it */
+  #view-calculator > div[style*="grid-template-columns"] { grid-template-columns:minmax(0,1fr) !important; gap:1rem !important; }
+  #view-calculator .calc-display-input { font-size:2rem !important; max-width:100%; }
+
+  /* Notes: list first, editor below */
+  .notes-wrap { flex-direction:column !important; height:auto !important; min-height:0 !important; gap:1rem !important; }
+  .notes-list-pane { width:100% !important; flex-shrink:1 !important; max-height:300px; box-sizing:border-box; }
+  .notes-list-pane .notes-list { overflow-y:auto; min-height:0; }
+  .notes-editor-pane { width:100%; min-height:420px; box-sizing:border-box; padding:1rem !important; }
+  .notes-format-toolbar { flex-wrap:wrap; }
+
+  /* Pop-up panels sit ABOVE the mobile header so their Close buttons are reachable */
+  .modal-overlay { z-index:400 !important; padding-top:calc(env(safe-area-inset-top, 0px) + 8px); padding-bottom:calc(env(safe-area-inset-bottom, 0px) + 8px); box-sizing:border-box; }
+  .modal-overlay > .modal-box { max-height:calc(100dvh - 24px - env(safe-area-inset-top, 0px) - env(safe-area-inset-bottom, 0px)) !important; }
+  #notifications-modal .modal-box { width:calc(100vw - 24px) !important; max-width:520px; margin:0 !important; padding-top:0 !important; }
+  /* header row (title + Clear All + Close) stays pinned while the list scrolls */
+  #notifications-modal .modal-box > div:first-child {
+    position:sticky; top:0; z-index:5; padding:1rem 1.2rem .7rem; margin:0 -1.2rem .6rem !important;
+    background:#0a0e23; border-bottom:1px solid var(--glass-border); flex-wrap:wrap; gap:8px;
+  }
+  body.light-mode #notifications-modal .modal-box > div:first-child { background:#ffffff; }
+  #notifications-modal .modal-box > div:first-child button { min-height:40px; padding:6px 12px !important; font-size:.8rem !important; }
+}
 </style>
 </head>
 <!-- ═══════════════════════════════════════════════════════
@@ -6946,9 +7019,7 @@ function passAppLockGate() {
 
 <!-- MOBILE SLIDE DRAWER (Lite) -->
 <div class="mobile-drawer" id="mob-drawer">
-  <div class="drawer-close"><button onclick="closeMobileDrawer()">✕ Close</button></div>
-
-  <div class="drawer-section-label">FinanceOS</div>
+  <div class="drawer-section-label" style="padding-top:4px">FinanceOS</div>
   <div class="drawer-item active" id="mob-dashboard" onclick="mobNav('dashboard','finance')"><i class="fas fa-chart-pie" style="color:var(--accent);width:16px;text-align:center"></i> Dashboard</div>
   <div class="drawer-item" id="mob-transactions" onclick="mobNav('transactions','finance')"><i class="fas fa-list" style="width:16px;text-align:center"></i> Transactions</div>
   <div class="drawer-item" id="mob-ccutil" onclick="mobNav('ccutil','finance')"><i class="fas fa-credit-card" style="color:#fba96a;width:16px;text-align:center"></i> CC Utilization</div>
@@ -6994,6 +7065,11 @@ function passAppLockGate() {
     <div id="mob-cloud-status-pill" onclick="handleCloudPillClick()" style="font-size:0.78rem;display:flex;align-items:center;gap:6px;cursor:pointer;opacity:0.9;padding:6px 2px;">
       <span id="mob-cloud-status-dot" style="width:8px;height:8px;border-radius:50%;background:#888;display:inline-block;flex-shrink:0;"></span>
       <span id="mob-cloud-status-text">Offline</span>
+    </div>
+    <div class="drawer-actions">
+      <button class="export-btn" onclick="openBackupModal();closeMobileDrawer()" style="color:var(--c-inc);border-color:rgba(52,211,153,0.25)"><i class="fas fa-database"></i> Backup / Restore</button>
+      <button class="export-btn" onclick="openSettingsModal();closeMobileDrawer()" style="color:var(--brand-2);border-color:rgba(var(--brand-rgb),0.25)"><i class="fas fa-cog"></i> Settings</button>
+      <button class="export-btn" onclick="closeMobileDrawer();handleLogout()" style="color:#ef4444;border-color:rgba(239,68,68,0.25)"><i class="fas fa-sign-out-alt"></i> Log Out</button>
     </div>
   </div>
 </div>
@@ -38572,6 +38648,58 @@ body.light-mode .fa-fl{background:#fff}
   }
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', start);
   else start();
+})();
+</script>
+<script id="fos-mobile-lite-js">
+/* FinanceOS mobile lite: summary-first dashboard, collapsing top bar, tap-outside-to-close drawer */
+(function () {
+  'use strict';
+  var mq = window.matchMedia('(max-width:900px)');
+
+  /* 1. tag KPI grid + Portfolio Snapshot so CSS can float them to the top */
+  function tagSections() {
+    var v = document.getElementById('view-dashboard');
+    if (!v) return;
+    function top(el) { while (el && el.parentElement !== v) el = el.parentElement; return el; }
+    var k = v.querySelector('.kpi-grid'); if (k && top(k)) top(k).classList.add('mob-kpi');
+    var t = Array.prototype.find.call(v.querySelectorAll('.panel-title'), function (e) { return /portfolio snapshot/i.test(e.textContent); });
+    if (t && top(t)) top(t).classList.add('mob-snap');
+  }
+
+  /* 2. top bar folds away while scrolling down, comes back on scroll up / at top */
+  function bindTopbar() {
+    var sa = document.querySelector('.scroll-area'), tb = document.querySelector('.topbar');
+    if (!sa || !tb || sa.__tbBound) return;
+    sa.__tbBound = true;
+    var last = 0, lock = 0;
+    sa.addEventListener('scroll', function () {
+      if (!mq.matches) { tb.classList.remove('tb-compact'); return; }
+      var y = sa.scrollTop, now = Date.now();
+      if (now < lock) { last = y; return; }
+      if (y > 120 && y > last + 8 && !tb.classList.contains('tb-compact')) { tb.classList.add('tb-compact'); lock = now + 350; }
+      else if ((y < 40 || y < last - 12) && tb.classList.contains('tb-compact')) { tb.classList.remove('tb-compact'); lock = now + 350; }
+      last = y;
+    }, { passive: true });
+    mq.addEventListener && mq.addEventListener('change', function () { if (!mq.matches) tb.classList.remove('tb-compact'); });
+  }
+
+  /* 3. drawer: tap anywhere outside (or Esc) closes it */
+  function drawerOpen() { var d = document.getElementById('mob-drawer'); return d && d.classList.contains('open'); }
+  document.addEventListener('pointerdown', function (e) {
+    if (!drawerOpen()) return;
+    var d = document.getElementById('mob-drawer');
+    if (d.contains(e.target) || (e.target.closest && e.target.closest('.hamburger'))) return;
+    e.preventDefault(); e.stopPropagation();
+    if (typeof closeMobileDrawer === 'function') closeMobileDrawer();
+  }, true);
+  document.addEventListener('keydown', function (e) { if (e.key === 'Escape' && drawerOpen()) closeMobileDrawer(); });
+
+  function init() {
+    tagSections(); bindTopbar();
+    new MutationObserver(function () { clearTimeout(init._t); init._t = setTimeout(function () { tagSections(); bindTopbar(); }, 150); })
+      .observe(document.body, { childList: true, subtree: true });
+  }
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init); else init();
 })();
 </script>
 </body>
