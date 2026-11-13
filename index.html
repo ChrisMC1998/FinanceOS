@@ -38058,34 +38058,30 @@ body.light-mode .fa-fl{background:#fff}
 
 
 <!-- ── FinanceOS · INTERACTIVE "RUNNING" CHART ANIMATIONS ─────────────────────────────
-     1) Hover any capsule bar / stacked bar / ring / donut  → it re-fills from 0 to its value
-     2) Click an Income / Expense / Loan / Investment trend card → line draws & connects the 6 dots
+     Hover any capsule bar / stacked bar / ring / donut  → it re-fills from 0 to its value
+     Hover (or click) an Income / Expense / Loan / Investment trend card → line runs dot 1 → dot 6
      Tune speeds here: -->
 <script>
 (function () {
-  var FILL_MS  = 1700;   // capsule bars & stacked bars (hover)
-  var RING_MS  = 1900;   // SVG rings / score gauges (hover)
-  var CHART_MS = 1900;   // Chart.js donuts / horizontal bars (hover)
-  var DRAW_MS  = 3600;   // trend lines (click) — ~0.6s per month
+  var FILL_MS  = 1700;   // capsule bars & stacked bars
+  var RING_MS  = 1900;   // SVG rings / score gauges
+  var DONUT_MS = 2000;   // canvas donuts, conic-gradient donuts, horizontal bar charts
+  var TREND_MS = 4200;   // trend lines: ~0.85s per month, pausing slightly at every dot
   var EASE     = 'cubic-bezier(0.22, 0.8, 0.3, 1)';
   var reduce = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
   var busy = new WeakMap();
+  function sineInOut(u) { return 0.5 - 0.5 * Math.cos(Math.PI * u); }
 
-  /* ───────────────────────── helpers ───────────────────────── */
-  function inlinePct(el) {
-    var w = el.style && el.style.width;
-    return !!w && /%$/.test(w) && parseFloat(w) > 0;
-  }
-  // Capsule fill = inline "width:NN%" element inside a short track (<=30px tall)
+  /* ───────────────────────── detection helpers ───────────────────────── */
+  function inlinePct(el) { var w = el.style && el.style.width; return !!w && /%$/.test(w) && parseFloat(w) > 0; }
   function isFill(el) {
     if (!el || el.nodeType !== 1 || !inlinePct(el)) return false;
-    var par = el.parentElement;
-    if (!par) return false;
+    var par = el.parentElement; if (!par) return false;
     var ph = par.getBoundingClientRect().height;
     return ph >= 2 && ph <= 30 && el.getBoundingClientRect().height >= 2;
   }
   function fillsIn(root) {
-    var out = [], all = root.querySelectorAll('[style*="width"], [data-bar-fill], .cc-util-fill, .budget-progress-fill, .ins-readiness-fill, .sub-bar-fill');
+    var out = [], all = root.querySelectorAll('[style*="width"]');
     for (var i = 0; i < all.length; i++) if (isFill(all[i])) out.push(all[i]);
     if (root.nodeType === 1 && isFill(root)) out.unshift(root);
     return out;
@@ -38094,216 +38090,214 @@ body.light-mode .fa-fl{background:#fff}
     var out = [], cs = root.querySelectorAll ? root.querySelectorAll('svg circle') : [];
     for (var i = 0; i < cs.length; i++) {
       var st = getComputedStyle(cs[i]);
-      var da = parseFloat(st.strokeDasharray);
-      var off = parseFloat(st.strokeDashoffset);
-      if (st.strokeDasharray && st.strokeDasharray !== 'none' && da > 8 && off >= 0 && off < da - 0.5 && st.stroke !== 'none' && parseFloat(st.strokeWidth) >= 2) {
-        out.push({ el: cs[i], da: da, off: off });
-      }
+      var da = parseFloat(st.strokeDasharray), off = parseFloat(st.strokeDashoffset) || 0;
+      if (st.strokeDasharray && st.strokeDasharray !== 'none' && da > 8 && off >= 0 && off < da - 0.5 && parseFloat(st.strokeWidth) >= 2) out.push({ el: cs[i], da: da, off: off });
     }
     return out;
   }
+  function wait(anims, key) {
+    if (!anims.length) return false;
+    busy.set(key, true);
+    Promise.all(anims.map(function (a) { return a.finished.catch(function () {}); })).then(function () { busy.delete(key); });
+    return true;
+  }
 
-  /* ───────────────────────── bars ───────────────────────── */
+  /* ───────────────────────── capsule bars ───────────────────────── */
   function playBars(fills) {
-    var groups = new Map();
-    fills.forEach(function (f) {
-      var par = f.parentElement;
-      if (!groups.has(par)) groups.set(par, []);
-      groups.get(par).push(f);
-    });
-    var anims = [];
+    var groups = new Map(), anims = [];
+    fills.forEach(function (f) { var par = f.parentElement; if (!groups.has(par)) groups.set(par, []); groups.get(par).push(f); });
     groups.forEach(function (list, par) {
       var pw = par.getBoundingClientRect().width || 1;
-      var stacked = list.length > 1 && list.every(function (f) { return f.getBoundingClientRect().height > 0; });
-      // a "stack" = several %-width siblings laid side by side (e.g. Month-End Forecast bar)
-      if (stacked && getComputedStyle(par).display === 'flex') {
+      if (list.length > 1 && getComputedStyle(par).display === 'flex') {          // stacked bar (Month-End Forecast): segments run one after another
         list.forEach(function (f) {
-          var w = f.getBoundingClientRect().width, l = f.offsetLeft;
-          if (w < 1) return;
-          var d0 = (l / pw) * FILL_MS, dd = Math.max(250, (w / pw) * FILL_MS);
-          anims.push(f.animate(
-            [{ width: '0px', filter: 'brightness(1.45)' }, { width: w + 'px', filter: 'brightness(1)' }],
-            { duration: dd, delay: d0, easing: 'linear', fill: 'backwards' }
-          ));
+          var w = f.getBoundingClientRect().width; if (w < 1) return;
+          anims.push(f.animate([{ width: '0px', filter: 'brightness(1.45)' }, { width: w + 'px', filter: 'brightness(1)' }],
+            { duration: Math.max(250, (w / pw) * FILL_MS), delay: (f.offsetLeft / pw) * FILL_MS, easing: 'linear', fill: 'backwards' }));
         });
       } else {
         list.forEach(function (f) {
-          var w = f.getBoundingClientRect().width;
-          if (w < 1) return;
-          anims.push(f.animate(
-            [
-              { width: '0px', filter: 'brightness(1.55) saturate(1.2)' },
-              { width: (w * 0.6) + 'px', filter: 'brightness(1.3) saturate(1.1)', offset: 0.6 },
-              { width: w + 'px', filter: 'brightness(1) saturate(1)' }
-            ],
-            { duration: FILL_MS, easing: EASE }
-          ));
+          var w = f.getBoundingClientRect().width; if (w < 1) return;
+          anims.push(f.animate([
+            { width: '0px', filter: 'brightness(1.55) saturate(1.2)' },
+            { width: (w * 0.6) + 'px', filter: 'brightness(1.3) saturate(1.1)', offset: 0.6 },
+            { width: w + 'px', filter: 'brightness(1) saturate(1)' }], { duration: FILL_MS, easing: EASE }));
         });
       }
     });
     return anims;
   }
 
-  /* ───────────────────────── rings ───────────────────────── */
+  /* ───────────────────────── SVG rings ───────────────────────── */
   function playRings(rings) {
     return rings.map(function (r) {
-      return r.el.animate(
-        [{ strokeDashoffset: r.da + 'px' }, { strokeDashoffset: r.off + 'px' }],
-        { duration: RING_MS, easing: EASE }
-      );
+      return r.el.animate([{ strokeDashoffset: r.da + 'px' }, { strokeDashoffset: r.off + 'px' }], { duration: RING_MS, easing: EASE });
     });
   }
 
-  /* ─────────────── Chart.js donuts / horizontal bars (canvas) ─────────────── */
-  function playChart(canvas) {
-    if (!window.Chart || !Chart.getChart) return null;
-    var ch = Chart.getChart(canvas);
-    if (!ch || busy.get(canvas)) return null;
-    var t = ch.config && ch.config.type;
-    var horiz = t === 'bar' && ch.options && ch.options.indexAxis === 'y';
-    if (!(t === 'doughnut' || t === 'pie' || t === 'polarArea' || horiz)) return null;
-    busy.set(canvas, true);
-    var saved = ch.options.animation;
-    try {
-      ch.options.animation = { duration: CHART_MS, easing: 'easeOutCubic' };
-      ch.reset();
-      ch.update();
-    } catch (e) {}
-    setTimeout(function () {
-      try { ch.options.animation = saved; } catch (e) {}
-      busy.delete(canvas);
-    }, CHART_MS + 100);
+  /* ───────────────────────── CSS conic-gradient donuts (Credit Usage Breakdown) ───────────────────────── */
+  function playConic(el) {
+    var orig = el.getAttribute('style') || '';
+    var m = /conic-gradient\(([^;]*)\)/i.exec(orig);
+    if (!m) return false;
+    var re = /(rgba?\([^)]*\)|#[0-9a-f]{3,8}|[a-z]+)\s+([\d.]+)deg\s+([\d.]+)deg/gi, segs = [], x;
+    while ((x = re.exec(m[1]))) segs.push({ c: x[1], a: parseFloat(x[2]), b: parseFloat(x[3]) });
+    if (!segs.length) return false;
+    var last = segs[segs.length - 1];
+    var track = (segs.length >= 2 && (/rgba\(\s*255\s*,\s*255\s*,\s*255/i.test(last.c) || /rgba\(\s*0\s*,\s*0\s*,\s*0/i.test(last.c))) ? segs.pop().c : 'transparent';
+    var t0 = null;
+    busy.set(el, true);
+    function frame(ts) {
+      if (t0 === null) t0 = ts;
+      var u = Math.min(1, (ts - t0) / DONUT_MS), L = 360 * sineInOut(u), parts = [], end = 0;
+      for (var i = 0; i < segs.length; i++) {
+        if (segs[i].a >= L) break;
+        var e = Math.min(segs[i].b, L);
+        parts.push(segs[i].c + ' ' + segs[i].a + 'deg ' + e + 'deg'); end = e;
+      }
+      parts.push(track + ' ' + end + 'deg 360deg');
+      el.style.background = 'conic-gradient(' + parts.join(', ') + ')';
+      if (u < 1 && el.isConnected) requestAnimationFrame(frame);
+      else { el.setAttribute('style', orig); busy.delete(el); }
+    }
+    requestAnimationFrame(frame);
     return true;
   }
 
+  /* ───────────────────────── Chart.js reveal (donuts, horizontal bars, trend lines) ───────────────────────── */
+  function registerReveal() {
+    if (!window.Chart || registerReveal.done) return;
+    registerReveal.done = true;
+    Chart.register({
+      id: 'fosReveal',
+      beforeDatasetsDraw: function (chart) {
+        var r = chart.$fosReveal; if (!r) return;
+        var a = chart.chartArea, ctx = chart.ctx, meta = chart.getDatasetMeta(0), pts = (meta && meta.data) || [];
+        ctx.save(); ctx.beginPath();
+        if (r.mode === 'radial') {
+          var e0 = pts[0], cx = e0 ? e0.x : (a.left + a.right) / 2, cy = e0 ? e0.y : (a.top + a.bottom) / 2;
+          var rot = (chart.options && typeof chart.options.rotation === 'number') ? chart.options.rotation * Math.PI / 180 : 0;
+          var st = -Math.PI / 2 + rot;
+          ctx.moveTo(cx, cy); ctx.arc(cx, cy, Math.max(chart.width, chart.height), st, st + Math.PI * 2 * r.p); ctx.closePath();
+        } else if (r.mode === 'line') {
+          var n = pts.length - 1, x;
+          if (n < 1) x = pts.length ? pts[0].x + 5 : chart.width;
+          else { var sx = r.p * n, i = Math.min(n - 1, Math.floor(sx)), k = sx - i; x = pts[i].x + (pts[i + 1].x - pts[i].x) * k + 5; }
+          r.x = x; ctx.rect(0, 0, Math.max(0, x), chart.height);
+        } else {
+          ctx.rect(0, 0, a.left + (a.right - a.left) * r.p, chart.height);
+        }
+        ctx.clip(); r.clipped = true;
+      },
+      afterDatasetsDraw: function (chart) {
+        var r = chart.$fosReveal; if (!r || !r.clipped) return;
+        var ctx = chart.ctx; ctx.restore(); r.clipped = false;
+        if (r.mode !== 'line' || r.p >= 1) return;
+        try {                                                                          // glowing pen tip riding the line
+          var pts = chart.getDatasetMeta(0).data, ds = chart.data.datasets[0], col = typeof ds.borderColor === 'string' ? ds.borderColor : '#34d399';
+          var x = r.x - 5, y = null;
+          for (var i = 0; i < pts.length - 1; i++) if (x >= pts[i].x && x <= pts[i + 1].x) { y = pts[i].y + (pts[i + 1].y - pts[i].y) * ((x - pts[i].x) / Math.max(1e-6, pts[i + 1].x - pts[i].x)); break; }
+          if (y == null && pts.length) y = pts[0].y;
+          if (y != null) { ctx.save(); ctx.shadowColor = col; ctx.shadowBlur = 18; ctx.fillStyle = '#fff'; ctx.beginPath(); ctx.arc(x, y, 4.5, 0, Math.PI * 2); ctx.fill(); ctx.restore(); }
+        } catch (e) {}
+      }
+    });
+  }
+  function runReveal(ch, mode, ms, shape) {
+    if (!ch || ch.$fosRevealRaf) return false;
+    registerReveal();
+    var t0 = null;
+    function frame(ts) {
+      if (!ch.canvas || !ch.canvas.isConnected || !ch.ctx) { ch.$fosRevealRaf = 0; return; }
+      if (t0 === null) t0 = ts;
+      var u = Math.min(1, (ts - t0) / ms);
+      ch.$fosReveal = { p: shape(u), mode: mode };
+      try { ch.draw(); } catch (e) {}
+      if (u < 1) ch.$fosRevealRaf = requestAnimationFrame(frame);
+      else { ch.$fosReveal = null; ch.$fosRevealRaf = 0; try { ch.draw(); } catch (e) {} }
+    }
+    ch.$fosRevealRaf = requestAnimationFrame(frame);
+    return true;
+  }
+  function playChart(canvas) {
+    if (!window.Chart || !Chart.getChart) return false;
+    var ch = Chart.getChart(canvas); if (!ch) return false;
+    var t = ch.config && ch.config.type;
+    if (t === 'doughnut' || t === 'pie' || t === 'polarArea') return runReveal(ch, 'radial', DONUT_MS, sineInOut);
+    if (t === 'bar' && ch.options && ch.options.indexAxis === 'y') return runReveal(ch, 'hbar', DONUT_MS, sineInOut);
+    return false;
+  }
+  function playTrend(card) {
+    var cv = card.querySelector('canvas'), ch = cv && window.Chart && Chart.getChart(cv);
+    if (!ch) return false;
+    var n = Math.max(1, ch.data.labels.length - 1);
+    return runReveal(ch, 'line', TREND_MS, function (u) {                              // each month gets its own ease-in/out → visible rhythm dot by dot
+      var s = u * n, i = Math.min(n - 1, Math.floor(s));
+      return (i + sineInOut(s - i)) / n;
+    });
+  }
+
   /* ───────────────────────── hover wiring ───────────────────────── */
-  // Row = highest ancestor (<=100px tall) that still holds a bar. Rings/canvases use their own box.
-  function barRowFrom(t) {
+  function barRowFrom(t) {                       // highest ancestor (<=100px tall) that still holds a bar
     var el = t, row = null, hops = 0;
     while (el && el !== document.body && hops < 7) {
-      if (el.nodeType === 1) {
-        var h = el.getBoundingClientRect().height;
-        if (h > 100) break;
-        if (fillsIn(el).length) row = el;
-      }
+      if (el.nodeType === 1) { if (el.getBoundingClientRect().height > 100) break; if (fillsIn(el).length) row = el; }
       el = el.parentElement; hops++;
     }
     return row;
   }
-  function ringBoxFrom(t) {
+  function ringBoxFrom(t) {                      // ring under the pointer, including text laid over it
     var svg = t.closest && t.closest('svg');
-    if (!svg) return null;
-    var box = svg.parentElement || svg;
-    if (box.getBoundingClientRect().height > 260) box = svg;
-    return ringsIn(box).length ? box : null;
+    if (svg) { var box = svg.parentElement || svg; if (box.getBoundingClientRect().height > 260) box = svg; return ringsIn(box).length ? box : null; }
+    var el = t, hops = 0;
+    while (el && el !== document.body && hops < 4) {
+      if (el.nodeType === 1) { var r = el.getBoundingClientRect(); if (r.height > 200) break; if (el.querySelector('svg circle') && ringsIn(el).length) return el; }
+      el = el.parentElement; hops++;
+    }
+    return null;
   }
 
   function onOver(e) {
     if (reduce) return;
-    var t = e.target;
-    if (!t || t.nodeType !== 1) return;
+    var t = e.target; if (!t || t.nodeType !== 1) return;
     var rt = e.relatedTarget;
 
-    // canvas charts (donut / horizontal bar)
-    if (t.tagName === 'CANVAS') {
-      if (!(rt && rt === t)) playChart(t);
-      return;
-    }
+    var card = t.closest && t.closest('.spark-card');                                   // trend cards
+    if (card) { if (!(rt && card.contains(rt))) playTrend(card); return; }
 
-    // SVG rings / gauges
-    var box = ringBoxFrom(t);
-    if (box && !(rt && box.contains(rt)) && !busy.get(box)) {
-      var rings = ringsIn(box);
-      var an = playRings(rings);
-      if (an.length) { busy.set(box, true); Promise.all(an.map(function (a) { return a.finished.catch(function () {}); })).then(function () { busy.delete(box); }); }
-      return;
-    }
+    if (t.tagName === 'CANVAS') { if (rt !== t) playChart(t); return; }                 // canvas donuts / horizontal bars
 
-    // Month-End Forecast: hovering the headline, the bar or its legend runs the stacked bar
-    var fz = t.closest && t.closest('.fcs-head, .fcs-stack, .fcs-leg');
+    var cn = t.closest && t.closest('[style*="conic-gradient"]');                       // CSS donuts
+    if (cn) { if (!busy.get(cn) && !(rt && cn.contains(rt))) playConic(cn); return; }
+
+    var fz = t.closest && t.closest('.fcs-head, .fcs-stack, .fcs-leg');                 // Month-End Forecast
     var fstack = fz && fz.parentElement && fz.parentElement.querySelector('.fcs-stack');
-    var row = fstack || barRowFrom(t);
-    if (!row || (rt && fz && fz.parentElement.contains(rt) && fstack) || (rt && !fstack && row.contains(rt)) || busy.get(row)) return;
-    var an2 = playBars(fillsIn(row));
-    if (!an2.length) return;
-    busy.set(row, true);
-    Promise.all(an2.map(function (a) { return a.finished.catch(function () {}); })).then(function () { busy.delete(row); });
+    if (fstack) {
+      if (!busy.get(fstack) && !(rt && fz.parentElement.contains(rt) && rt.closest && rt.closest('.fcs-head, .fcs-stack, .fcs-leg'))) wait(playBars(fillsIn(fstack)), fstack);
+      return;
+    }
+
+    if (t.closest && t.closest('svg')) {                                                // SVG rings / gauges
+      var b1 = ringBoxFrom(t);
+      if (b1) { if (!busy.get(b1) && !(rt && b1.contains(rt))) wait(playRings(ringsIn(b1)), b1); return; }
+    }
+
+    var row = barRowFrom(t);                                                            // capsule bars
+    if (row) { if (!busy.get(row) && !(rt && row.contains(rt))) wait(playBars(fillsIn(row)), row); return; }
+
+    var b2 = ringBoxFrom(t);                                                            // text laid over a ring
+    if (b2 && !busy.get(b2) && !(rt && b2.contains(rt))) wait(playRings(ringsIn(b2)), b2);
   }
   document.addEventListener('mouseover', onOver, true);
 
-  /* ═════════ CLICK-TO-DRAW for Income / Expense / Loan / Investment trend cards ═════════ */
-  if (window.Chart) {
-    Chart.register({
-      id: 'fosReveal',
-      beforeDatasetsDraw: function (chart) {
-        var r = chart.$fosReveal;
-        if (!r) return;
-        var a = chart.chartArea, ctx = chart.ctx;
-        ctx.save();
-        ctx.beginPath();
-        r.x = (a.left - 10) + (a.right - a.left + 20) * r.p;
-        ctx.rect(0, 0, Math.max(0, r.x), chart.height);
-        ctx.clip();
-        r.clipped = true;
-      },
-      afterDatasetsDraw: function (chart) {
-        var r = chart.$fosReveal;
-        if (!r || !r.clipped) return;
-        var ctx = chart.ctx;
-        ctx.restore();
-        r.clipped = false;
-        // glowing "pen tip" riding the line
-        try {
-          var meta = chart.getDatasetMeta(0), pts = meta.data, ds = chart.data.datasets[0];
-          var col = (typeof ds.borderColor === 'string') ? ds.borderColor : '#34d399';
-          var x = r.x, y = null;
-          for (var i = 0; i < pts.length - 1; i++) {
-            if (x >= pts[i].x && x <= pts[i + 1].x) {
-              var k = (x - pts[i].x) / Math.max(1e-6, (pts[i + 1].x - pts[i].x));
-              y = pts[i].y + (pts[i + 1].y - pts[i].y) * k; break;
-            }
-          }
-          if (y == null && pts.length) { y = x < pts[0].x ? pts[0].y : pts[pts.length - 1].y; }
-          if (y != null && r.p < 1) {
-            ctx.save();
-            ctx.shadowColor = col; ctx.shadowBlur = 18;
-            ctx.fillStyle = '#fff';
-            ctx.beginPath(); ctx.arc(Math.min(x, chart.chartArea.right + 6), y, 4.5, 0, Math.PI * 2); ctx.fill();
-            ctx.restore();
-          }
-        } catch (e) {}
-      }
-    });
+  document.addEventListener('click', function (e) {                                     // click replays a trend card too
+    if (reduce) return;
+    var card = e.target.closest && e.target.closest('.spark-card');
+    if (card) playTrend(card);
+  });
 
-    document.addEventListener('click', function (e) {
-      if (reduce) return;
-      var card = e.target.closest && e.target.closest('.spark-card');
-      if (!card) return;
-      var cv = card.querySelector('canvas');
-      var ch = cv && Chart.getChart(cv);
-      if (!ch || ch.$fosRevealRaf) return;
-      var t0 = null;
-      function ease(x) { return x < 0.5 ? 2 * x * x : 1 - Math.pow(-2 * x + 2, 2) / 2; }  // gentle in/out
-      function frame(ts) {
-        if (t0 === null) t0 = ts;
-        var k = Math.min(1, (ts - t0) / DRAW_MS);
-        ch.$fosReveal = { p: ease(k) };
-        try { ch.draw(); } catch (er) {}
-        if (k < 1) ch.$fosRevealRaf = requestAnimationFrame(frame);
-        else { ch.$fosReveal = null; ch.$fosRevealRaf = 0; try { ch.draw(); } catch (er) {} }
-      }
-      ch.$fosRevealRaf = requestAnimationFrame(frame);
-    });
-
-    // affordance: pointer cursor + tooltip on the four trend cards
-    var st = document.createElement('style');
-    st.textContent = '.spark-card{cursor:pointer}';
-    document.head.appendChild(st);
-    document.addEventListener('mouseover', function (e) {
-      var c = e.target.closest && e.target.closest('.spark-card');
-      if (c && !c.title) c.title = 'Click to replay the 6-month trend';
-    }, true);
-  }
+  var st = document.createElement('style');
+  st.textContent = '.spark-card{cursor:pointer}';
+  document.head.appendChild(st);
 })();
 </script>
 </body>
