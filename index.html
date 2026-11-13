@@ -38056,5 +38056,63 @@ body.light-mode .fa-fl{background:#fff}
 })();
 </script>
 
+
+<!-- ── HOVER "RUNNING FILL" for capsule bars (Cash Flow Snapshot, Spending Mix, Portfolio legend, CC utilization, budgets, insurance, subscriptions, credit intel) ── -->
+<script>
+(function () {
+  var FILL_SEL = '[data-bar-fill], .cc-util-fill, .budget-progress-fill, .ins-readiness-fill, .sub-bar-fill, .cin-track > i';
+  var reduce = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  var rows = new WeakMap();
+
+  // Row = highest ancestor (<=140px tall) that still contains exactly one bar
+  function rowFromTarget(t) {
+    var el = t, row = null, hops = 0;
+    while (el && el !== document.body && hops < 6) {
+      if (el.nodeType === 1) {
+        var n = el.matches(FILL_SEL) ? 1 : el.querySelectorAll(FILL_SEL).length;
+        if (n > 1) break;
+        if (n === 1) {
+          if (el.getBoundingClientRect().height > 140) break;
+          row = el;
+        }
+      }
+      el = el.parentElement; hops++;
+    }
+    return row;
+  }
+
+  function run(row) {
+    if (reduce || rows.get(row)) return;
+    var fills = row.querySelectorAll(FILL_SEL);
+    var anims = [];
+    fills.forEach(function (fill) {
+      var track = fill.parentElement;
+      var full = fill.getBoundingClientRect().width;
+      if (!track || full < 2) return;               // still rendering / empty bar
+      var a = fill.animate(
+        [
+          { width: '0px',          filter: 'brightness(1.5) saturate(1.2)' },
+          { width: full * 0.55 + 'px', filter: 'brightness(1.35) saturate(1.15)', offset: 0.55 },
+          { width: full + 'px',    filter: 'brightness(1) saturate(1)' }
+        ],
+        { duration: 900, easing: 'cubic-bezier(0.22, 1, 0.36, 1)' }
+      );
+      anims.push(a.finished.catch(function () {}));
+    });
+    if (!anims.length) return;
+    rows.set(row, true);
+    Promise.all(anims).then(function () { rows.delete(row); });
+  }
+
+  function onEnter(e) {
+    var row = rowFromTarget(e.target);
+    if (!row) return;
+    if (e.relatedTarget && row.contains(e.relatedTarget)) return;   // still inside same row
+    run(row);
+  }
+
+  document.addEventListener('mouseover', onEnter, true);
+})();
+</script>
 </body>
 </html>
