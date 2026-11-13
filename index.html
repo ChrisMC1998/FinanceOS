@@ -9077,6 +9077,8 @@ function passAppLockGate() {
           </div>
         </div>
 
+        <div id="finai-quiz-host"></div>
+
         <div class="finai-section-head">
           <div><i class="fas fa-wand-magic-sparkles"></i> AI Suggestions</div>
           <button class="notes-icon-btn" onclick="renderFinAI()" title="Re-analyze"><i class="fas fa-rotate-right"></i></button>
@@ -11432,7 +11434,7 @@ function wipeLocalFinancialData() {
   try { finaiResetConversation(); } catch (e) {}
   ['fos_db_v3','fos_port_v3','fos_credit_v1','fos_insurance_v1','fos_notes_v1','fos_subscriptions_v1',
    'fos_budgets','financeOS_ccCards','fos_notifications','fos_game_stats',
-   'fos_dashboard_layout_v4','fos_onboarding_goal','fos_last_active_view','fos_finai_goals_v1',
+   'fos_dashboard_layout_v4','fos_onboarding_goal','fos_last_active_view','fos_finai_goals_v1','fos_finai_quiz_v1',
    'fos_master_v1','fos_last_nw_milestone','fos_last_portfolio_update','fos_finai_score_history','fos_notif_dismissed','fos_fx_v1','fos_port_customsubs_v1','fos_pi_bench','fos_port_targets_v1','fos_port_tgtband','fos_port_tgtnew','fos_tax_cls_v1','fos_tax_slab','fos_tax_fy','fos_refresh_v1','fos_stress_v1'
   ].forEach(k => localStorage.removeItem(k));
   try { if (typeof fosDocClear === 'function') fosDocClear().catch(() => {}); } catch (e) {}   // attachments live in IndexedDB on this device
@@ -11887,6 +11889,7 @@ async function doAutoSave() {
         notesDb: notesDb,
         subscriptionsDb: subscriptionsDb,
         finaiGoals: finaiGoals,
+        finaiQuiz: JSON.parse(localStorage.getItem('fos_finai_quiz_v1') || '{}'),
         budgets: budgets,
         ccCards: ccCards,
         notifications: notifications,
@@ -27024,6 +27027,7 @@ function downloadBackup() {
     notesDb,
     subscriptionsDb,
     finaiGoals,
+    finaiQuiz: JSON.parse(localStorage.getItem('fos_finai_quiz_v1') || '{}'),
     ccCards,
     master: fosM(),
     notifications,
@@ -27118,6 +27122,7 @@ async function confirmRestore() {
   if (pendingRestoreData.insuranceDb) { insuranceDb = pendingRestoreData.insuranceDb; localStorage.setItem('fos_insurance_v1', JSON.stringify(insuranceDb)); }
   if (pendingRestoreData.notesDb) { notesDb = pendingRestoreData.notesDb; localStorage.setItem('fos_notes_v1', JSON.stringify(notesDb)); }
   if (pendingRestoreData.subscriptionsDb) { subscriptionsDb = pendingRestoreData.subscriptionsDb; localStorage.setItem('fos_subscriptions_v1', JSON.stringify(subscriptionsDb)); }
+  if (pendingRestoreData.finaiQuiz && pendingRestoreData.finaiQuiz.r) { localStorage.setItem('fos_finai_quiz_v1', JSON.stringify(pendingRestoreData.finaiQuiz)); }
   if (Array.isArray(pendingRestoreData.finaiGoals)) { finaiGoals = pendingRestoreData.finaiGoals; localStorage.setItem('fos_finai_goals_v1', JSON.stringify(finaiGoals)); }
   if (pendingRestoreData.budgets)  { budgets  = pendingRestoreData.budgets; localStorage.setItem('fos_budgets', JSON.stringify(budgets)); }
 
@@ -38996,5 +39001,162 @@ body.light-mode .fa-fl{background:#fff}
   html #settings-modal#settings-modal .adm-pv{ position:static !important; order:-1; }
 }
 </style>
+<script id="finai-quiz">
+(function () {
+  var KEY = 'fos_finai_quiz_v1', START = [2026, 10, 15], SESSIONS = 12, PER = 20, MARKS = 2, S, Q = null;
+  var B = [
+'F|Ideal emergency fund size?|3-6 months of essential expenses|1 month of salary|1 year of income|Equal to one EMI|Covers job loss or medical shocks without loans.',
+'F|In the 50/30/20 rule, the 20 is for?|Savings and debt repayment|Wants|Needs|Taxes|',
+'F|Idle cash in a drawer mainly suffers from?|Inflation|Compounding|Diversification|Liquidity premium|Prices rise, so the same money buys less.',
+'F|A SIP helps mainly through?|Rupee-cost averaging|Guaranteed returns|Zero risk|Tax-free gains|You buy more units when prices dip.',
+'F|A healthy credit-card utilisation is below about?|30%|60%|80%|100%|',
+'F|Which CIBIL score is generally considered good?|750+|450|550|600|',
+'F|Paying only the minimum due on a card means?|Interest keeps building on the rest|Dues are cleared|No interest is charged|Score jumps|',
+'F|Debt avalanche means paying first the?|Highest-interest debt|Smallest balance|Oldest loan|Lowest EMI|Saves the most interest.',
+'F|Debt snowball means paying first the?|Smallest balance|Highest interest|Newest loan|Biggest EMI|Quick wins build momentum.',
+'F|PPF lock-in period?|15 years|3 years|5 years|10 years|',
+'F|Section 80C deduction limit (old regime)?|Rs 1.5 lakh|Rs 50,000|Rs 3 lakh|Rs 5 lakh|',
+'F|Term insurance is meant for?|Protecting dependants|Investment returns|Tax-free income|Maturity bonus|',
+'F|Diversification means?|Spreading money across assets|All-in on one winner|Only FDs|Timing the market|',
+'F|Compounding works best when you?|Start early and stay invested|Withdraw yearly|Invest only big sums|Avoid long horizons|',
+'F|Which is most liquid?|Savings account|Real estate|PPF|5-year tax-saver FD|',
+'F|Expense ratio is?|A mutual fund annual fee|A tax|An entry penalty|A credit score|',
+'F|Which is usually bad (high-interest) debt?|Unpaid credit-card balance|Home loan|Education loan|Gold loan at 9%|',
+'F|Net worth equals?|Assets minus liabilities|Income minus expenses|Assets plus liabilities|Savings minus tax|',
+'F|Savings rate equals?|(Income - expenses) / income|Expenses / income|Income / expenses|Investments / expenses|',
+'F|An EMI is made of?|Principal plus interest|Only principal|Only interest|Tax plus fee|',
+'F|Early in a loan, most of each EMI goes to?|Interest|Principal|Insurance|Fees|',
+'F|Asset allocation should mainly follow?|Goals, horizon and risk comfort|Latest news|Friends tips|One hot stock|',
+'F|Health insurance mainly protects?|Savings from big medical bills|Wealth growth|Tax-free income|Rent|',
+'F|Pay yourself first means?|Save or invest before spending|Spend first|Borrow to invest|Skip budgeting|',
+'F|Lifestyle inflation is?|Spending rising as income rises|Price inflation|Loan interest|A market fall|',
+'F|Opportunity cost is?|The value of the best alternative given up|A broker fee|A tax|Loan processing charge|',
+'F|FD interest is taxed?|As income at your slab|Never|At 12.5% flat|Only after 5 years|',
+'F|An index fund?|Tracks an index at low cost|Picks stocks actively|Guarantees returns|Holds only debt|',
+'D|Fin AI health score starts at (default)?|50|0|75|100|',
+'D|Savings rate for the biggest score bonus (default)?|30% or more|10%|20%|50%|',
+'D|Default savings-rate target?|20%|10%|30%|40%|',
+'D|EMI load counts as high from (default)?|50% of income|20%|70%|10%|',
+'D|High-interest debt starts at (default)?|24% a year|12%|36%|8%|',
+'D|Card utilisation is critical from (default)?|75%|30%|50%|100%|',
+'D|A spending spike is by default?|40% above a category usual month|10% above|100% above|Any increase|',
+'D|A charge is recurring if seen in at least (default)?|3 months|1 month|6 months|12 months|',
+'D|Forecast treats a purchase as a lump if it is?|5x median expense and at least Rs 5,000|Any expense|Above Rs 1,000|Double last month|',
+'D|The forecast learns from how many past months (default)?|3|1|12|24|',
+'D|Weekly Pulse streak needs?|4 weeks in a row with 2+ entries|1 week|12 months|30 days|',
+'D|Year in Review needs?|12 months in a row|6 months|3 months|24 months|',
+'D|A streak-freeze token?|Keeps your streak alive after a short gap|Doubles points|Locks budgets|Hides data|',
+'D|Data Tracking Mode choices?|Cloud or Manual JSON|Email or SMS|Free or Paid|Dark or Light|',
+'D|Logging out in Manual JSON mode?|Clears local data, so back up first|Uploads silently|Changes nothing|Keeps data for all users|',
+'D|Net worth in FinanceOS is?|Cash plus portfolio value minus what you owe|Income minus expenses|Portfolio only|Loans only|',
+'D|Admin Panel lives in?|Settings, below About|Dashboard header|Notes|Portfolio Tax|',
+'D|Which view stress-tests a portfolio?|Portfolio Stress Test|Net Worth Tracker|Notes|Rough Board|',
+'D|Quiet hours do what?|Mute alert sound only|Block all alerts|Delete alerts|Lock the app|',
+'D|Default yearly exempt long-term equity gain?|Rs 1,25,000|Rs 1,00,000|Rs 50,000|Rs 2,50,000|',
+'D|Listed equity becomes long-term after (default)?|12 months|6 months|24 months|36 months|',
+'D|Crypto tax default in the Tax view?|Flat 30%, no loss set-off|12.5%|Your slab|0%|',
+'D|Fin AI Coming Up tabs?|Today, This Week, This Month|Past, Future|Paid, Due|Day, Year|',
+'D|Debt Command Center lets you?|Model paying extra per month|File returns|Buy insurance|Add notes|',
+'D|With Investing counts as saving ON, savings equal?|Income - expenses - EMIs|Zero|Investments only|EMIs only|',
+'D|Which tile is on the Fin AI page?|Debt-to-Income|Weather|Gold rate|Rent index|'
+  ];
+  function rng(s) { return function () { s |= 0; s = s + 0x6D2B79F5 | 0; var t = Math.imul(s ^ s >>> 15, 1 | s); t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296; }; }
+  function shuf(a, r) { a = a.slice(); for (var i = a.length - 1; i > 0; i--) { var j = Math.floor(r() * (i + 1)); var t = a[i]; a[i] = a[j]; a[j] = t; } return a; }
+  function f(n) { return Number(n).toLocaleString('en-IN'); }
+  function pick(a, r) { return a[Math.floor(r() * a.length)]; }
+  function mk(t, q, ans, wrong, r, w) { var o = [ans]; wrong.forEach(function (x) { if (o.indexOf(x) < 0) o.push(x); }); var k = 1; while (o.length < 4) o.push(String(ans) + ' ' + (k++)); o = shuf(o, r); return { t: t, q: q, o: o, a: o.indexOf(ans), w: w || '' }; }
+  function nums(r) {
+    var I = pick([40, 50, 60, 80, 100, 120], r) * 1000, s = pick([10, 15, 20, 25, 30, 35, 40], r), q = [];
+    q.push(mk('F', 'Income Rs ' + f(I) + '; expenses + EMIs Rs ' + f(I * (100 - s) / 100) + '. Savings rate?', s + '%', [(s + 10) + '%', (s + 5) + '%', (100 - s) + '%'], r, 'Savings rate = (income - spending) / income.'));
+    var L = pick([50, 100, 150, 200, 300], r) * 1000, u = pick([10, 20, 40, 50, 60, 80], r);
+    q.push(mk('F', 'Card limit Rs ' + f(L) + ', balance Rs ' + f(L * u / 100) + '. Utilisation?', u + '%', [(u + 20) + '%', Math.max(5, u - 10) + '%', (100 - u) + '%'], r, 'Utilisation = balance / limit.'));
+    var e = pick([15, 20, 25, 35, 45, 55], r);
+    q.push(mk('F', 'EMIs Rs ' + f(I * e / 100) + ' on income Rs ' + f(I) + ' is what share of income?', e + '%', [(e + 10) + '%', Math.max(5, e - 10) + '%', (e * 2) + '%'], r, 'The score treats 30%+ as moderate and 50%+ as high.'));
+    var rt = pick([6, 8, 9, 12, 18], r), y = 72 / rt;
+    q.push(mk('F', 'By the rule of 72, money at ' + rt + '% a year doubles in about?', y + ' years', [(y + 3) + ' years', (y * 2) + ' years', Math.max(1, y - 2) + ' years'], r, '72 / rate.'));
+    var P = pick([10, 20, 50, 100], r) * 1000, R = pick([5, 6, 8, 10], r), T = pick([2, 3, 4, 5], r), si = P * R * T / 100;
+    q.push(mk('F', 'Simple interest on Rs ' + f(P) + ' at ' + R + '% for ' + T + ' years?', 'Rs ' + f(si), ['Rs ' + f(si * 2), 'Rs ' + f(si + P / 10), 'Rs ' + f(P * R / 100)], r, 'P x R x T / 100.'));
+    var X = pick([20, 25, 30, 40, 50], r) * 1000, m = pick([3, 6], r);
+    q.push(mk('F', 'Essentials cost Rs ' + f(X) + ' a month. A ' + m + '-month emergency fund needs?', 'Rs ' + f(X * m), ['Rs ' + f(X * (m + 3)), 'Rs ' + f(X), 'Rs ' + f(X * m * 2)], r, 'Essentials x months.'));
+    return q;
+  }
+  function sessions() { var out = [], y = START[0], m = START[1], d = START[2]; for (var i = 0; i < SESSIONS; i++) { out.push(y + '-' + ('0' + (m + 1)).slice(-2) + '-' + ('0' + d).slice(-2)); if (d === 15) { d = 1; m++; if (m > 11) { m = 0; y++; } } else d = 15; } return out; }
+  function today() { var d = new Date(); return d.getFullYear() + '-' + ('0' + (d.getMonth() + 1)).slice(-2) + '-' + ('0' + d.getDate()).slice(-2); }
+  function build(date) {
+    var k = sessions().indexOf(date), r = rng(Number(date.replace(/-/g, '')));
+    var bank = shuf(B, rng(2026)), qs = [], n = PER - 6;
+    for (var i = 0; i < n; i++) { var p = bank[(k * n + i) % bank.length].split('|'); var o = shuf([p[2], p[3], p[4], p[5]], r); qs.push({ t: p[0], q: p[1], o: o, a: o.indexOf(p[2]), w: p[6] || '' }); }
+    return shuf(qs.concat(nums(r)), r);
+  }
+  function load() { try { var s = JSON.parse(localStorage.getItem(KEY)); if (s && s.r) return s; } catch (e) { } return { r: {}, n: {}, b: {} }; }
+  function save() { try { localStorage.setItem(KEY, JSON.stringify(S)); } catch (e) { } try { scheduleSave(); } catch (e) { } }
+  function grade(p) { return p >= 90 ? ['A+', 'Money Master', '#34d399'] : p >= 80 ? ['A', 'Sharp', '#34d399'] : p >= 70 ? ['B', 'Solid', '#38bdf8'] : p >= 60 ? ['C', 'Getting there', '#fbbf24'] : p >= 50 ? ['D', 'Needs revision', '#fb923c'] : ['E', 'Keep practising', '#ef4444']; }
+  function status() { S = load(); var t = today(), all = sessions(), due = [], next = null; all.forEach(function (d) { if (S.r[d]) return; if (d <= t) due.push(d); else if (!next) next = d; }); return { t: t, all: all, due: due, next: next }; }
+  function dl(d) { var x = d.split('-'); return new Date(+x[0], +x[1] - 1, +x[2]).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' }); }
+  var css = '<style id="fq-css">.fq-card{background:rgba(255,255,255,.02);border:1px solid rgba(255,255,255,.06);border-radius:16px;padding:1rem 1.1rem}body.light-mode .fq-card{background:#fff;border-color:#e2e8f0}.fq-row{display:flex;gap:12px;flex-wrap:wrap;align-items:center;justify-content:space-between}.fq-btn{background:rgba(56,189,248,.85);color:#04121a;border:0;border-radius:10px;padding:8px 16px;font-weight:700;font-size:.8rem;cursor:pointer}.fq-btn.sec{background:rgba(255,255,255,.07);color:var(--text-main)}body.light-mode .fq-btn.sec{background:#eef2f7}.fq-mut{font-size:.76rem;color:var(--text-muted)}.fq-hist{display:grid;gap:6px;margin-top:10px}.fq-h{display:flex;justify-content:space-between;gap:8px;font-size:.78rem;padding:7px 10px;border-radius:10px;background:rgba(255,255,255,.025)}body.light-mode .fq-h{background:#f8fafc}.fq-ov{position:fixed;inset:0;z-index:99999;background:rgba(0,0,0,.6);display:flex;align-items:center;justify-content:center;padding:12px}.fq-box{width:min(620px,100%);max-height:92vh;overflow:auto;background:var(--bg-card,#0b1114);color:var(--text-main);border:1px solid rgba(255,255,255,.1);border-radius:18px;padding:1.2rem}body.light-mode .fq-box{background:#fff}.fq-opt{display:block;width:100%;text-align:left;margin:8px 0;padding:11px 13px;border-radius:12px;border:1px solid rgba(255,255,255,.12);background:transparent;color:var(--text-main);font-size:.86rem;cursor:pointer}body.light-mode .fq-opt{border-color:#cbd5e1}.fq-opt.ok{border-color:#34d399;background:rgba(52,211,153,.15)}.fq-opt.no{border-color:#ef4444;background:rgba(239,68,68,.15)}.fq-bar{height:6px;border-radius:6px;background:rgba(255,255,255,.08);overflow:hidden}.fq-bar i{display:block;height:100%;background:#38bdf8}.fq-pop{position:fixed;right:14px;bottom:14px;z-index:99998;width:min(320px,calc(100% - 28px));background:var(--bg-card,#0b1114);color:var(--text-main);border:1px solid rgba(56,189,248,.5);border-radius:14px;padding:12px 14px;box-shadow:0 8px 30px rgba(0,0,0,.4)}body.light-mode .fq-pop{background:#fff}</style>';
+  function render() {
+    var host = document.getElementById('finai-quiz-host'); if (!host) return;
+    if (!document.getElementById('fq-css')) document.head.insertAdjacentHTML('beforeend', css);
+    var st = status(), done = Object.keys(S.r).sort(), tot = PER * MARKS, last = done.length ? S.r[done[done.length - 1]] : null;
+    var avg = done.length ? Math.round(done.reduce(function (a, d) { return a + S.r[d].s / S.r[d].t * 100; }, 0) / done.length) : null;
+    var best = done.length ? Math.max.apply(null, done.map(function (d) { return S.r[d].s; })) : null;
+    var lg = last ? grade(last.s / last.t * 100) : null, cur = st.due[0];
+    var h = '<div class="finai-section-head"><div><i class="fas fa-graduation-cap"></i> FinAI Quiz</div><div class="fq-mut">' + PER + ' questions &middot; ' + MARKS + ' marks each &middot; ' + tot + ' total &middot; 1st &amp; 15th</div></div><div class="fq-card" style="margin-top:10px"><div class="fq-row"><div>';
+    h += cur ? '<div style="font-weight:800;font-size:1rem">Session ' + dl(cur) + ' is ready' + (cur < st.t ? ' <span class="fq-mut">(late)</span>' : '') + '</div><div class="fq-mut">' + (st.due.length > 1 ? st.due.length + ' sessions waiting. ' : '') + 'Takes about 8 minutes.</div>' : '<div style="font-weight:800;font-size:1rem">' + (st.next ? 'Next session: ' + dl(st.next) : 'All sessions complete') + '</div><div class="fq-mut">You are up to date.</div>';
+    h += '</div><div style="display:flex;gap:8px;flex-wrap:wrap">' + (cur ? '<button class="fq-btn" onclick="finaiQuizStart(\'' + cur + '\')">Start quiz</button>' : '') + '<button class="fq-btn sec" onclick="finaiQuizAlerts()">Enable alerts</button><button class="fq-btn sec" onclick="finaiQuizIcs()">Add to calendar</button></div></div>';
+    h += '<div class="fq-row" style="margin-top:12px">' + (last ? '<div><span style="font-size:1.6rem;font-weight:800;color:' + lg[2] + '">' + last.s + '/' + last.t + '</span> <span class="fq-mut">Grade ' + lg[0] + ' &middot; ' + lg[1] + '</span></div>' : '<div class="fq-mut">No attempts yet. Your first score will show here.</div>') + '<div class="fq-mut">' + (done.length ? 'Average ' + avg + '% &middot; Best ' + best + '/' + tot + ' &middot; ' + done.length + '/' + st.all.length + ' done' : '') + '</div></div><div class="fq-hist">';
+    st.all.forEach(function (d) { var r = S.r[d], tag = r ? (r.s + '/' + r.t + ' &middot; ' + grade(r.s / r.t * 100)[0] + (r.late ? ' (late)' : '')) : d <= st.t ? (d === cur ? 'Due' : 'Missed - take now') : 'Upcoming'; h += '<div class="fq-h"><span>' + dl(d) + '</span><span' + (r ? ' style="font-weight:700"' : '') + '>' + tag + '</span></div>'; });
+    host.innerHTML = h + '</div></div>';
+  }
+  function modal(html) { var o = document.getElementById('fq-ov'); if (!o) { o = document.createElement('div'); o.id = 'fq-ov'; o.className = 'fq-ov'; document.body.appendChild(o); } o.innerHTML = '<div class="fq-box">' + html + '</div>'; }
+  function close() { var o = document.getElementById('fq-ov'); if (o) o.remove(); Q = null; render(); }
+  function show() {
+    var q = Q.qs[Q.i], pk = Q.p[Q.i], n = Q.qs.length;
+    var h = '<div class="fq-row"><b>FinAI Quiz &middot; ' + dl(Q.d) + '</b><span class="fq-mut">Q ' + (Q.i + 1) + '/' + n + '</span></div><div class="fq-bar" style="margin:10px 0"><i style="width:' + (Q.i / n * 100) + '%"></i></div><div class="fq-mut">' + (q.t === 'D' ? 'FinanceOS know-how' : 'Money knowledge') + '</div><div style="font-weight:700;margin:6px 0 4px;line-height:1.45">' + q.q + '</div>';
+    q.o.forEach(function (o, i) { var c = pk == null ? '' : i === q.a ? ' ok' : i === pk ? ' no' : ''; h += '<button class="fq-opt' + c + '"' + (pk == null ? ' onclick="finaiQuizPick(' + i + ')"' : ' disabled') + '>' + o + '</button>'; });
+    if (pk != null) h += '<div class="fq-mut" style="margin:6px 0">' + (pk === q.a ? 'Correct, +' + MARKS + ' marks. ' : 'Not quite. Answer: ' + q.o[q.a] + '. ') + (q.w || '') + '</div><button class="fq-btn" onclick="finaiQuizNext()">' + (Q.i === n - 1 ? 'Finish' : 'Next') + '</button>';
+    modal(h + '<div style="margin-top:12px"><button class="fq-btn sec" onclick="finaiQuizQuit()">Quit (progress is lost)</button></div>');
+  }
+  function result() {
+    var sc = 0, ts = { F: [0, 0], D: [0, 0] }; Q.qs.forEach(function (q, i) { var ok = Q.p[i] === q.a; if (ok) sc += MARKS; ts[q.t][1]++; if (ok) ts[q.t][0]++; });
+    var tot = Q.qs.length * MARKS, g = grade(sc / tot * 100); S = load(); S.r[Q.d] = { s: sc, t: tot, at: new Date().toISOString(), late: Q.d < today(), F: ts.F, D: ts.D }; save();
+    var prev = Object.keys(S.r).sort().filter(function (d) { return d < Q.d; }).pop(), dv = prev ? sc - S.r[prev].s : null;
+    var h = '<div style="text-align:center"><div style="font-size:2.4rem;font-weight:800;color:' + g[2] + '">' + sc + '/' + tot + '</div><div style="font-weight:700">Grade ' + g[0] + ' &middot; ' + g[1] + '</div>' + (dv == null ? '' : '<div class="fq-mut">' + (dv > 0 ? 'Up ' + dv + ' marks from last session' : dv < 0 ? 'Down ' + (-dv) + ' marks from last session' : 'Same as last session') + '</div>') + '</div><div class="fq-hist"><div class="fq-h"><span>Money knowledge</span><span>' + ts.F[0] + '/' + ts.F[1] + '</span></div><div class="fq-h"><span>FinanceOS know-how</span><span>' + ts.D[0] + '/' + ts.D[1] + '</span></div></div><div class="fq-mut" style="margin:10px 0 4px">Review the ones you missed:</div>';
+    Q.qs.forEach(function (q, i) { if (Q.p[i] !== q.a) h += '<div class="fq-h" style="display:block;margin-bottom:6px"><b>' + q.q + '</b><br><span style="color:#34d399">' + q.o[q.a] + '</span> ' + (q.w ? '<span class="fq-mut">' + q.w + '</span>' : '') + '</div>'; });
+    modal(h + '<div style="margin-top:12px"><button class="fq-btn" onclick="finaiQuizClose()">Done</button></div>');
+    try { removeNotification('finai-quiz-' + Q.d); } catch (e) { }
+  }
+  window.finaiQuizStart = function (d) { var p = document.getElementById('fq-pop'); if (p) p.remove(); try { if (typeof switchView === 'function' && !document.getElementById('view-finai').classList.contains('active')) switchView('finai'); } catch (e) { } Q = { d: d, qs: build(d), i: 0, p: [] }; show(); };
+  window.finaiQuizPick = function (i) { if (Q.p[Q.i] == null) { Q.p[Q.i] = i; show(); } };
+  window.finaiQuizNext = function () { if (Q.i === Q.qs.length - 1) result(); else { Q.i++; show(); } };
+  window.finaiQuizQuit = function () { if (confirm('Quit this quiz? Your answers so far will be lost.')) close(); };
+  window.finaiQuizClose = close;
+  window.finaiQuizAlerts = function () { if (!('Notification' in window)) { alert('This browser does not support notifications. Use Add to calendar instead.'); return; } Notification.requestPermission().then(function (p) { alert(p === 'granted' ? 'Alerts on. You will be notified when a session is due while FinanceOS is open or installed. For reminders when the app is closed, also tap Add to calendar.' : 'Notifications are blocked in your browser settings.'); }); };
+  window.finaiQuizIcs = function () {
+    var ev = function (u, start, rule, name) { return 'BEGIN:VEVENT\r\nUID:' + u + '@financeos\r\nDTSTAMP:20261114T000000Z\r\nDTSTART:' + start + '\r\nRRULE:' + rule + '\r\nSUMMARY:' + name + '\r\nDESCRIPTION:20 questions, 40 marks. Open FinanceOS > Fin AI.\r\nBEGIN:VALARM\r\nACTION:DISPLAY\r\nDESCRIPTION:FinAI quiz\r\nTRIGGER:PT0S\r\nEND:VALARM\r\nEND:VEVENT\r\n'; };
+    var t = 'BEGIN:VCALENDAR\r\nVERSION:2.0\r\nPRODID:-//FinanceOS//FinAI Quiz//EN\r\n' + ev('q15', '20261115T090000', 'FREQ=MONTHLY;BYMONTHDAY=15;COUNT=7', 'FinAI Quiz') + ev('q01', '20261201T090000', 'FREQ=MONTHLY;BYMONTHDAY=1;COUNT=6', 'FinAI Quiz') + 'END:VCALENDAR\r\n';
+    var a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([t], { type: 'text/calendar' })); a.download = 'finai-quiz.ics'; document.body.appendChild(a); a.click(); a.remove();
+  };
+  function check() {
+    try { var ready = true; try { ready = !cloudSession || cloudDataReady; } catch (e) { } if (!ready || typeof db === 'undefined') return; } catch (e) { return; }
+    var st = status(); if (!st.due.length) return; var d = st.due[0];
+    try { addNotification('finai-quiz-' + d, 'fa-graduation-cap', '#38bdf8', 'FinAI quiz is ready', 'Session ' + dl(d) + ': ' + PER + ' questions, ' + (PER * MARKS) + ' marks.', 'finai'); } catch (e) { }
+    if (!S.b[d] && 'Notification' in window && Notification.permission === 'granted') {
+      S.b[d] = 1; save(); var o = { body: 'Your ' + dl(d) + ' session is ready. ' + PER + ' questions, ' + (PER * MARKS) + ' marks.', tag: 'finai-quiz-' + d };
+      if (navigator.serviceWorker && navigator.serviceWorker.getRegistration) navigator.serviceWorker.getRegistration().then(function (r) { if (r && r.showNotification) r.showNotification('FinAI quiz is ready', o); else new Notification('FinAI quiz is ready', o); }).catch(function () { try { new Notification('FinAI quiz is ready', o); } catch (e) { } });
+      else try { new Notification('FinAI quiz is ready', o); } catch (e) { }
+    }
+    if (S.n[d] !== st.t && !Q && !document.getElementById('fq-pop')) {
+      var p = document.createElement('div'); p.id = 'fq-pop'; p.className = 'fq-pop';
+      p.innerHTML = '<div style="font-weight:800">FinAI quiz is ready</div><div class="fq-mut" style="margin:4px 0 10px">Session ' + dl(d) + ' &middot; ' + PER + ' questions &middot; ' + (PER * MARKS) + ' marks</div><button class="fq-btn" onclick="finaiQuizStart(\'' + d + '\')">Start now</button> <button class="fq-btn sec" onclick="finaiQuizLater(\'' + d + '\')">Later</button>';
+      document.body.appendChild(p);
+    }
+  }
+  window.finaiQuizLater = function (d) { S = load(); S.n[d] = today(); save(); var p = document.getElementById('fq-pop'); if (p) p.remove(); };
+  var _r = window.renderFinAI; if (typeof _r === 'function') window.renderFinAI = function () { var x = _r.apply(this, arguments); try { render(); } catch (e) { } return x; };
+  window.addEventListener('load', function () { setTimeout(check, 3000); setInterval(check, 60000); render(); });
+  document.addEventListener('visibilitychange', function () { if (!document.hidden) setTimeout(check, 500); });
+})();
+</script>
 </body>
 </html>
