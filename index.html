@@ -39285,13 +39285,10 @@ function fosPushPrompt() {
   try {
     if (fosPushState() !== 'default' || !(fosPushOn('push-quiz') || fosPushOn('push-alerts'))) return;
     if (typeof cloudSession === 'undefined' || !cloudSession) return;
-    if (sessionStorage.getItem('fos_push_prompt_off') || document.getElementById('fos-push-prompt')) return;
-    var b = document.createElement('div'); b.id = 'fos-push-prompt';
-    b.style.cssText = 'position:fixed;left:50%;transform:translateX(-50%);bottom:18px;z-index:99998;max-width:92vw;background:#0f172a;color:#e2e8f0;border:1px solid #38bdf8;border-radius:12px;padding:10px 14px;font:600 .8rem DM Sans,sans-serif;display:flex;gap:10px;align-items:center;flex-wrap:wrap;box-shadow:0 8px 30px rgba(0,0,0,.4)';
-    b.innerHTML = '<span>Push notifications are on for your account. Allow them on this device?</span><button id="fos-pp-yes" style="background:#38bdf8;color:#04131d;border:0;border-radius:8px;padding:5px 10px;font-weight:700;cursor:pointer">Allow</button><button id="fos-pp-no" style="background:transparent;color:#94a3b8;border:1px solid #334155;border-radius:8px;padding:5px 10px;cursor:pointer">Not now</button>';
-    document.body.appendChild(b);
-    document.getElementById('fos-pp-yes').onclick = function () { b.remove(); fosPushEnable(); };
-    document.getElementById('fos-pp-no').onclick = function () { sessionStorage.setItem('fos_push_prompt_off', '1'); b.remove(); };
+    if (sessionStorage.getItem('fos_push_prompt_off') || document.getElementById('fos-push-prompt') || typeof window.fosToast !== 'function') return;
+    var off = function () { sessionStorage.setItem('fos_push_prompt_off', '1'); };
+    window.fosToast({ id: 'fos-push-prompt', color: '#38bdf8', ms: 20000, text: 'Push notifications are on for your account. Allow them on this device?', onExpire: off,
+      actions: [{ label: 'Allow', primary: true, fn: function () { fosPushEnable(); } }, { label: 'Not now', fn: off }] });
   } catch (e) { }
 }
 setInterval(fosPushPrompt, 10000);
@@ -39370,12 +39367,16 @@ function fosPushRefreshUI() {
   }
   async function pushDirty() { if (!ready || !active()) return; var ks = Object.keys(meta.d).filter(syncable); try { await upsertKeys(ks); } catch (x) { console.warn(x); } }
 
-  function banner() {
-    if (document.getElementById('fos-kv-banner')) return;
-    var b = document.createElement('div'); b.id = 'fos-kv-banner';
-    b.style.cssText = 'position:fixed;left:50%;transform:translateX(-50%);bottom:18px;z-index:99999;background:#0f172a;color:#e2e8f0;border:1px solid #34d399;border-radius:12px;padding:10px 14px;font:600 .8rem DM Sans,sans-serif;display:flex;gap:12px;align-items:center;box-shadow:0 8px 30px rgba(0,0,0,.4)';
-    b.innerHTML = 'Updated from another device <button style="background:#34d399;color:#04130d;border:0;border-radius:8px;padding:5px 10px;font-weight:700;cursor:pointer" onclick="location.reload()">Refresh</button>';
-    document.body.appendChild(b);
+  var lastShown = {};
+  function canon(v) {
+    var p = parse(v); if (p === null && v !== 'null') return String(v);
+    function srt(o) { return o && typeof o === 'object' ? (Array.isArray(o) ? o.map(srt) : Object.keys(o).sort().reduce(function (a, k) { a[k] = srt(o[k]); return a; }, {})) : o; }
+    return JSON.stringify(srt(p));
+  }
+  function banner(sig) {
+    if (lastShown[sig] && Date.now() - lastShown[sig] < 600000) return;   // don't nag again for the same change
+    lastShown[sig] = Date.now();
+    window.fosToast({ id: 'fos-kv-toast', text: 'Updated from another device', ms: 10000, actions: [{ label: 'Refresh', primary: true, fn: function () { location.reload(); } }] });
   }
 
   async function sync(initial) {
@@ -39388,11 +39389,11 @@ function fosPushRefreshUI() {
       (q.data || []).forEach(function (r) { if (syncable(r.key)) cloud[r.key] = r; });
       Object.keys(cloud).forEach(function (k) {
         var cv = cloud[k].data && cloud[k].data.v, lv = origGet.call(localStorage, k);
-        if (cv == null || cv === lv) { delete meta.d[k]; return; }
+        if (cv == null || cv === lv || canon(cv) === canon(lv)) { delete meta.d[k]; return; }
         if (MERGE[k]) {
           var m = MERGE[k](lv, cv);
-          if (m !== lv) { origSet.call(localStorage, k, m); changed.push(k); }
-          if (m !== cv) toPush.push(k);
+          if (canon(m) !== canon(lv)) { origSet.call(localStorage, k, m); changed.push(k); }
+          if (canon(m) !== canon(cv)) toPush.push(k);
         } else if (meta.d[k] && (meta.e[k] || '') > (cloud[k].updated_at || '')) toPush.push(k);   // my edit is newer
         else if (!(empty(cv) && !empty(lv) && !initial)) { origSet.call(localStorage, k, cv); changed.push(k); delete meta.d[k]; }
       });
@@ -39405,13 +39406,13 @@ function fosPushRefreshUI() {
       ready = true;
       await upsertKeys(toPush.filter(function (k, i, a) { return a.indexOf(k) === i; }));
       if (changed.length) {
-        var LIVE = ['fos_finai_quiz_v1', 'fos_set_push-quiz', 'fos_set_push-alerts'], onlyQuiz = changed.every(function (k) { return LIVE.indexOf(k) > -1; });
+        var LIVE = ['fos_finai_quiz_v1', 'fos_notif_dismissed', 'fos_set_push-quiz', 'fos_set_push-alerts'], onlyQuiz = changed.every(function (k) { return LIVE.indexOf(k) > -1; });
         if (onlyQuiz) {
           if (changed.indexOf('fos_finai_quiz_v1') > -1 && typeof window.finaiQuizReload === 'function') window.finaiQuizReload();
           if (typeof window.fosPushApplySynced === 'function') window.fosPushApplySynced();
         }
         else if (initial && !sessionStorage.getItem('fos_kv_reloaded')) { sessionStorage.setItem('fos_kv_reloaded', '1'); location.reload(); }
-        else banner();
+        else banner(changed.slice().sort().join(','));
       }
     } catch (x) { console.warn('user_kv sync error', x); } finally { busy = false; }
   }
@@ -39422,6 +39423,32 @@ function fosPushRefreshUI() {
   setInterval(function () { if (started && !document.hidden) sync(false); }, 60000);
   document.addEventListener('visibilitychange', function () { if (started && !document.hidden) setTimeout(function () { sync(false); }, 400); });
 })();
+</script>
+<script>
+/* floating toast: bottom-right, auto-dismiss timer with progress bar, optional action buttons */
+window.fosToast = function (o) {
+  var st = document.getElementById('fos-toast-stack');
+  if (!st) { st = document.createElement('div'); st.id = 'fos-toast-stack'; st.style.cssText = 'position:fixed;right:16px;bottom:16px;z-index:99999;display:flex;flex-direction:column;gap:10px;align-items:flex-end;max-width:calc(100vw - 32px);pointer-events:none'; document.body.appendChild(st); }
+  if (o.id) { var ex = document.getElementById(o.id); if (ex) ex.remove(); }
+  var c = o.color || '#34d399', ms = o.ms || 10000, t = document.createElement('div'); if (o.id) t.id = o.id;
+  t.style.cssText = 'pointer-events:auto;position:relative;overflow:hidden;background:#0f172a;color:#e2e8f0;border:1px solid ' + c + ';border-radius:12px;padding:12px 14px 15px;font:600 .8rem DM Sans,sans-serif;display:flex;gap:10px;align-items:center;flex-wrap:wrap;box-shadow:0 8px 30px rgba(0,0,0,.45);min-width:240px;max-width:360px;opacity:0;transform:translateY(8px);transition:opacity .2s,transform .2s';
+  var done = false;
+  function close(expired) { if (done) return; done = true; t.style.opacity = '0'; setTimeout(function () { t.remove(); }, 200); if (expired && o.onExpire) { try { o.onExpire(); } catch (e) { } } }
+  var msg = document.createElement('span'); msg.style.flex = '1 1 auto'; msg.textContent = o.text; t.appendChild(msg);
+  (o.actions || []).forEach(function (a) {
+    var b = document.createElement('button'); b.textContent = a.label;
+    b.style.cssText = a.primary ? 'background:' + c + ';color:#04130d;border:0;border-radius:8px;padding:5px 10px;font-weight:700;cursor:pointer' : 'background:transparent;color:#94a3b8;border:1px solid #334155;border-radius:8px;padding:5px 10px;cursor:pointer';
+    b.onclick = function () { close(false); try { a.fn && a.fn(); } catch (e) { } }; t.appendChild(b);
+  });
+  var x = document.createElement('button'); x.textContent = '\u2715'; x.setAttribute('aria-label', 'Dismiss');
+  x.style.cssText = 'background:transparent;border:0;color:#94a3b8;cursor:pointer;font-size:.9rem;padding:2px 4px'; x.onclick = function () { close(true); }; t.appendChild(x);
+  var bar = document.createElement('div'); bar.style.cssText = 'position:absolute;left:0;bottom:0;height:3px;width:100%;background:' + c + ';transition:width ' + ms + 'ms linear'; t.appendChild(bar);
+  st.appendChild(t);
+  requestAnimationFrame(function () { t.style.opacity = '1'; t.style.transform = 'none'; bar.style.width = '0'; });
+  var tm = setTimeout(function () { close(true); }, ms);
+  t.addEventListener('mouseenter', function () { clearTimeout(tm); bar.style.transition = 'none'; bar.style.width = '100%'; });
+  t.addEventListener('mouseleave', function () { bar.style.transition = 'width ' + ms + 'ms linear'; requestAnimationFrame(function () { bar.style.width = '0'; }); tm = setTimeout(function () { close(true); }, ms); });
+};
 </script>
 </body>
 </html>
