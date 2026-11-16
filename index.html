@@ -10071,6 +10071,7 @@ function passAppLockGate() {
           <button class="gen-nav-btn active" onclick="switchGenSection('account', this)" style="background:var(--accent); color:white; border:none; padding:6px 14px; border-radius:8px; font-weight:600; cursor:pointer;">Account & Profile</button>
           <button class="gen-nav-btn" onclick="switchGenSection('appearance', this)" style="background:rgba(255,255,255,0.05); color:var(--text-mid); border:1px solid var(--glass-border); padding:6px 14px; border-radius:8px; cursor:pointer; transition:0.2s;">Appearance</button>
           <button class="gen-nav-btn" onclick="switchGenSection('interface', this)" style="background:rgba(255,255,255,0.05); color:var(--text-mid); border:1px solid var(--glass-border); padding:6px 14px; border-radius:8px; cursor:pointer; transition:0.2s;">Date & UI Behavior</button>
+          <button class="gen-nav-btn" onclick="switchGenSection('sync', this)" style="background:rgba(255,255,255,0.05); color:var(--text-mid); border:1px solid var(--glass-border); padding:6px 14px; border-radius:8px; cursor:pointer; transition:0.2s;">Sync</button>
         </div>
 
         <!-- Section 1: Account -->
@@ -10326,6 +10327,38 @@ function passAppLockGate() {
             </div>
           </div>
           
+        </div>
+
+                <!-- Section 4: Sync -->
+        <div id="gen-sec-sync" class="gen-section" style="display:none; flex-direction:column; gap:1.2rem;">
+          <div class="set-card">
+            <div style="display:flex; gap:10px; align-items:center; margin-bottom: 0.5rem;">
+              <div style="width:32px; height:32px; border-radius:50%; background:rgba(52,211,153,0.15); color:#34d399; display:flex; align-items:center; justify-content:center"><i class="fas fa-sync-alt"></i></div>
+              <div class="set-label-block">
+                <div class="set-lbl readable-white">Sync</div>
+                <div class="set-desc" style="margin-top:0">Keep the same data on your phone, tablet and PC</div>
+              </div>
+            </div>
+            <div class="set-desc" style="margin-bottom:0.6rem">Sync saves your data to your cloud account and brings changes made on your other devices into this one, so every device shows the same thing. It runs quietly in the background, with no refresh needed. Changes made here are saved straight away. Changes from other devices arrive about every minute, and instantly when you return to this tab.</div>
+
+            <div class="set-row">
+              <div class="set-label-block">
+                <div class="set-lbl readable-white" style="font-size:0.8rem">Automatic sync</div>
+                <div class="set-desc" id="sync-status">Checking…</div>
+              </div>
+              <label class="toggle-switch"><input type="checkbox" id="tog-auto-sync" checked onchange="toggleSetting('auto-sync','Automatic Sync',this); if (window.fosSyncUI) fosSyncUI();"><span class="toggle-slider"></span></label>
+            </div>
+
+            <div class="set-row">
+              <div class="set-label-block">
+                <div class="set-lbl readable-white" style="font-size:0.8rem">Sync data now</div>
+                <div class="set-desc">Last synced: <span id="sync-last">Not yet this session</span></div>
+              </div>
+              <button type="button" id="sync-now-btn" class="btn-secondary" style="font-size:0.72rem;padding:5px 12px" onclick="fosSyncNow()"><i class="fas fa-sync-alt" style="margin-right:6px"></i>Sync data</button>
+            </div>
+
+            <div class="set-desc" style="margin-top:0.4rem">Stays on each device: theme, layouts, app lock and biometrics, and insurance document attachments.</div>
+          </div>
         </div>
 
         <div id="gen-sec-interface" class="gen-section" style="display:none; flex-direction:column; gap:1.2rem;">
@@ -25596,6 +25629,7 @@ function switchGenSection(secId, el) {
   // Swap the internal views natively (no scrolling required)
   document.querySelectorAll('.gen-section').forEach(sec => sec.style.display = 'none');
   document.getElementById('gen-sec-' + secId).style.display = 'flex';
+  if (secId === 'sync' && window.fosSyncUI) window.fosSyncUI();
 }
 
 // ── GENERAL SETTINGS ENGINE ──
@@ -39315,7 +39349,7 @@ function fosPushRefreshUI() {
     'fos_currency','fos_number_system','fos_time','fos_date','financeOS_roughboard_v1','fos_remind_v1','fos_port_customsubs_v1','fos_port_targets_v1',
     'fos_port_tgtband','fos_port_tgtnew','fos_pi_bench','fos_tax_cls_v1','fos_tax_slab','fos_tax_fy','fos_notif_dismissed','fos_onboarding_goal',
     'fos_last_nw_milestone','fos_last_portfolio_update','fos_lh_unlocked','fos_academy_v1','fos_stress_v1'];
-  var DEVICE_SET = ['fos_set_app-theme', 'fos_set_sidebar-animation'];   // per-device settings: never synced (push preferences DO sync; only the browser permission is per device)
+  var DEVICE_SET = ['fos_set_app-theme', 'fos_set_sidebar-animation', 'fos_set_auto-sync'];   // per-device settings: never synced (push preferences DO sync; only the browser permission is per device)
   function syncable(k) { return typeof k === 'string' && (SYNC.indexOf(k) > -1 || (k.indexOf('fos_set_') === 0 && DEVICE_SET.indexOf(k) < 0)); }
 
   var origSet = Storage.prototype.setItem, origGet = Storage.prototype.getItem;
@@ -39367,16 +39401,10 @@ function fosPushRefreshUI() {
   }
   async function pushDirty() { if (!ready || !active()) return; var ks = Object.keys(meta.d).filter(syncable); try { await upsertKeys(ks); } catch (x) { console.warn(x); } }
 
-  var lastShown = {};
   function canon(v) {
     var p = parse(v); if (p === null && v !== 'null') return String(v);
     function srt(o) { return o && typeof o === 'object' ? (Array.isArray(o) ? o.map(srt) : Object.keys(o).sort().reduce(function (a, k) { a[k] = srt(o[k]); return a; }, {})) : o; }
     return JSON.stringify(srt(p));
-  }
-  function banner(sig) {
-    if (lastShown[sig] && Date.now() - lastShown[sig] < 600000) return;   // don't nag again for the same change
-    lastShown[sig] = Date.now();
-    window.fosToast({ id: 'fos-kv-toast', text: 'Updated from another device', ms: 10000, actions: [{ label: 'Refresh', primary: true, fn: function () { location.reload(); } }] });
   }
 
   async function sync(initial) {
@@ -39406,22 +39434,108 @@ function fosPushRefreshUI() {
       ready = true;
       await upsertKeys(toPush.filter(function (k, i, a) { return a.indexOf(k) === i; }));
       if (changed.length) {
-        var LIVE = ['fos_finai_quiz_v1', 'fos_notif_dismissed', 'fos_set_push-quiz', 'fos_set_push-alerts'], onlyQuiz = changed.every(function (k) { return LIVE.indexOf(k) > -1; });
-        if (onlyQuiz) {
-          if (changed.indexOf('fos_finai_quiz_v1') > -1 && typeof window.finaiQuizReload === 'function') window.finaiQuizReload();
-          if (typeof window.fosPushApplySynced === 'function') window.fosPushApplySynced();
+        var rest = applyLive(changed);
+        if (rest.length) {
+          if (initial && !sessionStorage.getItem('fos_kv_reloaded')) { sessionStorage.setItem('fos_kv_reloaded', '1'); location.reload(); }
+          else pendingReload = true;   // applied silently the next time you switch away or pause
         }
-        else if (initial && !sessionStorage.getItem('fos_kv_reloaded')) { sessionStorage.setItem('fos_kv_reloaded', '1'); location.reload(); }
-        else banner(changed.slice().sort().join(','));
       }
+      stamp();
     } catch (x) { console.warn('user_kv sync error', x); } finally { busy = false; }
   }
   window.fosKvSync = function () { return sync(false); };
 
+  /* ── silent background apply (no popups, no manual refresh) ── */
+  var pendingReload = false, lastSynced = null, lastLocalEdit = 0, lastInput = Date.now(), info = { at: null, msg: '' };
+  ['pointerdown', 'keydown', 'touchstart'].forEach(function (e) { document.addEventListener(e, function () { lastInput = Date.now(); }, true); });
+  function autoOn() { return origGet.call(localStorage, 'fos_set_auto-sync') !== 'false'; }
+  function ui() {
+    var st = document.getElementById('sync-status'), la = document.getElementById('sync-last');
+    if (st) st.textContent = !active() ? 'Not connected to your cloud account' : (autoOn() ? 'Automatic sync is on' : 'Automatic sync is off');
+    if (la) la.textContent = info.at ? info.at.toLocaleString('en-IN', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit', second: '2-digit' }) + (info.msg ? ' · ' + info.msg : '') : 'Not yet this session';
+  }
+  function stamp(msg) { info.at = new Date(); info.msg = msg || ''; ui(); }
+  function applyLive(changed) {
+    var rest = [];
+    changed.forEach(function (k) {
+      try {
+        var v = origGet.call(localStorage, k);
+        if (k === 'fos_finai_quiz_v1') { if (window.finaiQuizReload) window.finaiQuizReload(); }
+        else if (k === 'fos_notif_dismissed') { /* nothing to redraw */ }
+        else if (k === 'fos_game_stats') { gameStats = JSON.parse(v) || {}; if (typeof renderGameStats === 'function') renderGameStats(); }
+        else if (k === 'fos_finai_goals_v1') { finaiGoals = JSON.parse(v) || []; if (activeView === 'finai' && typeof renderFinAI === 'function') renderFinAI(); }
+        else if (k === 'fos_master_v1') { fosMaster = null; }
+        else if (k.indexOf('fos_set_') === 0) {
+          var cb = document.getElementById('tog-' + k.slice(8)); if (cb && cb.type === 'checkbox') cb.checked = v === 'true';
+          if (k.indexOf('push') > -1 && window.fosPushApplySynced) window.fosPushApplySynced();
+        } else rest.push(k);
+      } catch (x) { rest.push(k); }
+    });
+    return rest;
+  }
+  function arrCanon(a) { a = (a || []).slice().sort(function (x, y) { return String(x && x.id) < String(y && y.id) ? -1 : 1; }); return canon(JSON.stringify(a)); }
+  function localSnap() { var o = {}; CLOUD_TABLES.forEach(function (t) { o[t.key] = arrCanon(getLocalArray(t.key)); }); o.budgets = canon(JSON.stringify(budgets || {})); return o; }
+  function refreshUI() {
+    var map = { dashboard: ['renderDashboard'], transactions: ['renderTable'], loans: ['renderTable'], investments: ['renderTable'], analytics: ['renderAnalytics'], networth: ['renderNetWorth'],
+      credit: ['renderCreditTracker'], ccutil: ['renderCCCards', 'renderCCAnalytics'], insurance: ['renderInsurance'], notes: ['renderNotesList'], finai: ['renderFinAI'],
+      'port-overview': ['renderPortOverview', 'renderPortSummary'], 'port-table': ['renderPortTable'], 'port-analytics': ['renderPortAnalytics'], 'port-intel': ['renderPortInsights'] };
+    (map[activeView] || []).forEach(function (fn) { try { if (typeof window[fn] === 'function') window[fn](); } catch (x) { } });
+    ['updateNotifBadge', 'checkAlerts', 'renderBudgetAlerts'].forEach(function (fn) { try { if (typeof window[fn] === 'function') window[fn](); } catch (x) { } });
+  }
+  /* pull the main finance tables when ANOTHER device changed them and this device has no unsent edits */
+  async function autoPull(manual) {
+    if (!active()) return { ok: false, msg: 'Sign in to your cloud account first' };
+    try { if (_syncPromise) return { ok: false, msg: 'busy' }; } catch (x) { }
+    if (!lastSynced) lastSynced = localSnap();
+    if (!manual) {
+      if (Date.now() - lastLocalEdit < 15000) return { ok: false, msg: 'busy' };
+      var ae = document.activeElement; if (ae && /^(INPUT|TEXTAREA|SELECT)$/.test(ae.tagName)) return { ok: false, msg: 'busy' };
+    }
+    var u = cloudSession.user.id, cArr = {}, cSnap = {}, bud = null, i;
+    for (i = 0; i < CLOUD_TABLES.length; i++) {
+      var t = CLOUD_TABLES[i], q = await sb.from(t.table).select('data').eq('user_id', u);
+      if (q.error) return { ok: false, msg: q.error.message };
+      cArr[t.key] = (q.data || []).map(function (r) { return r.data; }); cSnap[t.key] = arrCanon(cArr[t.key]);
+    }
+    var qb = await sb.from('budgets').select('data').eq('user_id', u).maybeSingle();
+    if (qb.error) return { ok: false, msg: qb.error.message };
+    bud = qb.data ? (qb.data.data || {}) : {}; cSnap.budgets = canon(JSON.stringify(bud));
+    var local = localSnap(), applied = [], pending = false;
+    Object.keys(cSnap).forEach(function (k) {
+      if (cSnap[k] === lastSynced[k]) { if (local[k] !== lastSynced[k]) pending = true; return; }   // cloud unchanged since last look
+      if (local[k] === lastSynced[k]) {                                                              // only the other device changed it
+        if (k === 'budgets') { budgets = bud; origSet.call(localStorage, 'fos_budgets', JSON.stringify(budgets)); } else setLocalArray(k, cArr[k]);
+        lastSynced[k] = cSnap[k]; applied.push(k);
+      } else pending = true;                                                                         // both changed: your unsent edit goes up via the normal save
+    });
+    if (applied.length) refreshUI();
+    if (manual && pending && typeof syncNow === 'function') { await syncNow(); lastSynced = localSnap(); }
+    return { ok: true, applied: applied.length, pending: pending };
+  }
+  var _push = window.pushAllToCloud;
+  if (typeof _push === 'function') window.pushAllToCloud = async function () { var r = await _push.apply(this, arguments); try { lastSynced = localSnap(); } catch (x) { } return r; };
+  var _ss = window.scheduleSave;
+  if (typeof _ss === 'function') window.scheduleSave = function () { lastLocalEdit = Date.now(); return _ss.apply(this, arguments); };
+
+  window.fosSyncNow = async function () {
+    var btn = document.getElementById('sync-now-btn'), st = document.getElementById('sync-status');
+    if (btn) btn.disabled = true; if (st) st.textContent = 'Syncing…';
+    try {
+      if (!active()) { if (st) st.textContent = 'Sign in to your cloud account to sync.'; return; }
+      await sync(false); var r = await autoPull(true);
+      stamp(r.ok ? (r.applied ? 'updated from another device' : 'already up to date') : r.msg);
+      if (typeof showSettingsToast === 'function') showSettingsToast(r.ok ? 'Sync complete' : 'Sync failed: ' + r.msg);
+    } catch (e) { if (st) st.textContent = 'Sync failed: ' + (e && e.message || e); }
+    finally { if (btn) btn.disabled = false; setTimeout(ui, 2500); }
+  };
+  window.fosSyncUI = ui;
+  async function tick() { if (!autoOn() || document.hidden) return; await sync(false); try { var r = await autoPull(false); if (r.ok) stamp(r.applied ? 'updated from another device' : ''); } catch (x) { } }
+  document.addEventListener('visibilitychange', function () { if (document.hidden && pendingReload) { pendingReload = false; location.reload(); } });
+  setInterval(function () { if (pendingReload && Date.now() - lastInput > 60000) { var ae = document.activeElement; if (!(ae && /^(INPUT|TEXTAREA|SELECT)$/.test(ae.tagName))) { pendingReload = false; location.reload(); } } }, 20000);
   var started = false;
-  setInterval(function () { if (!started && active()) { started = true; sync(true); } }, 3000);
-  setInterval(function () { if (started && !document.hidden) sync(false); }, 60000);
-  document.addEventListener('visibilitychange', function () { if (started && !document.hidden) setTimeout(function () { sync(false); }, 400); });
+  setInterval(function () { if (!started && active()) { started = true; lastSynced = localSnap(); sync(true).then(function () { stamp(); }); } }, 3000);
+  setInterval(function () { if (started) tick(); }, 60000);
+  document.addEventListener('visibilitychange', function () { if (started && !document.hidden) setTimeout(tick, 400); });
 })();
 </script>
 <script>
