@@ -10453,6 +10453,50 @@ function passAppLockGate() {
 
         <div class="set-card">
           <div style="display:flex; gap:10px; align-items:center; margin-bottom: 0.5rem;">
+            <div style="width:32px; height:32px; border-radius:50%; background:rgba(56,189,248,0.15); color:#38bdf8; display:flex; align-items:center; justify-content:center"><i class="fas fa-mobile-alt"></i></div>
+            <div class="set-label-block">
+              <div class="set-lbl readable-white">Push Notifications</div>
+              <div class="set-desc" style="margin-top:0">Send alerts to your phone or computer's notification tray, not just inside the dashboard</div>
+            </div>
+          </div>
+
+          <div class="set-row">
+            <div class="set-label-block">
+              <div class="set-lbl readable-white" style="font-size:0.8rem">Device permission</div>
+              <div class="set-desc" id="push-perm-status">Checking…</div>
+            </div>
+            <div style="display:flex; gap:8px; align-items:center; flex-wrap:wrap; justify-content:flex-end">
+              <button type="button" id="push-enable-btn" class="btn-secondary" style="font-size:0.72rem;padding:5px 10px" onclick="fosPushEnable()">Enable</button>
+              <button type="button" id="push-test-btn" class="btn-secondary" style="font-size:0.72rem;padding:5px 10px" onclick="fosPushTest()">Send test</button>
+            </div>
+          </div>
+
+          <div class="set-row">
+            <div class="set-label-block">
+              <div class="set-lbl readable-white" style="font-size:0.8rem">Works when the app is closed</div>
+              <div class="set-desc" id="push-bg-status">Checking…</div>
+            </div>
+          </div>
+
+          <div class="set-row">
+            <div class="set-label-block">
+              <div class="set-lbl readable-white" style="font-size:0.8rem">Quiz &amp; assessment reminders</div>
+              <div class="set-desc">Push a notification when a FinAI quiz session (1st &amp; 15th) is ready.</div>
+            </div>
+            <label class="toggle-switch"><input type="checkbox" id="tog-push-quiz" onchange="fosPushToggle('push-quiz','Quiz Push Notifications',this)"><span class="toggle-slider"></span></label>
+          </div>
+
+          <div class="set-row">
+            <div class="set-label-block">
+              <div class="set-lbl readable-white" style="font-size:0.8rem">Regular alerts</div>
+              <div class="set-desc">Push the same alerts that appear in the dashboard bell: bills, budgets, large or unusual spending, portfolio and sync.</div>
+            </div>
+            <label class="toggle-switch"><input type="checkbox" id="tog-push-alerts" onchange="fosPushToggle('push-alerts','Alert Push Notifications',this)"><span class="toggle-slider"></span></label>
+          </div>
+        </div>
+
+        <div class="set-card">
+          <div style="display:flex; gap:10px; align-items:center; margin-bottom: 0.5rem;">
             <div style="width:32px; height:32px; border-radius:50%; background:rgba(239,68,68,0.15); color:#ef4444; display:flex; align-items:center; justify-content:center"><i class="fas fa-shield-alt"></i></div>
             <div class="set-label-block">
               <div class="set-lbl readable-white">Security & Activity</div>
@@ -16385,6 +16429,7 @@ function addNotification(id, icon, color, title, message, type) {
   // NEW: Play sound whenever a new notification is added (muted during Admin Panel quiet hours)
   let _q = false; try { _q = FOS_CONFIG.quiet(); } catch (e) {}
   if (!_q) playNotificationSound();
+  try { if (type !== 'finai') fosPushNotify('push-alerts', title, message, 'fos-' + id, _q); } catch (e) {}   // system push (quiz has its own toggle)
 }
 
 // Dismiss ONE notification — snoozes just this alert for its type's cooldown.
@@ -39131,7 +39176,7 @@ body.light-mode .fa-fl{background:#fff}
   window.finaiQuizNext = function () { if (Q.i === Q.qs.length - 1) result(); else { Q.i++; show(); } };
   window.finaiQuizQuit = function () { if (confirm('Quit this quiz? Your answers so far will be lost.')) close(); };
   window.finaiQuizClose = close;
-  window.finaiQuizAlerts = function () { if (!('Notification' in window)) { alert('This browser does not support notifications. Use Add to calendar instead.'); return; } Notification.requestPermission().then(function (p) { alert(p === 'granted' ? 'Alerts on. You will be notified when a session is due while FinanceOS is open or installed. For reminders when the app is closed, also tap Add to calendar.' : 'Notifications are blocked in your browser settings.'); }); };
+  window.finaiQuizAlerts = function () { fosPushEnable().then(function (ok) { if (ok) { localStorage.setItem('fos_set_push-quiz', 'true'); var t = document.getElementById('tog-push-quiz'); if (t) t.checked = true; alert('Quiz alerts on. You will get a notification when a session is due while FinanceOS is open or running in the background. Also tap Add to calendar for reminders when the app is fully closed.'); } }); };
   window.finaiQuizIcs = function () {
     var ev = function (u, start, rule, name) { return 'BEGIN:VEVENT\r\nUID:' + u + '@financeos\r\nDTSTAMP:20261114T000000Z\r\nDTSTART:' + start + '\r\nRRULE:' + rule + '\r\nSUMMARY:' + name + '\r\nDESCRIPTION:20 questions, 40 marks. Open FinanceOS > Fin AI.\r\nBEGIN:VALARM\r\nACTION:DISPLAY\r\nDESCRIPTION:FinAI quiz\r\nTRIGGER:PT0S\r\nEND:VALARM\r\nEND:VEVENT\r\n'; };
     var t = 'BEGIN:VCALENDAR\r\nVERSION:2.0\r\nPRODID:-//FinanceOS//FinAI Quiz//EN\r\n' + ev('q15', '20261115T090000', 'FREQ=MONTHLY;BYMONTHDAY=15;COUNT=7', 'FinAI Quiz') + ev('q01', '20261201T090000', 'FREQ=MONTHLY;BYMONTHDAY=1;COUNT=6', 'FinAI Quiz') + 'END:VCALENDAR\r\n';
@@ -39141,10 +39186,9 @@ body.light-mode .fa-fl{background:#fff}
     try { var ready = true; try { ready = !cloudSession || cloudDataReady; } catch (e) { } if (!ready || typeof db === 'undefined') return; } catch (e) { return; }
     var st = status(); if (!st.due.length) return; var d = st.due[0];
     try { addNotification('finai-quiz-' + d, 'fa-graduation-cap', '#38bdf8', 'FinAI quiz is ready', 'Session ' + dl(d) + ': ' + PER + ' questions, ' + (PER * MARKS) + ' marks.', 'finai'); } catch (e) { }
-    if (!S.b[d] && 'Notification' in window && Notification.permission === 'granted') {
+    if (!S.b[d] && localStorage.getItem('fos_set_push-quiz') === 'true' && 'Notification' in window && Notification.permission === 'granted') {
       S.b[d] = 1; save(); var o = { body: 'Your ' + dl(d) + ' session is ready. ' + PER + ' questions, ' + (PER * MARKS) + ' marks.', tag: 'finai-quiz-' + d };
-      if (navigator.serviceWorker && navigator.serviceWorker.getRegistration) navigator.serviceWorker.getRegistration().then(function (r) { if (r && r.showNotification) r.showNotification('FinAI quiz is ready', o); else new Notification('FinAI quiz is ready', o); }).catch(function () { try { new Notification('FinAI quiz is ready', o); } catch (e) { } });
-      else try { new Notification('FinAI quiz is ready', o); } catch (e) { }
+      try { fosPushShow('FinAI quiz is ready', o.body, o.tag); } catch (e) { }
     }
     if (S.n[d] !== st.t && !Q && !document.getElementById('fq-pop')) {
       var p = document.createElement('div'); p.id = 'fq-pop'; p.className = 'fq-pop';
@@ -39156,6 +39200,94 @@ body.light-mode .fa-fl{background:#fff}
   var _r = window.renderFinAI; if (typeof _r === 'function') window.renderFinAI = function () { var x = _r.apply(this, arguments); try { render(); } catch (e) { } return x; };
   window.addEventListener('load', function () { setTimeout(check, 3000); setInterval(check, 60000); render(); });
   document.addEventListener('visibilitychange', function () { if (!document.hidden) setTimeout(check, 500); });
+})();
+</script>
+<script>
+/* ── PUSH NOTIFICATIONS (system tray via service worker) ── */
+function fosPushState() {
+  if (!('Notification' in window) || !('serviceWorker' in navigator)) return 'unsupported';
+  return Notification.permission; // 'default' | 'granted' | 'denied'
+}
+function fosPushOn(key) { return localStorage.getItem('fos_set_' + key) === 'true'; }
+function fosPushReg() {
+  return new Promise(function (resolve) {
+    if (!('serviceWorker' in navigator)) return resolve(null);
+    var done = false, fin = function (r) { if (!done) { done = true; resolve(r); } };
+    setTimeout(function () { fin(null); }, 5000);
+    navigator.serviceWorker.getRegistration().then(function (r) { return r || navigator.serviceWorker.register('./sw.js'); })
+      .then(function () { return navigator.serviceWorker.ready; }).then(fin).catch(function () { fin(null); });
+  });
+}
+function fosPushShow(title, body, tag, silent) {
+  if (fosPushState() !== 'granted') return Promise.resolve(false);
+  var o = { body: body || '', tag: tag || undefined, silent: !!silent, data: { url: './' } };
+  return fosPushReg().then(function (r) {
+    if (r && r.showNotification) return r.showNotification(title, o).then(function () { return true; });
+    try { new Notification(title, o); return true; } catch (e) { return false; }
+  }).catch(function () { return false; });
+}
+function fosPushNotify(key, title, body, tag, silent) {
+  if (!fosPushOn(key) || !isNotifEnabled('desktop-notif')) return;   // own toggle + master switch
+  fosPushShow(title, body, tag, silent);
+}
+function fosPushEnable() {
+  if (fosPushState() === 'unsupported') { alert('This browser does not support push notifications.'); return Promise.resolve(false); }
+  return Notification.requestPermission().then(function (p) {
+    if (p === 'granted') { fosPushReg(); fosPushSync(); }
+    fosPushRefreshUI();
+    if (p === 'denied') alert('Notifications are blocked. Allow them in your browser or phone settings for this app, then try again.');
+    return p === 'granted';
+  });
+}
+function fosPushToggle(id, name, cb) {
+  toggleSetting(id, name, cb);
+  if (!cb.checked) { fosPushSync(); return; }
+  if (fosPushState() === 'granted') { fosPushSync(); return; }
+  fosPushEnable().then(function (ok) { if (!ok) { cb.checked = false; localStorage.setItem('fos_set_' + id, 'false'); } });
+}
+function fosPushTest() {
+  if (fosPushState() !== 'granted') { fosPushEnable().then(function (ok) { if (ok) fosPushTest(); }); return; }
+  fosPushShow('FinanceOS test', 'Push notifications are working on this device.', 'fos-test').then(function (ok) {
+    if (typeof showSettingsToast === 'function') showSettingsToast(ok ? 'Test notification sent' : 'Could not send the test notification');
+  });
+}
+/* ── BACKGROUND PUSH (Supabase + Web Push): works with the app closed ── */
+const FOS_VAPID_PUBLIC_KEY = '';   // paste your VAPID PUBLIC key here (see push-setup.sql / README steps)
+function fosB64ToU8(b64) {
+  var pad = '='.repeat((4 - b64.length % 4) % 4), raw = atob((b64 + pad).replace(/-/g, '+').replace(/_/g, '/')), a = new Uint8Array(raw.length);
+  for (var i = 0; i < raw.length; i++) a[i] = raw.charCodeAt(i);
+  return a;
+}
+function fosBgStatus(msg) { var el = document.getElementById('push-bg-status'); if (el) el.textContent = msg; }
+async function fosPushSync() {
+  try {
+    if (fosPushState() !== 'granted') { fosBgStatus('Enable notifications on this device first.'); return false; }
+    if (!FOS_VAPID_PUBLIC_KEY) { fosBgStatus('Not set up yet: add the VAPID public key and deploy the push server.'); return false; }
+    var uid = (typeof cloudSession !== 'undefined' && cloudSession && cloudSession.user) ? cloudSession.user.id : null;
+    if (!uid) { fosBgStatus('Sign in to your cloud account to receive notifications while the app is closed.'); return false; }
+    var reg = await fosPushReg(); if (!reg || !reg.pushManager) { fosBgStatus('Background push is not supported here.'); return false; }
+    var key = fosB64ToU8(FOS_VAPID_PUBLIC_KEY), sub = await reg.pushManager.getSubscription();
+    if (!sub) { try { sub = await reg.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: key }); } catch (e) { fosBgStatus('Could not subscribe this device: ' + (e && e.message || e)); return false; } }
+    var j = sub.toJSON(), k = j.keys || {};
+    var res = await sb.from('push_subscriptions').upsert({ user_id: uid, endpoint: sub.endpoint, p256dh: k.p256dh, auth: k.auth, quiz: fosPushOn('push-quiz'), alerts: fosPushOn('push-alerts'), user_agent: navigator.userAgent.slice(0, 200), updated_at: new Date().toISOString() }, { onConflict: 'user_id,endpoint' });
+    if (res.error) { fosBgStatus('Could not save this device to the cloud: ' + res.error.message); return false; }
+    fosBgStatus('Active. Alerts will arrive even when the app is closed.');
+    return true;
+  } catch (e) { fosBgStatus('Background push error: ' + (e && e.message || e)); return false; }
+}
+function fosPushRefreshUI() {
+  var st = fosPushState(), el = document.getElementById('push-perm-status'), b = document.getElementById('push-enable-btn'), t = document.getElementById('push-test-btn');
+  if (!el) return;
+  var msg = { unsupported: 'Not supported in this browser. On iPhone, install the app to the Home Screen first.', 'default': 'Not enabled yet. Tap Enable to allow notifications on this device.', granted: 'Allowed on this device.', denied: 'Blocked. Allow notifications for this app in your browser or phone settings.' }[st];
+  el.textContent = msg;
+  if (st !== 'granted') fosBgStatus('Enable notifications on this device first.');
+  if (b) b.style.display = (st === 'granted' || st === 'unsupported') ? 'none' : '';
+  if (t) t.style.display = (st === 'granted') ? '' : 'none';
+}
+(function () {
+  var o = window.switchSettingsTab;
+  if (typeof o === 'function') window.switchSettingsTab = function () { var r = o.apply(this, arguments); try { fosPushRefreshUI(); } catch (e) { } return r; };
+  window.addEventListener('load', function () { setTimeout(fosPushRefreshUI, 500); if (fosPushState() === 'granted') fosPushReg(); setTimeout(fosPushSync, 6000); });
 })();
 </script>
 </body>
