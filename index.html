@@ -39196,6 +39196,7 @@ body.light-mode .fa-fl{background:#fff}
       document.body.appendChild(p);
     }
   }
+  window.finaiQuizReload = function () { S = load(); try { var p = document.getElementById('fq-pop'); if (p) p.remove(); } catch (e) { } render(); };
   window.finaiQuizLater = function (d) { S = load(); S.n[d] = today(); save(); var p = document.getElementById('fq-pop'); if (p) p.remove(); };
   var _r = window.renderFinAI; if (typeof _r === 'function') window.renderFinAI = function () { var x = _r.apply(this, arguments); try { render(); } catch (e) { } return x; };
   window.addEventListener('load', function () { setTimeout(check, 3000); setInterval(check, 60000); render(); });
@@ -39275,10 +39276,30 @@ async function fosPushSync() {
     return true;
   } catch (e) { fosBgStatus('Background push error: ' + (e && e.message || e)); return false; }
 }
+/* push preferences follow your account; only the browser permission must be granted once per device */
+function fosPushApplySynced() {
+  [['tog-push-quiz', 'push-quiz'], ['tog-push-alerts', 'push-alerts']].forEach(function (p) { var c = document.getElementById(p[0]); if (c) c.checked = fosPushOn(p[1]); });
+  fosPushRefreshUI(); fosPushPrompt(); if (fosPushState() === 'granted') fosPushSync();
+}
+function fosPushPrompt() {
+  try {
+    if (fosPushState() !== 'default' || !(fosPushOn('push-quiz') || fosPushOn('push-alerts'))) return;
+    if (typeof cloudSession === 'undefined' || !cloudSession) return;
+    if (sessionStorage.getItem('fos_push_prompt_off') || document.getElementById('fos-push-prompt')) return;
+    var b = document.createElement('div'); b.id = 'fos-push-prompt';
+    b.style.cssText = 'position:fixed;left:50%;transform:translateX(-50%);bottom:18px;z-index:99998;max-width:92vw;background:#0f172a;color:#e2e8f0;border:1px solid #38bdf8;border-radius:12px;padding:10px 14px;font:600 .8rem DM Sans,sans-serif;display:flex;gap:10px;align-items:center;flex-wrap:wrap;box-shadow:0 8px 30px rgba(0,0,0,.4)';
+    b.innerHTML = '<span>Push notifications are on for your account. Allow them on this device?</span><button id="fos-pp-yes" style="background:#38bdf8;color:#04131d;border:0;border-radius:8px;padding:5px 10px;font-weight:700;cursor:pointer">Allow</button><button id="fos-pp-no" style="background:transparent;color:#94a3b8;border:1px solid #334155;border-radius:8px;padding:5px 10px;cursor:pointer">Not now</button>';
+    document.body.appendChild(b);
+    document.getElementById('fos-pp-yes').onclick = function () { b.remove(); fosPushEnable(); };
+    document.getElementById('fos-pp-no').onclick = function () { sessionStorage.setItem('fos_push_prompt_off', '1'); b.remove(); };
+  } catch (e) { }
+}
+setInterval(fosPushPrompt, 10000);
 function fosPushRefreshUI() {
   var st = fosPushState(), el = document.getElementById('push-perm-status'), b = document.getElementById('push-enable-btn'), t = document.getElementById('push-test-btn');
   if (!el) return;
-  var msg = { unsupported: 'Not supported in this browser. On iPhone, install the app to the Home Screen first.', 'default': 'Not enabled yet. Tap Enable to allow notifications on this device.', granted: 'Allowed on this device.', denied: 'Blocked. Allow notifications for this app in your browser or phone settings.' }[st];
+  var wanted = fosPushOn('push-quiz') || fosPushOn('push-alerts');
+  var msg = { unsupported: 'Not supported in this browser. On iPhone, install the app to the Home Screen first.', 'default': wanted ? 'Turned on for your account. Tap Enable once to allow notifications on this device.' : 'Not enabled yet. Tap Enable to allow notifications on this device.', granted: 'Allowed on this device.', denied: 'Blocked. Allow notifications for this app in your browser or phone settings.' }[st];
   el.textContent = msg;
   if (st !== 'granted') fosBgStatus('Enable notifications on this device first.');
   if (b) b.style.display = (st === 'granted' || st === 'unsupported') ? 'none' : '';
@@ -39288,6 +39309,118 @@ function fosPushRefreshUI() {
   var o = window.switchSettingsTab;
   if (typeof o === 'function') window.switchSettingsTab = function () { var r = o.apply(this, arguments); try { fosPushRefreshUI(); } catch (e) { } return r; };
   window.addEventListener('load', function () { setTimeout(fosPushRefreshUI, 500); if (fosPushState() === 'granted') fosPushReg(); setTimeout(fosPushSync, 6000); });
+})();
+</script>
+<script>
+/* ── CROSS-DEVICE SYNC OF APP STATE (quiz, goals, settings, lists, etc.) via Supabase table user_kv ── */
+(function () {
+  var SYNC = ['fos_finai_quiz_v1','fos_game_stats','fos_finai_goals_v1','fos_finai_score_history','fos_master_v1','fos_custom_tags','fos_shortcuts',
+    'fos_currency','fos_number_system','fos_time','fos_date','financeOS_roughboard_v1','fos_remind_v1','fos_port_customsubs_v1','fos_port_targets_v1',
+    'fos_port_tgtband','fos_port_tgtnew','fos_pi_bench','fos_tax_cls_v1','fos_tax_slab','fos_tax_fy','fos_notif_dismissed','fos_onboarding_goal',
+    'fos_last_nw_milestone','fos_last_portfolio_update','fos_lh_unlocked','fos_academy_v1','fos_stress_v1'];
+  var DEVICE_SET = ['fos_set_app-theme', 'fos_set_sidebar-animation'];   // per-device settings: never synced (push preferences DO sync; only the browser permission is per device)
+  function syncable(k) { return typeof k === 'string' && (SYNC.indexOf(k) > -1 || (k.indexOf('fos_set_') === 0 && DEVICE_SET.indexOf(k) < 0)); }
+
+  var origSet = Storage.prototype.setItem, origGet = Storage.prototype.getItem;
+  var uid = null, ready = false, busy = false, timer = null, meta = { e: {}, d: {} };
+  function mk() { return 'fos_kv_meta_u_' + uid; }
+  function loadMeta() { try { meta = JSON.parse(origGet.call(localStorage, mk()) || 'null') || { e: {}, d: {} }; } catch (x) { meta = { e: {}, d: {} }; } meta.e = meta.e || {}; meta.d = meta.d || {}; }
+  function saveMeta() { try { origSet.call(localStorage, mk(), JSON.stringify(meta)); } catch (x) { } }
+  function parse(v) { try { return JSON.parse(v); } catch (x) { return null; } }
+  function empty(v) { return v == null || v === '' || v === '{}' || v === '[]' || v === 'null'; }
+
+  /* per-key merge so two devices never overwrite each other's progress */
+  var MERGE = {
+    fos_finai_quiz_v1: function (l, c) {
+      l = parse(l) || {}; c = parse(c) || {}; var o = { r: {}, n: {}, b: {} };
+      ['r', 'n', 'b'].forEach(function (k) {
+        var a = l[k] || {}, b = c[k] || {};
+        Object.keys(a).concat(Object.keys(b)).forEach(function (d) {
+          if (k === 'r') { var x = a[d], y = b[d]; o.r[d] = !x ? y : !y ? x : ((x.at || '') >= (y.at || '') ? x : y); }
+          else o[k][d] = a[d] != null ? a[d] : b[d];
+        });
+      });
+      return JSON.stringify(o);
+    },
+    fos_notif_dismissed: function (l, c) {
+      l = parse(l) || {}; c = parse(c) || {}; var o = {};
+      Object.keys(l).concat(Object.keys(c)).forEach(function (id) { o[id] = Math.max(Number(l[id]) || 0, Number(c[id]) || 0); });
+      return JSON.stringify(o);
+    }
+  };
+
+  Storage.prototype.setItem = function (k, v) {
+    var prev = this === localStorage && syncable(k) ? origGet.call(this, k) : null;
+    var r = origSet.apply(this, arguments);
+    if (this === localStorage && ready && syncable(k) && String(v) !== prev) { meta.e[k] = new Date().toISOString(); meta.d[k] = 1; saveMeta(); schedule(); }
+    return r;
+  };
+
+  function schedule() { clearTimeout(timer); timer = setTimeout(pushDirty, 2500); }
+  function active() {
+    try { return typeof cloudSession !== 'undefined' && cloudSession && cloudSession.user && cloudDataReady && dataOwnerOk() && (typeof isCloudTrackingOn !== 'function' || isCloudTrackingOn()); } catch (x) { return false; }
+  }
+  async function upsertKeys(keys) {
+    if (!keys.length) return true;
+    var now = new Date().toISOString();
+    var rows = keys.map(function (k) { return { user_id: uid, key: k, data: { v: origGet.call(localStorage, k) }, updated_at: now }; });
+    var res = await sb.from('user_kv').upsert(rows, { onConflict: 'user_id,key' });
+    if (res.error) { console.warn('user_kv push failed', res.error.message); return false; }
+    keys.forEach(function (k) { delete meta.d[k]; }); saveMeta(); return true;
+  }
+  async function pushDirty() { if (!ready || !active()) return; var ks = Object.keys(meta.d).filter(syncable); try { await upsertKeys(ks); } catch (x) { console.warn(x); } }
+
+  function banner() {
+    if (document.getElementById('fos-kv-banner')) return;
+    var b = document.createElement('div'); b.id = 'fos-kv-banner';
+    b.style.cssText = 'position:fixed;left:50%;transform:translateX(-50%);bottom:18px;z-index:99999;background:#0f172a;color:#e2e8f0;border:1px solid #34d399;border-radius:12px;padding:10px 14px;font:600 .8rem DM Sans,sans-serif;display:flex;gap:12px;align-items:center;box-shadow:0 8px 30px rgba(0,0,0,.4)';
+    b.innerHTML = 'Updated from another device <button style="background:#34d399;color:#04130d;border:0;border-radius:8px;padding:5px 10px;font-weight:700;cursor:pointer" onclick="location.reload()">Refresh</button>';
+    document.body.appendChild(b);
+  }
+
+  async function sync(initial) {
+    if (busy || !active()) return; busy = true;
+    try {
+      var u = cloudSession.user.id; if (u !== uid) { uid = u; ready = false; loadMeta(); }
+      var q = await sb.from('user_kv').select('key,data,updated_at').eq('user_id', uid);
+      if (q.error) { console.warn('user_kv pull failed (run user-kv.sql?)', q.error.message); return; }
+      var cloud = {}, changed = [], toPush = [];
+      (q.data || []).forEach(function (r) { if (syncable(r.key)) cloud[r.key] = r; });
+      Object.keys(cloud).forEach(function (k) {
+        var cv = cloud[k].data && cloud[k].data.v, lv = origGet.call(localStorage, k);
+        if (cv == null || cv === lv) { delete meta.d[k]; return; }
+        if (MERGE[k]) {
+          var m = MERGE[k](lv, cv);
+          if (m !== lv) { origSet.call(localStorage, k, m); changed.push(k); }
+          if (m !== cv) toPush.push(k);
+        } else if (meta.d[k] && (meta.e[k] || '') > (cloud[k].updated_at || '')) toPush.push(k);   // my edit is newer
+        else if (!(empty(cv) && !empty(lv) && !initial)) { origSet.call(localStorage, k, cv); changed.push(k); delete meta.d[k]; }
+      });
+      /* first-time seed: local values the cloud has never seen */
+      for (var i = 0; i < localStorage.length; i++) {
+        var k = localStorage.key(i);
+        if (syncable(k) && !cloud[k] && !empty(origGet.call(localStorage, k))) toPush.push(k);
+      }
+      Object.keys(meta.d).forEach(function (k) { if (syncable(k) && toPush.indexOf(k) < 0) toPush.push(k); });
+      ready = true;
+      await upsertKeys(toPush.filter(function (k, i, a) { return a.indexOf(k) === i; }));
+      if (changed.length) {
+        var LIVE = ['fos_finai_quiz_v1', 'fos_set_push-quiz', 'fos_set_push-alerts'], onlyQuiz = changed.every(function (k) { return LIVE.indexOf(k) > -1; });
+        if (onlyQuiz) {
+          if (changed.indexOf('fos_finai_quiz_v1') > -1 && typeof window.finaiQuizReload === 'function') window.finaiQuizReload();
+          if (typeof window.fosPushApplySynced === 'function') window.fosPushApplySynced();
+        }
+        else if (initial && !sessionStorage.getItem('fos_kv_reloaded')) { sessionStorage.setItem('fos_kv_reloaded', '1'); location.reload(); }
+        else banner();
+      }
+    } catch (x) { console.warn('user_kv sync error', x); } finally { busy = false; }
+  }
+  window.fosKvSync = function () { return sync(false); };
+
+  var started = false;
+  setInterval(function () { if (!started && active()) { started = true; sync(true); } }, 3000);
+  setInterval(function () { if (started && !document.hidden) sync(false); }, 60000);
+  document.addEventListener('visibilitychange', function () { if (started && !document.hidden) setTimeout(function () { sync(false); }, 400); });
 })();
 </script>
 </body>
