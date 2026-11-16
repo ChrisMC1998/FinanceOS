@@ -39282,9 +39282,17 @@ function fosPushToggle(id, name, cb) {
 }
 function fosPushTest() {
   if (fosPushState() !== 'granted') { fosPushEnable().then(function (ok) { if (ok) fosPushTest(); }); return; }
-  fosPushShow('FinanceOS test', 'Push notifications are working on this device.', 'fos-test').then(function (ok) {
-    if (typeof showSettingsToast === 'function') showSettingsToast(ok ? 'Test notification sent' : 'Could not send the test notification');
-  });
+  var toast = function (m) { if (typeof showSettingsToast === 'function') showSettingsToast(m); };
+  var local = function () { return fosPushShow('FinanceOS test', 'Push notifications are working on this device.', 'fos-test').then(function (ok) { toast(ok ? 'Test notification sent' : 'Could not send the test notification'); }); };
+  var signed = typeof cloudSession !== 'undefined' && cloudSession && typeof sb !== 'undefined';
+  if (!signed || !FOS_VAPID_PUBLIC_KEY) { local(); return; }      // not set up for cloud push: this device only
+  var from = /Android|iPhone|iPad|iPod|Mobile/i.test(navigator.userAgent) ? 'phone or tablet' : 'computer';
+  toast('Sending test to all your devices\u2026');
+  fosPushSync().then(function () { return sb.functions.invoke('send-push', { body: { test: true, from: from } }); }).then(function (r) {
+    var d = r && r.data;
+    if (!r || r.error || !d || !d.sent) { local(); return; }       // server unreachable: at least show it here
+    toast('Test sent to ' + d.sent + ' device' + (d.sent > 1 ? 's' : ''));
+  }).catch(function () { local(); });
 }
 /* ── BACKGROUND PUSH (Supabase + Web Push): works with the app closed ── */
 const FOS_VAPID_PUBLIC_KEY = '';   // paste your VAPID PUBLIC key here (see push-setup.sql / README steps)
