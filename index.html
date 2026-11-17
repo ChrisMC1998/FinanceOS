@@ -5722,6 +5722,7 @@ const SECURITY_QUESTIONS = {
 
 // ── Cloud status pill (☁️ Connected / Syncing… / Offline / Sync Error) ───────
 function setCloudStatus(state) {
+  try { if (window.fosSyncWatch) window.fosSyncWatch(state); } catch (e) { }
   const dot  = document.getElementById('cloud-status-dot');
   const text = document.getElementById('cloud-status-text');
   const mobDot  = document.getElementById('mob-cloud-status-dot');
@@ -10468,6 +10469,7 @@ function passAppLockGate() {
       </div>
 
       <div id="set-tab-notifications" class="set-tab-pane">
+        <div class="set-card" id="fos-nc-card"><div id="fos-nc-root"></div></div>
         
         <div class="set-card">
           <div style="display:flex; gap:10px; align-items:center; margin-bottom: 0.5rem;">
@@ -39526,6 +39528,7 @@ async function fosPushSync() {
     var j = sub.toJSON(), k = j.keys || {};
     var res = await sb.from('push_subscriptions').upsert({ user_id: uid, endpoint: sub.endpoint, p256dh: k.p256dh, auth: k.auth, quiz: fosPushOn('push-quiz'), alerts: fosPushOn('push-alerts'), user_agent: navigator.userAgent.slice(0, 200), updated_at: new Date().toISOString() }, { onConflict: 'user_id,endpoint' });
     if (res.error) { fosBgStatus('Could not save this device to the cloud: ' + res.error.message); return false; }
+    try { if (window.fosPushDeviceInfo) window.fosPushDeviceInfo(sub.endpoint); } catch (e) { }
     fosBgStatus('Active. Alerts will arrive even when the app is closed.');
     return true;
   } catch (e) { fosBgStatus('Background push error: ' + (e && e.message || e)); return false; }
@@ -39868,6 +39871,128 @@ body.light-mode #fos-privacy-shield .fps-t{color:#25363d}
   window.fosShieldPreview = function () { previewing = true; el.classList.add('on'); setTimeout(function () { previewing = false; reveal(); }, 1800); };
   var cb = document.getElementById('tog-privacy-shield'); if (cb) cb.checked = on();
   var sel = document.getElementById('sel-privacy-relock'); if (sel) { try { sel.value = localStorage.getItem(RKEY) || 'off'; } catch (e) { } }
+})();
+</script>
+<script>
+/* ── NOTIFICATION CENTRE (server push preferences, history, devices, test) + notification deep links ── */
+(function () {
+  var CATS = [['spending','Spending alerts','Large or unusual transactions'],['daily','Daily summary','Income, spending and savings recap'],['bills','Bill & loan reminders','EMI and payment due dates'],['budget','Budget alerts','50%, 75%, 90%, 100% and over'],['portfolio','Portfolio updates','Weekly investment summary'],['goals','Goal achievements','Savings milestones'],['sync','Sync & backup alerts','Essential: data-loss warnings'],['reminders','General reminders','Your own reminders'],['quiz','Financial quizzes','Daily questions and challenges'],['security','Security notifications','Essential: account safety']];
+  var DEF = { master: true, categories: { spending:true,daily:true,bills:true,budget:true,portfolio:true,goals:true,sync:true,reminders:true,quiz:false,security:true }, quiet_enabled: false, quiet_start: '22:00', quiet_end: '07:00', daily_time: '21:00', hide_amounts: true, thresholds: { single_txn: 10000, month_spend: null } };
+  var P = null, root = null;
+  function esc(s) { return String(s == null ? '' : s).replace(/[&<>"]/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]; }); }
+  function uid() { return (typeof cloudSession !== 'undefined' && cloudSession && cloudSession.user) ? cloudSession.user.id : null; }
+  function toast(m) { if (typeof showSettingsToast === 'function') showSettingsToast(m); }
+  function tm(v) { return String(v || '').slice(0, 5); }
+  async function load() {
+    var u = uid(); if (!u) return null;
+    var r = await sb.from('notification_preferences').select('*').eq('user_id', u).maybeSingle();
+    if (r.error) return { _error: r.error.message };
+    var d = r.data || {}; P = Object.assign({}, DEF, d); P.categories = Object.assign({}, DEF.categories, d.categories || {}); P.thresholds = Object.assign({}, DEF.thresholds, d.thresholds || {});
+    P.quiet_start = tm(P.quiet_start); P.quiet_end = tm(P.quiet_end); P.daily_time = tm(P.daily_time); return P;
+  }
+  async function save() {
+    var u = uid(); if (!u || !P) return;
+    var row = { user_id: u, master: P.master, categories: P.categories, quiet_enabled: P.quiet_enabled, quiet_start: P.quiet_start, quiet_end: P.quiet_end, daily_time: P.daily_time, hide_amounts: P.hide_amounts, thresholds: P.thresholds, tz: (Intl.DateTimeFormat().resolvedOptions().timeZone || 'Asia/Kolkata'), updated_at: new Date().toISOString() };
+    var r = await sb.from('notification_preferences').upsert(row, { onConflict: 'user_id' });
+    toast(r.error ? 'Could not save: ' + r.error.message : 'Notification settings saved');
+  }
+  function tog(id, on, label, sub, locked) { return '<div class="set-row"><div class="set-label-block"><div class="set-lbl readable-white" style="font-size:0.8rem">' + label + '</div>' + (sub ? '<div class="set-desc">' + sub + '</div>' : '') + '</div><label class="toggle-switch"><input type="checkbox" data-nc="' + id + '"' + (on ? ' checked' : '') + '><span class="toggle-slider"></span></label></div>'; }
+  async function render() {
+    root = document.getElementById('fos-nc-root'); if (!root) return;
+    if (!uid()) { root.innerHTML = '<div class="set-desc">Sign in to your cloud account to manage notifications that arrive while the app is closed.</div>'; return; }
+    var p = await load();
+    if (!p || p._error) { root.innerHTML = '<div class="set-desc">Notification centre is not set up yet' + (p && p._error ? ' (' + esc(p._error) + ')' : '') + '. Run push-notifications.sql in Supabase, then reopen this tab.</div>'; return; }
+    var h = '<div style="font-weight:700;margin-bottom:2px" class="readable-white">Notification Centre</div><div class="set-desc" style="margin:0 0 .6rem">Server-sent alerts that reach this device even when the app is closed.</div>';
+    h += tog('master', p.master, 'Push notifications', 'Master switch for all categories below');
+    h += tog('hide_amounts', p.hide_amounts, 'Hide amounts on the lock screen', 'Notifications read "An important alert is waiting"; details show after you open the app');
+    CATS.forEach(function (c) { h += tog('cat:' + c[0], p.categories[c[0]] !== false, c[1], c[2]); });
+    h += '<div class="set-row"><div class="set-label-block"><div class="set-lbl readable-white" style="font-size:0.8rem">Daily summary time</div></div><input type="time" class="set-input" data-nc="daily_time" value="' + esc(p.daily_time) + '" style="max-width:130px"></div>';
+    h += tog('quiet_enabled', p.quiet_enabled, 'Quiet hours', 'Optional alerts wait until quiet hours end; sync and critical budget alerts still arrive');
+    h += '<div class="set-row"><div class="set-label-block"><div class="set-lbl readable-white" style="font-size:0.8rem">Quiet from / to</div></div><div style="display:flex;gap:6px"><input type="time" class="set-input" data-nc="quiet_start" value="' + esc(p.quiet_start) + '" style="max-width:110px"><input type="time" class="set-input" data-nc="quiet_end" value="' + esc(p.quiet_end) + '" style="max-width:110px"></div></div>';
+    h += '<div class="set-row"><div class="set-label-block"><div class="set-lbl readable-white" style="font-size:0.8rem">Large transaction alert at (₹)</div></div><input type="number" min="0" class="set-input" data-nc="th:single_txn" value="' + esc(p.thresholds.single_txn) + '" style="max-width:130px"></div>';
+    h += '<div class="set-row"><div class="set-label-block"><div class="set-lbl readable-white" style="font-size:0.8rem">Monthly spending alert at (₹)</div><div class="set-desc">Leave empty for off</div></div><input type="number" min="0" class="set-input" data-nc="th:month_spend" value="' + esc(p.thresholds.month_spend == null ? '' : p.thresholds.month_spend) + '" style="max-width:130px"></div>';
+    h += '<div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:.7rem"><button class="login-btn" style="width:auto;padding:8px 14px" data-nc-act="test">Send test</button><button class="login-btn" style="width:auto;padding:8px 14px;opacity:.85" data-nc-act="hist">History</button><button class="login-btn" style="width:auto;padding:8px 14px;opacity:.85" data-nc-act="dev">Devices</button></div><div id="fos-nc-out" class="set-desc" style="margin-top:.6rem"></div>';
+    root.innerHTML = h;
+  }
+  function onChange(e) {
+    var k = e.target && e.target.getAttribute && e.target.getAttribute('data-nc'); if (!k || !P) return;
+    var v = e.target.type === 'checkbox' ? e.target.checked : e.target.value;
+    if (k.indexOf('cat:') === 0) P.categories[k.slice(4)] = v;
+    else if (k.indexOf('th:') === 0) P.thresholds[k.slice(3)] = v === '' ? null : Number(v);
+    else P[k] = v;
+    save();
+    if (k === 'master' && v && typeof fosPushEnable === 'function' && fosPushState() !== 'granted') fosPushEnable();
+  }
+  async function act(a) {
+    var out = document.getElementById('fos-nc-out'), u = uid(); if (!out || !u) return;
+    if (a === 'test') {
+      if (typeof fosPushState === 'function' && fosPushState() !== 'granted') { out.textContent = 'Allow notifications on this device first (use the Enable button above).'; return; }
+      out.textContent = 'Sending…';
+      await fosPushSync();
+      var ins = await sb.from('notification_queue').insert({ user_id: u, category: 'test', dedupe_key: 'test:' + Date.now(), title: 'FinanceOS test', body: 'Push notifications are working on this device.', safe_body: 'FinanceOS: Push notifications are working.', priority: 'critical' });
+      if (ins.error) { out.textContent = 'Could not queue the test: ' + ins.error.message; return; }
+      var r = await sb.functions.invoke('push-dispatch', { body: {} });
+      out.textContent = r.error ? 'Queued, but the push server did not answer: ' + r.error.message : (r.data && r.data.sent ? 'Sent to the push service. If nothing appears, check the device\u2019s notification permission.' : 'No notification was sent. Check that this device is enabled and the push server is deployed.');
+    } else if (a === 'hist') {
+      var q = await sb.from('notification_queue').select('title,category,status,created_at').eq('user_id', u).order('created_at', { ascending: false }).limit(15);
+      out.innerHTML = q.error ? esc(q.error.message) : (q.data.length ? q.data.map(function (n) { return '<div style="padding:3px 0">' + esc(n.title) + ' <span style="opacity:.6">· ' + esc(n.status) + ' · ' + esc(new Date(n.created_at).toLocaleString()) + '</span></div>'; }).join('') : 'No notifications yet.');
+    } else if (a === 'dev') {
+      var d = await sb.from('push_subscriptions').select('id,platform,user_agent,status,last_active_at').eq('user_id', u);
+      out.innerHTML = d.error ? esc(d.error.message) : (d.data.length ? d.data.map(function (s) { return '<div style="padding:3px 0">' + esc(s.platform || (s.user_agent || '').slice(0, 40) || 'Device') + ' <span style="opacity:.6">· ' + esc(s.status || 'active') + '</span> <a href="#" data-nc-rm="' + s.id + '" style="color:var(--c-exp,#ef4444)">remove</a></div>'; }).join('') : 'No devices registered.');
+    }
+  }
+  document.addEventListener('change', function (e) { if (root && root.contains(e.target)) onChange(e); });
+  document.addEventListener('click', async function (e) {
+    var b = e.target.closest && e.target.closest('[data-nc-act]'); if (b) { act(b.getAttribute('data-nc-act')); return; }
+    var rm = e.target.closest && e.target.closest('[data-nc-rm]'); if (rm) { e.preventDefault(); await sb.from('push_subscriptions').delete().eq('id', rm.getAttribute('data-nc-rm')); act('dev'); }
+  });
+  var o = window.switchSettingsTab; if (typeof o === 'function') window.switchSettingsTab = function (t) { var r = o.apply(this, arguments); if (t === 'notifications') render(); return r; };
+  window.addEventListener('load', function () { setTimeout(render, 1500); });
+
+  /* Device identity, saved once the subscription exists */
+  window.fosPushDeviceInfo = async function (endpoint) {
+    try {
+      var id = localStorage.getItem('fos_device_id'); if (!id) { id = (crypto.randomUUID ? crypto.randomUUID() : String(Date.now()) + Math.random()); localStorage.setItem('fos_device_id', id); }
+      var ua = navigator.userAgent, plat = /iPhone|iPad|iPod/.test(ua) ? 'ios' : /Android/.test(ua) ? 'android' : 'desktop';
+      await sb.from('push_subscriptions').update({ device_id: id, platform: plat, status: 'active', fail_count: 0, last_active_at: new Date().toISOString() }).eq('user_id', uid()).eq('endpoint', endpoint);
+    } catch (e) { }
+  };
+
+  /* Sync / backup alerts: failures are reported to the server; if offline they wait and are sent when the connection returns */
+  var wasErr = false, PEND = 'fos_sync_report_pending';
+  async function report(kind) {
+    var u = uid(); if (!u) return;
+    var hour = new Date().toISOString().slice(0, 13);
+    var row = kind === 'fail'
+      ? { category: 'sync', priority: 'critical', dedupe_key: 'sync-fail:' + hour, title: 'Data Synchronization Failed', body: 'Your latest financial data could not be synchronized with the cloud. Open FinanceOS and check your connection.', safe_body: 'FinanceOS: A data sync problem needs your attention.' }
+      : { category: 'sync', priority: 'normal', dedupe_key: 'sync-ok:' + hour, title: 'Sync Restored', body: 'Your financial data has successfully synchronized.', safe_body: 'FinanceOS: Your data is syncing again.' };
+    row.user_id = u;
+    var r = await sb.from('notification_queue').insert(row);
+    if (r.error && !/duplicate|unique/i.test(r.error.message || '')) { try { localStorage.setItem(PEND, JSON.stringify({ kind: kind, at: Date.now() })); } catch (e) { } }
+    else { try { localStorage.removeItem(PEND); } catch (e) { } }
+  }
+  window.fosSyncWatch = function (state) {
+    if (state === 'error') { if (!wasErr) { wasErr = true; report('fail'); } }
+    else if (state === 'synced' && wasErr) { wasErr = false; report('ok'); }
+  };
+  window.addEventListener('online', function () { try { var p = JSON.parse(localStorage.getItem(PEND) || 'null'); if (p && Date.now() - p.at < 864e5) report(p.kind); } catch (e) { } });
+
+  /* Tapping a notification: go to the right section, but only after sign-in and the app lock have been cleared */
+  var ROUTE = { overview: ['dashboard', 'finance'], spend: ['transactions', 'finance'], budget: ['dashboard', 'finance'], bills: ['credit', 'finance'], portfolio: ['port-overview', 'portfolio'], goals: ['finai', 'finance'], quiz: ['finai', 'finance'] };
+  function open(target) {
+    var m = /#n=([a-z]+)/.exec(String(target || '')); if (!m) return;
+    var tries = 0, t = setInterval(function () {
+      tries++; if (tries > 240) return clearInterval(t);
+      var lock = document.getElementById('app-lock-overlay'), login = document.getElementById('login-overlay');
+      var blocked = (lock && !lock.classList.contains('hidden')) || (login && login.offsetParent !== null && getComputedStyle(login).display !== 'none');
+      if (blocked || typeof switchView !== 'function') return;
+      clearInterval(t);
+      try { if (m[1] === 'sync') { if (typeof openSettingsModal === 'function') openSettingsModal(); } else if (ROUTE[m[1]]) { var r = ROUTE[m[1]]; switchView(r[0], document.getElementById(r[1] === 'portfolio' ? 'port-nav-overview' : 'fin-nav-' + r[0]), r[1]); } } catch (e) { }
+      try { history.replaceState(null, '', location.pathname + location.search); } catch (e) { }
+    }, 500);
+  }
+  try { navigator.serviceWorker.addEventListener('message', function (e) { if (e.data && e.data.type === 'push-open') open(e.data.url); }); } catch (e) { }
+  if (/#n=/.test(location.hash)) open(location.hash);
 })();
 </script>
 </body>
