@@ -10845,6 +10845,18 @@ function passAppLockGate() {
       </div>
 
       <div id="set-tab-about" class="set-tab-pane">
+        <div class="set-card">
+          <div class="set-row">
+            <div style="display:flex; gap:10px; align-items:center">
+              <div style="width:32px; height:32px; border-radius:50%; background:rgba(var(--brand-rgb),0.15); color:var(--accent); display:flex; align-items:center; justify-content:center"><i class="fas fa-headset"></i></div>
+              <div class="set-label-block">
+                <div class="set-lbl readable-white">Help &amp; Support <span id="fos-sup-badge" style="display:none;background:#ef4444;color:#fff;border-radius:99px;font-size:.66rem;font-weight:800;padding:1px 7px;margin-left:6px"></span></div>
+                <div class="set-desc" style="margin-top:0">Send a request, track replies, or reach the support team</div>
+              </div>
+            </div>
+            <button class="login-btn" style="width:auto;padding:8px 16px" onclick="fosSupportOpen('home')">Open</button>
+          </div>
+        </div>
 
         <div class="set-card">
           <div style="display:flex; gap:10px; align-items:center; margin-bottom: 0.5rem;">
@@ -39987,12 +39999,189 @@ body.light-mode #fos-privacy-shield .fps-t{color:#25363d}
       var blocked = (lock && !lock.classList.contains('hidden')) || (login && login.offsetParent !== null && getComputedStyle(login).display !== 'none');
       if (blocked || typeof switchView !== 'function') return;
       clearInterval(t);
-      try { if (m[1] === 'sync') { if (typeof openSettingsModal === 'function') openSettingsModal(); } else if (ROUTE[m[1]]) { var r = ROUTE[m[1]]; switchView(r[0], document.getElementById(r[1] === 'portfolio' ? 'port-nav-overview' : 'fin-nav-' + r[0]), r[1]); } } catch (e) { }
+      try { if (m[1] === 'support') { if (window.fosSupportOpen) window.fosSupportOpen('list'); } else if (m[1] === 'sync') { if (typeof openSettingsModal === 'function') openSettingsModal(); } else if (ROUTE[m[1]]) { var r = ROUTE[m[1]]; switchView(r[0], document.getElementById(r[1] === 'portfolio' ? 'port-nav-overview' : 'fin-nav-' + r[0]), r[1]); } } catch (e) { }
       try { history.replaceState(null, '', location.pathname + location.search); } catch (e) { }
     }, 500);
   }
   try { navigator.serviceWorker.addEventListener('message', function (e) { if (e.data && e.data.type === 'push-open') open(e.data.url); }); } catch (e) { }
   if (/#n=/.test(location.hash)) open(location.hash);
+})();
+</script>
+<style id="fos-support-css">
+#fos-sup{position:fixed;inset:0;z-index:450;display:none;align-items:center;justify-content:center;background:rgba(0,0,0,.72);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);padding:calc(env(safe-area-inset-top,0px) + 10px) 10px calc(env(safe-area-inset-bottom,0px) + 10px)}
+#fos-sup.on{display:flex}
+#fos-sup .fs-box{width:100%;max-width:680px;max-height:100%;display:flex;flex-direction:column;background:#0d1517;color:#e6efed;border:1px solid rgba(255,255,255,.08);border-radius:18px;overflow:hidden;font-family:'DM Sans',system-ui,sans-serif;box-shadow:0 24px 60px rgba(0,0,0,.5)}
+body.light-mode #fos-sup .fs-box{background:#fff;color:#0f172a;border-color:#e2e8f0}
+#fos-sup .fs-hd{display:flex;align-items:center;gap:10px;padding:14px 16px;border-bottom:1px solid rgba(255,255,255,.07)}
+body.light-mode #fos-sup .fs-hd{border-color:#e2e8f0}
+#fos-sup .fs-hd b{font-size:1rem;flex:1}
+#fos-sup .fs-ic{width:34px;height:34px;border-radius:50%;background:rgba(var(--brand-rgb,32,205,181),.15);color:var(--accent,#20cdb5);display:flex;align-items:center;justify-content:center}
+#fos-sup .fs-x,#fos-sup .fs-back{background:transparent;border:0;color:inherit;opacity:.7;font-size:1.05rem;cursor:pointer;padding:6px 8px}
+#fos-sup .fs-bd{padding:16px;overflow-y:auto;-webkit-overflow-scrolling:touch}
+#fos-sup .fs-mut{opacity:.65;font-size:.8rem;line-height:1.5}
+#fos-sup label{display:block;font-size:.74rem;font-weight:700;letter-spacing:.3px;margin:12px 0 5px;opacity:.85}
+#fos-sup input[type=text],#fos-sup input[type=search],#fos-sup select,#fos-sup textarea{width:100%;box-sizing:border-box;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.12);color:inherit;border-radius:10px;padding:10px 12px;font:inherit;font-size:.9rem}
+body.light-mode #fos-sup input,body.light-mode #fos-sup select,body.light-mode #fos-sup textarea{background:#f8fafc;border-color:#cbd5e1}
+#fos-sup textarea{min-height:130px;resize:vertical}
+#fos-sup select option{color:#0f172a}
+#fos-sup .fs-btn{background:var(--accent,#20cdb5);color:#04110f;border:0;border-radius:10px;padding:11px 16px;font-weight:700;font-size:.88rem;cursor:pointer}
+#fos-sup .fs-btn.sec{background:rgba(255,255,255,.08);color:inherit}
+body.light-mode #fos-sup .fs-btn.sec{background:#eef2f6}
+#fos-sup .fs-btn[disabled]{opacity:.5;cursor:default}
+#fos-sup .fs-card{display:block;width:100%;text-align:left;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.08);color:inherit;border-radius:12px;padding:12px 14px;margin-bottom:9px;cursor:pointer;font:inherit}
+body.light-mode #fos-sup .fs-card{background:#f8fafc;border-color:#e2e8f0}
+#fos-sup .fs-row{display:flex;gap:8px;align-items:center;justify-content:space-between;flex-wrap:wrap}
+#fos-sup .fs-pill{font-size:.68rem;font-weight:700;padding:3px 9px;border-radius:99px;background:rgba(148,163,184,.18);white-space:nowrap}
+#fos-sup .fs-pill.Open{background:rgba(56,189,248,.18);color:#38bdf8}#fos-sup .fs-pill.In\ Progress{background:rgba(245,158,11,.18);color:#f59e0b}
+#fos-sup .fs-pill.Waiting\ for\ User{background:rgba(167,139,250,.2);color:#a78bfa}#fos-sup .fs-pill.Resolved{background:rgba(52,211,153,.18);color:#34d399}
+#fos-sup .fs-dot{display:inline-block;width:8px;height:8px;border-radius:50%;background:#ef4444;margin-right:6px}
+#fos-sup .fs-msg{max-width:88%;padding:10px 13px;border-radius:14px;margin:8px 0;font-size:.88rem;line-height:1.5;white-space:pre-wrap;word-wrap:break-word;overflow-wrap:anywhere}
+#fos-sup .fs-msg.me{margin-left:auto;background:rgba(var(--brand-rgb,32,205,181),.2)}
+#fos-sup .fs-msg.them{background:rgba(255,255,255,.07)}body.light-mode #fos-sup .fs-msg.them{background:#eef2f6}
+#fos-sup .fs-ts{font-size:.66rem;opacity:.55;margin-top:4px}
+#fos-sup .fs-ok{text-align:center;padding:18px 6px}
+#fos-sup .fs-ref{display:inline-block;font-family:ui-monospace,Menlo,monospace;font-weight:800;font-size:1.2rem;letter-spacing:1px;color:var(--accent,#20cdb5);margin:8px 0}
+#fos-sup .fs-err{color:#f87171;font-size:.8rem;margin-top:8px}
+#fos-sup .fs-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+#fos-sup .fs-tabs{display:flex;gap:6px;margin-bottom:12px}
+#fos-sup .fs-badge{background:#ef4444;color:#fff;border-radius:99px;font-size:.66rem;font-weight:800;padding:1px 7px;margin-left:6px}
+</style>
+<script>
+/* ── HELP & SUPPORT: tickets, replies, attachments, admin desk (all authorization is enforced by Supabase RLS) ── */
+(function () {
+  var CATS = ['General Enquiry','Technical Issue','Account & Login','Transactions & Expenses','Budget & Savings','Investments & Portfolio','Data Sync & Backup','Privacy & Security','Feature Request','Other'];
+  var STAT = ['Open','In Progress','Waiting for User','Resolved','Closed'], PRI = ['Low','Normal','High','Urgent'];
+  var OKTYPES = ['image/png','image/jpeg','image/webp','application/pdf'], MAXB = 5 * 1024 * 1024;
+  var S = { view: 'home', tickets: [], cur: null, replies: [], admin: null, aq: '', acat: '', ast: '', busy: false, err: '', done: null, unread: 0 }, box, poll;
+  function uid() { return (typeof cloudSession !== 'undefined' && cloudSession && cloudSession.user) ? cloudSession.user.id : null; }
+  function esc(s) { return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]; }); }
+  function when(t) { try { return new Date(t).toLocaleString([], { dateStyle: 'medium', timeStyle: 'short' }); } catch (e) { return ''; } }
+  function pill(s) { return '<span class="fs-pill ' + esc(s) + '">' + esc(s) + '</span>'; }
+  function isUnread(t) { return t.last_admin_reply_at && (!t.user_read_at || new Date(t.last_admin_reply_at) > new Date(t.user_read_at)); }
+  function nice(e) { var m = (e && e.message) || String(e || ''); return /row-level security|permission/i.test(m) ? 'You do not have permission to do that.' : m; }
+
+  function ensure() {
+    if (box) return;
+    var d = document.createElement('div'); d.id = 'fos-sup';
+    d.innerHTML = '<div class="fs-box" role="dialog" aria-modal="true" aria-label="Help and Support"><div class="fs-hd"></div><div class="fs-bd"></div></div>';
+    document.body.appendChild(d); box = d;
+    d.addEventListener('click', function (e) { if (e.target === d) close(); var a = e.target.closest('[data-s]'); if (a) act(a.getAttribute('data-s'), a); });
+    d.addEventListener('input', function (e) { if (e.target.id === 'fs-msg') { var c = document.getElementById('fs-cnt'); if (c) c.textContent = e.target.value.length + ' / 4000'; } });
+    d.addEventListener('change', function (e) { var k = e.target.getAttribute && e.target.getAttribute('data-f'); if (k) { if (k === 'ast') S.ast = e.target.value; if (k === 'acat') S.acat = e.target.value; if (k === 'astat') { S.ast = e.target.value; } adminList(); } if (e.target.getAttribute && e.target.getAttribute('data-up')) setTicket(e.target.getAttribute('data-up'), e.target.value); });
+    d.addEventListener('keydown', function (e) { if (e.key === 'Enter' && e.target.id === 'fs-aq') { S.aq = e.target.value; adminList(); } if (e.key === 'Escape') close(); });
+  }
+  function head(title, back) { box.querySelector('.fs-hd').innerHTML = (back ? '<button class="fs-back" data-s="' + back + '" aria-label="Back"><i class="fas fa-arrow-left"></i></button>' : '<div class="fs-ic"><i class="fas fa-headset"></i></div>') + '<b>' + esc(title) + '</b><button class="fs-x" data-s="close" aria-label="Close"><i class="fas fa-times"></i></button>'; }
+  function body(h) { box.querySelector('.fs-bd').innerHTML = h; }
+  function close() { if (box) box.classList.remove('on'); clearInterval(poll); S.done = null; badge(); }
+  function open(view) {
+    ensure(); box.classList.add('on'); S.err = ''; S.done = null;
+    if (!uid()) { head('Help & Support'); body('<div class="fs-mut">Please sign in to your cloud account to contact support.</div>'); return; }
+    if (S.admin === null) sb.rpc('support_is_admin').then(function (r) { S.admin = !!r.data; if (S.view === 'home') home(); });
+    go(view || 'home');
+  }
+  function go(v) { clearInterval(poll); S.view = v; ({ home: home, new: newForm, list: list, admin: adminList })[v] ? ({ home: home, new: newForm, list: list, admin: adminList })[v]() : home(); }
+
+  function home() {
+    head('Help & Support');
+    body('<div class="fs-mut" style="font-size:.88rem;margin-bottom:14px">Hi! Tell us what you need and we will get back to you here in the app. Please do not include passwords or full card or account numbers.</div>' +
+      '<div class="fs-grid"><button class="fs-card" data-s="new"><b><i class="fas fa-pen-to-square" style="color:var(--accent)"></i>&nbsp; New request</b><div class="fs-mut">Ask a question or report a problem</div></button>' +
+      '<button class="fs-card" data-s="list"><b><i class="fas fa-inbox" style="color:var(--accent)"></i>&nbsp; My requests' + (S.unread ? '<span class="fs-badge">' + S.unread + '</span>' : '') + '</b><div class="fs-mut">Track status and replies</div></button></div>' +
+      (S.admin ? '<button class="fs-card" data-s="admin" style="margin-top:4px"><b><i class="fas fa-user-shield" style="color:#a78bfa"></i>&nbsp; Admin support desk</b><div class="fs-mut">Review and answer all requests</div></button>' : ''));
+  }
+  function newForm() {
+    head('New support request', 'home');
+    if (S.done) { body('<div class="fs-ok"><div style="font-size:2rem;color:var(--accent)"><i class="fas fa-circle-check"></i></div><b>Request received</b><div class="fs-mut">Your reference number is</div><div class="fs-ref">' + esc(S.done) + '</div><div class="fs-mut">Keep this for your records. You can follow the conversation under My requests.</div><div style="margin-top:14px" class="fs-row" ><button class="fs-btn" data-s="list" style="flex:1">View my requests</button><button class="fs-btn sec" data-s="home" style="flex:1">Done</button></div></div>'); return; }
+    body('<label for="fs-cat">Category *</label><select id="fs-cat"><option value="">Choose a category</option>' + CATS.map(function (c) { return '<option>' + esc(c) + '</option>'; }).join('') + '</select>' +
+      '<label for="fs-sub">Subject *</label><input type="text" id="fs-sub" maxlength="120" placeholder="Short summary">' +
+      '<label for="fs-msg">What happened? *</label><textarea id="fs-msg" maxlength="4000" placeholder="Describe the issue or question. Steps to reproduce help a lot."></textarea><div class="fs-mut" id="fs-cnt" style="text-align:right">0 / 4000</div>' +
+      '<label for="fs-file">Screenshot or file (optional)</label><input type="file" id="fs-file" accept=".png,.jpg,.jpeg,.webp,.pdf" style="font-size:.82rem"><div class="fs-mut">PNG, JPG, WebP or PDF, up to 5 MB. Kept private.</div>' +
+      '<div class="fs-err" id="fs-err"></div><div style="margin-top:14px"><button class="fs-btn" id="fs-go" data-s="submit" style="width:100%">Submit Support Request</button></div>');
+  }
+  async function submit() {
+    if (S.busy) return;
+    var cat = document.getElementById('fs-cat').value, sub = document.getElementById('fs-sub').value.trim(), msg = document.getElementById('fs-msg').value.trim(), f = document.getElementById('fs-file').files[0], err = document.getElementById('fs-err'), btn = document.getElementById('fs-go');
+    err.textContent = '';
+    if (!cat) { err.textContent = 'Please choose a category.'; return; }
+    if (sub.length < 3) { err.textContent = 'Please add a subject (at least 3 characters).'; return; }
+    if (msg.length < 10) { err.textContent = 'Please describe your request (at least 10 characters).'; return; }
+    if (f && OKTYPES.indexOf(f.type) < 0) { err.textContent = 'That file type is not allowed. Use PNG, JPG, WebP or PDF.'; return; }
+    if (f && f.size > MAXB) { err.textContent = 'That file is larger than 5 MB.'; return; }
+    S.busy = true; btn.disabled = true; btn.textContent = 'Sending\u2026';
+    try {
+      var id = crypto.randomUUID(), path = null;
+      if (f) {
+        path = uid() + '/' + id + '/' + Date.now() + '-' + f.name.replace(/[^A-Za-z0-9._-]/g, '_').slice(-60);
+        var up = await sb.storage.from('support-attachments').upload(path, f, { contentType: f.type, upsert: false });
+        if (up.error) throw up.error;
+      }
+      var r = await sb.from('support_tickets').insert({ id: id, user_id: uid(), category: cat, subject: sub, message: msg, attachment_url: path }).select('ticket_number').single();
+      if (r.error) throw r.error;
+      S.done = r.data.ticket_number; newForm();
+    } catch (e) { err.textContent = nice(e); btn.disabled = false; btn.textContent = 'Submit Support Request'; }
+    S.busy = false;
+  }
+  async function list() {
+    head('My requests', 'home'); body('<div class="fs-mut">Loading\u2026</div>');
+    var r = await sb.from('support_tickets').select('id,ticket_number,category,subject,status,priority,updated_at,last_admin_reply_at,user_read_at').eq('user_id', uid()).order('updated_at', { ascending: false });
+    if (r.error) { body('<div class="fs-err">' + esc(nice(r.error)) + '</div><div class="fs-mut">If this keeps happening, the support tables may not be set up yet.</div>'); return; }
+    S.tickets = r.data || []; S.unread = S.tickets.filter(isUnread).length; badge();
+    body(S.tickets.length ? S.tickets.map(function (t) { return '<button class="fs-card" data-s="chat" data-id="' + esc(t.id) + '"><div class="fs-row"><b>' + (isUnread(t) ? '<span class="fs-dot"></span>' : '') + esc(t.subject) + '</b>' + pill(t.status) + '</div><div class="fs-mut">' + esc(t.ticket_number) + ' \u00b7 ' + esc(t.category) + ' \u00b7 ' + esc(when(t.updated_at)) + '</div></button>'; }).join('') : '<div class="fs-mut" style="text-align:center;padding:24px">No requests yet.</div><div style="text-align:center"><button class="fs-btn" data-s="new">Create your first request</button></div>');
+  }
+  async function chat(id, admin) {
+    clearInterval(poll); S.view = admin ? 'achat' : 'chat'; head('Request', admin ? 'admin' : 'list');
+    var t = await sb.from('support_tickets').select('*').eq('id', id).maybeSingle(), rp = await sb.from('support_replies').select('*').eq('ticket_id', id).order('created_at');
+    if (t.error || !t.data) { body('<div class="fs-err">' + esc(nice(t.error) || 'Request not found.') + '</div>'); return; }
+    S.cur = t.data; S.replies = rp.data || [];
+    if (!admin) sb.rpc('support_mark_read', { p_ticket: id }).then(function () { S.unread = Math.max(0, S.unread - (isUnread(S.cur) ? 1 : 0)); badge(); });
+    var c = S.cur, closed = c.status === 'Closed';
+    var bubbles = '<div class="fs-msg ' + (admin ? 'them' : 'me') + '">' + esc(c.message) + (c.attachment_url ? '<div style="margin-top:6px"><a href="#" data-s="att" data-p="' + esc(c.attachment_url) + '" style="color:var(--accent)"><i class="fas fa-paperclip"></i> View attachment</a></div>' : '') + '<div class="fs-ts">' + esc(when(c.created_at)) + '</div></div>' +
+      S.replies.map(function (m) { var mine = admin ? m.sender_type === 'admin' : m.sender_type === 'user'; return '<div class="fs-msg ' + (mine ? 'me' : 'them') + '">' + (!mine ? '<b style="font-size:.7rem;opacity:.7">' + (admin ? 'User' : 'Support') + '</b><br>' : '') + esc(m.message) + '<div class="fs-ts">' + esc(when(m.created_at)) + '</div></div>'; }).join('');
+    var ctl = admin ? '<div class="fs-grid" style="margin:8px 0"><div><label>Status</label><select data-up="status">' + STAT.map(function (s) { return '<option' + (s === c.status ? ' selected' : '') + '>' + s + '</option>'; }).join('') + '</select></div><div><label>Priority</label><select data-up="priority">' + PRI.map(function (s) { return '<option' + (s === c.priority ? ' selected' : '') + '>' + s + '</option>'; }).join('') + '</select></div></div><div class="fs-mut">' + esc(c.user_email || '') + '</div>' : '';
+    var box2 = closed && !admin ? '<div class="fs-mut" style="margin-top:12px">This request is closed. Please submit a new request if you still need help.</div>' : '<label for="fs-rep">' + (!admin && c.status === 'Resolved' ? 'Not fixed? Reply to reopen this request' : 'Your reply') + '</label><textarea id="fs-rep" maxlength="4000" style="min-height:80px"></textarea><div class="fs-err" id="fs-err"></div><div style="margin-top:10px"><button class="fs-btn" data-s="' + (admin ? 'areply' : 'reply') + '" id="fs-go" style="width:100%">Send</button></div>';
+    box.querySelector('.fs-hd b').textContent = c.ticket_number;
+    body('<div class="fs-row" style="margin-bottom:4px"><b>' + esc(c.subject) + '</b>' + pill(c.status) + '</div><div class="fs-mut">' + esc(c.category) + ' \u00b7 ' + esc(c.priority) + ' priority</div>' + ctl + '<div style="margin-top:6px">' + bubbles + '</div>' + box2);
+    poll = setInterval(function () { if (!box.classList.contains('on') || document.getElementById('fs-rep') && document.getElementById('fs-rep').value) return; chat(id, admin); }, 30000);
+  }
+  async function reply(admin) {
+    if (S.busy) return; var ta = document.getElementById('fs-rep'), m = ta.value.trim(), err = document.getElementById('fs-err'), btn = document.getElementById('fs-go');
+    if (!m) { err.textContent = 'Please type a message.'; return; }
+    S.busy = true; btn.disabled = true;
+    var r = await sb.from('support_replies').insert({ ticket_id: S.cur.id, sender_id: uid(), sender_type: admin ? 'admin' : 'user', message: m });
+    S.busy = false;
+    if (r.error) { err.textContent = nice(r.error); btn.disabled = false; return; }
+    chat(S.cur.id, admin);
+  }
+  async function setTicket(f, v) { var p = {}; p[f] = v; var r = await sb.from('support_tickets').update(p).eq('id', S.cur.id); if (r.error) alert(nice(r.error)); chat(S.cur.id, true); }
+  async function adminList() {
+    S.view = 'admin'; head('Support desk', 'home');
+    var q = S.aq.replace(/[^A-Za-z0-9 \-]/g, '').trim();
+    var filt = '<div class="fs-grid"><input type="search" id="fs-aq" placeholder="Search ticket # or subject" value="' + esc(S.aq) + '"><select data-f="acat"><option value="">All categories</option>' + CATS.map(function (c) { return '<option' + (c === S.acat ? ' selected' : '') + '>' + esc(c) + '</option>'; }).join('') + '</select></div><div class="fs-grid" style="margin:8px 0 12px"><select data-f="astat"><option value="">All statuses</option>' + STAT.map(function (c) { return '<option' + (c === S.ast ? ' selected' : '') + '>' + c + '</option>'; }).join('') + '</select><button class="fs-btn sec" data-s="asearch">Search</button></div>';
+    body(filt + '<div class="fs-mut">Loading\u2026</div>');
+    var qq = sb.from('support_tickets').select('id,ticket_number,category,subject,status,priority,created_at,updated_at,user_email').order('updated_at', { ascending: false }).limit(100);
+    if (q) qq = qq.or('ticket_number.ilike.%' + q + '%,subject.ilike.%' + q + '%'); if (S.acat) qq = qq.eq('category', S.acat); if (S.ast) qq = qq.eq('status', S.ast);
+    var r = await qq;
+    body(filt + (r.error ? '<div class="fs-err">' + esc(nice(r.error)) + '</div>' : (r.data.length ? r.data.map(function (t) { return '<button class="fs-card" data-s="achat" data-id="' + esc(t.id) + '"><div class="fs-row"><b>' + esc(t.subject) + '</b>' + pill(t.status) + '</div><div class="fs-mut">' + esc(t.ticket_number) + ' \u00b7 ' + esc(t.category) + ' \u00b7 ' + esc(t.priority) + ' \u00b7 ' + esc(when(t.created_at)) + '</div></button>'; }).join('') : '<div class="fs-mut" style="text-align:center;padding:20px">No matching requests.</div>')));
+    var aq = document.getElementById('fs-aq'); if (aq && S.aq) aq.setSelectionRange(aq.value.length, aq.value.length);
+  }
+  async function att(p) { var r = await sb.storage.from('support-attachments').createSignedUrl(p, 120); if (r.error) { alert('Could not open the attachment.'); return; } window.open(r.data.signedUrl, '_blank', 'noopener'); }
+  function act(a, el) {
+    if (a === 'close') close(); else if (a === 'home' || a === 'new' || a === 'list' || a === 'admin') { S.done = null; go(a); }
+    else if (a === 'submit') submit(); else if (a === 'chat') chat(el.getAttribute('data-id'), false); else if (a === 'achat') chat(el.getAttribute('data-id'), true);
+    else if (a === 'reply') reply(false); else if (a === 'areply') reply(true); else if (a === 'att') att(el.getAttribute('data-p'));
+    else if (a === 'asearch') { S.aq = document.getElementById('fs-aq').value; adminList(); }
+  }
+  /* unread replies: badge in Settings, one in-app notification per reply, refreshed every minute */
+  function badge() {
+    var b = document.getElementById('fos-sup-badge'); if (b) { b.textContent = S.unread ? S.unread + ' new' : ''; b.style.display = S.unread ? '' : 'none'; }
+  }
+  async function check() {
+    if (!uid()) return;
+    var r = await sb.from('support_tickets').select('id,ticket_number,last_admin_reply_at,user_read_at').eq('user_id', uid()); if (r.error) return;
+    var un = (r.data || []).filter(isUnread); S.unread = un.length; badge();
+    un.forEach(function (t) { try { if (typeof addNotification === 'function') addNotification('support-' + t.id + '-' + t.last_admin_reply_at, 'fa-headset', '#38bdf8', 'New reply from Support', 'Request ' + t.ticket_number + ' has a new reply.', 'support'); } catch (e) { } });
+  }
+  window.fosSupportOpen = open;
+  window.addEventListener('load', function () { setTimeout(check, 4000); setInterval(check, 60000); });
 })();
 </script>
 </body>
