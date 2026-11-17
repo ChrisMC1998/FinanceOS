@@ -4290,6 +4290,34 @@ body.light-mode #fos-tour .ft-next{color:#fff}
   #notifications-modal .modal-box > div:first-child button { min-height:40px; padding:6px 12px !important; font-size:.8rem !important; }
 }
 </style>
+<style id="fos-recv-css">
+/* Receivables: popups, list rows and the dashboard card must stay inside the screen on phones */
+#recv-overview, #recv-collect { padding:12px; box-sizing:border-box; align-items:center; justify-content:center; }
+.modal-box.recv-box { box-sizing:border-box; width:min(460px, 100%) !important; max-width:100% !important; margin:0 !important; max-height:88vh; overflow-x:hidden; overflow-y:auto; }
+.recv-collect-box { width:min(380px, 100%) !important; }
+.recv-totals { display:flex; flex-wrap:wrap; gap:10px 24px; margin-bottom:8px; }
+.recv-cap { font-size:.62rem; text-transform:uppercase; letter-spacing:1px; color:var(--text-muted); }
+.recv-big { font-family:'DM Mono',monospace; font-size:1.3rem; font-weight:700; overflow-wrap:anywhere; }
+.recv-note { font-size:.72rem; color:var(--text-muted); line-height:1.4; margin:2px 0 10px; }
+.recv-row { display:flex; align-items:flex-start; gap:10px; padding:10px 0; border-top:1px solid rgba(255,255,255,0.07); }
+body.light-mode .recv-row { border-top-color:rgba(15,23,42,0.1); }
+.recv-main { flex:1 1 0; min-width:0; overflow-wrap:anywhere; }
+.recv-who { font-weight:600; }
+.recv-sub { font-size:.7rem; color:var(--text-muted); }
+.recv-side { flex:0 0 auto; max-width:46%; text-align:right; }
+.recv-amt { font-family:'DM Mono',monospace; font-weight:700; overflow-wrap:anywhere; }
+.recv-btn { margin-top:4px; padding:4px 10px !important; font-size:.72rem !important; white-space:nowrap; }
+.recv-tag { display:inline-block; font-size:.55rem; font-weight:700; letter-spacing:.5px; text-transform:uppercase; padding:1px 6px; border-radius:6px; color:#5eead4; background:rgba(45,212,191,0.15); vertical-align:middle; }
+.recv-actions { display:flex; flex-wrap:wrap; gap:8px; margin-top:1.2rem; }
+.recv-actions > button { flex:1 1 auto; justify-content:center; }
+.recv-extra { display:flex; flex-wrap:wrap; align-items:center; gap:4px 10px; font-size:.68rem; margin-top:3px; white-space:normal; max-width:100%; }
+.recv-act { color:#2dd4bf; cursor:pointer; font-weight:700; padding:2px 10px; border:1px solid rgba(45,212,191,0.4); border-radius:999px; white-space:nowrap; }
+#recv-mode-hint { font-size:.7rem; color:var(--text-muted); margin:-4px 0 10px; line-height:1.35; }
+#kpi-recv-card .kpi-value, #kpi-recv-card .kpi-sub { overflow-wrap:anywhere; }
+@media (max-width:600px) {
+  .kpi-grid > #kpi-recv-card:last-child:nth-child(odd) { grid-column:1 / -1; }
+}
+</style>
 </head>
 <!-- ═══════════════════════════════════════════════════════
      LOGIN OVERLAY — shown before the dashboard loads
@@ -9390,6 +9418,11 @@ function passAppLockGate() {
       <button type="button" data-t="Income" onclick="setEntryType('Income')">Income</button>
       <button type="button" data-t="Receivable" onclick="setEntryType('Receivable')">Receivable</button>
     </div>
+    <div class="type-seg" id="recv-mode-seg" style="display:none">
+      <button type="button" data-m="lent" onclick="fosRecvSetMode('lent')">I lent money</button>
+      <button type="button" data-m="exp" onclick="fosRecvSetMode('exp')">Owed to me (income)</button>
+    </div>
+    <div id="recv-mode-hint" style="display:none"></div>
     <select id="inp-cat" style="display:none">
       <option value="Expense">General Expense</option>
       <option value="Loan">Loan / EMI</option>
@@ -17629,7 +17662,7 @@ const allData = getFilteredData(undefined, true);   // list shows scheduled entr
     return sortAsc ? (av > bv ? 1 : -1) : (av < bv ? 1 : -1);
   }).forEach((item, index) => {
     const bc = item.type==='Receivable'?'bg-recv':item.type==='Loan'?'bg-loan':item.type==='Investment'?'bg-inv':item.type==='Income'?'bg-inc':'bg-exp';
-    const sign = (item.type === 'Income' || fosRecvIsIn(item)) ? '+' : '-';
+    const sign = (item.type === 'Income' || fosRecvIsIn(item)) ? '+' : (fosRecvIsExp(item) ? '' : '-');
     const color = item.type==='Receivable'?'#2dd4bf':item.type==='Income'?'var(--c-inc)':item.type==='Investment'?'var(--c-inv)':item.type==='Loan'?'var(--c-loan)':'var(--c-exp)';
     const tagsHtml = (item.tags||[]).length
       ? `<span class="inline-tags">${item.tags.map(t=>`<span class="inline-tag">#${t}</span>`).join('')}</span>`
@@ -17639,10 +17672,10 @@ const allData = getFilteredData(undefined, true);   // list shows scheduled entr
     htmlRows += `<tr data-id="${item.id}">
       <td style="width:52px;padding:0 12px;text-align:center;vertical-align:middle;white-space:nowrap"><input type="checkbox" class="txn-checkbox row-chk" data-id="${item.id}" onclick="onRowCheckChange()" style="vertical-align:middle"><span style="color:var(--text-muted);font-size:0.68rem;font-family:'DM Mono',monospace;margin-left:5px;display:inline-block;min-width:16px;text-align:right;vertical-align:middle">${index+1}</span></td>
       <td style="font-weight:500">${item.payee?`<a class="pol-lnk" data-pol="p|${encodeURIComponent(item.payee)}|${item.type}">${item.name}</a>`:item.name}${fosRecvRowExtra(item)} ${item.recurring?'<i class="fas fa-redo recur-icon" title="Recurring"></i>':''} ${item.notes?`<span style="font-size:0.7rem;color:var(--text-muted)">(${item.notes})</span>`:''}${item.pay?` <span style="font-size:0.66rem;color:var(--text-muted)">· ${typeof payLabel==='function'?payLabel(item.pay):item.pay}</span>`:''}${item.auto?' <span style="font-size:0.6rem;color:var(--accent);border:1px solid rgba(var(--brand-rgb),0.3);border-radius:4px;padding:0 4px" title="Added automatically (recurring)">auto</span>':''}</td>
-      <td><span class="badge ${bc}">${item.type==='Receivable'?(fosRecvIsIn(item)?'Received':'Receivable'):item.type}</span></td>
+      <td><span class="badge ${bc}">${item.type==='Receivable'?(fosRecvIsIn(item)?'Received':(fosRecvIsExp(item)?'Expected':'Receivable')):item.type}</span></td>
       <td style="color:var(--text-muted)">${(item.category||item.sub)?`<a class="pol-lnk" data-pol="c|${encodeURIComponent(item.category||item.sub)}|${item.type}">${_esc(item.category||item.sub)}</a>`:'-'}${item.subcategory?` <span style="font-size:0.7rem;opacity:.7">› <a class="pol-lnk" data-pol="s|${encodeURIComponent(item.subcategory)}|${item.type}|${encodeURIComponent(item.category||item.sub||'')}">${_esc(item.subcategory)}</a></span>`:''}</td>
       <td>${tagsHtml}</td>
-      <td style="color:var(--text-muted);font-family:'DM Mono',monospace;font-size:0.75rem">${fmtDate(item.date)}${fosIsFutureTx(item) ? ' <span title="Scheduled — not counted in totals until this date arrives" style="display:inline-block;margin-left:4px;padding:1px 6px;border-radius:6px;font-size:0.58rem;font-weight:700;letter-spacing:.4px;text-transform:uppercase;color:#fbbf24;background:rgba(251,191,36,0.12);border:1px solid rgba(251,191,36,0.3)">Scheduled</span>' : ''}</td>
+      <td style="color:var(--text-muted);font-family:'DM Mono',monospace;font-size:0.75rem">${fmtDate(item.date)}${(fosIsFutureTx(item) && !fosRecvIsExp(item)) ? ' <span title="Scheduled — not counted in totals until this date arrives" style="display:inline-block;margin-left:4px;padding:1px 6px;border-radius:6px;font-size:0.58rem;font-weight:700;letter-spacing:.4px;text-transform:uppercase;color:#fbbf24;background:rgba(251,191,36,0.12);border:1px solid rgba(251,191,36,0.3)">Scheduled</span>' : ''}</td>
       <td style="text-align:right;font-family:'DM Mono',monospace;color:${color};font-weight:600">${sign}${fmt(item.amount)}</td>
       <td style="text-align:right"><i class="fas fa-edit edit-icon" onclick="editFinanceEntry(${item.id})" title="Edit"></i><i class="fas fa-trash" style="cursor:pointer;color:#ef444460;font-size:0.75rem" onclick="deleteItem(${item.id})"></i></td>
     </tr>`;
@@ -17715,7 +17748,7 @@ function editFinanceEntry(id) {
   document.getElementById('inp-name').value = fosPayeeOf(entry); document.getElementById('inp-catname').value = entry.category || entry.sub || ''; _cs = { cat:false, sub:false };
   document.getElementById('inp-amt').value = entry.amount;
   document.getElementById('inp-date').value = entry.date;
-  document.getElementById('inp-cat').value = entry.type; document.getElementById('inp-recv-due').value = entry.dueDate || '';
+  document.getElementById('inp-cat').value = entry.type; document.getElementById('inp-recv-due').value = entry.dueDate || ''; window._recvMode = (entry.recv === 'exp') ? 'exp' : 'lent';
   document.getElementById('inp-sub').value = entry.subcategory || '';
   document.getElementById('inp-notes').value = entry.notes || '';
   document.getElementById('inp-recurring').checked = entry.recurring;
@@ -22591,7 +22624,7 @@ function openModal() {
   editingFinanceId = null; _entryCount = 0; _autoFill = { sub:false, notes:false, tags:false, pay:false };
   document.getElementById('modal-title').textContent = 'Add Finance Record';
   document.getElementById('inp-date').value = localISO();
-  document.getElementById('inp-cat').value = 'Expense'; document.getElementById('inp-recv-due').value = '';
+  document.getElementById('inp-cat').value = 'Expense'; document.getElementById('inp-recv-due').value = ''; window._recvMode = 'lent';
   document.getElementById('inp-recurring').checked = false;
   document.getElementById('fin-save-btn').textContent = 'Save Entry';
   document.getElementById('fin-delete-btn').style.display = 'none';
@@ -22618,13 +22651,17 @@ function _afterEntrySaved() {
   else if (activeView === 'transactions' || activeView === 'loans' || activeView === 'investments') renderTable();
 }
 
-// ═══════════════ RECEIVABLES: money you lent and will collect back ═══════════════
-// Lending  = db row {type:'Receivable', amount, date, dueDate}            -> money out (reduces Net Balance)
-// Repayment= db row {type:'Receivable', recv:'in', parent:<lend id>, ...}  -> money back in (partial payments allowed)
-// Not income, not an expense. Future-dated rows follow the same "counts when the date arrives" rule as everything else.
+// ═══════════════ RECEIVABLES: money owed to you ═══════════════
+// Two kinds of receivable. NEITHER touches Net Balance until you mark money as received.
+//  1) LENT      {type:'Receivable', amount, date:<date lent>, dueDate}        -> money OUT on the date lent (reduces Net Balance); each "received" entry adds it back
+//  2) EXPECTED  {type:'Receivable', recv:'exp', amount, date:<expected date>, dueDate:<expected date>} -> there is no "date lent"; counts as NOTHING until received
+//  RECEIVED     {type:'Receivable', recv:'in', parent:<row id>, date:<date received>} -> money IN on the date you actually received it (partial payments allowed)
+// An unpaid item that passes its date simply shows "overdue" - it never moves your balance by itself.
+window._recvMode = window._recvMode || 'lent';
 function fosRecvIsIn(r) { return !!(r && r.type === 'Receivable' && r.recv === 'in'); }
-function fosRecvIsLent(r) { return !!(r && r.type === 'Receivable' && r.recv !== 'in'); }
-function fosRecvSweep() {          // repayments whose lending entry was deleted would inflate Net Balance, so remove them
+function fosRecvIsExp(r) { return !!(r && r.type === 'Receivable' && r.recv === 'exp'); }
+function fosRecvIsLent(r) { return !!(r && r.type === 'Receivable' && r.recv !== 'in' && r.recv !== 'exp'); }
+function fosRecvSweep() {          // received entries whose parent was deleted would inflate Net Balance, so remove them
   try {
     if (!Array.isArray(db)) return;
     const ids = new Set(db.map(r => r.id));
@@ -22634,30 +22671,33 @@ function fosRecvSweep() {          // repayments whose lending entry was deleted
 function fosRecvPeriod(rows) {     // totals for whatever rows the screen is showing (already period/date filtered)
   const ids = new Set((db || []).map(r => r.id)); let lent = 0, received = 0;
   (rows || []).forEach(r => {
-    if (fosRecvIsLent(r)) lent += Number(r.amount) || 0;
-    else if (fosRecvIsIn(r) && ids.has(r.parent)) received += Number(r.amount) || 0;
+    if (fosRecvIsLent(r)) lent += Number(r.amount) || 0;                                   // only money you actually handed over
+    else if (fosRecvIsIn(r) && ids.has(r.parent)) received += Number(r.amount) || 0;       // only money you marked as received
   });
   return { lent, received };
 }
-function fosRecvBook() {           // every lending entry as of today with what is still owed
+function fosRecvBook() {           // every lent / expected item with what is still pending
   const now = dbNow(), today = fosTodayISO(), paid = {}, items = [];
   now.forEach(r => { if (fosRecvIsIn(r)) paid[r.parent] = (paid[r.parent] || 0) + (Number(r.amount) || 0); });
-  now.forEach(r => {
-    if (!fosRecvIsLent(r)) return;
+  (db || []).forEach(r => {
+    const exp = fosRecvIsExp(r);
+    if (!exp && !fosRecvIsLent(r)) return;
+    if (!exp && r.date && String(r.date).slice(0, 10) > today) return;   // lent on a future date: not handed over yet
     const amount = Number(r.amount) || 0, got = Math.min(paid[r.id] || 0, amount), out = Math.round((amount - got) * 100) / 100;
-    items.push({ row: r, amount: amount, received: got, outstanding: Math.max(0, out), overdue: out > 0 && !!r.dueDate && r.dueDate < today });
+    const due = exp ? (r.dueDate || r.date || '') : (r.dueDate || '');
+    items.push({ row: r, kind: exp ? 'exp' : 'lent', amount: amount, received: got, outstanding: Math.max(0, out), due: due, overdue: out > 0 && !!due && due < today });
   });
   return items;
 }
 function fosRecvMap() { const m = {}; fosRecvBook().forEach(i => { m[i.row.id] = i; }); return m; }
-function fosRecvRowExtra(item) {
-  if (!fosRecvIsLent(item)) return '';
+function fosRecvRowExtra(item) {   // the small "Owes ₹X · due … [Mark received]" line under the name in the Transactions list
+  if (!fosRecvIsLent(item) && !fosRecvIsExp(item)) return '';
   const b = (window.__recvMap || {})[item.id]; if (!b) return '';
-  const col = b.overdue ? '#f87171' : 'var(--text-muted)';
-  const due = item.dueDate ? ' · due ' + fmtDate(item.dueDate) + (b.overdue ? ' (overdue)' : '') : '';
-  return '<div style="font-size:0.68rem;margin-top:3px;color:' + col + '">' + (b.outstanding > 0
-    ? 'Owes ' + fmt(b.outstanding) + due + ' <a onclick="fosRecvCollect(' + item.id + ')" style="margin-left:8px;color:#2dd4bf;cursor:pointer;font-weight:700">Collect</a>'
-    : '✓ Settled') + '</div>';
+  const exp = b.kind === 'exp', col = b.overdue ? '#f87171' : 'var(--text-muted)';
+  const due = b.due ? (exp ? ' · expected ' : ' · due ') + fmtDate(b.due) + (b.overdue ? ' (overdue)' : '') : '';
+  return '<div class="recv-extra" style="color:' + col + '">' + (b.outstanding > 0
+    ? '<span>' + (exp ? 'Expecting ' : 'Owes ') + fmt(b.outstanding) + due + '</span><a class="recv-act" onclick="fosRecvCollect(' + item.id + ')">Mark received</a>'
+    : '<span>✓ ' + (exp ? 'Received' : 'Settled') + '</span>') + '</div>';
 }
 function fosRecvPaintKpi() {
   const el = document.getElementById('kpi-recv'); if (!el) return;
@@ -22668,37 +22708,50 @@ function fosRecvPaintKpi() {
   const sub = document.getElementById('kpi-recv-sub');
   if (sub) sub.textContent = open.length ? people + (people === 1 ? ' person' : ' people') + (od ? ' · ' + od + ' overdue' : '') : 'nobody owes you';
 }
-function fosRecvUi() {             // entry form: Receivable shows Person / Amount lent / Date lent / Due date and hides category fields
+function fosRecvSetMode(m) { window._recvMode = (m === 'exp') ? 'exp' : 'lent'; try { fosRecvUi(); } catch (e) { } }
+function fosRecvUi() {             // entry form for Receivable: "I lent money" or "Owed to me (income)"
   const on = _entryType() === 'Receivable', q = id => document.getElementById(id);
+  const exp = on && window._recvMode === 'exp';
   ['inp-catname', 'inp-sub'].forEach(id => { const g = q(id) && q(id).closest('.input-group'); if (g) g.style.display = on ? 'none' : ''; });
-  const due = q('grp-recv-due'); if (due) due.style.display = on ? '' : 'none';
+  const seg = q('recv-mode-seg');
+  if (seg) { seg.style.display = (on && !editingFinanceId) ? '' : 'none'; seg.querySelectorAll('button').forEach(b => b.classList.toggle('on', b.dataset.m === (exp ? 'exp' : 'lent'))); }
+  const hint = q('recv-mode-hint');
+  if (hint) { hint.style.display = on ? '' : 'none'; hint.textContent = exp ? 'No lending involved. It is NOT added to your balance until you mark it received.' : 'The amount leaves your balance on the date lent, and comes back when you mark it received.'; }
+  const due = q('grp-recv-due'); if (due) due.style.display = (on && !exp) ? '' : 'none';
   if (on) { const r = q('rem-wrap'); if (r) r.style.display = 'none'; }
   const lab = (id, t) => { const g = q(id) && q(id).closest('.input-group'), l = g && g.querySelector('label'); if (l && l.firstChild && l.firstChild.nodeType === 3) l.firstChild.nodeValue = t; else if (l && !l.children.length) l.textContent = t; };
-  lab('inp-name', on ? 'Person (who owes you)' : 'Payee'); lab('inp-amt', on ? 'Amount lent (₹)' : 'Amount (₹)'); lab('inp-date', on ? 'Date lent' : 'Date');
-  const nm = q('inp-name'); if (nm) nm.placeholder = on ? 'e.g. Ravi, Priya' : 'e.g. Zomato, HDFC Bank, Landlord';
+  lab('inp-name', on ? (exp ? 'From (who will pay you)' : 'Person (who owes you)') : 'Payee');
+  lab('inp-amt', on ? (exp ? 'Amount expected (₹)' : 'Amount lent (₹)') : 'Amount (₹)');
+  lab('inp-date', on ? (exp ? 'Expected date (when you should receive it)' : 'Date lent') : 'Date');
+  const nm = q('inp-name'); if (nm) nm.placeholder = on ? (exp ? 'e.g. Client, Ravi, Employer' : 'e.g. Ravi, Priya') : 'e.g. Zomato, HDFC Bank, Landlord';
 }
 function fosRecvSave(addMore) {
   const f = id => document.getElementById(id);
   const person = fosClean(f('inp-name').value), amt = Number(f('inp-amt').value), date = f('inp-date').value, due = f('inp-recv-due').value, notes = f('inp-notes').value.trim();
+  const oldRow = editingFinanceId ? db.find(x => x.id === editingFinanceId) : null;
+  const exp = oldRow ? fosRecvIsExp(oldRow) : window._recvMode === 'exp';
   document.querySelectorAll('#modal .input-field.err').forEach(el => el.classList.remove('err'));
   const bad = [];
-  if (!person) bad.push(['inp-name', 'who owes you']);
+  if (!person) bad.push(['inp-name', exp ? 'who will pay you' : 'who owes you']);
   if (!(amt > 0)) bad.push(['inp-amt', 'an amount']);
-  if (!date) bad.push(['inp-date', 'the date lent']);
-  if (date && due && due < date) bad.push(['inp-recv-due', 'a due date on or after the date lent']);
+  if (!date) bad.push(['inp-date', exp ? 'the expected date' : 'the date lent']);
+  if (!exp && date && due && due < date) bad.push(['inp-recv-due', 'a due date on or after the date lent']);
   if (bad.length) { bad.forEach(b => f(b[0]).classList.add('err')); f('entry-err').textContent = 'Please enter ' + bad.map(b => b[1]).join(', ') + '.'; f(bad[0][0]).focus(); return; }
   f('entry-err').textContent = '';
   if (editingFinanceId) {
     const idx = db.findIndex(x => x.id === editingFinanceId);
-    if (idx >= 0) db[idx] = { ...db[idx], name: person, payee: person, amount: amt, date, dueDate: due || '', notes };
+    if (idx >= 0) db[idx] = { ...db[idx], name: person, payee: person, amount: amt, date, dueDate: exp ? date : (due || ''), notes };
     db.forEach(r => { if (fosRecvIsIn(r) && r.parent === editingFinanceId) { r.name = person; r.payee = person; } });
+  } else if (exp) {
+    db.push({ id: Date.now(), name: person, payee: person, amount: amt, type: 'Receivable', recv: 'exp', sub: 'Expected Income', category: 'Expected Income', subcategory: '', date, dueDate: date, notes, recurring: false, tags: [], pay: '' });
   } else {
     db.push({ id: Date.now(), name: person, payee: person, amount: amt, type: 'Receivable', sub: 'Lent Money', category: 'Lent Money', subcategory: '', date, dueDate: due || '', notes, recurring: false, tags: [], pay: '' });
   }
   _afterEntrySaved(); fosRecvRefreshOverview();
   if (addMore) {
     ['inp-name', 'inp-amt', 'inp-notes', 'inp-recv-due'].forEach(id => f(id).value = '');
-    f('qa-msg').textContent = '✓ Saved — ' + person + ' owes you ₹' + amt.toLocaleString('en-IN') + '. Date kept as ' + date + '.'; f('inp-amt').focus();
+    f('qa-msg').textContent = exp ? '✓ Saved — ' + person + ' will pay you ₹' + amt.toLocaleString('en-IN') + ' (not counted until received).' : '✓ Saved — ' + person + ' owes you ₹' + amt.toLocaleString('en-IN') + '. Date kept as ' + date + '.';
+    f('inp-amt').focus();
   } else closeModal();
 }
 function _recvEl(id, z) {
@@ -22710,40 +22763,43 @@ function fosRecvOpen() { _recvEl('recv-overview', 99990); fosRecvRenderOverview(
 function fosRecvRefreshOverview() { const ov = document.getElementById('recv-overview'); if (ov && ov.style.display === 'flex') fosRecvRenderOverview(); }
 function fosRecvRenderOverview() {
   const ov = document.getElementById('recv-overview'); if (!ov) return;
-  const book = fosRecvBook(), open = book.filter(i => i.outstanding > 0).sort((a, b) => (a.row.dueDate || '9999').localeCompare(b.row.dueDate || '9999') || String(a.row.date).localeCompare(String(b.row.date)));
+  const book = fosRecvBook(), open = book.filter(i => i.outstanding > 0).sort((a, b) => (a.due || '9999').localeCompare(b.due || '9999') || String(a.row.date).localeCompare(String(b.row.date)));
   const settled = book.filter(i => i.outstanding <= 0).slice(-8).reverse();
   const total = open.reduce((s, i) => s + i.outstanding, 0), od = open.filter(i => i.overdue).reduce((s, i) => s + i.outstanding, 0);
   const row = i => {
-    const r = i.row, who = _esc(r.payee || r.name || '');
-    const due = r.dueDate ? 'Due ' + fmtDate(r.dueDate) + (i.overdue ? ' · <b style="color:#f87171">overdue</b>' : '') : 'No due date';
-    return '<div style="display:flex;align-items:center;gap:10px;padding:10px 0;border-top:1px solid rgba(255,255,255,0.07)">'
-      + '<div style="flex:1;min-width:0"><div style="font-weight:600">' + who + '</div>'
-      + '<div style="font-size:0.7rem;color:var(--text-muted)">Lent ' + fmt(i.amount) + ' on ' + fmtDate(r.date) + (i.received ? ' · received ' + fmt(i.received) : '') + '</div>'
-      + '<div style="font-size:0.7rem;color:var(--text-muted)">' + (i.outstanding > 0 ? due : '✓ Settled') + '</div></div>'
-      + '<div style="text-align:right"><div style="font-family:\'DM Mono\',monospace;font-weight:700;color:' + (i.outstanding > 0 ? (i.overdue ? '#f87171' : '#2dd4bf') : 'var(--text-muted)') + '">' + fmt(i.outstanding) + '</div>'
-      + (i.outstanding > 0 ? '<button class="btn-add" style="margin-top:4px;padding:4px 12px;font-size:0.72rem" onclick="fosRecvCollect(' + r.id + ')">Collect</button>' : '') + '</div></div>';
+    const r = i.row, who = _esc(r.payee || r.name || ''), exp = i.kind === 'exp';
+    const when = i.due ? (exp ? 'Expected ' : 'Due ') + fmtDate(i.due) + (i.overdue ? ' · <b style="color:#f87171">overdue</b>' : '') : 'No due date';
+    const l1 = (exp ? 'Expecting ' + fmt(i.amount) : 'Lent ' + fmt(i.amount) + ' on ' + fmtDate(r.date)) + (i.received ? ' · received ' + fmt(i.received) : '');
+    return '<div class="recv-row"><div class="recv-main"><div class="recv-who">' + who + (exp ? ' <span class="recv-tag">income</span>' : '') + '</div>'
+      + '<div class="recv-sub">' + l1 + '</div>'
+      + '<div class="recv-sub">' + (i.outstanding > 0 ? when : '✓ ' + (exp ? 'Received' : 'Settled')) + '</div></div>'
+      + '<div class="recv-side"><div class="recv-amt" style="color:' + (i.outstanding > 0 ? (i.overdue ? '#f87171' : '#2dd4bf') : 'var(--text-muted)') + '">' + fmt(i.outstanding) + '</div>'
+      + (i.outstanding > 0 ? '<button class="btn-add recv-btn" onclick="fosRecvCollect(' + r.id + ')">Mark received</button>' : '') + '</div></div>';
   };
-  ov.innerHTML = '<div class="modal-box" style="max-height:86vh;overflow:auto"><div class="modal-title">Receivables</div>'
-    + '<div style="display:flex;gap:10px;margin-bottom:12px"><div style="flex:1"><div style="font-size:0.62rem;text-transform:uppercase;letter-spacing:1px;color:var(--text-muted)">Owed to you</div><div style="font-family:\'DM Mono\',monospace;font-size:1.3rem;font-weight:700;color:#2dd4bf">' + fmt(total) + '</div></div>'
-    + (od ? '<div style="flex:1"><div style="font-size:0.62rem;text-transform:uppercase;letter-spacing:1px;color:var(--text-muted)">Overdue</div><div style="font-family:\'DM Mono\',monospace;font-size:1.3rem;font-weight:700;color:#f87171">' + fmt(od) + '</div></div>' : '') + '</div>'
+  ov.innerHTML = '<div class="modal-box recv-box"><div class="modal-title">Receivables</div>'
+    + '<div class="recv-totals"><div><div class="recv-cap">Owed to you</div><div class="recv-big" style="color:#2dd4bf">' + fmt(total) + '</div></div>'
+    + (od ? '<div><div class="recv-cap">Overdue</div><div class="recv-big" style="color:#f87171">' + fmt(od) + '</div></div>' : '') + '</div>'
+    + '<div class="recv-note">Pending amounts are not part of your Net Balance. They count only once you mark them received.</div>'
     + (open.length ? open.map(row).join('') : '<div style="color:var(--text-muted);padding:14px 0">Nobody owes you anything right now.</div>')
-    + (settled.length ? '<div style="margin-top:14px;font-size:0.65rem;text-transform:uppercase;letter-spacing:1px;color:var(--text-muted)">Recently settled</div>' + settled.map(row).join('') : '')
-    + '<div class="modal-actions" style="display:flex;gap:8px;margin-top:1.2rem"><button class="btn-add" style="flex:1;justify-content:center" onclick="document.getElementById(\'recv-overview\').style.display=\'none\';openModal();setEntryType(\'Receivable\')">+ Lend money</button>'
+    + (settled.length ? '<div class="recv-cap" style="margin-top:14px">Recently settled</div>' + settled.map(row).join('') : '')
+    + '<div class="modal-actions recv-actions"><button class="btn-add" onclick="document.getElementById(\'recv-overview\').style.display=\'none\';openModal();setEntryType(\'Receivable\')">+ Lend money</button>'
+    + '<button class="btn-add" onclick="document.getElementById(\'recv-overview\').style.display=\'none\';openModal();setEntryType(\'Receivable\');fosRecvSetMode(\'exp\')">+ Expected income</button>'
     + '<button class="btn-secondary" onclick="document.getElementById(\'recv-overview\').style.display=\'none\'">Close</button></div></div>';
 }
 function fosRecvCollect(parentId, editId) {
   const b = fosRecvBook().find(i => i.row.id === parentId);
-  if (!b) { alert('This amount was lent on a future date, so it cannot be collected yet.'); return; }
+  if (!b) { alert('This amount was lent on a future date, so it cannot be marked received yet.'); return; }
+  const exp = b.kind === 'exp';
   const old = editId ? db.find(x => x.id === editId) : null;
   const max = Math.round((b.outstanding + (old ? Number(old.amount) || 0 : 0)) * 100) / 100;
   const ov = _recvEl('recv-collect', 99999);
-  ov.innerHTML = '<div class="modal-box" style="width:380px;max-width:calc(100vw - 24px)"><div class="modal-title">' + (old ? 'Edit repayment' : 'Collect from ' + _esc(b.row.payee || b.row.name || '')) + '</div>'
-    + '<div style="font-size:0.78rem;color:var(--text-muted);margin-bottom:10px">Lent ' + fmt(b.amount) + ' · still owed ' + fmt(max) + '</div>'
+  ov.innerHTML = '<div class="modal-box recv-box recv-collect-box"><div class="modal-title">' + (old ? 'Edit received amount' : 'Mark received from ' + _esc(b.row.payee || b.row.name || '')) + '</div>'
+    + '<div class="recv-note" style="margin-top:0">' + (exp ? 'Expected ' : 'Lent ') + fmt(b.amount) + ' · still pending ' + fmt(max) + '. It is added to your Net Balance on the date received.</div>'
     + '<div class="input-group"><label>Amount received (₹)</label><input type="number" id="rc-amt" class="input-field" inputmode="decimal" min="0" value="' + max + '" style="font-size:1.1rem;font-weight:700"></div>'
     + '<div class="input-group"><label>Date received</label><input type="date" id="rc-date" class="input-field" value="' + (old ? old.date : fosTodayISO()) + '"></div>'
     + '<div class="input-group"><label>Notes (Optional)</label><input type="text" id="rc-notes" class="input-field" value="' + _esc(old ? old.notes || '' : '') + '"></div>'
     + '<div id="rc-err" style="color:#f87171;font-size:0.75rem;min-height:1em"></div>'
-    + '<div class="modal-actions" style="display:flex;gap:8px;margin-top:1rem"><button class="btn-add" style="flex:1;justify-content:center" onclick="fosRecvCollectSave(' + parentId + ',' + (editId || 'null') + ',' + max + ')">Save</button>'
+    + '<div class="modal-actions recv-actions"><button class="btn-add" onclick="fosRecvCollectSave(' + parentId + ',' + (editId || 'null') + ',' + max + ')">Save</button>'
     + (old ? '<button class="btn-delete" onclick="fosRecvCollectDel(' + editId + ')"><i class="fas fa-trash"></i></button>' : '')
     + '<button class="btn-secondary" onclick="document.getElementById(\'recv-collect\').style.display=\'none\'">Cancel</button></div></div>';
   ov.style.display = 'flex';
@@ -22752,20 +22808,21 @@ function fosRecvCollect(parentId, editId) {
 function fosRecvCollectSave(parentId, editId, max) {
   const amt = Number(document.getElementById('rc-amt').value), date = document.getElementById('rc-date').value, notes = document.getElementById('rc-notes').value.trim(), err = document.getElementById('rc-err');
   if (!(amt > 0)) { err.textContent = 'Enter the amount received.'; return; }
-  if (amt > max + 0.005) { err.textContent = 'That is more than the ' + fmt(max) + ' still owed.'; return; }
+  if (amt > max + 0.005) { err.textContent = 'That is more than the ' + fmt(max) + ' still pending.'; return; }
   if (!date) { err.textContent = 'Pick the date received.'; return; }
   const p = db.find(x => x.id === parentId); if (!p) return;
+  const exp = fosRecvIsExp(p);
   if (editId) {
     const i = db.findIndex(x => x.id === editId); if (i >= 0) db[i] = { ...db[i], amount: amt, date, notes };
   } else {
-    db.push({ id: Date.now(), name: p.name, payee: p.payee || p.name, amount: amt, type: 'Receivable', recv: 'in', parent: parentId, sub: 'Repayment', category: 'Repayment', subcategory: '', date, notes, recurring: false, tags: [], pay: '' });
+    db.push({ id: Date.now(), name: p.name, payee: p.payee || p.name, amount: amt, type: 'Receivable', recv: 'in', parent: parentId, sub: exp ? 'Income Received' : 'Repayment', category: exp ? 'Income Received' : 'Repayment', subcategory: '', date, notes, recurring: false, tags: [], pay: '' });
   }
   document.getElementById('recv-collect').style.display = 'none';
   _afterEntrySaved(); fosRecvRefreshOverview();
   try { if (typeof showSettingsToast === 'function') showSettingsToast('Received ' + fmt(amt) + ' from ' + (p.payee || p.name)); } catch (e) { }
 }
 function fosRecvCollectDel(id) {
-  if (!confirm('Delete this repayment?')) return;
+  if (!confirm('Delete this received entry? The amount will go back to pending.')) return;
   db = db.filter(x => x.id !== id);
   document.getElementById('recv-collect').style.display = 'none';
   _afterEntrySaved(); fosRecvRefreshOverview();
