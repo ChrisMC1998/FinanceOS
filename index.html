@@ -530,7 +530,7 @@ function fosBrandRgba(a){return 'rgba('+fosBrandRgb()+','+a+')';}
   var ITEMS = [
     { id: 'num-open', g: 'num', t: 'Count up when a page opens', d: 'Numbers rise from zero when you open a page or new figures appear.' },
     { id: 'num-hover', g: 'num', t: 'Count up again on hover or tap', d: 'Hover (desktop) or tap (mobile) a card, row or chart to replay the count.' },
-    { id: 'num-kpi', g: 'num', t: 'Card and KPI numbers', d: 'Net balance, income, loan outflow, investments, savings rate, credit outstanding, receivables, portfolio value.' },
+    { id: 'num-kpi', g: 'num', t: 'Card and KPI numbers', d: 'Net balance, income, loan outflow, investments, savings rate, credit outstanding, portfolio value.' },
     { id: 'num-table', g: 'num', t: 'Table and list numbers', d: 'Holdings table, lender lists, tax and stress-test tables, summary rows.' },
     { id: 'num-gauge', g: 'num', t: 'Gauge and score numbers', d: 'Debt Health score (65 of 100), FinAI score and other ring centres.' },
     { id: 'num-tooltip', g: 'num', t: 'Chart tooltip numbers', d: 'Values in the pop-up that follows your pointer over a chart.' },
@@ -7812,11 +7812,6 @@ function passAppLockGate() {
           <div class="kpi-label" style="color:#f97316">Credit Outstanding</div>
           <div class="kpi-value" id="kpi-credit-outstanding" style="color:#f97316">₹0</div>
           <div class="kpi-sub" id="kpi-credit-sub">total balance due</div>
-        </div>
-        <div class="kpi-card" id="kpi-recv-card" onclick="fosRecvOpen()" title="Tap to see who owes you" style="cursor:pointer;border-color:rgba(45,212,191,0.25);background:rgba(45,212,191,0.05)">
-          <div class="kpi-label" style="color:#2dd4bf">Receivables</div>
-          <div class="kpi-value" id="kpi-recv" style="color:#2dd4bf">₹0</div>
-          <div class="kpi-sub" id="kpi-recv-sub">money owed to you</div>
         </div>
       </div>
 
@@ -22759,7 +22754,12 @@ function _recvEl(id, z) {
   if (!ov) { ov = document.createElement('div'); ov.id = id; ov.className = 'modal-overlay'; ov.style.zIndex = z; ov.addEventListener('click', e => { if (e.target === ov) ov.style.display = 'none'; }); document.body.appendChild(ov); }
   return ov;
 }
-function fosRecvOpen() { _recvEl('recv-overview', 99990); fosRecvRenderOverview(); document.getElementById('recv-overview').style.display = 'flex'; }
+function fosRecvAddFrom(mode) {   // open the Add form for a receivable (closes the Analytics window / list first so the form is visible)
+  const o = document.getElementById('recv-overview'); if (o) o.style.display = 'none';
+  try { const c = document.getElementById('txa-close'); if (c && c.offsetParent !== null) c.click(); } catch (e) { }
+  openModal(); setEntryType('Receivable'); if (mode === 'exp') fosRecvSetMode('exp');
+}
+function fosRecvOpen() { _recvEl('recv-overview', 100100); fosRecvRenderOverview(); document.getElementById('recv-overview').style.display = 'flex'; }
 function fosRecvRefreshOverview() { const ov = document.getElementById('recv-overview'); if (ov && ov.style.display === 'flex') fosRecvRenderOverview(); }
 function fosRecvRenderOverview() {
   const ov = document.getElementById('recv-overview'); if (!ov) return;
@@ -22782,8 +22782,8 @@ function fosRecvRenderOverview() {
     + '<div class="recv-note">Pending amounts are not part of your Net Balance. They count only once you mark them received.</div>'
     + (open.length ? open.map(row).join('') : '<div style="color:var(--text-muted);padding:14px 0">Nobody owes you anything right now.</div>')
     + (settled.length ? '<div class="recv-cap" style="margin-top:14px">Recently settled</div>' + settled.map(row).join('') : '')
-    + '<div class="modal-actions recv-actions"><button class="btn-add" onclick="document.getElementById(\'recv-overview\').style.display=\'none\';openModal();setEntryType(\'Receivable\')">+ Lend money</button>'
-    + '<button class="btn-add" onclick="document.getElementById(\'recv-overview\').style.display=\'none\';openModal();setEntryType(\'Receivable\');fosRecvSetMode(\'exp\')">+ Expected income</button>'
+    + '<div class="modal-actions recv-actions"><button class="btn-add" onclick="fosRecvAddFrom(\'lent\')">+ Lend money</button>'
+    + '<button class="btn-add" onclick="fosRecvAddFrom(\'exp\')">+ Expected income</button>'
     + '<button class="btn-secondary" onclick="document.getElementById(\'recv-overview\').style.display=\'none\'">Close</button></div></div>';
 }
 function fosRecvCollect(parentId, editId) {
@@ -22792,7 +22792,7 @@ function fosRecvCollect(parentId, editId) {
   const exp = b.kind === 'exp';
   const old = editId ? db.find(x => x.id === editId) : null;
   const max = Math.round((b.outstanding + (old ? Number(old.amount) || 0 : 0)) * 100) / 100;
-  const ov = _recvEl('recv-collect', 99999);
+  const ov = _recvEl('recv-collect', 100110);
   ov.innerHTML = '<div class="modal-box recv-box recv-collect-box"><div class="modal-title">' + (old ? 'Edit received amount' : 'Mark received from ' + _esc(b.row.payee || b.row.name || '')) + '</div>'
     + '<div class="recv-note" style="margin-top:0">' + (exp ? 'Expected ' : 'Lent ') + fmt(b.amount) + ' · still pending ' + fmt(max) + '. It is added to your Net Balance on the date received.</div>'
     + '<div class="input-group"><label>Amount received (₹)</label><input type="number" id="rc-amt" class="input-field" inputmode="decimal" min="0" value="' + max + '" style="font-size:1.1rem;font-weight:700"></div>'
@@ -34097,6 +34097,7 @@ body.light-mode .txa-badge.det{color:#6d28d9}
 
         <!-- Advanced Spending Analysis (filled by txaAdvRender) -->
         <div class="txa-adv" id="txa-adv"></div>
+        <div class="txa-adv" id="txa-recv"></div>
       </div>
     </div>
   </div>
@@ -34627,7 +34628,7 @@ body.light-mode .txa-badge.det{color:#6d28d9}
   function catColor(A, name) { var c = A.catMap[name]; return c ? c.color : OTHERS_COLOR; }
 
   /* ───────────── charts ───────────── */
-  function destroyCharts() { try { if (window.txaAdvDestroy) window.txaAdvDestroy(); } catch (e) {} Object.keys(st.charts).forEach(function (k) { try { st.charts[k].destroy(); } catch (e) {} delete st.charts[k]; }); }
+  function destroyCharts() { try { if (window.txaAdvDestroy) window.txaAdvDestroy(); } catch (e) {} try { if (window.txaRecvDestroy) window.txaRecvDestroy(); } catch (e) {} Object.keys(st.charts).forEach(function (k) { try { st.charts[k].destroy(); } catch (e) {} delete st.charts[k]; }); }
   function mk(key, id, cfg) {
     var cv = $(id); if (!cv || typeof Chart === 'undefined') return null;
     try {
@@ -34876,6 +34877,7 @@ body.light-mode .txa-badge.det{color:#6d28d9}
     renderLegend(); renderInspector(false);
     drawCharts(A, range, W);
     try { if (window.txaAdvRender) window.txaAdvRender(st.data); } catch (e) { console.error("Advanced analytics failed:", e); }
+    try { if (window.txaRecvRender) window.txaRecvRender(st.data); } catch (e) { console.error("Receivables analytics failed:", e); }
   }
 
   /* ───────────── open / close ───────────── */
@@ -35082,9 +35084,9 @@ body.light-mode .txa-advhead h2 i{color:#0f766e}
         map[m.getFullYear() + '-' + p2(m.getMonth() + 1)] = b.length; b.push({ l: MN[m.getMonth()] + ' ' + String(m.getFullYear()).slice(2), d: Math.max(1, dd(ms, me) + 1) });
       }
     }
-    b.mode = mode; b.map = map; b.rg = rg; return b;
+    b.mode = mode; b.ix = map; b.rg = rg; return b;
   }
-  function bi(b, e) { if (b.mode === 'w') { var i = Math.floor(dd(b.rg.start, pd(e.date)) / 7); return i >= 0 && i < b.length ? i : -1; } var v = b.map[e.date.slice(0, 7)]; return v == null ? -1 : v; }
+  function bi(b, e) { if (b.mode === 'w') { var i = Math.floor(dd(b.rg.start, pd(e.date)) / 7); return i >= 0 && i < b.length ? i : -1; } var v = b.ix[e.date.slice(0, 7)]; return v == null ? -1 : v; }
   function series(b, items) { var a = b.map(function () { return 0; }); items.forEach(function (e) { var i = bi(b, e); if (i >= 0) a[i] += e.amount; }); return a; }
 
   /* ── charts ── */
@@ -35321,6 +35323,210 @@ body.light-mode .txa-advhead h2 i{color:#0f766e}
   });
 })();
 </script>
+<script id="txa-recv-script">
+/* Transactions → Analytics: Receivables (money lent + money owed to you).
+   Reads the same db rows as the Receivables list. Nothing here changes Net Balance:
+   pending amounts are shown, never counted, until they are marked received. */
+(function () {
+  'use strict';
+  if (window.__txaRecv) return; window.__txaRecv = true;
+  var MN = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'], ch = {};
+  var C_LENT = '#fbbf24', C_BACK = '#2dd4bf', C_INC = '#38bdf8', C_PEND = '#a78bfa', C_OD = '#f87171';
+
+  function $(i) { return document.getElementById(i); }
+  function esc(s) { return typeof _esc === 'function' ? _esc(s) : String(s == null ? '' : s).replace(/[&<>"']/g, function (c) { return ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'})[c]; }); }
+  function p2(n) { return String(n).padStart(2, '0'); }
+  function iso(d) { return d.getFullYear() + '-' + p2(d.getMonth() + 1) + '-' + p2(d.getDate()); }
+  function pd(s) { var a = String(s).slice(0, 10).split('-').map(Number); return new Date(a[0], a[1] - 1, a[2]); }
+  function addD(d, n) { return new Date(d.getFullYear(), d.getMonth(), d.getDate() + n); }
+  function ddi(a, b) { var x = pd(a), y = pd(b); return Math.round((Date.UTC(y.getFullYear(), y.getMonth(), y.getDate()) - Date.UTC(x.getFullYear(), x.getMonth(), x.getDate())) / 864e5); }
+  function $m(n) { return fmt(n); }
+  function fd(s) { return fmtDate(String(s).slice(0, 10)); }
+  function r0(n) { return Math.round(n); }
+  function r1(n) { return Math.round(n * 10) / 10; }
+  function light() { return document.body.classList.contains('light-mode'); }
+  function cT() { return light() ? '#334155' : '#B7C4C5'; }
+  function cG() { return light() ? 'rgba(15,23,42,0.08)' : 'rgba(180,220,218,0.07)'; }
+  function compact(v) {
+    var sym = localStorage.getItem('fos_currency') || '₹', ind = (localStorage.getItem('fos_number_system') || 'indian') === 'indian', a = Math.abs(v), s = v < 0 ? '-' : '', x;
+    if (ind) { if (a >= 1e7) x = r1(a / 1e7) + 'Cr'; else if (a >= 1e5) x = r1(a / 1e5) + 'L'; else if (a >= 1e3) x = r1(a / 1e3) + 'K'; else x = String(r0(a)); }
+    else { if (a >= 1e9) x = r1(a / 1e9) + 'B'; else if (a >= 1e6) x = r1(a / 1e6) + 'M'; else if (a >= 1e3) x = r1(a / 1e3) + 'K'; else x = String(r0(a)); }
+    return s + sym + x;
+  }
+  function card(icon, title, small, body) { return '<section class="txa-card"><h3 class="txa-h"><i class="fas ' + icon + '"></i>' + title + (small ? '<small>' + small + '</small>' : '') + '</h3>' + body + '</section>'; }
+  function cv(id) { return '<div class="txa-chartwrap"><canvas id="' + id + '"></canvas></div>'; }
+  function empty(t) { return '<div class="txa-muted-empty">' + t + '</div>'; }
+  function nm(s, c) { return '<span class="txa-adv-nm">' + (c ? '<span class="txa-dot" style="--cc:' + c + '"></span>' : '') + '<span title="' + esc(s) + '">' + esc(s) + '</span></span>'; }
+  function kp(label, val, sub, color) { return '<div class="txa-kpi" style="--k:' + color + '"><div class="txa-kpi-top"><span class="txa-lbl">' + label + '</span></div><div class="txa-kpi-val">' + val + '</div><div class="txa-kpi-sub">' + sub + '</div></div>'; }
+  function ins(tone, icon, title, text) { return '<div class="txa-ins ' + tone + '"><div class="txa-ins-ico"><i class="fas ' + icon + '"></i></div><div style="min-width:0"><div class="txa-ins-t">' + title + '</div><div class="txa-ins-d">' + text + '</div></div></div>'; }
+  function tbl(cols, rows, min) {
+    var g = 'grid-template-columns:' + cols.map(function (c) { return c.w; }).join(' ');
+    return '<div class="txa-list txa-adv-scroll"><div style="min-width:' + (min || 520) + 'px"><div class="txa-at txa-at-h" style="' + g + '">' + cols.map(function (c) { return '<span class="' + (c.r ? 'r' : '') + '">' + c.h + '</span>'; }).join('') + '</div>' +
+      rows.map(function (r) { return '<div class="txa-at" style="' + g + '">' + r.map(function (c, i) { return '<span class="' + (cols[i].r ? 'r' : '') + '">' + c + '</span>'; }).join('') + '</div>'; }).join('') + '</div></div>';
+  }
+  function destroy() { Object.keys(ch).forEach(function (k) { try { ch[k].destroy(); } catch (e) {} delete ch[k]; }); }
+  function mk(k, id, cfg) {
+    var c = $(id); if (!c || typeof Chart === 'undefined') return;
+    try { if (ch[k]) { ch[k].destroy(); delete ch[k]; } var ex = Chart.getChart ? Chart.getChart(c) : null; if (ex) ex.destroy(); ch[k] = new Chart(c.getContext('2d'), cfg); }
+    catch (e) { console.error('Receivables chart failed (' + k + '):', e); }
+  }
+  function opts(h, legend) {
+    var cat = { grid: { display: false }, border: { display: false }, ticks: { color: cT(), font: { size: 11 }, maxRotation: 0, autoSkip: true, maxTicksLimit: h ? 12 : 10 } };
+    if (h) cat.ticks.callback = function (v) { var l = this.getLabelForValue(v); return l.length > 22 ? l.slice(0, 21) + '…' : l; };
+    var val = { beginAtZero: true, grid: { color: cG() }, border: { display: false }, ticks: { color: cT(), font: { size: 11 }, maxTicksLimit: 6, callback: function (v) { return compact(v); } } };
+    return { responsive: true, maintainAspectRatio: false, indexAxis: h ? 'y' : 'x', interaction: { mode: 'index', intersect: false }, scales: h ? { x: val, y: cat } : { x: cat, y: val },
+      plugins: { legend: { display: !!legend, labels: { color: cT(), boxWidth: 10, boxHeight: 10, font: { size: 11 } } }, tooltip: { callbacks: { label: function (c) { return ' ' + (c.dataset.label || '') + ': ' + $m(c.parsed[h ? 'x' : 'y']); } } } } };
+  }
+
+  /* time buckets: weeks for ranges up to ~2 months, calendar months beyond */
+  function buckets(rg) {
+    var b = [];
+    if (rg.days <= 62) { for (var i = 0; i < rg.days; i += 7) { var s = addD(rg.start, i), e = addD(rg.start, Math.min(rg.days - 1, i + 6)); b.push({ l: s.getDate() + ' ' + MN[s.getMonth()], s: iso(s), e: iso(e) }); } }
+    else {
+      var m = new Date(rg.start.getFullYear(), rg.start.getMonth(), 1), last = new Date(rg.end.getFullYear(), rg.end.getMonth(), 1);
+      for (; m <= last; m = new Date(m.getFullYear(), m.getMonth() + 1, 1)) {
+        var ms = m < rg.start ? rg.start : m, mEnd = new Date(m.getFullYear(), m.getMonth() + 1, 0), me = mEnd > rg.end ? rg.end : mEnd;
+        b.push({ l: MN[m.getMonth()] + ' ' + String(m.getFullYear()).slice(2), s: iso(ms), e: iso(me) });
+      }
+    }
+    return b;
+  }
+  function inB(b, d) { for (var i = 0; i < b.length; i++) if (d >= b[i].s && d <= b[i].e) return i; return -1; }
+  function dOf(r) { return String(r.date).slice(0, 10); }
+  function createdOf(r) { var t = Number(r.id); return (t > 1e12 && t < 4e12) ? iso(new Date(t)) : dOf(r); }   // an expected amount is "pending" from the day it was entered
+  function keyOf(r) { return String(r.payee || r.name || '').toLowerCase().trim(); }
+
+  window.txaRecvRender = function (D) {
+    var host = $('txa-recv'); if (!host || !D || !D.range || typeof fosRecvBook !== 'function') return;
+    destroy();
+    var rg = D.range, S = rg.startISO, E = rg.endISO, today = fosTodayISO();
+    var rows = (db || []), byId = {}; rows.forEach(function (r) { byId[r.id] = r; });
+    var lent = [], exp = [], rec = [];
+    rows.forEach(function (r) {
+      if (fosRecvIsIn(r)) { if (byId[r.parent] && dOf(r) <= today) rec.push(r); }
+      else if (fosRecvIsExp(r)) exp.push(r);
+      else if (fosRecvIsLent(r) && dOf(r) <= today) lent.push(r);
+    });
+    var head = '<div class="txa-advhead"><div><h2><i class="fas fa-coins"></i>Receivables: Lent &amp; Owed to You</h2><div class="txa-note">Money you lent and money people owe you. Pending amounts are <b>not</b> part of your Net Balance until you mark them received. Lent / received figures cover ' + fd(S) + ' – ' + fd(E) + '; pending figures are as of today.</div></div>' +
+      '<div class="txa-chips"><button type="button" class="txa-chip" onclick="fosRecvOpen()">Open list &amp; mark received</button><button type="button" class="txa-chip" onclick="fosRecvAddFrom(\'lent\')">+ Lend money</button><button type="button" class="txa-chip" onclick="fosRecvAddFrom(\'exp\')">+ Expected income</button></div></div>';
+    var book = fosRecvBook();
+    if (!book.length) { host.innerHTML = head + card('fa-hand-holding-heart', 'No receivables yet', '', empty('When you lend money or expect income from someone, it shows up here with trends, ageing and insights.')); return; }
+
+    /* ── numbers ── */
+    var open = book.filter(function (i) { return i.outstanding > 0; });
+    var pend = open.reduce(function (s, i) { return s + i.outstanding; }, 0);
+    var people = {}; open.forEach(function (i) { people[keyOf(i.row)] = 1; });
+    var odItems = open.filter(function (i) { return i.overdue; }), odAmt = odItems.reduce(function (s, i) { return s + i.outstanding; }, 0);
+    var oldest = odItems.slice().sort(function (a, b) { return a.due < b.due ? -1 : 1; })[0];
+    var pExp = open.filter(function (i) { return i.kind === 'exp'; }), pExpAmt = pExp.reduce(function (s, i) { return s + i.outstanding; }, 0);
+    var pExpNext = pExp.filter(function (i) { return !i.overdue && i.due; }).sort(function (a, b) { return a.due < b.due ? -1 : 1; })[0];
+    var sLentRows = lent.filter(function (r) { return dOf(r) >= S && dOf(r) <= E; }), sLent = sLentRows.reduce(function (s, r) { return s + (Number(r.amount) || 0); }, 0);
+    var sRecRows = rec.filter(function (r) { return dOf(r) >= S && dOf(r) <= E; });
+    var sRecL = 0, sRecE = 0; sRecRows.forEach(function (r) { if (fosRecvIsExp(byId[r.parent])) sRecE += Number(r.amount) || 0; else sRecL += Number(r.amount) || 0; });
+    var sRec = sRecL + sRecE;
+
+    /* last receipt date per item → how late people really pay */
+    var lastRec = {}; rec.forEach(function (r) { if (!lastRec[r.parent] || dOf(r) > lastRec[r.parent]) lastRec[r.parent] = dOf(r); });
+    var delays = [];
+    book.forEach(function (i) { if (i.due && lastRec[i.row.id] && i.received > 0) { i.delay = ddi(i.due, lastRec[i.row.id]); delays.push(i.delay); } });
+    var avgDelay = delays.length ? delays.reduce(function (s, x) { return s + x; }, 0) / delays.length : null;
+
+    /* per person */
+    var pm = {}, plist = [];
+    book.forEach(function (i) {
+      var k = keyOf(i.row), g = pm[k]; if (!g) { g = pm[k] = { n: i.row.payee || i.row.name || '—', c: 0, tot: 0, got: 0, pend: 0, od: 0, lent: 0, dl: [] }; plist.push(g); }
+      g.c++; g.tot += i.amount; g.got += i.received; g.pend += i.outstanding; if (i.overdue) g.od += i.outstanding; if (i.kind === 'lent') g.lent++; if (i.delay != null) g.dl.push(i.delay);
+    });
+    plist.sort(function (a, b) { return b.pend - a.pend || b.tot - a.tot; });
+    var topPend = plist.filter(function (g) { return g.pend > 0; });
+
+    /* ageing of what is still pending */
+    var AG = [['Not yet due', 0, '#34d399'], ['1–7 days late', 0, '#fbbf24'], ['8–30 days late', 0, '#fb923c'], ['31–90 days late', 0, '#f87171'], ['90+ days late', 0, '#dc2626'], ['No due date', 0, '#64748b']];
+    open.forEach(function (i) {
+      var k = !i.due ? 5 : (function (d) { return d <= 0 ? 0 : d <= 7 ? 1 : d <= 30 ? 2 : d <= 90 ? 3 : 4; })(ddi(i.due, today));
+      AG[k][1] += i.outstanding;
+    });
+
+    /* ── insights ── */
+    var I = [];
+    if (odItems.length) {
+      var od0 = oldest ? oldest.row.payee || oldest.row.name : '', odDays = oldest ? ddi(oldest.due, today) : 0;
+      I.push(ins('warn', 'fa-triangle-exclamation', $m(odAmt) + ' is overdue', odItems.length + ' item' + (odItems.length === 1 ? ' is' : 's are') + ' past the due date. The longest wait is ' + esc(od0) + ' at ' + odDays + ' day' + (odDays === 1 ? '' : 's') + '. These stay out of your Net Balance until you mark them received.'));
+    } else if (open.length) I.push(ins('good', 'fa-circle-check', 'Nothing is overdue', $m(pend) + ' is pending and every item is still within its due date.'));
+    else I.push(ins('good', 'fa-circle-check', 'All settled', 'Every amount you lent or expected has been received.'));
+    if (sLent > 0 || sRec > 0) {
+      var net = sLent - sRec;
+      I.push(ins('info', 'fa-right-left', 'Lent vs received in this period', 'You lent ' + $m(sLent) + ' (' + sLentRows.length + ' entr' + (sLentRows.length === 1 ? 'y' : 'ies') + ') and received ' + $m(sRec) + (sRecE > 0 ? ' (' + $m(sRecE) + ' of it expected income)' : '') + '. ' + (net > 0 ? 'Net ' + $m(net) + ' moved out of your pocket.' : net < 0 ? 'Net ' + $m(-net) + ' came back to you.' : 'It balanced out exactly.')));
+    }
+    if (avgDelay != null) {
+      if (avgDelay > 3) I.push(ins('warn', 'fa-hourglass-half', 'Payments arrive late', 'Across ' + delays.length + ' item' + (delays.length === 1 ? '' : 's') + ' with a due date and a payment, money came in on average ' + r0(avgDelay) + ' days after the due date. Padding your due dates, or lending less, would match how people actually pay.'));
+      else I.push(ins('good', 'fa-hourglass-end', 'Payments arrive on time', 'Across ' + delays.length + ' item' + (delays.length === 1 ? '' : 's') + ' with a due date and a payment, money came in ' + (avgDelay < -0.5 ? r0(-avgDelay) + ' days early' : 'on the due date') + ' on average.'));
+    }
+    if (topPend.length && pend > 0) {
+      var t0 = topPend[0], sh = t0.pend / pend * 100;
+      if (sh >= 50 && (topPend.length > 1 || open.length > 1)) I.push(ins('tip', 'fa-user-group', 'One person holds most of what is pending', esc(t0.n) + ' owes ' + $m(t0.pend) + ', ' + r0(sh) + '% of your pending receivables. Collecting from them first moves the needle most.'));
+    }
+    var rep = plist.filter(function (g) { return g.lent >= 3 && (g.pend > 0 || (g.dl.length && g.dl.reduce(function (s, x) { return s + x; }, 0) / g.dl.length > 7)); })[0];
+    if (rep) I.push(ins('tip', 'fa-repeat', 'Repeat borrower: ' + esc(rep.n), 'Lent to ' + esc(rep.n) + ' ' + rep.lent + ' times (' + $m(rep.tot) + ' in total); ' + (rep.pend > 0 ? $m(rep.pend) + ' is still pending' : 'all received') + '. Settling the open amount before lending again keeps the exposure small.'));
+    if (pExpAmt > 0) {
+      var exOd = pExp.filter(function (i) { return i.overdue; });
+      I.push(ins(exOd.length ? 'warn' : 'info', 'fa-calendar-check', 'Expected income: ' + $m(pExpAmt) + ' to come', (exOd.length ? exOd.length + ' expected payment' + (exOd.length === 1 ? ' has' : 's have') + ' passed its date. ' : '') + (pExpNext ? 'Next up: ' + esc(pExpNext.row.payee || pExpNext.row.name) + ' (' + $m(pExpNext.outstanding) + ') on ' + fd(pExpNext.due) + '. ' : '') + 'It is not in your Net Balance yet, so plan spending without it.'));
+    }
+
+    /* ── layout ── */
+    var kpis = '<section class="txa-kpis">' +
+      kp('Pending now', $m(pend), Object.keys(people).length + ' ' + (Object.keys(people).length === 1 ? 'person' : 'people') + ' · ' + open.length + ' item' + (open.length === 1 ? '' : 's'), C_BACK) +
+      kp('Overdue', $m(odAmt), odItems.length ? odItems.length + ' item' + (odItems.length === 1 ? '' : 's') + (oldest ? ' · oldest ' + ddi(oldest.due, today) + ' d' : '') : 'nothing overdue', C_OD) +
+      kp('Lent in period', $m(sLent), sLentRows.length + ' entr' + (sLentRows.length === 1 ? 'y' : 'ies'), C_LENT) +
+      kp('Received in period', $m(sRec), sRecRows.length + ' payment' + (sRecRows.length === 1 ? '' : 's') + (sRecE > 0 ? ' · ' + $m(sRecE) + ' income' : ''), C_INC) +
+      kp('Expected income', $m(pExpAmt), pExp.length ? (pExpNext ? 'next ' + fd(pExpNext.due) : pExp.length + ' pending') : 'none pending', C_PEND) + '</section>';
+
+    var openRows = open.slice().sort(function (a, b) { return (a.due || '9999').localeCompare(b.due || '9999'); }).slice(0, 15).map(function (i) {
+      var d = i.due ? ddi(i.due, today) : null;
+      var st = d == null ? '—' : d > 0 ? '<span class="txa-delta up">' + d + ' d overdue</span>' : d === 0 ? '<span class="txa-delta flat">due today</span>' : '<span class="txa-delta flat">in ' + (-d) + ' d</span>';
+      return [nm(i.row.payee || i.row.name || '—', i.overdue ? C_OD : C_BACK), i.kind === 'exp' ? 'Expected' : 'Lent', $m(i.amount), $m(i.received), $m(i.outstanding), i.due ? fd(i.due) : '—', st];
+    });
+    var openCols = [{ h: 'Person', w: 'minmax(0,1.4fr)' }, { h: 'Type', w: '.8fr' }, { h: 'Amount', w: '.9fr', r: 1 }, { h: 'Received', w: '.9fr', r: 1 }, { h: 'Pending', w: '.9fr', r: 1 }, { h: 'Due', w: '.9fr', r: 1 }, { h: 'Status', w: '1fr', r: 1 }];
+    var pplRows = plist.slice(0, 12).map(function (g, i) {
+      var a = g.dl.length ? g.dl.reduce(function (s, x) { return s + x; }, 0) / g.dl.length : null;
+      return [nm(g.n, g.od > 0 ? C_OD : C_BACK), g.c, $m(g.tot), $m(g.got), $m(g.pend), a == null ? '—' : (a > 0.5 ? r0(a) + ' d late' : a < -0.5 ? r0(-a) + ' d early' : 'on time')];
+    });
+    var pplCols = [{ h: 'Person', w: 'minmax(0,1.4fr)' }, { h: 'Items', w: '.5fr', r: 1 }, { h: 'Total', w: '.9fr', r: 1 }, { h: 'Received', w: '.9fr', r: 1 }, { h: 'Pending', w: '.9fr', r: 1 }, { h: 'Pays', w: '.9fr', r: 1 }];
+
+    host.innerHTML = head + kpis +
+      card('fa-lightbulb', 'Receivable Insights', '', '<div class="txa-insights">' + I.join('') + '</div>') +
+      '<div class="txa-grid txa-g2">' + card('fa-chart-column', 'Lent vs Received', rg.days <= 62 ? 'Weekly' : 'Monthly', cv('rcv-c-flow')) + card('fa-chart-line', 'Pending Balance Over Time', 'Still to come back at the end of each period', cv('rcv-c-bal')) + '</div>' +
+      '<div class="txa-grid txa-g2">' + card('fa-user-clock', 'Pending by Person', 'Top 8 · red = has overdue', topPend.length ? cv('rcv-c-ppl') : empty('Nobody owes you anything right now.')) + card('fa-hourglass-half', 'Ageing of Pending Amounts', 'How long amounts have been waiting', open.length ? cv('rcv-c-age') : empty('Nothing is pending.')) + '</div>' +
+      card('fa-list-check', 'Who Owes You', open.length > 15 ? 'Next 15 by due date' : '', open.length ? tbl(openCols, openRows, 640) : empty('Nothing pending. Everything has been received.')) +
+      card('fa-people-group', 'People &amp; Payment Behaviour', 'All time', tbl(pplCols, pplRows, 560));
+
+    /* ── charts ── */
+    var B = buckets(rg), z = function () { return B.map(function () { return 0; }); };
+    var fl = z(), fr = z(), fe = z();
+    lent.forEach(function (r) { var i = inB(B, dOf(r)); if (i >= 0) fl[i] += Number(r.amount) || 0; });
+    rec.forEach(function (r) { var i = inB(B, dOf(r)); if (i < 0) return; if (fosRecvIsExp(byId[r.parent])) fe[i] += Number(r.amount) || 0; else fr[i] += Number(r.amount) || 0; });
+    var bar = function (label, data, color) { return { label: label, data: data, backgroundColor: color, borderRadius: 6, borderSkipped: 'bottom', maxBarThickness: 30 }; };
+    var labels = B.map(function (x) { return x.l; });
+    mk('flow', 'rcv-c-flow', { type: 'bar', data: { labels: labels, datasets: [bar('Lent out', fl, C_LENT), bar('Received (lent money)', fr, C_BACK)].concat(fe.some(function (v) { return v > 0; }) ? [bar('Received (expected income)', fe, C_INC)] : []) }, options: opts(false, true) });
+    var bal = B.map(function (b) {
+      if (b.s > today) return null;
+      var end = b.e < today ? b.e : today, v = 0;
+      lent.forEach(function (r) { if (dOf(r) <= end) v += Number(r.amount) || 0; });
+      exp.forEach(function (r) { if (createdOf(r) <= end) v += Number(r.amount) || 0; });
+      rec.forEach(function (r) { if (dOf(r) <= end) v -= Number(r.amount) || 0; });
+      return Math.max(0, Math.round(v * 100) / 100);
+    });
+    mk('bal', 'rcv-c-bal', { type: 'line', data: { labels: labels, datasets: [{ label: 'Pending', data: bal, borderColor: C_PEND, backgroundColor: 'rgba(167,139,250,0.18)', borderWidth: 2.2, tension: 0.3, fill: true, pointRadius: B.length <= 20 ? 3 : 0, pointHoverRadius: 5, spanGaps: false }] }, options: opts(false, false) });
+    if (topPend.length) {
+      var t8 = topPend.slice(0, 8);
+      mk('ppl', 'rcv-c-ppl', { type: 'bar', data: { labels: t8.map(function (g) { return g.n; }), datasets: [{ label: 'Pending', data: t8.map(function (g) { return g.pend; }), backgroundColor: t8.map(function (g) { return g.od > 0 ? C_OD : C_BACK; }), borderRadius: 6, maxBarThickness: 26 }] }, options: opts(true, false) });
+    }
+    if (open.length) mk('age', 'rcv-c-age', { type: 'bar', data: { labels: AG.map(function (a) { return a[0]; }), datasets: [{ label: 'Pending', data: AG.map(function (a) { return a[1]; }), backgroundColor: AG.map(function (a) { return a[2]; }), borderRadius: 6, maxBarThickness: 38 }] }, options: opts(false, false) });
+  };
+  window.txaRecvDestroy = function () { destroy(); var h = $('txa-recv'); if (h) h.innerHTML = ''; };
+})();
+</script>
+
 <style id="fhs-style">
 /* Dashboard: Expense Category Breakdown (70%) + Financial Health Score (30%) */
 .fhs-row{display:grid;grid-template-columns:minmax(0,6fr) minmax(0,4fr);gap:1.3rem;margin:1.3rem 0;align-items:stretch}
