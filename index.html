@@ -39325,7 +39325,7 @@ function fosPushTest() {
   }).catch(function () { local(); });
 }
 /* ── BACKGROUND PUSH (Supabase + Web Push): works with the app closed ── */
-const FOS_VAPID_PUBLIC_KEY = '';   // paste your VAPID PUBLIC key here (see push-setup.sql / README steps)
+const FOS_VAPID_PUBLIC_KEY = 'BF9qP6ikdlG7Y6l4fM9VEXY23VAmrfOvtyoSxjJTDESgMt4cYdloVYtaOlJx23h4-DjMklgOji2eCkJe36m2u8M';   // paste your VAPID PUBLIC key here (see push-setup.sql / README steps)
 function fosB64ToU8(b64) {
   var pad = '='.repeat((4 - b64.length % 4) % 4), raw = atob((b64 + pad).replace(/-/g, '+').replace(/_/g, '/')), a = new Uint8Array(raw.length);
   for (var i = 0; i < raw.length; i++) a[i] = raw.charCodeAt(i);
@@ -39378,6 +39378,7 @@ function fosPushRefreshUI() {
   var o = window.switchSettingsTab;
   if (typeof o === 'function') window.switchSettingsTab = function () { var r = o.apply(this, arguments); try { fosPushRefreshUI(); } catch (e) { } return r; };
   window.addEventListener('load', function () { setTimeout(fosPushRefreshUI, 500); if (fosPushState() === 'granted') fosPushReg(); setTimeout(fosPushSync, 6000); });
+  try { navigator.serviceWorker.addEventListener('message', function (e) { if (e.data && e.data.type === 'push-resubscribe') fosPushSync(); }); } catch (e) { }
 })();
 </script>
 <script>
@@ -39637,6 +39638,19 @@ window.fosToast = function (o) {
   // The swipe-up-and-hold gesture deactivates the app before it is hidden, so cover on blur too (phones / installed app only).
   window.addEventListener('blur', function () { if (touch) show(); });
   window.addEventListener('focus', hide);
+  // Phones: the swipe-up-and-hold (app switcher) gesture starts with a touch on the very bottom edge. Cover the screen the
+  // moment that touch begins, and when the system takes the gesture over (touchcancel), so the cover is already in place
+  // before the phone takes its recent-apps snapshot. If the app is still focused a moment later it was just a normal touch.
+  var edgeT = null;
+  function edgeCover(hold) {
+    show(); clearTimeout(edgeT);
+    edgeT = setTimeout(function () { if (!document.hidden && document.hasFocus()) hide(); }, hold || 500);
+  }
+  function nearBottom(y) { return y >= (window.innerHeight || screen.height) - 16; }
+  document.addEventListener('touchstart', function (e) { var t = e.touches && e.touches[0]; if (touch && t && nearBottom(t.clientY)) edgeCover(500); }, { passive: true, capture: true });
+  document.addEventListener('pointerdown', function (e) { if (touch && e.pointerType === 'touch' && nearBottom(e.clientY)) edgeCover(500); }, true);
+  document.addEventListener('touchcancel', function () { if (touch) edgeCover(900); }, { passive: true, capture: true });
+  document.addEventListener('pointercancel', function (e) { if (touch && e.pointerType === 'touch') edgeCover(900); }, true);
   // Failsafe: a tap on the panel while the app is actually visible always dismisses it.
   el.addEventListener('click', function () { if (!document.hidden) hide(); });
   el.addEventListener('touchstart', function () { if (!document.hidden) hide(); }, { passive: true });
