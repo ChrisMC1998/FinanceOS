@@ -38731,12 +38731,12 @@ body.light-mode .fa-fl{background:#fff}
     prep(s);
     var sec = function (cls, k, v) { return v ? '<div class="fa-sec ' + cls + '"><b class="fa-k">' + k + '</b>' + fmt(v) + '</div>' : ''; };
     card.innerHTML =
-      '<div class="fa-top"><span>' + ch.ic + ' ' + esc(ch.t) + ' · ' + (tourAll ? 'Step ' + gpos() + ' of ' + gtot() : (idx + 1) + '/' + n) + '</span><span><button type="button" data-a="hub">☰ Chapters</button> &nbsp; <button type="button" data-a="skip">Skip tutorial ✕</button></span></div>' +
+      '<div class="fa-top"><span>' + ch.ic + ' ' + esc(ch.t) + ' · ' + (tourAll ? 'Step ' + gpos() + ' of ' + gtot() : (idx + 1) + '/' + n) + '</span><span><button type="button" data-a="hub">☰ Chapters</button></span></div>' +
       '<div class="fa-bar"><i style="width:' + (tourAll ? gpos() / gtot() * 100 : (idx + 1) / n * 100) + '%"></i></div>' +
       '<div class="fa-title">' + esc(s.t) + '</div>' +
       sec('', 'What it is', s.w) + sec('', 'What you get', s.r) + sec('fa-do', 'Try it', s.d) + sec('fa-tip', 'Pro tip', s.p) +
       (mobile() ? '<div class="fa-sec"><b class="fa-k">On mobile</b>Open the menu (top right) to reach this screen.</div>' : '') +
-      '<div class="fa-act">' + (s.d ? '<button type="button" class="fa-b" data-a="try">Let me try</button>' : '') + '<span class="fa-sp"></span>' +
+      '<div class="fa-act"><button type="button" class="fa-b fa-skip" data-a="skip">Skip tutorial</button><span class="fa-sp"></span>' +
       ((idx > 0 || (tourAll && CH.indexOf(ch) > 0)) ? '<button type="button" class="fa-b" data-a="back">Back</button>' : '') +
       '<button type="button" class="fa-b fa-p" data-a="next">' + (last ? (tourAll && CH.indexOf(ch) < CH.length - 1 ? 'Next chapter →' : 'Finish ✓') : 'Next') + '</button></div>';
     card.querySelectorAll('[data-a]').forEach(function (b) {
