@@ -40184,5 +40184,87 @@ body.light-mode #fos-sup .fs-card{background:#f8fafc;border-color:#e2e8f0}
   window.addEventListener('load', function () { setTimeout(check, 4000); setInterval(check, 60000); });
 })();
 </script>
+<style id="fos-countup-css">.fos-cu{font-variant-numeric:tabular-nums}</style>
+<script>
+/* ── COUNT-UP ANIMATION: big KPI numbers rise from 0 to their value (dashboard, portfolio, credit, net worth, analytics) ── */
+(function () {
+  var SEL = '.kpi-value,.port-kpi-val,.credit-kpi-val,.cca-sum-val,.cca-pay-val,.cca-strategy-val,.cca-reco-num-val,.nw-val,.spark-card-value,.txa-kpi-val,.ins-kpi-val,.ins-summary-val,.cs-val,.fcs-big,.finai-score-num,.liteai-mini-score-num,.backup-stat-val';
+  var DUR = 1100, RE = /^(\s*[^\d]*?)(\d[\d,]*(?:\.\d+)?)(\s*[^\d]{0,6})$/;
+  var reduce = false; try { reduce = matchMedia('(prefers-reduced-motion: reduce)').matches; } catch (e) { }
+  var recent = {}, pend = new Set(), sched = false, io = null, live = new Set();
+  function enabled() { try { return localStorage.getItem('fos_set_count-anim') !== 'false' && !reduce; } catch (e) { return !reduce; } }
+  function parse(txt) {
+    var m = RE.exec(txt); if (!m) return null;
+    var num = m[2], val = parseFloat(num.replace(/,/g, '')); if (!isFinite(val)) return null;
+    var dot = num.indexOf('.'), dec = dot < 0 ? 0 : num.length - dot - 1, grp = '';
+    if (num.indexOf(',') >= 0) grp = /,\d{2},/.test(num) || (m[1].indexOf('\u20B9') >= 0 && !/,\d{3},/.test(num)) ? 'in' : 'us';
+    return { pre: m[1], suf: m[3], val: val, dec: dec, grp: grp };
+  }
+  function fmt(v, dec, grp) {
+    var s = Math.abs(v).toFixed(dec).split('.'), i = s[0];
+    if (grp === 'in') { if (i.length > 3) i = i.slice(0, -3).replace(/\B(?=(\d{2})+(?!\d))/g, ',') + ',' + i.slice(-3); }
+    else if (grp === 'us') i = i.replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+    return s.length > 1 ? i + '.' + s[1] : i;
+  }
+  function visible(el) { if (!el.isConnected) return false; var r = el.getBoundingClientRect(); return r.width > 0 && r.height > 0; }
+  function stop(el) { if (el.__cuRaf) { cancelAnimationFrame(el.__cuRaf); el.__cuRaf = 0; } live.delete(el); }
+  function snap(el) { if (el.__cuRaf && el.__cuFinal != null) { stop(el); el.__cuW = el.__cuFinal; el.textContent = el.__cuFinal; } }
+  function run(el, p, from) {
+    stop(el); var t0 = performance.now(), fin = el.__cuFinal; live.add(el); el.classList.add('fos-cu');
+    function step(now) {
+      var k = Math.min(1, (now - t0) / DUR), e = 1 - Math.pow(1 - k, 3), v = from + (p.val - from) * e, txt;
+      if (k >= 1) txt = fin; else txt = p.pre + fmt(v, p.dec, p.grp) + p.suf;
+      el.__cuW = txt; el.__cuCur = v; el.textContent = txt;
+      if (k < 1) el.__cuRaf = requestAnimationFrame(step); else { el.__cuRaf = 0; live.delete(el); recent[el.className + '|' + fin] = Date.now(); }
+    }
+    el.__cuRaf = requestAnimationFrame(step);
+  }
+  function seen(el) { if (!el.__cuIO) { el.__cuIO = 1; if (!io) io = new IntersectionObserver(onIO); io.observe(el); } }
+  function onIO(list) {
+    list.forEach(function (en) {
+      var el = en.target;
+      if (!en.isIntersecting) { if (!el.__cuHid) el.__cuHid = Date.now(); return; }
+      var hid = el.__cuHid; el.__cuHid = 0;
+      if (el.__cuWait || (hid && Date.now() - hid > 800)) { el.__cuWait = 0; play(el, true); }    // shown again (new tab / page): replay from 0
+    });
+  }
+  function play(el, fromZero) {
+    if (!enabled() || !el.isConnected) return;
+    var txt = el.__cuFinal != null && el.textContent === el.__cuW ? el.__cuFinal : el.textContent, p = parse(txt);
+    if (!p || !(p.val > 0)) { el.__cuFinal = txt; return; }
+    el.__cuFinal = txt; el.__cuW = txt;
+    if (!visible(el)) { el.__cuWait = 1; seen(el); return; }
+    var key = el.className + '|' + txt, prev = el.__cuPrev;
+    if (!fromZero && !el.__cuRaf && recent[key] && Date.now() - recent[key] < 4000) return;      // quiet re-render of the same value
+    var from = fromZero || prev == null ? 0 : prev;
+    if (el.__cuRaf && el.__cuCur != null) from = el.__cuCur;                                        // value changed mid-animation: continue from here
+    if (from === p.val) return;
+    el.__cuPrev = p.val; run(el, p, from); seen(el);
+  }
+  function consider(el) {
+    if (el.__cuW != null && el.textContent === el.__cuW) return;       // our own animation frame
+    el.__cuFinal = null; play(el, false);
+  }
+  function flush() { sched = false; var a = Array.from(pend); pend.clear(); a.forEach(function (el) { try { consider(el); } catch (e) { } }); }
+  function queue(el) { pend.add(el); if (!sched) { sched = true; requestAnimationFrame(flush); } }
+  function collect(n) {
+    if (!n) return;
+    if (n.nodeType === 3) { n = n.parentElement; if (n && n.matches && n.matches(SEL)) queue(n); return; }
+    if (n.nodeType !== 1) return;
+    if (n.matches(SEL)) queue(n);
+    if (n.querySelectorAll) n.querySelectorAll(SEL).forEach(queue);
+  }
+  new MutationObserver(function (ms) {
+    for (var i = 0; i < ms.length; i++) {
+      var m = ms[i];
+      if (m.type === 'characterData') collect(m.target);
+      else { var t = m.target; if (t && t.nodeType === 1 && t.matches && t.matches(SEL)) queue(t); for (var j = 0; j < m.addedNodes.length; j++) collect(m.addedNodes[j]); }
+    }
+  }).observe(document.body, { childList: true, subtree: true, characterData: true });
+  window.addEventListener('beforeprint', function () { live.forEach(snap); });                        // never print or export a half-counted number
+  window.fosCountUpReplay = function () { document.querySelectorAll(SEL).forEach(function (el) { if (visible(el)) { el.__cuFinal = null; play(el, true); } }); };
+  window.addEventListener('load', function () { setTimeout(function () { document.querySelectorAll(SEL).forEach(queue); }, 600); });
+})();
+</script>
 </body>
 </html>
