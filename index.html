@@ -34377,13 +34377,14 @@ body.light-mode .txa-badge.det{color:#6d28d9}
   var OTHERS = '__txa_others__', OTHERS_COLOR = '#64748b';
   var RANGES = [['this','This Month'],['last','Last Month'],['3','Last 3 Months'],['6','Last 6 Months'],['12','Last 12 Months'],['all','All Time'],['custom','Custom Date Range']];
 
-  var st = { open:false, key:'this', from:'', to:'', sel:null, sig:'', timer:null, lastFocus:null, charts:{}, data:null, downOnOverlay:false, tail:[], stagger:false, boot:0 };
+  var st = { open:false, key:'this', from:'', to:'', sel:null, sig:'', timer:null, lastFocus:null, charts:{}, data:null, downOnOverlay:false, tail:[], stagger:false, boot:0, rtok:0 };
 
   function $(id) { return document.getElementById(id); }
   function esc(s) { return typeof _esc === 'function' ? _esc(s) : String(s == null ? '' : s).replace(/[&<>"']/g, function (c) { return ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'})[c]; }); }
   function p2(n) { return String(n).padStart(2, '0'); }
   function iso(d) { return d.getFullYear() + '-' + p2(d.getMonth() + 1) + '-' + p2(d.getDate()); }
-  function parse(s) { var a = String(s).slice(0, 10).split('-').map(Number); return new Date(a[0], a[1] - 1, a[2]); }
+  var _pcache = {};
+  function parse(s) { s = String(s).slice(0, 10); var c = _pcache[s]; if (!c) { var a = s.split('-'); c = _pcache[s] = [+a[0], +a[1] - 1, +a[2]]; } return new Date(c[0], c[1], c[2]); }
   function addDays(d, n) { return new Date(d.getFullYear(), d.getMonth(), d.getDate() + n); }
   function addMonthsC(d, n) { var t = new Date(d.getFullYear(), d.getMonth() + n, 1); var last = new Date(t.getFullYear(), t.getMonth() + 1, 0).getDate(); return new Date(t.getFullYear(), t.getMonth(), Math.min(d.getDate(), last)); }
   function dayDiff(a, b) { return Math.round((Date.UTC(b.getFullYear(), b.getMonth(), b.getDate()) - Date.UTC(a.getFullYear(), a.getMonth(), a.getDate())) / DAY_MS); }
@@ -34396,7 +34397,8 @@ body.light-mode .txa-badge.det{color:#6d28d9}
   function cText() { return light() ? '#334155' : '#B7C4C5'; }
   function cStrong() { return light() ? '#0f172a' : '#f3fafa'; }
   function cGrid() { return light() ? 'rgba(15,23,42,0.08)' : 'rgba(180,220,218,0.07)'; }
-  function brand() { try { return getComputedStyle(document.body).getPropertyValue('--brand').trim() || '#20CDB5'; } catch (e) { return '#20CDB5'; } }
+  var _brandC = null, _brandT = 0;
+  function brand() { var n = Date.now(); if (_brandC && n - _brandT < 1500) return _brandC; try { _brandC = getComputedStyle(document.body).getPropertyValue('--brand').trim() || '#20CDB5'; } catch (e) { _brandC = '#20CDB5'; } _brandT = n; return _brandC; }
   function shortDate(s) { var f = dt(s), p = f.split('/'); if (p.length === 3) return (p[0].length === 4 ? p.slice(1) : p.slice(0, 2)).join('/'); return f; }
   function compact(v) {
     var sym = localStorage.getItem('fos_currency') || '₹', ind = (localStorage.getItem('fos_number_system') || 'indian') === 'indian';
@@ -34524,13 +34526,17 @@ body.light-mode .txa-badge.det{color:#6d28d9}
     }).sort(function (a, b2) { return b2.pct - a.pct; });
   }
 
+  var _recC = null;
   function detectRecurring(all, range) {
-    var groups = {}, res = [];
-    all.forEach(function (e) { var k = e.name.toLowerCase().replace(/\s+/g, ' '); (groups[k] = groups[k] || []).push(e); });
+    var cache = (_recC && _recC.all === all) ? _recC : (_recC = { all: all, groups: null, pre: {} });
+    var res = [], groups = cache.groups;
+    if (!groups) { groups = cache.groups = {}; all.forEach(function (e) { var k = e.name.toLowerCase().replace(/\s+/g, ' '); (groups[k] = groups[k] || []).push(e); }); }
     Object.keys(groups).forEach(function (k) {
       var arr = groups[k];
       var inR = arr.filter(function (e) { return e.date >= range.startISO && e.date <= range.endISO; });
       if (!inR.length) return;
+      var pre = cache.pre[k];
+      if (pre === undefined) pre = cache.pre[k] = (function () {
       var dates = Array.from(new Set(arr.map(function (e) { return e.date; }))).sort();
       var flagged = arr.some(function (e) { return e.recurring; });
       var cadence = null;
@@ -34548,12 +34554,15 @@ body.light-mode .txa-badge.det{color:#6d28d9}
       var sd = Math.sqrt(amts.reduce(function (s, v) { return s + Math.pow(v - mean, 2); }, 0) / amts.length);
       var stable = mean ? (sd / Math.abs(mean)) <= 0.3 : false;
       var detected = !!(cadence && stable);
-      if (!flagged && !detected) return;
+      if (!flagged && !detected) return null;
       if (!cadence) cadence = { days: 30, label: 'Monthly' };
       var latest = arr.slice().sort(function (a, b) { return a.date < b.date ? 1 : -1; }).slice(0, 3).map(function (e) { return e.amount; }).sort(function (a, b) { return a - b; });
       var typical = latest[Math.floor(latest.length / 2)];
       var last = dates[dates.length - 1];
-      res.push({ name: arr[0].name, cat: arr[0].cat, cadence: cadence, typical: typical, monthly: typical * 30.4375 / cadence.days, inCount: inR.length, inTotal: inR.reduce(function (s, e) { return s + e.amount; }, 0), last: last, next: iso(addDays(parse(last), cadence.days)), flagged: flagged, detected: detected });
+      return { name: arr[0].name, cat: arr[0].cat, cadence: cadence, typical: typical, monthly: typical * 30.4375 / cadence.days, last: last, next: iso(addDays(parse(last), cadence.days)), flagged: flagged, detected: detected };
+      })();
+      if (!pre) return;
+      res.push({ name: pre.name, cat: pre.cat, cadence: pre.cadence, typical: pre.typical, monthly: pre.monthly, inCount: inR.length, inTotal: inR.reduce(function (s, e) { return s + e.amount; }, 0), last: pre.last, next: pre.next, flagged: pre.flagged, detected: pre.detected });
     });
     res.sort(function (a, b) { return b.monthly - a.monthly; });
     return res;
@@ -34651,6 +34660,10 @@ body.light-mode .txa-badge.det{color:#6d28d9}
   function mk(key, id, cfg) {
     var cv = $(id); if (!cv || typeof Chart === 'undefined') return null;
     try {
+      var cur = st.charts[key];
+      if (cur && cur.canvas === cv && cv.isConnected && !cfg.plugins && cur.config && cur.config.type === cfg.type && /^[34]/.test(String(Chart.version || ''))) {
+        try { if (!window.__txaQuiet) { cfg.options = cfg.options || {}; if (cfg.options.animation === undefined) cfg.options.animation = { duration: 320, easing: 'easeOutCubic' }; } cur.data = cfg.data; cur.options = cfg.options; cur.update(window.__txaQuiet ? 'none' : undefined); return cur; } catch (e) { try { cur.destroy(); } catch (x) {} delete st.charts[key]; }
+      }
       if (st.charts[key]) { st.charts[key].destroy(); delete st.charts[key]; }
       var ex = Chart.getChart ? Chart.getChart(cv) : null; if (ex) ex.destroy();
       if (window.__txaQuiet) { cfg.options = cfg.options || {}; cfg.options.animation = false; }
@@ -34797,10 +34810,11 @@ body.light-mode .txa-badge.det{color:#6d28d9}
   }
 
   /* ───────────── render ───────────── */
-  function renderAll() {
-    st.sig = signature();
+  function renderAll(soft) {
+    brand();
+    if (!(soft && st.sig)) st.sig = signature();
     if (typeof db === 'undefined' || typeof fmt !== 'function') return;
-    var all = allExpenses(), range = computeRange(all);
+    var all = (soft && st.cacheAll) ? st.cacheAll : (st.cacheAll = allExpenses()), range = computeRange(all);
     var inR = all.filter(function (e) { return e.date >= range.startISO && e.date <= range.endISO; });
     var A = analyze(inR, range.days);
     var P = null;
@@ -34895,15 +34909,39 @@ body.light-mode .txa-badge.det{color:#6d28d9}
     }
 
     renderLegend(); renderInspector(false);
-    drawCharts(A, range, W);
+    var tok = ++st.rtok, dc = function () { if (tok !== st.rtok || !st.open) return; drawCharts(A, range, W); };
+    if (st.stagger) st.tail.push(dc); else if (soft) requestAnimationFrame(function () { setTimeout(dc, 0); }); else dc();
     var runAdv = function () { try { if (window.txaAdvRender) window.txaAdvRender(st.data); } catch (e) { console.error("Advanced analytics failed:", e); } };
     var runRecv = function () { try { if (window.txaRecvRender) window.txaRecvRender(st.data); } catch (e) { console.error("Receivables analytics failed:", e); } };
-    if (st.stagger) { st.tail.push(runAdv, runRecv); } else { runAdv(); runRecv(); }
+    lazyBelow(runAdv, runRecv);
   }
 
   /* ───────────── open / close ───────────── */
   var ov, closeBtn;
+  /* Advanced + Receivables sit far below the fold: build them only when the user scrolls near them,
+     one per task, so opening the page and switching ranges only pay for what is on screen. */
+  function lazyBelow(runAdv, runRecv) {
+    st.lazy = [{ id: 'txa-adv', run: runAdv, done: false }, { id: 'txa-recv', run: runRecv, done: false }];
+    if (!st.stagger) scheduleLazy();
+  }
+  function scheduleLazy() { clearTimeout(st.lazyT); st.lazyT = setTimeout(pumpLazy, 40); }
+  function pumpLazy() {
+    if (!st.open || !st.lazy) return;
+    var body = $('txa-body'); if (!body) return;
+    var bb = body.getBoundingClientRect();
+    for (var i = 0; i < st.lazy.length; i++) {
+      var L = st.lazy[i]; if (L.done) continue;
+      var h = $(L.id); if (!h) { L.done = true; continue; }
+      if (h.getBoundingClientRect().top < bb.bottom + 500) {
+        L.done = true;
+        try { L.run(); } catch (e) { console.error(e); }
+        st.lazyT = setTimeout(pumpLazy, 40);   /* next section (if any) in its own task */
+        return;
+      }
+    }
+  }
   function reveal() {
+    scheduleLazy();
     window.__txaQuiet = false;
     var m = $('txn-analytics-modal'); if (m) m.classList.add('txa-ready');
     try { Object.keys(st.charts).forEach(function (k) { try { st.charts[k].resize(); } catch (e) {} }); } catch (e) {}
@@ -34934,7 +34972,7 @@ body.light-mode .txa-badge.det{color:#6d28d9}
       st.stagger = false;
       runTail(0);
     }, 340);
-    clearInterval(st.timer); st.timer = setInterval(poll, 1200);
+    clearInterval(st.timer); st.timer = setInterval(poll, 3000);
   }
   function close() {
     if (!st.open) return;
@@ -34943,16 +34981,17 @@ body.light-mode .txa-badge.det{color:#6d28d9}
     setTimeout(function () {
       if (st.open) return;
       ov.classList.remove('txa-show'); ov.setAttribute('aria-hidden', 'true');
-      destroyCharts(); document.body.classList.remove('txn-analytics-open');
+      destroyCharts(); st.lazy = null; clearTimeout(st.lazyT); document.body.classList.remove('txn-analytics-open');
       var f = st.lastFocus; st.lastFocus = null;
       if (!(f && document.contains(f))) f = $('txn-analytics-btn');   /* the bar is rebuilt on re-render, so the original node may be gone */
       if (f && f.focus) { try { f.focus({ preventScroll: true }); } catch (e) {} }
     }, 270);
   }
   function poll() {
-    if (!st.open) return;
+    if (!st.open || document.hidden) return;
     if (typeof activeView !== 'undefined' && activeView !== 'transactions') { close(); return; }
-    if (signature() !== st.sig) { try { renderAll(); } catch (e) { console.error(e); } }
+    var run = function () { if (st.open && signature() !== st.sig) { try { renderAll(); } catch (e) { console.error(e); } } };
+    if (window.requestIdleCallback) requestIdleCallback(run, { timeout: 2000 }); else run();
   }
   function refresh() { if (st.open) { try { renderAll(); } catch (e) { console.error(e); } } }
 
@@ -34986,13 +35025,19 @@ body.light-mode .txa-badge.det{color:#6d28d9}
     ov.addEventListener('click', function (e) {
       var t = e.target.closest ? e.target : null; if (!t) return;
       var chip = t.closest('[data-txa-range]');
-      if (chip) { st.key = chip.getAttribute('data-txa-range'); if (st.key === 'custom' && !st.from && !st.to && st.data) { st.from = st.data.range.startISO; st.to = iso(st.data.range.end); } renderAll(); return; }
+      if (chip) {
+        st.key = chip.getAttribute('data-txa-range'); if (st.key === 'custom' && !st.from && !st.to && st.data) { st.from = st.data.range.startISO; st.to = iso(st.data.range.end); }
+        Array.prototype.forEach.call(ov.querySelectorAll('[data-txa-range]'), function (c) { var on = (c === chip); c.classList.toggle('on', on); c.setAttribute('aria-pressed', on ? 'true' : 'false'); });
+        var cu0 = $('txa-custom'); if (cu0) cu0.hidden = st.key !== 'custom';
+        requestAnimationFrame(function () { clearTimeout(st.chipT); st.chipT = setTimeout(function () { if (st.open) { try { renderAll(true); } catch (e) { console.error(e); } } }, 0); });
+        return;
+      }
       var cat = t.closest('[data-txa-cat]');
       if (cat) { var k = decodeURIComponent(cat.getAttribute('data-txa-cat')); pickCategory(k); return; }
       if (t.closest('[data-txa-clear]')) { st.sel = null; renderLegend(); renderInspector(false); var ch = st.charts.donut; if (ch) { ch.data.datasets[0].offset = ch.data.datasets[0].data.map(function () { return 0; }); ch.update(); } }
     });
     ['txa-from', 'txa-to'].forEach(function (id) {
-      $(id).addEventListener('change', function () { st.from = $('txa-from').value; st.to = $('txa-to').value; if (st.from || st.to) { st.key = 'custom'; renderAll(); } });
+      $(id).addEventListener('change', function () { st.from = $('txa-from').value; st.to = $('txa-to').value; if (st.from || st.to) { st.key = 'custom'; renderAll(true); } });
     });
     document.addEventListener('keydown', function (e) {
       if (!st.open) return;
@@ -35011,6 +35056,8 @@ body.light-mode .txa-badge.det{color:#6d28d9}
     new MutationObserver(function () { var l = light(); if (l === lastLight) return; lastLight = l; if (!st.open) return; cancelAnimationFrame(raf); raf = requestAnimationFrame(refresh); }).observe(document.body, { attributes: true, attributeFilter: ['class'] });
     /* currency / date-format changes made in Settings */
     window.addEventListener('storage', function () { if (st.open) refresh(); });
+    var bodyEl = $('txa-body'), sl = 0;
+    if (bodyEl) bodyEl.addEventListener('scroll', function () { if (sl || !st.lazy) return; sl = requestAnimationFrame(function () { sl = 0; if (st.lazy && st.lazy.some(function (L) { return !L.done; })) scheduleLazy(); }); }, { passive: true });
     ensureButton();
   }
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init); else init();
@@ -35135,7 +35182,7 @@ body.light-mode .txa-advhead h2 i{color:#0f766e}
   function destroy() { Object.keys(ch).forEach(function (k) { try { ch[k].destroy(); } catch (e) {} delete ch[k]; }); }
   function mk(k, id, cfg) {
     var c = $(id); if (!c || typeof Chart === 'undefined') return;
-    try { if (ch[k]) { ch[k].destroy(); delete ch[k]; } var ex = Chart.getChart ? Chart.getChart(c) : null; if (ex) ex.destroy(); if (window.__txaQuiet) { cfg.options = cfg.options || {}; cfg.options.animation = false; } ch[k] = new Chart(c.getContext('2d'), cfg); }
+    try { var cur = ch[k]; if (cur && cur.canvas === c && c.isConnected && !cfg.plugins && cur.config && cur.config.type === cfg.type && /^[34]/.test(String(Chart.version || ''))) { try { if (!window.__txaQuiet) { cfg.options = cfg.options || {}; if (cfg.options.animation === undefined) cfg.options.animation = { duration: 320, easing: 'easeOutCubic' }; } cur.data = cfg.data; cur.options = cfg.options; cur.update(window.__txaQuiet ? 'none' : undefined); return; } catch (x) { try { cur.destroy(); } catch (y) {} delete ch[k]; } } if (ch[k]) { ch[k].destroy(); delete ch[k]; } var ex = Chart.getChart ? Chart.getChart(c) : null; if (ex) ex.destroy(); if (window.__txaQuiet) { cfg.options = cfg.options || {}; cfg.options.animation = false; } ch[k] = new Chart(c.getContext('2d'), cfg); }
     catch (e) { console.error('Advanced analytics chart failed (' + k + '):', e); }
   }
   function axes(h, stk) {
@@ -35352,7 +35399,8 @@ body.light-mode .txa-advhead h2 i{color:#0f766e}
     host.innerHTML = '<div class="txa-advhead"><div><h2><i class="fas fa-microscope"></i>Advanced Spending Analysis</h2><div class="txa-note">Calculated from your actual expense transactions between ' + fd(D.range.startISO) + ' and ' + fd(D.range.end) + '.</div></div>' +
       '<div class="txa-chips" role="navigation" aria-label="Jump to section">' + [['adv-cat', 'Categories'], ['adv-sub', 'Subcategories'], ['adv-pay', 'Payees'], ['adv-trend', 'Trends'], ['adv-save', 'Savings'], ['adv-cmp', 'Comparisons']].map(function (x) { return '<button type="button" class="txa-chip" data-adv-go="' + x[0] + '">' + x[1] + '</button>'; }).join('') + '</div></div>' +
       ['adv-cat', 'adv-sub', 'adv-pay', 'adv-trend', 'adv-save', 'adv-cmp'].map(function (i) { return '<div id="' + i + '" class="txa-adv-sec"></div>'; }).join('');
-    [secCat, secSub, secPayee, secTrend, secSave, secCmp].forEach(function (f) { try { f(); } catch (e) { console.error('Advanced analytics section failed:', e); } });
+    var fs = [secCat, secSub, secPayee, secTrend, secSave, secCmp], tokX = X;
+    (function next(i) { if (i >= fs.length || X !== tokX) return; try { fs[i](); } catch (e) { console.error('Advanced analytics section failed:', e); } setTimeout(function () { next(i + 1); }, 0); })(0);
   };
   window.txaAdvDestroy = function () { destroy(); X = null; var h = $('txa-adv'); if (h) h.innerHTML = ''; };
 
@@ -35409,7 +35457,7 @@ body.light-mode .txa-advhead h2 i{color:#0f766e}
   function destroy() { Object.keys(ch).forEach(function (k) { try { ch[k].destroy(); } catch (e) {} delete ch[k]; }); }
   function mk(k, id, cfg) {
     var c = $(id); if (!c || typeof Chart === 'undefined') return;
-    try { if (ch[k]) { ch[k].destroy(); delete ch[k]; } var ex = Chart.getChart ? Chart.getChart(c) : null; if (ex) ex.destroy(); if (window.__txaQuiet) { cfg.options = cfg.options || {}; cfg.options.animation = false; } ch[k] = new Chart(c.getContext('2d'), cfg); }
+    try { var cur = ch[k]; if (cur && cur.canvas === c && c.isConnected && !cfg.plugins && cur.config && cur.config.type === cfg.type && /^[34]/.test(String(Chart.version || ''))) { try { if (!window.__txaQuiet) { cfg.options = cfg.options || {}; if (cfg.options.animation === undefined) cfg.options.animation = { duration: 320, easing: 'easeOutCubic' }; } cur.data = cfg.data; cur.options = cfg.options; cur.update(window.__txaQuiet ? 'none' : undefined); return; } catch (x) { try { cur.destroy(); } catch (y) {} delete ch[k]; } } if (ch[k]) { ch[k].destroy(); delete ch[k]; } var ex = Chart.getChart ? Chart.getChart(c) : null; if (ex) ex.destroy(); if (window.__txaQuiet) { cfg.options = cfg.options || {}; cfg.options.animation = false; } ch[k] = new Chart(c.getContext('2d'), cfg); }
     catch (e) { console.error('Receivables chart failed (' + k + '):', e); }
   }
   function opts(h, legend) {
