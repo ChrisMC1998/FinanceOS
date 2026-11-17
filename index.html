@@ -387,6 +387,117 @@ function fosBrandRgba(a){return 'rgba('+fosBrandRgb()+','+a+')';}
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script id="fos-num-core">
+/* ── NUMBER ANIMATION CORE: shared parser/formatter + Chart.js plugin (tooltips, centre text, data labels count up from 0) ── */
+(function () {
+  if (window.FosNum) return;
+  var DUR = 1100, reduce = false;
+  try { reduce = matchMedia('(prefers-reduced-motion: reduce)').matches; } catch (e) { }
+  var NUM = /\d+(?:,\d+)*(?:\.\d+)?/g;
+  var MONTH = /\b(?:Jan(?:uary)?|Feb(?:ruary)?|Mar(?:ch)?|Apr(?:il)?|May|June?|July?|Aug(?:ust)?|Sep(?:t(?:ember)?)?|Oct(?:ober)?|Nov(?:ember)?|Dec(?:ember)?)\b/;
+  var DATEY = /\d{1,4}[\/.\-]\d{1,2}[\/.\-]\d{1,4}|\d{1,2}:\d{2}/;
+  function enabled() {
+    if (reduce) return false;
+    try { if (localStorage.getItem('fos_set_count-anim') === 'false') return false; } catch (e) { }
+    return !(document.body && document.body.classList.contains('pdf-export-mode'));
+  }
+  function fmt(v, dec, grp) {
+    var s = Math.abs(v).toFixed(dec).split('.'), i = s[0];
+    if (grp === 'in') { if (i.length > 3) i = i.slice(0, -3).replace(/\B(?=(\d{2})+(?!\d))/g, ',') + ',' + i.slice(-3); }
+    else if (grp === 'us') i = i.replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+    return s.length > 1 ? i + '.' + s[1] : i;
+  }
+  /* split a string into text segments + numeric tokens; returns null when nothing in it should count */
+  function parse(txt) {
+    if (!txt || txt.length > 90 || !/\d/.test(txt) || MONTH.test(txt) || DATEY.test(txt)) return null;
+    var segs = [], toks = [], last = 0, any = false, m, rup = txt.indexOf('\u20B9') >= 0;
+    NUM.lastIndex = 0;
+    while ((m = NUM.exec(txt))) {
+      var s = m[0], i = m.index, prev = i ? txt.charAt(i - 1) : '', ok = !/[A-Za-z_#]/.test(prev);
+      var val = parseFloat(s.replace(/,/g, '')), hasC = s.indexOf(',') >= 0, dot = s.indexOf('.'), hasD = dot >= 0;
+      if (!isFinite(val) || val <= 0) ok = false;
+      if (ok && !hasC && !hasD && s.length >= 4 && !/[\u20B9$\u20AC\u00A3]/.test(txt.slice(Math.max(0, i - 2), i))) ok = false;   // years, ids, phone numbers
+      if (s.length > 14) ok = false;
+      if (ok && /(?:\bof|\/)\s*$/.test(txt.slice(Math.max(0, i - 4), i))) ok = false;   // denominators ("of 100", "/ 5") stay put
+      toks.push({ m: s, ok: ok, val: val, dec: hasD ? s.length - dot - 1 : 0, grp: hasC ? ((/,\d{2},/.test(s) || (rup && !/,\d{3},/.test(s))) ? 'in' : 'us') : '' });
+      segs.push(txt.slice(last, i)); last = i + s.length; if (ok) any = true;
+    }
+    segs.push(txt.slice(last));
+    return any ? { segs: segs, toks: toks } : null;
+  }
+  function build(P, e, fv) {
+    var o = P.segs[0];
+    for (var i = 0; i < P.toks.length; i++) {
+      var t = P.toks[i];
+      if (t.ok) { var f = fv && fv[i] != null ? fv[i] : 0; o += fmt(f + (t.val - f) * e, t.dec, t.grp); } else o += t.m;
+      o += P.segs[i + 1];
+    }
+    return o;
+  }
+  function fromVals(prevTxt, P) {
+    var Q = parse(prevTxt); if (!Q || Q.toks.length !== P.toks.length) return null;
+    return Q.toks.map(function (t) { return t.ok ? t.val : null; });
+  }
+  window.FosNum = { parse: parse, build: build, fromVals: fromVals, enabled: enabled, DUR: DUR, kick: null };
+
+  /* ── Chart.js: numbers drawn on the canvas (tooltips, donut centre, data labels) count up on load / hover / tap ── */
+  if (!window.Chart) return;
+  var lastTouch = 0, cio = null;
+  document.addEventListener('pointerdown', function (e) { if (e.pointerType === 'touch' || e.pointerType === 'pen') lastTouch = Date.now(); }, true);
+  function kick(ch, force) {
+    if (!enabled() || !ch || !ch.canvas || !ch.canvas.isConnected) return;
+    var s = ch.$fosNum || (ch.$fosNum = { p: 1, t0: 0, raf: 0, key: '' }), now = performance.now();
+    if (!force && s.p < 1 && now - s.t0 < 300) return;
+    s.t0 = now; s.p = 0;
+    if (s.raf) return;
+    s.raf = requestAnimationFrame(function f() {
+      s.raf = 0;
+      if (!ch.canvas || !ch.canvas.isConnected || !ch.ctx) { s.p = 1; return; }
+      var k = Math.min(1, (performance.now() - s.t0) / DUR);
+      s.p = k >= 1 ? 1 : 1 - Math.pow(1 - k, 3);
+      try { ch.draw(); } catch (e) { }
+      if (k < 1) s.raf = requestAnimationFrame(f);
+    });
+  }
+  window.FosNum.kick = kick;
+  function arm(ch) {
+    var cv = ch.canvas; if (!cv || cv.$fosArm) return; cv.$fosArm = 1;
+    cv.addEventListener('mouseenter', function () { if (Date.now() - lastTouch > 900) kick(ch); });
+    cv.addEventListener('click', function () { kick(ch); });
+    try {
+      if (!cio) cio = new IntersectionObserver(function (list) {
+        list.forEach(function (en) {
+          var c = en.target;
+          if (!en.isIntersecting) { if (!c.$fosHid) c.$fosHid = Date.now(); return; }
+          var hid = c.$fosHid; c.$fosHid = 0;
+          if (hid && Date.now() - hid > 800) kick(Chart.getChart(c));
+        });
+      });
+      cio.observe(cv);
+    } catch (e) { }
+  }
+  Chart.register({
+    id: 'fosNumAnim',
+    afterInit: function (ch) { arm(ch); kick(ch); },
+    afterEvent: function (ch, args) {
+      var t = args && args.event && args.event.type;
+      if (t !== 'mousemove' && t !== 'click' && t !== 'touchstart' && t !== 'touchmove') return;
+      var act = []; try { act = ch.getActiveElements ? ch.getActiveElements() : []; } catch (e) { }
+      var key = act.map(function (a) { return a.datasetIndex + ':' + a.index; }).join('|');
+      var s = ch.$fosNum || (ch.$fosNum = { p: 1, t0: 0, raf: 0, key: '' });
+      if (key && key !== s.key) { s.key = key; kick(ch, true); } else if (!key) s.key = '';
+    },
+    beforeDatasetsDraw: function (ch) {
+      var s = ch.$fosNum, c = ch.ctx;
+      if (!s || s.p >= 1 || !c || c.$fosP || !enabled()) return;
+      c.$fosP = 1; var o = CanvasRenderingContext2D.prototype.fillText, p = s.p;
+      c.fillText = function (t, x, y, w) { var P = parse(String(t)); return o.call(this, P ? build(P, p, null) : t, x, y, w); };
+    },
+    afterDraw: function (ch) { var c = ch.ctx; if (c && c.$fosP) { delete c.fillText; c.$fosP = 0; } }
+  });
+})();
+</script>
+
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
 <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
 <script type="text/javascript" src="https://www.gstatic.com/charts/loader.js"></script>
@@ -40186,84 +40297,166 @@ body.light-mode #fos-sup .fs-card{background:#f8fafc;border-color:#e2e8f0}
 </script>
 <style id="fos-countup-css">.fos-cu{font-variant-numeric:tabular-nums}</style>
 <script>
-/* ── COUNT-UP ANIMATION: big KPI numbers rise from 0 to their value (dashboard, portfolio, credit, net worth, analytics) ── */
+/* ── COUNT-UP v2: EVERY number on the app pages rises from 0 on open, and again on hover (desktop) / tap (mobile) ──
+   Works at text-node level, so it needs no class names: any number in a whitelisted page animates, including tables,
+   chart legends, SVG gauges and chart tooltips. Canvas-drawn numbers are handled by the Chart.js plugin in #fos-num-core. */
 (function () {
-  var SEL = '.kpi-value,.port-kpi-val,.credit-kpi-val,.cca-sum-val,.cca-pay-val,.cca-strategy-val,.cca-reco-num-val,.nw-val,.spark-card-value,.txa-kpi-val,.ins-kpi-val,.ins-summary-val,.cs-val,.fcs-big,.finai-score-num,.liteai-mini-score-num,.backup-stat-val';
-  var DUR = 1100, RE = /^(\s*[^\d]*?)(\d[\d,]*(?:\.\d+)?)(\s*[^\d]{0,6})$/;
-  var reduce = false; try { reduce = matchMedia('(prefers-reduced-motion: reduce)').matches; } catch (e) { }
-  var recent = {}, pend = new Set(), sched = false, io = null, live = new Set();
-  function enabled() { try { return localStorage.getItem('fos_set_count-anim') !== 'false' && !reduce; } catch (e) { return !reduce; } }
-  function parse(txt) {
-    var m = RE.exec(txt); if (!m) return null;
-    var num = m[2], val = parseFloat(num.replace(/,/g, '')); if (!isFinite(val)) return null;
-    var dot = num.indexOf('.'), dec = dot < 0 ? 0 : num.length - dot - 1, grp = '';
-    if (num.indexOf(',') >= 0) grp = /,\d{2},/.test(num) || (m[1].indexOf('\u20B9') >= 0 && !/,\d{3},/.test(num)) ? 'in' : 'us';
-    return { pre: m[1], suf: m[3], val: val, dec: dec, grp: grp };
+  var N = window.FosNum; if (!N) return;
+  var VIEWS = { 'view-dashboard': 1, 'view-analytics': 1, 'view-networth': 1, 'view-port-overview': 1, 'view-port-table': 1, 'view-port-analytics': 1, 'view-port-intel': 1, 'view-port-tax': 1, 'view-port-stress': 1, 'view-ccutil': 1, 'view-credit': 1, 'view-insurance': 1 };
+  var FORCE = '.kpi-value,.port-kpi-val,.credit-kpi-val,.cca-sum-val,.cca-pay-val,.cca-strategy-val,.cca-reco-num-val,.nw-val,.spark-card-value,.txa-kpi-val,.ins-kpi-val,.ins-summary-val,.cs-val,.fcs-big,.finai-score-num,.finai-mini-val,.liteai-mini-score-num,.backup-stat-val';
+  var SKIP = 'input,textarea,select,option,script,style,noscript,[contenteditable="true"],[data-no-count]';
+  var CONT = /card|tile|panel|stat|kpi|box|widget|metric|capsule|holding|glass/i;
+  var DUR = N.DUR, recent = {}, nrecent = 0, act = new Set(), tickId = 0, io = null, lastTouch = 0;
+
+  function inScope(n) {
+    var p = n.parentElement; if (!p) return false;
+    var tn = p.tagName; if (tn === 'SCRIPT' || tn === 'STYLE' || tn === 'TEXTAREA' || tn === 'OPTION' || tn === 'INPUT' || tn === 'NOSCRIPT') return false;
+    if (p.closest(SKIP)) return false;
+    var v = p.closest('.view-section'); if (v && VIEWS[v.id]) return true;
+    return !!p.closest(FORCE);
   }
-  function fmt(v, dec, grp) {
-    var s = Math.abs(v).toFixed(dec).split('.'), i = s[0];
-    if (grp === 'in') { if (i.length > 3) i = i.slice(0, -3).replace(/\B(?=(\d{2})+(?!\d))/g, ',') + ',' + i.slice(-3); }
-    else if (grp === 'us') i = i.replace(/\B(?=(\d{3})+(?!\d))/g, ',');
-    return s.length > 1 ? i + '.' + s[1] : i;
+  function collect(root) {
+    var out = [];
+    if (root.nodeType === 3) { if (/\d/.test(root.nodeValue) && inScope(root)) out.push(root); return out; }
+    var w = document.createTreeWalker(root, NodeFilter.SHOW_TEXT, null), n, v;
+    while ((n = w.nextNode())) { v = n.nodeValue; if (v.length <= 90 && /\d/.test(v) && inScope(n)) out.push(n); }
+    return out;
   }
-  function visible(el) { if (!el.isConnected) return false; var r = el.getBoundingClientRect(); return r.width > 0 && r.height > 0; }
-  function stop(el) { if (el.__cuRaf) { cancelAnimationFrame(el.__cuRaf); el.__cuRaf = 0; } live.delete(el); }
-  function snap(el) { if (el.__cuRaf && el.__cuFinal != null) { stop(el); el.__cuW = el.__cuFinal; el.textContent = el.__cuFinal; } }
-  function run(el, p, from) {
-    stop(el); var t0 = performance.now(), fin = el.__cuFinal; live.add(el); el.classList.add('fos-cu');
-    function step(now) {
-      var k = Math.min(1, (now - t0) / DUR), e = 1 - Math.pow(1 - k, 3), v = from + (p.val - from) * e, txt;
-      if (k >= 1) txt = fin; else txt = p.pre + fmt(v, p.dec, p.grp) + p.suf;
-      el.__cuW = txt; el.__cuCur = v; el.textContent = txt;
-      if (k < 1) el.__cuRaf = requestAnimationFrame(step); else { el.__cuRaf = 0; live.delete(el); recent[el.className + '|' + fin] = Date.now(); }
-    }
-    el.__cuRaf = requestAnimationFrame(step);
+  function inView(el) {
+    var r = el.getBoundingClientRect(); if (!(r.width > 0 || r.height > 0)) return false;
+    return r.bottom > -80 && r.top < innerHeight + 80 && r.right > -80 && r.left < innerWidth + 80;
   }
-  function seen(el) { if (!el.__cuIO) { el.__cuIO = 1; if (!io) io = new IntersectionObserver(onIO); io.observe(el); } }
+  function put(n, st, txt) { st.w = txt; if (n.nodeValue !== txt) n.nodeValue = txt; }
+  function cls(el) { return el.getAttribute ? (el.getAttribute('class') || '') : ''; }
+
+  function play(n, force, prevTxt, vis) {
+    if (!N.enabled() || !n.isConnected) return;
+    var st = n.__cu, cur = n.nodeValue, txt = (st && st.w != null && cur === st.w) ? st.fin : cur, P = N.parse(txt);
+    if (!st) st = n.__cu = { fin: txt, w: null };
+    if (!P) { st.fin = txt; st.w = null; return; }
+    var par = n.parentElement; if (!par) return;
+    var wasAct = act.has(n), curShown = st.w;
+    st.fin = txt;
+    if (vis === undefined) vis = inView(par);
+    if (!vis) { act.delete(n); put(n, st, txt); par.__cuWait = 1; observe(par); return; }
+    var key = cls(par) + '|' + txt, now = performance.now();
+    if (!force && !wasAct && recent[key] && now - recent[key] < 2500) { put(n, st, txt); return; }
+    var fv = null;
+    if (!force) fv = N.fromVals(wasAct && curShown ? curShown : (prevTxt || ''), P);
+    if (fv && P.toks.every(function (t, i) { return !t.ok || fv[i] === t.val; })) { act.delete(n); put(n, st, txt); return; }
+    st.P = P; st.from = fv; st.t0 = now; st.key = key;
+    act.add(n); par.classList && par.classList.add('fos-cu'); observe(par);
+    put(n, st, N.build(P, 0, fv)); schedule();
+  }
+  function playMany(arr, force) {
+    var vis = arr.map(function (a) { var p = a[0].parentElement; return !!p && inView(p); });
+    arr.forEach(function (a, i) { try { play(a[0], force, a[1], vis[i]); } catch (e) { } });
+  }
+  function schedule() { if (!tickId && act.size) tickId = requestAnimationFrame(loop); }
+  function loop(now) {
+    tickId = 0;
+    act.forEach(function (n) {
+      var st = n.__cu;
+      if (!st || !n.isConnected) { act.delete(n); return; }
+      var k = Math.max(0, Math.min(1, (now - st.t0) / DUR)), e = 1 - Math.pow(1 - k, 3), txt = k >= 1 ? st.fin : N.build(st.P, e, st.from);
+      put(n, st, txt);
+      if (k >= 1) { act.delete(n); if (++nrecent > 3000) { recent = {}; nrecent = 0; } recent[st.key] = performance.now(); }
+    });
+    if (act.size) tickId = requestAnimationFrame(loop);
+  }
+  function snapAll() { act.forEach(function (n) { var s = n.__cu; if (s) put(n, s, s.fin); }); act.clear(); }
+
+  /* ── visibility: numbers off-screen wait until scrolled into view; a page shown again replays ── */
+  function observe(el) { if (el.__cuIO) return; el.__cuIO = 1; try { if (!io) io = new IntersectionObserver(onIO); io.observe(el); } catch (e) { } }
   function onIO(list) {
     list.forEach(function (en) {
       var el = en.target;
       if (!en.isIntersecting) { if (!el.__cuHid) el.__cuHid = Date.now(); return; }
       var hid = el.__cuHid; el.__cuHid = 0;
-      if (el.__cuWait || (hid && Date.now() - hid > 800)) { el.__cuWait = 0; play(el, true); }    // shown again (new tab / page): replay from 0
+      if (el.__cuWait || (hid && Date.now() - hid > 800)) {
+        el.__cuWait = 0;
+        var arr = []; for (var c = el.firstChild; c; c = c.nextSibling) if (c.nodeType === 3 && /\d/.test(c.nodeValue) && inScope(c)) arr.push([c, null]);
+        playMany(arr, true);
+      }
     });
   }
-  function play(el, fromZero) {
-    if (!enabled() || !el.isConnected) return;
-    var txt = el.__cuFinal != null && el.textContent === el.__cuW ? el.__cuFinal : el.textContent, p = parse(txt);
-    if (!p || !(p.val > 0)) { el.__cuFinal = txt; return; }
-    el.__cuFinal = txt; el.__cuW = txt;
-    if (!visible(el)) { el.__cuWait = 1; seen(el); return; }
-    var key = el.className + '|' + txt, prev = el.__cuPrev;
-    if (!fromZero && !el.__cuRaf && recent[key] && Date.now() - recent[key] < 4000) return;      // quiet re-render of the same value
-    var from = fromZero || prev == null ? 0 : prev;
-    if (el.__cuRaf && el.__cuCur != null) from = el.__cuCur;                                        // value changed mid-animation: continue from here
-    if (from === p.val) return;
-    el.__cuPrev = p.val; run(el, p, from); seen(el);
+
+  /* ── replay (hover / tap / page open) ── */
+  function kickCharts(root) {
+    if (!window.Chart || !Chart.getChart || !N.kick || !root.querySelectorAll) return;
+    root.querySelectorAll('canvas').forEach(function (c) { var ch = Chart.getChart(c); if (ch) N.kick(ch); });
   }
-  function consider(el) {
-    if (el.__cuW != null && el.textContent === el.__cuW) return;       // our own animation frame
-    el.__cuFinal = null; play(el, false);
+  function replay(root) {
+    if (!root || !N.enabled()) return;
+    var now = performance.now();
+    var nodes = collect(root).filter(function (n) { var s = n.__cu; return !(s && act.has(n) && now - s.t0 < 250); });
+    playMany(nodes.map(function (n) { return [n, null]; }), true);
+    kickCharts(root);
   }
-  function flush() { sched = false; var a = Array.from(pend); pend.clear(); a.forEach(function (el) { try { consider(el); } catch (e) { } }); }
-  function queue(el) { pend.add(el); if (!sched) { sched = true; requestAnimationFrame(flush); } }
-  function collect(n) {
-    if (!n) return;
-    if (n.nodeType === 3) { n = n.parentElement; if (n && n.matches && n.matches(SEL)) queue(n); return; }
-    if (n.nodeType !== 1) return;
-    if (n.matches(SEL)) queue(n);
-    if (n.querySelectorAll) n.querySelectorAll(SEL).forEach(queue);
+  function containerOf(el) {
+    for (var e = el; e && e.nodeType === 1; e = e.parentElement) {
+      if (e.classList && e.classList.contains('view-section')) return null;
+      if (e.tagName === 'TR' || CONT.test(cls(e))) return e;
+    }
+    return null;
   }
+  function hit(el) {
+    var c = containerOf(el); if (!c) return;
+    var now = Date.now(); if (c.__cuT && now - c.__cuT < 450) return; c.__cuT = now;
+    replay(c);
+  }
+  document.addEventListener('pointerdown', function (e) { if (e.pointerType === 'touch' || e.pointerType === 'pen') lastTouch = Date.now(); }, true);
+  document.addEventListener('mouseover', function (e) {
+    if (Date.now() - lastTouch < 900) return;                     // ignore the mouse events a touch screen synthesises
+    var c = containerOf(e.target); if (!c || (e.relatedTarget && c.contains(e.relatedTarget))) return;
+    hit(e.target);
+  }, true);
+  document.addEventListener('click', function (e) { if (Date.now() - lastTouch < 900) hit(e.target); }, true);
+
+  /* ── a page becoming active replays everything on it ── */
+  try {
+    var vo = new MutationObserver(function (ms) {
+      ms.forEach(function (m) {
+        var el = m.target, on = el.classList.contains('active');
+        if (on && !el.__cuOn) setTimeout(function () { replay(el); }, 120);
+        el.__cuOn = on;
+      });
+    });
+    document.querySelectorAll('.view-section').forEach(function (v) { v.__cuOn = v.classList.contains('active'); vo.observe(v, { attributes: true, attributeFilter: ['class'] }); });
+  } catch (e) { }
+
+  /* ── new / changed text anywhere in a page animates ── */
+  var pend = new Map(), sched = false;
+  function queue(n, prev) { if (!pend.has(n) || (prev && !pend.get(n))) pend.set(n, prev || null); if (!sched) { sched = true; requestAnimationFrame(flush); } }
+  function flush() { sched = false; var arr = []; pend.forEach(function (p, n) { arr.push([n, p]); }); pend.clear(); playMany(arr, false); }
   new MutationObserver(function (ms) {
+    var prevBy = new Map();
     for (var i = 0; i < ms.length; i++) {
-      var m = ms[i];
-      if (m.type === 'characterData') collect(m.target);
-      else { var t = m.target; if (t && t.nodeType === 1 && t.matches && t.matches(SEL)) queue(t); for (var j = 0; j < m.addedNodes.length; j++) collect(m.addedNodes[j]); }
+      var m = ms[i], j, x;
+      if (m.type === 'characterData') {
+        x = m.target; var st = x.__cu;
+        if (st && st.w != null && x.nodeValue === st.w) continue;          // our own animation frame
+        if (!/\d/.test(x.nodeValue || '') || !inScope(x)) continue;
+        queue(x, st ? (st.w != null ? st.w : st.fin) : null); continue;
+      }
+      for (j = 0; j < m.removedNodes.length; j++) { x = m.removedNodes[j]; if (x.nodeType === 3 && x.__cu && x.__cu.fin) prevBy.set(m.target, x.__cu.fin); }
+      for (j = 0; j < m.addedNodes.length; j++) {
+        x = m.addedNodes[j];
+        if (x.nodeType === 3) { if (/\d/.test(x.nodeValue) && inScope(x)) queue(x, prevBy.get(m.target) || null); }
+        else if (x.nodeType === 1) collect(x).forEach(function (n) { queue(n, null); });
+      }
     }
   }).observe(document.body, { childList: true, subtree: true, characterData: true });
-  window.addEventListener('beforeprint', function () { live.forEach(snap); });                        // never print or export a half-counted number
-  window.fosCountUpReplay = function () { document.querySelectorAll(SEL).forEach(function (el) { if (visible(el)) { el.__cuFinal = null; play(el, true); } }); };
-  window.addEventListener('load', function () { setTimeout(function () { document.querySelectorAll(SEL).forEach(queue); }, 600); });
+
+  try { new MutationObserver(function () { if (document.body.classList.contains('pdf-export-mode')) snapAll(); }).observe(document.body, { attributes: true, attributeFilter: ['class'] }); } catch (e) { }
+  window.addEventListener('beforeprint', snapAll);                                  // never print or export a half-counted number
+  window.fosCountUpReplay = function () { document.querySelectorAll('.view-section.active').forEach(replay); };
+  window.addEventListener('load', function () {
+    setTimeout(function () {
+      var arr = []; document.querySelectorAll('.view-section.active').forEach(function (v) { collect(v).forEach(function (n) { if (!n.__cu) arr.push([n, null]); }); });
+      playMany(arr, false);
+    }, 700);
+  });
 })();
 </script>
 </body>
