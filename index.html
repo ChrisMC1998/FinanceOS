@@ -530,7 +530,7 @@ function fosBrandRgba(a){return 'rgba('+fosBrandRgb()+','+a+')';}
   var ITEMS = [
     { id: 'num-open', g: 'num', t: 'Count up when a page opens', d: 'Numbers rise from zero when you open a page or new figures appear.' },
     { id: 'num-hover', g: 'num', t: 'Count up again on hover or tap', d: 'Hover (desktop) or tap (mobile) a card, row or chart to replay the count.' },
-    { id: 'num-kpi', g: 'num', t: 'Card and KPI numbers', d: 'Net balance, income, loan outflow, investments, savings rate, credit outstanding, portfolio value.' },
+    { id: 'num-kpi', g: 'num', t: 'Card and KPI numbers', d: 'Net balance, income, loan outflow, investments, savings rate, credit outstanding, lent money, expected income, portfolio value.' },
     { id: 'num-table', g: 'num', t: 'Table and list numbers', d: 'Holdings table, lender lists, tax and stress-test tables, summary rows.' },
     { id: 'num-gauge', g: 'num', t: 'Gauge and score numbers', d: 'Debt Health score (65 of 100), FinAI score and other ring centres.' },
     { id: 'num-tooltip', g: 'num', t: 'Chart tooltip numbers', d: 'Values in the pop-up that follows your pointer over a chart.' },
@@ -4313,9 +4313,8 @@ body.light-mode .recv-row { border-top-color:rgba(15,23,42,0.1); }
 .recv-extra { display:flex; flex-wrap:wrap; align-items:center; gap:4px 10px; font-size:.68rem; margin-top:3px; white-space:normal; max-width:100%; }
 .recv-act { color:#2dd4bf; cursor:pointer; font-weight:700; padding:2px 10px; border:1px solid rgba(45,212,191,0.4); border-radius:999px; white-space:nowrap; }
 #recv-mode-hint { font-size:.7rem; color:var(--text-muted); margin:-4px 0 10px; line-height:1.35; }
-#kpi-recv-card .kpi-value, #kpi-recv-card .kpi-sub { overflow-wrap:anywhere; }
+#kpi-lent-card .kpi-value, #kpi-lent-card .kpi-sub, #kpi-exp-card .kpi-value, #kpi-exp-card .kpi-sub { overflow-wrap:anywhere; }
 @media (max-width:600px) {
-  .kpi-grid > #kpi-recv-card:last-child:nth-child(odd) { grid-column:1 / -1; }
 }
 </style>
 </head>
@@ -7812,6 +7811,16 @@ function passAppLockGate() {
           <div class="kpi-label" style="color:#f97316">Credit Outstanding</div>
           <div class="kpi-value" id="kpi-credit-outstanding" style="color:#f97316">₹0</div>
           <div class="kpi-sub" id="kpi-credit-sub">total balance due</div>
+        </div>
+        <div class="kpi-card" id="kpi-lent-card" onclick="fosRecvOpen('lent')" title="Tap to see who you lent money to" style="cursor:pointer;border-color:rgba(45,212,191,0.25);background:rgba(45,212,191,0.05)">
+          <div class="kpi-label" style="color:#2dd4bf">Lent Money</div>
+          <div class="kpi-value" id="kpi-lent" style="color:#2dd4bf">₹0</div>
+          <div class="kpi-sub" id="kpi-lent-sub">to get back</div>
+        </div>
+        <div class="kpi-card" id="kpi-exp-card" onclick="fosRecvOpen('exp')" title="Tap to see income people owe you" style="cursor:pointer;border-color:rgba(56,189,248,0.25);background:rgba(56,189,248,0.05)">
+          <div class="kpi-label" style="color:#38bdf8">Expected Income</div>
+          <div class="kpi-value" id="kpi-exp" style="color:#38bdf8">₹0</div>
+          <div class="kpi-sub" id="kpi-exp-sub">owed to you</div>
         </div>
       </div>
 
@@ -22694,14 +22703,16 @@ function fosRecvRowExtra(item) {   // the small "Owes ₹X · due … [Mark rece
     ? '<span>' + (exp ? 'Expecting ' : 'Owes ') + fmt(b.outstanding) + due + '</span><a class="recv-act" onclick="fosRecvCollect(' + item.id + ')">Mark received</a>'
     : '<span>✓ ' + (exp ? 'Received' : 'Settled') + '</span>') + '</div>';
 }
-function fosRecvPaintKpi() {
-  const el = document.getElementById('kpi-recv'); if (!el) return;
-  const open = fosRecvBook().filter(i => i.outstanding > 0);
-  const total = open.reduce((s, i) => s + i.outstanding, 0);
-  const people = new Set(open.map(i => String(i.row.payee || i.row.name || '').toLowerCase())).size, od = open.filter(i => i.overdue).length;
-  el.textContent = fmt(total);
-  const sub = document.getElementById('kpi-recv-sub');
-  if (sub) sub.textContent = open.length ? people + (people === 1 ? ' person' : ' people') + (od ? ' · ' + od + ' overdue' : '') : 'nobody owes you';
+function fosRecvPaintKpi() {       // two dashboard cards: Lent Money (to get back) and Expected Income (owed to you)
+  const open = fosRecvBook().filter(i => i.outstanding > 0), set = (id, t) => { const el = document.getElementById(id); if (el) el.textContent = t; };
+  const part = k => { const o = open.filter(i => i.kind === k); return { o: o, total: o.reduce((s, i) => s + i.outstanding, 0), people: new Set(o.map(i => String(i.row.payee || i.row.name || '').toLowerCase())).size, od: o.filter(i => i.overdue).length }; };
+  const L = part('lent'), X = part('exp');
+  const who = n => n + (n === 1 ? ' person' : ' people');
+  set('kpi-lent', fmt(L.total));
+  set('kpi-lent-sub', L.o.length ? who(L.people) + (L.od ? ' · ' + L.od + ' overdue' : ' · none overdue') : 'nobody owes you');
+  const next = X.o.filter(i => !i.overdue && i.due).sort((a, c) => a.due < c.due ? -1 : 1)[0];
+  set('kpi-exp', fmt(X.total));
+  set('kpi-exp-sub', X.o.length ? who(X.people) + (X.od ? ' · ' + X.od + ' overdue' : (next ? ' · next ' + fmtDate(next.due) : '')) : 'nothing expected');
 }
 function fosRecvSetMode(m) { window._recvMode = (m === 'exp') ? 'exp' : 'lent'; try { fosRecvUi(); } catch (e) { } }
 function fosRecvUi() {             // entry form for Receivable: "I lent money" or "Owed to me (income)"
@@ -22759,11 +22770,11 @@ function fosRecvAddFrom(mode) {   // open the Add form for a receivable (closes 
   try { const c = document.getElementById('txa-close'); if (c && c.offsetParent !== null) c.click(); } catch (e) { }
   openModal(); setEntryType('Receivable'); if (mode === 'exp') fosRecvSetMode('exp');
 }
-function fosRecvOpen() { _recvEl('recv-overview', 100100); fosRecvRenderOverview(); document.getElementById('recv-overview').style.display = 'flex'; }
+function fosRecvOpen(kind) { window._recvFilter = (kind === 'lent' || kind === 'exp') ? kind : ''; _recvEl('recv-overview', 100100); fosRecvRenderOverview(); document.getElementById('recv-overview').style.display = 'flex'; }
 function fosRecvRefreshOverview() { const ov = document.getElementById('recv-overview'); if (ov && ov.style.display === 'flex') fosRecvRenderOverview(); }
 function fosRecvRenderOverview() {
   const ov = document.getElementById('recv-overview'); if (!ov) return;
-  const book = fosRecvBook(), open = book.filter(i => i.outstanding > 0).sort((a, b) => (a.due || '9999').localeCompare(b.due || '9999') || String(a.row.date).localeCompare(String(b.row.date)));
+  const book = fosRecvBook().filter(i => !window._recvFilter || i.kind === window._recvFilter), open = book.filter(i => i.outstanding > 0).sort((a, b) => (a.due || '9999').localeCompare(b.due || '9999') || String(a.row.date).localeCompare(String(b.row.date)));
   const settled = book.filter(i => i.outstanding <= 0).slice(-8).reverse();
   const total = open.reduce((s, i) => s + i.outstanding, 0), od = open.filter(i => i.overdue).reduce((s, i) => s + i.outstanding, 0);
   const row = i => {
@@ -22776,7 +22787,7 @@ function fosRecvRenderOverview() {
       + '<div class="recv-side"><div class="recv-amt" style="color:' + (i.outstanding > 0 ? (i.overdue ? '#f87171' : '#2dd4bf') : 'var(--text-muted)') + '">' + fmt(i.outstanding) + '</div>'
       + (i.outstanding > 0 ? '<button class="btn-add recv-btn" onclick="fosRecvCollect(' + r.id + ')">Mark received</button>' : '') + '</div></div>';
   };
-  ov.innerHTML = '<div class="modal-box recv-box"><div class="modal-title">Receivables</div>'
+  ov.innerHTML = '<div class="modal-box recv-box"><div class="modal-title">' + (window._recvFilter === 'lent' ? 'Lent Money' : window._recvFilter === 'exp' ? 'Expected Income' : 'Receivables') + '</div>'
     + '<div class="recv-totals"><div><div class="recv-cap">Owed to you</div><div class="recv-big" style="color:#2dd4bf">' + fmt(total) + '</div></div>'
     + (od ? '<div><div class="recv-cap">Overdue</div><div class="recv-big" style="color:#f87171">' + fmt(od) + '</div></div>' : '') + '</div>'
     + '<div class="recv-note">Pending amounts are not part of your Net Balance. They count only once you mark them received.</div>'
