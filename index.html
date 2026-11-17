@@ -11377,9 +11377,22 @@ function passAppLockGate() {
     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1.2rem">
       <div class="modal-title" style="color:#fbbf24;margin-bottom:0"><i class="fas fa-bell" style="margin-right:8px"></i>Notifications</div>
       <div style="display:flex;gap:8px">
+        <button onclick="fosRemToggle()" class="btn-secondary" style="font-size:0.72rem;padding:5px 10px;color:#38bdf8;border-color:rgba(56,189,248,.4)"><i class="fas fa-plus" style="margin-right:4px"></i>Reminder<span id="rem-count"></span></button>
         <button onclick="clearAllNotifications()" class="btn-secondary" style="font-size:0.72rem;padding:5px 10px">Clear All</button>
         <button onclick="document.getElementById('notifications-modal').style.display='none'" class="btn-secondary" style="font-size:0.72rem;padding:5px 10px">✕ Close</button>
       </div>
+    </div>
+    <div id="rem-panel">
+      <div style="font-size:.78rem;font-weight:700;color:#38bdf8;margin-bottom:8px"><i class="fas fa-bell" style="margin-right:6px"></i>New reminder</div>
+      <div class="input-group" style="margin-bottom:8px"><label>Title (optional)</label><input type="text" id="rem-title" class="input-field" maxlength="60" placeholder="e.g. Pay rent"></div>
+      <div class="input-group" style="margin-bottom:8px"><label>Message to show</label><input type="text" id="rem-msg" class="input-field" maxlength="200" placeholder="What should pop up?"></div>
+      <div class="rem-row">
+        <div><label>Date</label><input type="date" id="rem-date" class="input-field"></div>
+        <div><label>Time</label><input type="time" id="rem-time" class="input-field"></div>
+        <div><label>Repeat</label><select id="rem-repeat" class="input-field"><option value="none">Once</option><option value="daily">Every day</option><option value="weekly">Every week</option><option value="monthly">Every month</option></select></div>
+      </div>
+      <div style="display:flex;gap:8px;margin-top:4px"><button class="btn-add" style="flex:1;justify-content:center" onclick="fosRemSave()"><i class="fas fa-check"></i> Set reminder</button><button class="btn-secondary" onclick="fosRemToggle()">Cancel</button></div>
+      <div id="rem-upcoming"></div>
     </div>
     <div id="notif-list-container">
       <div class="empty-state"><i class="fas fa-bell-slash"></i><p>No notifications yet</p></div>
@@ -16654,7 +16667,8 @@ function addNotification(id, icon, color, title, message, type) {
   // NEW: Play sound whenever a new notification is added (muted during Admin Panel quiet hours)
   let _q = false; try { _q = FOS_CONFIG.quiet(); } catch (e) {}
   if (!_q) playNotificationSound();
-  try { if (type !== 'finai') fosPushNotify('push-alerts', title, message, 'fos-' + id, _q); } catch (e) {}   // system push (quiz has its own toggle)
+  try { if (type !== 'finai' && type !== 'reminder') fosPushNotify('push-alerts', title, message, 'fos-' + id, _q); } catch (e) {}   // system push (quiz has its own toggle; reminders push themselves)
+  try { if (typeof fosNotifPopup === 'function') fosNotifPopup(notifications[0]); } catch (e) {}   // in-app pop-up, bottom-right
 }
 
 // Dismiss ONE notification — snoozes just this alert for its type's cooldown.
@@ -39590,9 +39604,9 @@ function fosPushReg() {
       .then(function () { return navigator.serviceWorker.ready; }).then(fin).catch(function () { fin(null); });
   });
 }
-function fosPushShow(title, body, tag, silent) {
+function fosPushShow(title, body, tag, silent, url) {
   if (fosPushState() !== 'granted') return Promise.resolve(false);
-  var o = { body: body || '', tag: tag || undefined, silent: !!silent, data: { url: './' } };
+  var o = { body: body || '', tag: tag || undefined, silent: !!silent, data: { url: url || './' } };
   return fosPushReg().then(function (r) {
     if (r && r.showNotification) return r.showNotification(title, o).then(function () { return true; });
     try { new Notification(title, o); return true; } catch (e) { return false; }
@@ -39600,7 +39614,7 @@ function fosPushShow(title, body, tag, silent) {
 }
 function fosPushNotify(key, title, body, tag, silent) {
   if (!fosPushOn(key) || !isNotifEnabled('desktop-notif')) return;   // own toggle + master switch
-  fosPushShow(title, body, tag, silent);
+  fosPushShow(title, body, tag, silent, './?notif=1');   // tapping the system notification opens the notification drawer
 }
 function fosPushEnable() {
   if (fosPushState() === 'unsupported') { alert('This browser does not support push notifications.'); return Promise.resolve(false); }
@@ -39694,7 +39708,7 @@ function fosPushRefreshUI() {
 (function () {
   var SYNC = ['fos_finai_quiz_v1','fos_game_stats','fos_finai_goals_v1','fos_finai_score_history','fos_master_v1','fos_custom_tags','fos_shortcuts',
     'fos_currency','fos_number_system','fos_time','fos_date','financeOS_roughboard_v1','fos_remind_v1','fos_port_customsubs_v1','fos_port_targets_v1',
-    'fos_port_tgtband','fos_port_tgtnew','fos_pi_bench','fos_tax_cls_v1','fos_tax_slab','fos_tax_fy','fos_notif_dismissed','fos_onboarding_goal',
+    'fos_port_tgtband','fos_port_tgtnew','fos_pi_bench','fos_tax_cls_v1','fos_tax_slab','fos_tax_fy','fos_notif_dismissed','fos_reminders_v1','fos_onboarding_goal',
     'fos_last_nw_milestone','fos_last_portfolio_update','fos_lh_unlocked','fos_academy_v1','fos_stress_v1'];
   var DEVICE_SET = ['fos_set_app-theme', 'fos_set_sidebar-animation', 'fos_set_auto-sync'];   // per-device settings: never synced (push preferences DO sync; only the browser permission is per device)
   function syncable(k) { return typeof k === 'string' && (SYNC.indexOf(k) > -1 || (k.indexOf('fos_set_') === 0 && DEVICE_SET.indexOf(k) < 0)); }
@@ -39809,6 +39823,7 @@ function fosPushRefreshUI() {
         var v = origGet.call(localStorage, k);
         if (k === 'fos_finai_quiz_v1') { if (window.finaiQuizReload) window.finaiQuizReload(); }
         else if (k === 'fos_notif_dismissed') { /* nothing to redraw */ }
+        else if (k === 'fos_reminders_v1') { if (window.fosRemReload) window.fosRemReload(); }
         else if (k === 'fos_game_stats') { gameStats = JSON.parse(v) || {}; if (typeof renderGameStats === 'function') renderGameStats(); }
         else if (k === 'fos_finai_goals_v1') { finaiGoals = JSON.parse(v) || []; if (activeView === 'finai' && typeof renderFinAI === 'function') renderFinAI(); }
         else if (k === 'fos_master_v1') { fosMaster = null; }
@@ -40295,6 +40310,143 @@ body.light-mode #fos-sup .fs-card{background:#f8fafc;border-color:#e2e8f0}
   window.addEventListener('load', function () { setTimeout(check, 4000); setInterval(check, 60000); });
 })();
 </script>
+<style id="fos-rem-css">
+#fos-toast-stack{bottom:calc(16px + env(safe-area-inset-bottom,0px)) !important}
+.fos-np{pointer-events:auto;position:relative;overflow:hidden;cursor:pointer;display:flex;gap:10px;align-items:flex-start;background:#0f172a;color:#e2e8f0;border:1px solid var(--np-c,#38bdf8);border-radius:12px;padding:11px 12px 14px;box-shadow:0 8px 30px rgba(0,0,0,.45);width:min(340px,calc(100vw - 32px));font-family:'DM Sans',sans-serif;opacity:0;transform:translateX(24px);transition:opacity .22s,transform .22s}
+.fos-np.in{opacity:1;transform:none}
+.fos-np .np-i{width:32px;height:32px;border-radius:9px;display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:.85rem;background:color-mix(in srgb,var(--np-c,#38bdf8) 18%,transparent);color:var(--np-c,#38bdf8)}
+.fos-np .np-b{flex:1;min-width:0}.fos-np .np-t{font-weight:700;font-size:.8rem;line-height:1.3}
+.fos-np .np-m{font-size:.72rem;color:#94a3b8;line-height:1.4;margin-top:2px;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.fos-np .np-h{font-size:.62rem;color:var(--np-c,#38bdf8);margin-top:4px;font-weight:600}
+.fos-np .np-x{background:none;border:0;color:#94a3b8;cursor:pointer;font-size:.85rem;padding:2px 4px}
+.fos-np .np-bar{position:absolute;left:0;bottom:0;height:3px;width:100%;background:var(--np-c,#38bdf8);transition:width 6s linear}
+body.light-mode .fos-np{background:#fff;color:#0f172a;box-shadow:0 8px 30px rgba(15,23,42,.18)}body.light-mode .fos-np .np-m{color:#475569}
+#rem-panel{display:none;margin-bottom:14px;padding:12px;border:1px solid rgba(56,189,248,.3);border-radius:12px;background:rgba(56,189,248,.05)}
+#rem-panel .rem-row{display:flex;gap:8px;margin-bottom:8px}#rem-panel .rem-row>*{flex:1;min-width:0}
+#rem-panel label{display:block;font-size:.66rem;margin-bottom:3px;color:var(--text-muted)}
+.rem-item{display:flex;align-items:center;gap:10px;padding:8px 10px;border-radius:10px;background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.06);margin-top:6px;font-size:.74rem}
+.rem-item b{display:block;font-size:.78rem;color:var(--text-main)}.rem-item span{color:var(--text-muted);font-size:.66rem}
+</style>
+<script>
+/* ── CUSTOM REMINDERS + IN-APP NOTIFICATION POP-UPS ── */
+(function () {
+  var KEY = 'fos_reminders_v1', R = [];
+  function load() { try { R = JSON.parse(localStorage.getItem(KEY) || '[]') || []; } catch (e) { R = []; } }
+  function save() { try { localStorage.setItem(KEY, JSON.stringify(R)); } catch (e) { } }
+  function esc(s) { return String(s == null ? '' : s).replace(/[&<>"]/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]; }); }
+  function p2(n) { return (n < 10 ? '0' : '') + n; }
+  function fmtAt(ts) { return new Date(ts).toLocaleString('en-IN', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' }); }
+  function toast(t, c) { try { window.fosToast({ text: t, color: c || '#38bdf8', ms: 4000 }); } catch (e) { } }
+  function openDrawer() { try { openNotificationsPanel(); } catch (e) { } }
+
+  /* ── in-app pop-up for EVERY new notification (bottom-right, short, tap opens the drawer) ── */
+  var q = [], qt = 0;
+  function stack() {
+    var st = document.getElementById('fos-toast-stack');
+    if (!st) { st = document.createElement('div'); st.id = 'fos-toast-stack'; st.style.cssText = 'position:fixed;right:16px;bottom:16px;z-index:99999;display:flex;flex-direction:column;gap:10px;align-items:flex-end;max-width:calc(100vw - 32px);pointer-events:none'; document.body.appendChild(st); }
+    return st;
+  }
+  function pop(icon, color, title, msg, hint) {
+    var st = stack(), old = st.querySelectorAll('.fos-np'); if (old.length >= 3) old[0].remove();
+    var d = document.createElement('div'); d.className = 'fos-np'; d.style.setProperty('--np-c', color || '#38bdf8');
+    d.innerHTML = '<div class="np-i"><i class="fas ' + esc(icon || 'fa-bell') + '"></i></div><div class="np-b"><div class="np-t">' + esc(title) + '</div>' + (msg ? '<div class="np-m">' + esc(msg) + '</div>' : '') + '<div class="np-h">' + (hint || 'Tap to open notifications') + '</div></div><button class="np-x" aria-label="Dismiss">\u2715</button><div class="np-bar"></div>';
+    var done = false, tm, bar = d.querySelector('.np-bar');
+    function close() { if (done) return; done = true; clearTimeout(tm); d.classList.remove('in'); setTimeout(function () { d.remove(); }, 250); }
+    d.addEventListener('click', function (e) { var x = e.target.closest && e.target.closest('.np-x'); close(); if (!x) openDrawer(); });
+    d.addEventListener('mouseenter', function () { clearTimeout(tm); bar.style.transition = 'none'; bar.style.width = '100%'; });
+    d.addEventListener('mouseleave', function () { bar.style.transition = 'width 3s linear'; requestAnimationFrame(function () { bar.style.width = '0'; }); tm = setTimeout(close, 3000); });
+    st.appendChild(d);
+    requestAnimationFrame(function () { d.classList.add('in'); bar.style.width = '0'; });
+    tm = setTimeout(close, 6000);
+  }
+  function drain() {
+    qt = 0;
+    if (document.hidden) return;                                          // wait until the app is in front, so it is actually seen
+    var list = q.splice(0, q.length); if (!list.length) return;
+    var m = document.getElementById('notifications-modal');
+    if (m && m.style.display === 'flex') return;                          // drawer already open: it shows them
+    list.slice(0, 3).forEach(function (n) { pop(n.icon, n.color, String(n.title || '').replace(/^[^\w\u20B9]+\s*/, '') || n.title, n.message); });
+    if (list.length > 3) pop('fa-bell', '#fbbf24', (list.length - 3) + ' more notification' + (list.length - 3 > 1 ? 's' : ''), '', 'Tap to see all');
+  }
+  window.fosNotifPopup = function (n) { if (!n) return; q.push(n); if (!qt) qt = setTimeout(drain, 450); };
+  document.addEventListener('visibilitychange', function () { if (!document.hidden && q.length && !qt) qt = setTimeout(drain, 600); });
+
+  /* ── reminders ── */
+  function nextAfter(r, now) {
+    var d = new Date(r.at), n = 0;
+    while (d.getTime() <= now && n++ < 4000) {
+      if (r.repeat === 'daily') d.setDate(d.getDate() + 1);
+      else if (r.repeat === 'weekly') d.setDate(d.getDate() + 7);
+      else if (r.repeat === 'monthly') d.setMonth(d.getMonth() + 1);
+      else return null;
+    }
+    return d.getTime();
+  }
+  function fire(r, late) {
+    var title = r.title || 'Reminder', msg = r.message || '', id = 'rem-' + r.id + '-' + r.at;
+    try { addNotification(id, 'fa-bell', '#38bdf8', '\u23F0 ' + title, msg + (late ? ' (scheduled for ' + fmtAt(r.at) + ')' : ''), 'reminder'); } catch (e) { }
+    try { if ((document.hidden || !document.hasFocus()) && typeof fosPushShow === 'function') { var qh = false; try { qh = FOS_CONFIG.quiet(); } catch (e) { } fosPushShow('\u23F0 ' + title, msg, 'fos-' + id, qh, './?notif=1'); } } catch (e) { }
+  }
+  function check() {
+    load(); var now = Date.now(), changed = false;
+    R.slice().forEach(function (r) {
+      if (!r.at || r.at > now) return;
+      fire(r, now - r.at > 120000);
+      var nx = nextAfter(r, now);
+      if (nx) r.at = nx; else R = R.filter(function (x) { return x !== r; });
+      changed = true;
+    });
+    if (changed) { save(); render(); }
+  }
+
+  /* ── drawer UI ── */
+  var REP = { none: 'Once', daily: 'Every day', weekly: 'Every week', monthly: 'Every month' };
+  function render() {
+    var box = document.getElementById('rem-upcoming'), btn = document.getElementById('rem-count'); load();
+    var up = R.slice().sort(function (a, b) { return a.at - b.at; });
+    if (btn) btn.textContent = up.length ? ' (' + up.length + ')' : '';
+    if (!box) return;
+    box.innerHTML = up.length ? '<div style="font-size:.68rem;font-weight:700;color:var(--text-muted);margin-top:4px">SCHEDULED</div>' + up.map(function (r) {
+      return '<div class="rem-item"><i class="fas fa-clock" style="color:#38bdf8"></i><div style="flex:1;min-width:0"><b>' + esc(r.title || r.message) + '</b><span>' + esc(fmtAt(r.at)) + ' \u00B7 ' + REP[r.repeat || 'none'] + '</span></div><button class="btn-secondary" style="font-size:.68rem;padding:3px 8px" onclick="fosRemDelete(\'' + r.id + '\')">\u2715</button></div>';
+    }).join('') : '';
+  }
+  window.fosRemToggle = function () {
+    var p = document.getElementById('rem-panel'); if (!p) return;
+    var open = p.style.display !== 'block'; p.style.display = open ? 'block' : 'none';
+    if (open) {
+      var d = new Date(Date.now() + 3600000); d.setMinutes(0, 0, 0);
+      var di = document.getElementById('rem-date'), ti = document.getElementById('rem-time');
+      if (di && !di.value) di.value = d.getFullYear() + '-' + p2(d.getMonth() + 1) + '-' + p2(d.getDate());
+      if (ti && !ti.value) ti.value = p2(d.getHours()) + ':' + p2(d.getMinutes());
+      render();
+    }
+  };
+  window.fosRemSave = function () {
+    var g = function (i) { var e = document.getElementById(i); return e ? e.value.trim() : ''; };
+    var msg = g('rem-msg'), title = g('rem-title'), dv = g('rem-date'), tv = g('rem-time'), rep = g('rem-repeat') || 'none';
+    if (!msg && !title) { toast('Add what you want to be reminded about', '#f59e0b'); return; }
+    if (!dv || !tv) { toast('Pick a date and a time', '#f59e0b'); return; }
+    var at = new Date(dv + 'T' + tv).getTime();
+    if (!isFinite(at)) { toast('That date or time is not valid', '#f59e0b'); return; }
+    if (at <= Date.now() && rep === 'none') { toast('Pick a time in the future', '#f59e0b'); return; }
+    if (at <= Date.now()) at = nextAfter({ at: at, repeat: rep }, Date.now()) || at;
+    load(); R.push({ id: Date.now().toString(36) + Math.random().toString(36).slice(2, 6), title: title, message: msg, at: at, repeat: rep }); save();
+    ['rem-msg', 'rem-title'].forEach(function (i) { var e = document.getElementById(i); if (e) e.value = ''; });
+    render(); toast('Reminder set for ' + fmtAt(at));
+    try { if (typeof fosPushState === 'function' && fosPushState() === 'default') fosPushEnable(); } catch (e) { }   // ask for system-notification permission once
+  };
+  window.fosRemDelete = function (id) { load(); R = R.filter(function (r) { return r.id !== id; }); save(); render(); };
+  window.fosRemReload = function () { render(); check(); };
+
+  /* a system push (or link) that says notif=1 opens the drawer */
+  function openedFromPush() { try { var u = new URL(location.href); if (u.searchParams.get('notif') === '1') { u.searchParams.delete('notif'); history.replaceState(null, '', u.pathname + (u.search || '') + u.hash); setTimeout(openDrawer, 1800); } } catch (e) { } }
+  try { navigator.serviceWorker.addEventListener('message', function (e) { if (e.data && e.data.url && String(e.data.url).indexOf('notif=1') > -1) openDrawer(); }); } catch (e) { }
+  window.addEventListener('load', function () { openedFromPush(); load(); render(); setTimeout(check, 2500); setInterval(check, 15000); });
+  document.addEventListener('visibilitychange', function () { if (!document.hidden) setTimeout(check, 300); });
+  var _o = window.openNotificationsPanel; if (typeof _o === 'function') window.openNotificationsPanel = function () { var r = _o.apply(this, arguments); try { render(); } catch (e) { } return r; };
+})();
+</script>
+
 <style id="fos-countup-css">.fos-cu{font-variant-numeric:tabular-nums}</style>
 <script>
 /* ── COUNT-UP v2: EVERY number on the app pages rises from 0 on open, and again on hover (desktop) / tap (mobile) ──
