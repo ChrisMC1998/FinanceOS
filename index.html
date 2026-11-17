@@ -397,8 +397,7 @@ function fosBrandRgba(a){return 'rgba('+fosBrandRgb()+','+a+')';}
   var MONTH = /\b(?:Jan(?:uary)?|Feb(?:ruary)?|Mar(?:ch)?|Apr(?:il)?|May|June?|July?|Aug(?:ust)?|Sep(?:t(?:ember)?)?|Oct(?:ober)?|Nov(?:ember)?|Dec(?:ember)?)\b/;
   var DATEY = /\d{1,4}[\/.\-]\d{1,2}[\/.\-]\d{1,4}|\d{1,2}:\d{2}/;
   function enabled() {
-    if (reduce) return false;
-    try { if (localStorage.getItem('fos_set_count-anim') === 'false') return false; } catch (e) { }
+    try { var cv = localStorage.getItem('fos_set_count-anim'); if (cv === 'false' || (cv !== 'true' && reduce)) return false; } catch (e) { if (reduce) return false; }
     return !(document.body && document.body.classList.contains('pdf-export-mode'));
   }
   function fmt(v, dec, grp) {
@@ -497,6 +496,34 @@ function fosBrandRgba(a){return 'rgba('+fosBrandRgb()+','+a+')';}
   });
 })();
 </script>
+<script id="fos-motion-core">
+/* ── ANIMATION CONTROLS (Settings → General → Interface): UI motion, chart animations, number count-up ── */
+(function () {
+  if (window.FosMotion) return;
+  var reduce = false; try { reduce = matchMedia('(prefers-reduced-motion: reduce)').matches; } catch (e) { }
+  var K = { ui: 'fos_set_ui-motion', chart: 'fos_set_chart-anim', count: 'fos_set_count-anim' };
+  function on(k) { var v = null; try { v = localStorage.getItem(K[k]); } catch (e) { } return v === null ? !reduce : v === 'true'; }
+  var origAnim = null;
+  function apply() {
+    document.documentElement.classList.toggle('fos-no-motion', !on('ui'));
+    if (window.Chart) {
+      if (origAnim === null) origAnim = Chart.defaults.animation;
+      Chart.defaults.animation = on('chart') ? origAnim : false;
+      try { if (Chart.defaults.plugins && Chart.defaults.plugins.fosHoverFx) Chart.defaults.plugins.fosHoverFx.enabled = on('chart'); } catch (e) { }
+    }
+  }
+  window.FosMotion = { on: on, apply: apply, keys: K };
+  if (window.Chart && !Chart.prototype.$fosUpd) {                      // charts update without animating when chart animations are off
+    var u = Chart.prototype.update; Chart.prototype.$fosUpd = 1;
+    Chart.prototype.update = function (m) { return u.call(this, on('chart') ? m : 'none'); };
+  }
+  apply();
+})();
+</script>
+<style id="fos-motion-css">
+html.fos-no-motion *:not([class*="spin"]):not([class*="loader"]),html.fos-no-motion *::before,html.fos-no-motion *::after{animation-duration:.001ms !important;animation-delay:0s !important;animation-iteration-count:1 !important;transition-duration:.001ms !important;transition-delay:0s !important;scroll-behavior:auto !important}
+</style>
+<script>try{if(window.FosMotion)FosMotion.apply();}catch(e){}</script>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
 <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
@@ -10534,6 +10561,34 @@ function passAppLockGate() {
                 <div class="set-lbl readable-white">Interface</div>
                 <div class="set-desc">Motion, sidebar, and navigation preferences</div>
               </div>
+            </div>
+          <div class="set-row">
+              <div class="set-label-block">
+                <div class="set-lbl readable-white" style="font-size:0.8rem">All animations</div>
+                <div class="set-desc">Master switch for every animation across FinanceOS and PortfolioOS. Turn off to keep things still and fast.</div>
+              </div>
+              <label class="toggle-switch"><input type="checkbox" id="tog-anim-all" checked onchange="fosAnimToggle('all',this)"><span class="toggle-slider"></span></label>
+            </div>
+          <div class="set-row">
+              <div class="set-label-block">
+                <div class="set-lbl readable-white" style="font-size:0.8rem">Interface motion</div>
+                <div class="set-desc">Page transitions, hover effects, glows and entrance animations on every tab.</div>
+              </div>
+              <label class="toggle-switch"><input type="checkbox" id="tog-ui-motion" checked onchange="fosAnimToggle('ui',this)"><span class="toggle-slider"></span></label>
+            </div>
+          <div class="set-row">
+              <div class="set-label-block">
+                <div class="set-lbl readable-white" style="font-size:0.8rem">Chart animations</div>
+                <div class="set-desc">Charts draw in, donuts sweep, and hover highlights glow.</div>
+              </div>
+              <label class="toggle-switch"><input type="checkbox" id="tog-chart-anim" checked onchange="fosAnimToggle('chart',this)"><span class="toggle-slider"></span></label>
+            </div>
+          <div class="set-row">
+              <div class="set-label-block">
+                <div class="set-lbl readable-white" style="font-size:0.8rem">Number count-up</div>
+                <div class="set-desc">Numbers rise from zero when a page opens, and again on hover or tap.</div>
+              </div>
+              <label class="toggle-switch"><input type="checkbox" id="tog-count-anim" checked onchange="fosAnimToggle('count',this)"><span class="toggle-slider"></span></label>
             </div>
           <div class="set-row">
               <div class="set-label-block">
@@ -38924,6 +38979,7 @@ body.light-mode .fa-fl{background:#fff}
 
   /* ───────────────────────── CSS conic-gradient donuts (Credit Usage Breakdown) ───────────────────────── */
   function playConic(el) {
+    if (window.FosMotion && !FosMotion.on('chart')) return false;
     var orig = el.getAttribute('style') || '';
     var m = /conic-gradient\(([^;]*)\)/i.exec(orig);
     if (!m) return false;
@@ -38991,6 +39047,7 @@ body.light-mode .fa-fl{background:#fff}
     });
   }
   function runReveal(ch, mode, ms, shape) {
+    if (window.FosMotion && !FosMotion.on('chart')) return false;
     if (!ch || ch.$fosRevealRaf) return false;
     registerReveal();
     var t0 = null;
@@ -39710,7 +39767,7 @@ function fosPushRefreshUI() {
     'fos_currency','fos_number_system','fos_time','fos_date','financeOS_roughboard_v1','fos_remind_v1','fos_port_customsubs_v1','fos_port_targets_v1',
     'fos_port_tgtband','fos_port_tgtnew','fos_pi_bench','fos_tax_cls_v1','fos_tax_slab','fos_tax_fy','fos_notif_dismissed','fos_reminders_v1','fos_onboarding_goal',
     'fos_last_nw_milestone','fos_last_portfolio_update','fos_lh_unlocked','fos_academy_v1','fos_stress_v1'];
-  var DEVICE_SET = ['fos_set_app-theme', 'fos_set_sidebar-animation', 'fos_set_auto-sync'];   // per-device settings: never synced (push preferences DO sync; only the browser permission is per device)
+  var DEVICE_SET = ['fos_set_app-theme', 'fos_set_sidebar-animation', 'fos_set_auto-sync', 'fos_set_ui-motion', 'fos_set_chart-anim', 'fos_set_count-anim'];   // per-device settings: never synced (push preferences DO sync; only the browser permission is per device)
   function syncable(k) { return typeof k === 'string' && (SYNC.indexOf(k) > -1 || (k.indexOf('fos_set_') === 0 && DEVICE_SET.indexOf(k) < 0)); }
 
   var origSet = Storage.prototype.setItem, origGet = Storage.prototype.getItem;
@@ -40447,6 +40504,35 @@ body.light-mode .fos-np{background:#fff;color:#0f172a;box-shadow:0 8px 30px rgba
 })();
 </script>
 
+<script id="fos-motion-ui">
+(function () {
+  var M = window.FosMotion; if (!M) return;
+  var ids = { ui: 'tog-ui-motion', chart: 'tog-chart-anim', count: 'tog-count-anim' };
+  function sync() {
+    var all = true;
+    Object.keys(ids).forEach(function (k) { var c = document.getElementById(ids[k]); if (c) c.checked = M.on(k); if (!M.on(k)) all = false; });
+    var a = document.getElementById('tog-anim-all'); if (a) a.checked = all;
+  }
+  function note(m) { try { if (typeof showSettingsToast === 'function') showSettingsToast(m); } catch (e) { } }
+  function set(k, v) { try { localStorage.setItem(M.keys[k], v ? 'true' : 'false'); } catch (e) { } }
+  function after(k) {
+    M.apply(); sync();
+    if (k === 'count' || k === 'all') {
+      if (!M.on('count')) { try { if (window.fosCountSnap) window.fosCountSnap(); } catch (e) { } }
+      else { try { if (window.fosCountUpReplay) window.fosCountUpReplay(); } catch (e) { } }
+    }
+  }
+  window.fosAnimToggle = function (k, cb) {
+    if (k === 'all') { ['ui', 'chart', 'count'].forEach(function (x) { set(x, cb.checked); }); after('all'); note('Updated: All animations ' + (cb.checked ? 'On' : 'Off')); return; }
+    set(k, cb.checked); after(k);
+    note('Updated: ' + { ui: 'Interface motion', chart: 'Chart animations', count: 'Number count-up' }[k] + ' ' + (cb.checked ? 'On' : 'Off'));
+  };
+  var o = window.switchSettingsTab; if (typeof o === 'function') window.switchSettingsTab = function () { var r = o.apply(this, arguments); try { sync(); } catch (e) { } return r; };
+  window.addEventListener('load', function () { M.apply(); sync(); setTimeout(sync, 800); });
+  document.addEventListener('DOMContentLoaded', sync);
+})();
+</script>
+
 <style id="fos-countup-css">.fos-cu{font-variant-numeric:tabular-nums}</style>
 <script>
 /* ── COUNT-UP v2: EVERY number on the app pages rises from 0 on open, and again on hover (desktop) / tap (mobile) ──
@@ -40602,6 +40688,7 @@ body.light-mode .fos-np{background:#fff;color:#0f172a;box-shadow:0 8px 30px rgba
 
   try { new MutationObserver(function () { if (document.body.classList.contains('pdf-export-mode')) snapAll(); }).observe(document.body, { attributes: true, attributeFilter: ['class'] }); } catch (e) { }
   window.addEventListener('beforeprint', snapAll);                                  // never print or export a half-counted number
+  window.fosCountSnap = snapAll;
   window.fosCountUpReplay = function () { document.querySelectorAll('.view-section.active').forEach(replay); };
   window.addEventListener('load', function () {
     setTimeout(function () {
