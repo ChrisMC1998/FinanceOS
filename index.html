@@ -10849,15 +10849,24 @@ function passAppLockGate() {
             <div style="width:32px; height:32px; border-radius:50%; background:rgba(52,211,153,0.15); color:var(--c-inc); display:flex; align-items:center; justify-content:center"><i class="fas fa-eye-slash"></i></div>
             <div class="set-label-block">
               <div class="set-lbl readable-white">Privacy Screen</div>
-              <div class="set-desc" style="margin-top:0">Hide your finances in the phone's recent-apps view</div>
+              <div class="set-desc" style="margin-top:0">Hide your finances on PC, iPhone and Android whenever the app is not in front of you</div>
             </div>
           </div>
           <div class="set-row">
             <div class="set-label-block">
               <div class="set-lbl readable-white" style="font-size:0.8rem">Cover the app when it leaves the screen</div>
-              <div class="set-desc">When you switch apps or open recent apps, the screen is covered with a plain green-grey panel so no amounts or details are visible. <a href="#" onclick="fosShieldPreview();return false" style="color:var(--c-inc)">Preview</a></div>
+              <div class="set-desc">The moment you click outside the app, switch tabs or apps, minimise, or open recent apps, the whole screen is covered with a solid panel so no amounts or details are visible. It lifts automatically when you come back. <a href="#" onclick="fosShieldPreview();return false" style="color:var(--c-inc)">Preview</a></div>
             </div>
             <label class="toggle-switch"><input type="checkbox" id="tog-privacy-shield" checked onchange="fosShieldSet(this.checked)"><span class="toggle-slider"></span></label>
+          </div>
+          <div class="set-row">
+            <div class="set-label-block">
+              <div class="set-lbl readable-white" style="font-size:0.8rem">Ask to unlock after being away</div>
+              <div class="set-desc">If you have Face ID / fingerprint or a PC Lock set up, ask for it again after being away this long. Otherwise the cover simply lifts when you return.</div>
+            </div>
+            <select id="sel-privacy-relock" class="set-input" style="max-width:150px" onchange="fosShieldRelockSet(this.value)">
+              <option value="off">Never</option><option value="0">Immediately</option><option value="5">5 seconds</option><option value="15">15 seconds</option><option value="30">30 seconds</option><option value="60">1 minute</option>
+            </select>
           </div>
         </div>
         <div class="set-card">
@@ -39777,50 +39786,88 @@ window.fosToast = function (o) {
 };
 </script>
 
-<!-- PRIVACY SCREEN: covers the app in the recent-apps / app-switcher view -->
+<!-- PRIVACY SCREEN: opaque cover whenever the app is not actively in front of the person (PC, iOS, Android) -->
 <style>
-#fos-privacy-shield{position:fixed;top:0;left:0;right:0;bottom:0;z-index:2147483647;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;
-  background:radial-gradient(circle at 50% 38%,#2b3a34 0%,#1b2420 55%,#121816 100%);color:#9fb8ad;font-family:'DM Sans',system-ui,sans-serif;
-  opacity:0;visibility:hidden;pointer-events:none;transition:opacity .15s ease,visibility 0s linear .15s;-webkit-user-select:none;user-select:none}
+#fos-privacy-shield{position:fixed;top:0;left:0;right:0;bottom:0;width:100vw;height:100vh;height:100dvh;z-index:2147483647;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;text-align:center;padding:24px;box-sizing:border-box;
+  background:#0b0f0e;color:#9fb8ad;font-family:'DM Sans',system-ui,sans-serif;
+  opacity:0;visibility:hidden;pointer-events:none;transition:opacity .12s ease,visibility 0s linear .12s;-webkit-user-select:none;user-select:none;-webkit-touch-callout:none}
+body.light-mode #fos-privacy-shield{background:#e9eef1;color:#52646b}
 #fos-privacy-shield.on{opacity:1;visibility:visible;pointer-events:auto;transition:none}
-#fos-privacy-shield svg{width:54px;height:54px;opacity:.85}
-#fos-privacy-shield .fps-t{font-size:1.05rem;font-weight:700;letter-spacing:.4px;color:#c9ddd3}
-#fos-privacy-shield .fps-s{font-size:.72rem;letter-spacing:1.2px;text-transform:uppercase;opacity:.7}
+#fos-privacy-shield svg{width:54px;height:54px;opacity:.9}
+#fos-privacy-shield .fps-t{font-size:1.05rem;font-weight:700;letter-spacing:.3px;color:#d3e4db;max-width:320px;line-height:1.35}
+#fos-privacy-shield .fps-s{font-size:.78rem;letter-spacing:.4px;opacity:.75}
+body.light-mode #fos-privacy-shield .fps-t{color:#25363d}
 </style>
 <div id="fos-privacy-shield" aria-hidden="true">
-  <svg viewBox="0 0 24 24" fill="none" stroke="#6ee7b7" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="10.5" width="16" height="10" rx="2.5"/><path d="M8 10.5V7.5a4 4 0 0 1 8 0v3"/><circle cx="12" cy="15.5" r="1.3" fill="#6ee7b7"/></svg>
-  <div class="fps-t">FinanceOS</div>
-  <div class="fps-s">Hidden for your privacy</div>
+  <svg viewBox="0 0 24 24" fill="none" stroke="#34d399" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="10.5" width="16" height="10" rx="2.5"/><path d="M8 10.5V7.5a4 4 0 0 1 8 0v3"/><circle cx="12" cy="15.5" r="1.3" fill="#34d399"/></svg>
+  <div class="fps-t">Finance is locked and hidden for your privacy.</div>
+  <div class="fps-s">Your financial information is protected.</div>
 </div>
 <script>
 (function () {
-  var KEY = 'fos_set_privacy_shield', el = document.getElementById('fos-privacy-shield');
+  var KEY = 'fos_set_privacy_shield', RKEY = 'fos_set_privacy_relock', el = document.getElementById('fos-privacy-shield');
   if (!el) return;
+  var awayAt = 0, previewing = false, relocking = false;
   function on() { try { return localStorage.getItem(KEY) !== 'false'; } catch (e) { return true; } }
-  function show() { if (!on()) return; el.classList.add('on'); try { void el.offsetHeight; } catch (e) { } }   // forced reflow: commit the cover to the screen immediately
-  function hide() { el.classList.remove('on'); }
-  var isIOS = /iPhone|iPad|iPod/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
-  var touch = false;
-  try { touch = matchMedia('(pointer:coarse)').matches || matchMedia('(display-mode: standalone)').matches || navigator.standalone === true; } catch (e) {}
+  // Re-lock delay in ms: null = never ask again, 0 = immediately, otherwise seconds away.
+  function relockMs() { try { var v = localStorage.getItem(RKEY); if (v === null || v === 'off') return null; var n = Number(v); return isFinite(n) ? n * 1000 : null; } catch (e) { return null; } }
+  function inFront() { return !document.hidden && (typeof document.hasFocus !== 'function' || document.hasFocus()); }
 
-  // Fires as the app leaves the screen: app switcher, home, another app, screen lock.
+  function show() {
+    if (!on()) return;
+    if (!awayAt) awayAt = Date.now();
+    el.classList.add('on');
+    try { void el.offsetHeight; } catch (e) { }   // forced reflow: commit the cover to the screen before the snapshot
+  }
+  function reveal() { el.classList.remove('on'); awayAt = 0; relocking = false; }
+
+  function hide() {
+    if (previewing || relocking || !inFront() || !el.classList.contains('on')) return;
+    var ms = relockMs(), away = awayAt ? Date.now() - awayAt : 0;
+    var lockEl = document.getElementById('app-lock-overlay');
+    if (ms !== null && away >= ms && typeof passAppLockGate === 'function' && lockEl && lockEl.classList.contains('hidden')) {
+      // Away longer than the chosen delay: keep the cover up until the app's own biometric / passkey screen is ready.
+      relocking = true;
+      var done = false, finish = function () { if (done) return; done = true; clearInterval(iv); reveal(); };
+      var iv = setInterval(function () { if (!lockEl.classList.contains('hidden')) finish(); }, 40);
+      setTimeout(finish, 4000);
+      try { Promise.resolve(passAppLockGate()).then(finish, finish); } catch (e) { finish(); }
+      return;
+    }
+    reveal();
+  }
+
+  // 1) App leaves the screen: tab switch, minimise, home, app switcher, screen lock.
   document.addEventListener('visibilitychange', function () { document.hidden ? show() : hide(); });
   document.addEventListener('webkitvisibilitychange', function () { document.webkitHidden ? show() : hide(); });
-  document.addEventListener('pause', show); document.addEventListener('resume', hide);
   window.addEventListener('pagehide', show);
   window.addEventListener('pageshow', hide);
   document.addEventListener('freeze', show);
+  document.addEventListener('pause', show);
   document.addEventListener('resume', hide);
-  // iPhone/iPad only: the app switcher deactivates the app before it is hidden, so cover on blur too.
-  window.addEventListener('blur', function () { if (isIOS) show(); });
-  window.addEventListener('focus', hide);
-  // Failsafe: a tap on the panel while the app is actually visible always dismisses it.
-  el.addEventListener('click', function () { if (!document.hidden) hide(); });
-  el.addEventListener('touchstart', function () { if (!document.hidden) hide(); }, { passive: true });
 
-  window.fosShieldSet = function (v) { try { localStorage.setItem(KEY, v ? 'true' : 'false'); } catch (e) {} if (!v) hide(); };
-  window.fosShieldPreview = function () { el.classList.add('on'); setTimeout(hide, 1800); };
+  // 2) Window loses focus: click outside the app on PC, recent-apps gesture on Android, app switcher on iOS.
+  window.addEventListener('blur', function () {
+    var a = document.activeElement;
+    // Clicking a chart / embedded widget moves focus into an iframe but the person is still in the app.
+    if (a && a.tagName === 'IFRAME' && document.hasFocus && document.hasFocus()) return;
+    show();
+  });
+  window.addEventListener('focus', hide);
+
+  // 3) Watchdog: catches the cases that raise no event (focus leaving from inside an embedded iframe, odd OS gestures).
+  setInterval(function () { if (previewing) return; if (!inFront()) show(); else hide(); }, 250);
+
+  // Failsafe: a tap on the panel while the app really is in front always dismisses it.
+  function tapDismiss() { if (!document.hidden) { awayAt = Date.now(); hide(); } }
+  el.addEventListener('click', tapDismiss);
+  el.addEventListener('touchstart', tapDismiss, { passive: true });
+
+  window.fosShieldSet = function (v) { try { localStorage.setItem(KEY, v ? 'true' : 'false'); } catch (e) { } if (!v) { relocking = false; reveal(); } };
+  window.fosShieldRelockSet = function (v) { try { localStorage.setItem(RKEY, v); } catch (e) { } };
+  window.fosShieldPreview = function () { previewing = true; el.classList.add('on'); setTimeout(function () { previewing = false; reveal(); }, 1800); };
   var cb = document.getElementById('tog-privacy-shield'); if (cb) cb.checked = on();
+  var sel = document.getElementById('sel-privacy-relock'); if (sel) { try { sel.value = localStorage.getItem(RKEY) || 'off'; } catch (e) { } }
 })();
 </script>
 </body>
