@@ -1,4 +1,11 @@
 <!DOCTYPE html>
+<!--
+  FinanceOS & PortfolioOS
+  © 2026 MC Enterprise. All rights reserved.
+  This source code, its design and its content are proprietary and confidential.
+  Copying, scraping, reproducing, reverse engineering or redistributing any part of it
+  without prior written permission is prohibited.
+-->
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -396,9 +403,12 @@ function fosBrandRgba(a){return 'rgba('+fosBrandRgb()+','+a+')';}
   var NUM = /\d+(?:,\d+)*(?:\.\d+)?/g;
   var MONTH = /\b(?:Jan(?:uary)?|Feb(?:ruary)?|Mar(?:ch)?|Apr(?:il)?|May|June?|July?|Aug(?:ust)?|Sep(?:t(?:ember)?)?|Oct(?:ober)?|Nov(?:ember)?|Dec(?:ember)?)\b/;
   var DATEY = /\d{1,4}[\/.\-]\d{1,2}[\/.\-]\d{1,4}|\d{1,2}:\d{2}/;
+  var NUMIDS = ['num-open', 'num-hover', 'num-tooltip', 'num-chartlabel'];
   function enabled() {
-    try { var cv = localStorage.getItem('fos_set_count-anim'); if (cv === 'false' || (cv !== 'true' && reduce)) return false; } catch (e) { if (reduce) return false; }
-    return !(document.body && document.body.classList.contains('pdf-export-mode'));
+    if (document.body && document.body.classList.contains('pdf-export-mode')) return false;
+    var M = window.FosMotion;
+    if (M) return NUMIDS.some(function (i) { return M.on(i); });
+    return !reduce;
   }
   function fmt(v, dec, grp) {
     var s = Math.abs(v).toFixed(dec).split('.'), i = s[0];
@@ -461,8 +471,9 @@ function fosBrandRgba(a){return 'rgba('+fosBrandRgb()+','+a+')';}
   window.FosNum.kick = kick;
   function arm(ch) {
     var cv = ch.canvas; if (!cv || cv.$fosArm) return; cv.$fosArm = 1;
-    cv.addEventListener('mouseenter', function () { if (Date.now() - lastTouch > 900) kick(ch); });
-    cv.addEventListener('click', function () { kick(ch); });
+    function hov() { var M = window.FosMotion; return !M || (M.on('num-hover') && M.on('num-chartlabel')); }
+    cv.addEventListener('mouseenter', function () { if (Date.now() - lastTouch > 900 && hov()) kick(ch); });
+    cv.addEventListener('click', function () { if (hov()) kick(ch); });
     try {
       if (!cio) cio = new IntersectionObserver(function (list) {
         list.forEach(function (en) {
@@ -477,52 +488,136 @@ function fosBrandRgba(a){return 'rgba('+fosBrandRgb()+','+a+')';}
   }
   Chart.register({
     id: 'fosNumAnim',
-    afterInit: function (ch) { arm(ch); kick(ch); },
+    afterInit: function (ch) { arm(ch); if (!window.FosMotion || (FosMotion.on('num-open') && (FosMotion.on('num-chartlabel') || FosMotion.on('num-tooltip')))) kick(ch); },
     afterEvent: function (ch, args) {
       var t = args && args.event && args.event.type;
       if (t !== 'mousemove' && t !== 'click' && t !== 'touchstart' && t !== 'touchmove') return;
       var act = []; try { act = ch.getActiveElements ? ch.getActiveElements() : []; } catch (e) { }
       var key = act.map(function (a) { return a.datasetIndex + ':' + a.index; }).join('|');
       var s = ch.$fosNum || (ch.$fosNum = { p: 1, t0: 0, raf: 0, key: '' });
-      if (key && key !== s.key) { s.key = key; kick(ch, true); } else if (!key) s.key = '';
+      if (key && key !== s.key) { s.key = key; if (!window.FosMotion || FosMotion.on('num-tooltip')) kick(ch, true); } else if (!key) s.key = '';
     },
     beforeDatasetsDraw: function (ch) {
       var s = ch.$fosNum, c = ch.ctx;
       if (!s || s.p >= 1 || !c || c.$fosP || !enabled()) return;
       c.$fosP = 1; var o = CanvasRenderingContext2D.prototype.fillText, p = s.p;
-      c.fillText = function (t, x, y, w) { var P = parse(String(t)); return o.call(this, P ? build(P, p, null) : t, x, y, w); };
+      c.fillText = function (t, x, y, w) { var M = window.FosMotion, okk = !M || (s.tip ? M.on('num-tooltip') : M.on('num-chartlabel')), P = okk ? parse(String(t)) : null; return o.call(this, P ? build(P, p, null) : t, x, y, w); };
     },
+    beforeTooltipDraw: function (ch) { if (ch.$fosNum) ch.$fosNum.tip = 1; },
+    afterTooltipDraw: function (ch) { if (ch.$fosNum) ch.$fosNum.tip = 0; },
     afterDraw: function (ch) { var c = ch.ctx; if (c && c.$fosP) { delete c.fillText; c.$fosP = 0; } }
   });
 })();
 </script>
 <script id="fos-motion-core">
-/* ── ANIMATION CONTROLS (Settings → General → Interface): UI motion, chart animations, number count-up ── */
+/* ── ANIMATION REGISTRY: every individual animation has its own switch (Settings → General → Interface → Animations) ── */
 (function () {
-  if (window.FosMotion) return;
+  if (window.FosMotion && window.FosMotion.items) return;
   var reduce = false; try { reduce = matchMedia('(prefers-reduced-motion: reduce)').matches; } catch (e) { }
-  var K = { ui: 'fos_set_ui-motion', chart: 'fos_set_chart-anim', count: 'fos_set_count-anim' };
-  function on(k) { var v = null; try { v = localStorage.getItem(K[k]); } catch (e) { } return v === null ? !reduce : v === 'true'; }
-  var origAnim = null;
+  var KEY = 'fos_set_anim-items';
+  var Q = 'animation-duration:.001ms !important;animation-delay:0s !important;animation-iteration-count:1 !important;transition-duration:.001ms !important;transition-delay:0s !important;';
+  var GROUPS = [
+    { id: 'num', t: 'Numbers & counters', i: 'fa-hashtag' },
+    { id: 'bar', t: 'Capsule & progress bars', i: 'fa-grip-lines' },
+    { id: 'ring', t: 'Rings & gauges', i: 'fa-circle-notch' },
+    { id: 'chart', t: 'Charts', i: 'fa-chart-line' },
+    { id: 'card', t: 'Cards & interaction', i: 'fa-clone' },
+    { id: 'page', t: 'Pages, menus & windows', i: 'fa-window-restore' },
+    { id: 'fx', t: 'Background & effects', i: 'fa-wand-magic-sparkles' },
+    { id: 'misc', t: 'Everything else', i: 'fa-ellipsis' }
+  ];
+  /* s = CSS selectors (| separated) that get quick-finished when the item is off; h = selectors whose :hover lift is removed */
+  var ITEMS = [
+    { id: 'num-open', g: 'num', t: 'Count up when a page opens', d: 'Numbers rise from zero when you open a page or new figures appear.' },
+    { id: 'num-hover', g: 'num', t: 'Count up again on hover or tap', d: 'Hover (desktop) or tap (mobile) a card, row or chart to replay the count.' },
+    { id: 'num-kpi', g: 'num', t: 'Card and KPI numbers', d: 'Net balance, income, loan outflow, investments, savings rate, credit outstanding, receivables, portfolio value.' },
+    { id: 'num-table', g: 'num', t: 'Table and list numbers', d: 'Holdings table, lender lists, tax and stress-test tables, summary rows.' },
+    { id: 'num-gauge', g: 'num', t: 'Gauge and score numbers', d: 'Debt Health score (65 of 100), FinAI score and other ring centres.' },
+    { id: 'num-tooltip', g: 'num', t: 'Chart tooltip numbers', d: 'Values in the pop-up that follows your pointer over a chart.' },
+    { id: 'num-chartlabel', g: 'num', t: 'Numbers drawn inside charts', d: 'Donut centre totals and labels on bars.' },
+
+    { id: 'bar-load', g: 'bar', t: 'Capsule bars grow on load', d: 'Cash Flow Snapshot, Top 3 Holdings, Outstanding by Lender, portfolio capsules.', s: '[data-bar-fill]|[style*="transition:width"]|[style*="transition: width"]' },
+    { id: 'bar-hover', g: 'bar', t: 'Capsule bars re-run on hover', d: 'The running capsule that refills from zero when you hover it.' },
+    { id: 'bar-stacked', g: 'bar', t: 'Stacked bars run segment by segment', d: 'Month-end forecast and other multi-colour bars.' },
+    { id: 'bar-progress', g: 'bar', t: 'Progress bars', d: 'Budgets, credit utilisation, EMI load, quiz and score bars.', s: '.finai-bar span|.cc-util-fill|.budget-progress-fill|.pins-bar>div|.txa-bar i|.fcs-stack i|.fa-bar i|#fos-tour .ft-bar i' },
+
+    { id: 'ring-load', g: 'ring', t: 'Rings fill on load', d: 'Debt Health gauge, credit card rings, FinAI score ring, health arcs.', s: '.finai-ring-progress|.cc-face-ring-fill|.cin-gauge .arc|.progress-ring-fill|.fhs-arc|svg circle[style*="stroke-dashoffset"]' },
+    { id: 'ring-hover', g: 'ring', t: 'Rings re-run on hover', d: 'Rings and gauges refill from zero when hovered.' },
+
+    { id: 'chart-draw-in', g: 'chart', t: 'Chart draw-in on load', d: 'Lines, bars and slices animate in when a chart first appears or updates.' },
+    { id: 'chart-donut', g: 'chart', t: 'Donut sweep', d: 'Portfolio by asset type, credit usage and other donuts sweep round on hover.' },
+    { id: 'chart-hbar', g: 'chart', t: 'Horizontal bar charts run', d: 'Horizontal bar charts refill on hover.' },
+    { id: 'chart-trend', g: 'chart', t: 'Trend lines run dot to dot', d: 'Income, expense, loan and investment trend cards on hover or click.' },
+    { id: 'chart-glow', g: 'chart', t: 'Hover glow, crosshair and slice pop-out', d: 'Highlight effects on the point, bar or slice under your pointer.' },
+    { id: 'chart-tooltip', g: 'chart', t: 'Tooltip fade and glide', d: 'Chart tooltips appear instantly instead of fading and gliding.' },
+
+    { id: 'card-hover', g: 'card', t: 'Card hover lift', d: 'Cards and panels rise and glow when hovered.', s: '.glass-panel|.kpi-card|.port-kpi-card|.credit-kpi-card|.spark-card|.set-card|.market-card|.spark-canvas-wrap|.mc-spark', h: '.glass-panel:hover|.kpi-card:hover|.port-kpi-card:hover|.credit-kpi-card:hover|.spark-card:hover|.set-card:hover|.market-card:hover' },
+    { id: 'hover-micro', g: 'card', t: 'Button and row hover transitions', d: 'Colour and background fades on buttons, links, table rows and menu items.', s: 'button|a|tr|td|.btn-add|.btn-secondary|.nav-item|.set-chip|.set-row|.cin-tile|.cin-fac' },
+    { id: 'cc-cards', g: 'card', t: 'Credit card stack deal and risk pulse', d: 'Cards dealing into the stack, high-risk pulse, detail panel fade.', s: '.cc-stack-card|.cc-stack-card .cc-card-face|.cc-active-detail|.cc-face-ring-fill' },
+    { id: 'nav-glide', g: 'card', t: 'Menu highlight glide', d: 'The sliding highlight behind the active menu item.', s: '.fos-glide' },
+
+    { id: 'page-fade', g: 'page', t: 'Page transitions', d: 'Fade when you switch between FinanceOS and PortfolioOS pages.', s: '.view-section' },
+    { id: 'modal', g: 'page', t: 'Windows and dialogs', d: 'Settings window and pop-up dialogs opening and closing.', s: '#settings-modal|#settings-modal .settings-modal-box|.modal-overlay|.modal-box|.search-overlay|.txa-inspect|.onboard-step|.onboard-final-icon' },
+    { id: 'smoke', g: 'page', t: 'Smoke dropdown menus', d: 'The smoky reveal on custom dropdown lists.', s: '.fos-smoke-menu|.fos-smoke-menu::before|.fos-smoke-menu::after|.fos-smoke-list' },
+    { id: 'notif', g: 'page', t: 'Notification pop-ups', d: 'Pop-ups and toasts sliding in at the bottom-right.', s: '.fos-np|#fos-toast-stack>div|.fos-np .np-bar' },
+
+    { id: 'bg', g: 'fx', t: 'Animated background glow', d: 'Slow drifting light behind the dashboard.', s: '.fos-atmosphere|.fos-atmosphere::after' },
+    { id: 'pulse', g: 'fx', t: 'Pulsing dots and flashes', d: 'Live and auto-save dots, market flash, hint nudges, recording pulse.', s: '.autosave-dot|.live-dot|.market-card.update-flash|.hs-hint i|.shortcut-btn.recording|.natt-btn.rec' },
+    { id: 'shimmer', g: 'fx', t: 'Loading shimmer', d: 'Skeleton shimmer while the dashboard loads.', s: '.dash-shimmer' },
+    { id: 'splash', g: 'fx', t: 'Start-up splash animation', d: 'Logo ring, title and loading bar when the app starts.', s: '.splash-logo-ring|.splash-title|.splash-sub|.splash-bar-track|.splash-bar-fill' },
+
+    { id: 'catchall', g: 'misc', t: 'Any other animation or transition', d: 'Switch off every remaining motion that has no dedicated switch above.' }
+  ];
+  var byId = {}; ITEMS.forEach(function (x) { byId[x.id] = x; });
+  var ov = {}, subs = [];
+  function load() {
+    var raw = null; try { raw = localStorage.getItem(KEY); } catch (e) { }
+    if (raw) { try { ov = JSON.parse(raw) || {}; } catch (e) { ov = {}; } return; }
+    ov = {};                                                           // migrate the three earlier switches, once
+    try {
+      if (localStorage.getItem('fos_set_ui-motion') === 'false') ov.catchall = false;
+      if (localStorage.getItem('fos_set_chart-anim') === 'false') ITEMS.forEach(function (x) { if (x.g === 'chart' || x.g === 'bar' || x.g === 'ring') ov[x.id] = false; });
+      if (localStorage.getItem('fos_set_count-anim') === 'false') ITEMS.forEach(function (x) { if (x.g === 'num') ov[x.id] = false; });
+    } catch (e) { }
+  }
+  function save() { try { localStorage.setItem(KEY, JSON.stringify(ov)); } catch (e) { } }
+  function on(id) { if (typeof id !== 'string') return true; return ov[id] === undefined ? !reduce : !!ov[id]; }
+  function esc(sel, pre) { return sel.split('|').map(function (x) { return pre + ' ' + x; }).join(','); }
+  /* one stylesheet, one rule per item, switched by a class on <html> */
+  function css() {
+    if (document.getElementById('fos-motion-css')) return;
+    var r = ['html.fos-off-catchall *:not([class*="spin"]):not([class*="loader"]),html.fos-off-catchall *::before,html.fos-off-catchall *::after{' + Q + 'scroll-behavior:auto !important}'];
+    ITEMS.forEach(function (x) {
+      if (x.s) r.push(esc(x.s, 'html.fos-off-' + x.id) + '{' + Q + '}');
+      if (x.h) r.push(esc(x.h, 'html.fos-off-' + x.id) + '{transform:none !important;}');
+    });
+    var st = document.createElement('style'); st.id = 'fos-motion-css'; st.textContent = r.join('\n'); (document.head || document.documentElement).appendChild(st);
+  }
+  var origAnim = null, origTip, haveTip = false;
   function apply() {
-    document.documentElement.classList.toggle('fos-no-motion', !on('ui'));
+    var h = document.documentElement;
+    ITEMS.forEach(function (x) { h.classList.toggle('fos-off-' + x.id, !on(x.id)); });
+    h.classList.remove('fos-no-motion');
     if (window.Chart) {
       if (origAnim === null) origAnim = Chart.defaults.animation;
-      Chart.defaults.animation = on('chart') ? origAnim : false;
-      try { if (Chart.defaults.plugins && Chart.defaults.plugins.fosHoverFx) Chart.defaults.plugins.fosHoverFx.enabled = on('chart'); } catch (e) { }
+      Chart.defaults.animation = on('chart-draw-in') ? origAnim : false;
+      try { var tp = Chart.defaults.plugins.tooltip; if (!haveTip) { origTip = tp.animation; haveTip = true; } tp.animation = on('chart-tooltip') ? origTip : false; } catch (e) { }
+      try { if (Chart.defaults.plugins.fosHoverFx) Chart.defaults.plugins.fosHoverFx.enabled = on('chart-glow'); } catch (e) { }
     }
+    subs.forEach(function (f) { try { f(); } catch (e) { } });
   }
-  window.FosMotion = { on: on, apply: apply, keys: K };
-  if (window.Chart && !Chart.prototype.$fosUpd) {                      // charts update without animating when chart animations are off
+  function set(id, v) { if (byId[id]) { ov[id] = !!v; save(); apply(); } }
+  function setMany(ids, v) { ids.forEach(function (id) { if (byId[id]) ov[id] = !!v; }); save(); apply(); }
+  function reset() { ov = {}; try { localStorage.removeItem(KEY); } catch (e) { } apply(); }
+  load(); css();
+  window.FosMotion = { items: ITEMS, groups: GROUPS, on: on, set: set, setMany: setMany, reset: reset, apply: apply, onChange: function (f) { subs.push(f); } };
+  if (window.Chart && !Chart.prototype.$fosUpd) {                      // charts update without animating when "draw-in" is off
     var u = Chart.prototype.update; Chart.prototype.$fosUpd = 1;
-    Chart.prototype.update = function (m) { return u.call(this, on('chart') ? m : 'none'); };
+    Chart.prototype.update = function (m) { return u.call(this, on('chart-draw-in') ? m : 'none'); };
   }
   apply();
 })();
 </script>
-<style id="fos-motion-css">
-html.fos-no-motion *:not([class*="spin"]):not([class*="loader"]),html.fos-no-motion *::before,html.fos-no-motion *::after{animation-duration:.001ms !important;animation-delay:0s !important;animation-iteration-count:1 !important;transition-duration:.001ms !important;transition-delay:0s !important;scroll-behavior:auto !important}
-</style>
 <script>try{if(window.FosMotion)FosMotion.apply();}catch(e){}</script>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
@@ -10564,39 +10659,12 @@ function passAppLockGate() {
             </div>
           <div class="set-row">
               <div class="set-label-block">
-                <div class="set-lbl readable-white" style="font-size:0.8rem">All animations</div>
-                <div class="set-desc">Master switch for every animation across FinanceOS and PortfolioOS. Turn off to keep things still and fast.</div>
-              </div>
-              <label class="toggle-switch"><input type="checkbox" id="tog-anim-all" checked onchange="fosAnimToggle('all',this)"><span class="toggle-slider"></span></label>
-            </div>
-          <div class="set-row">
-              <div class="set-label-block">
-                <div class="set-lbl readable-white" style="font-size:0.8rem">Interface motion</div>
-                <div class="set-desc">Page transitions, hover effects, glows and entrance animations on every tab.</div>
-              </div>
-              <label class="toggle-switch"><input type="checkbox" id="tog-ui-motion" checked onchange="fosAnimToggle('ui',this)"><span class="toggle-slider"></span></label>
-            </div>
-          <div class="set-row">
-              <div class="set-label-block">
-                <div class="set-lbl readable-white" style="font-size:0.8rem">Chart animations</div>
-                <div class="set-desc">Charts draw in, donuts sweep, and hover highlights glow.</div>
-              </div>
-              <label class="toggle-switch"><input type="checkbox" id="tog-chart-anim" checked onchange="fosAnimToggle('chart',this)"><span class="toggle-slider"></span></label>
-            </div>
-          <div class="set-row">
-              <div class="set-label-block">
-                <div class="set-lbl readable-white" style="font-size:0.8rem">Number count-up</div>
-                <div class="set-desc">Numbers rise from zero when a page opens, and again on hover or tap.</div>
-              </div>
-              <label class="toggle-switch"><input type="checkbox" id="tog-count-anim" checked onchange="fosAnimToggle('count',this)"><span class="toggle-slider"></span></label>
-            </div>
-          <div class="set-row">
-              <div class="set-label-block">
                 <div class="set-lbl readable-white" style="font-size:0.8rem">Sidebar animation</div>
                 <div class="set-desc">Animate the sidebar when it expands or collapses.</div>
               </div>
               <label class="toggle-switch"><input type="checkbox" id="tog-sidebar-animation" checked onchange="handleSidebarAnimToggle(this)"><span class="toggle-slider"></span></label>
             </div>
+          <div id="fos-anim-settings"></div>
           <div class="set-row">
               <div class="set-label-block">
                 <div class="set-lbl readable-white" style="font-size:0.8rem">Remember last page</div>
@@ -10912,7 +10980,7 @@ function passAppLockGate() {
             <div style="width:32px; height:32px; border-radius:50%; background:rgba(var(--brand-rgb),0.15); color:var(--accent); display:flex; align-items:center; justify-content:center"><i class="fas fa-cube"></i></div>
             <div class="set-label-block">
               <div class="set-lbl readable-white">What is FinanceOS?</div>
-              <div class="set-desc" style="margin-top:0">Version v7.2.0 &middot; Nov 2026</div>
+              <div class="set-desc" style="margin-top:0">Version v7.2.0 &middot; Nov 2026 &middot; &copy; 2026 MC Enterprise</div>
             </div>
           </div>
           <div class="set-desc" style="font-size:0.78rem; line-height:1.6; margin-top:0;">FinanceOS is a personal finance dashboard that runs in your browser on computer, tablet and phone and can be installed like an app. Record what you earn, spend, owe, insure and invest, and it turns that into live charts, a proactive Fin AI assistant, reminders and reports so you can see where you stand at a glance. You sign in with your own account (email and password, or Face ID / fingerprint passkey). Your data is kept on your device first, and can also be synced to your private cloud account or backed up as JSON &mdash; you choose in Data Tracking Mode.</div>
@@ -11093,6 +11161,41 @@ function passAppLockGate() {
           <div class="set-row" style="border-top:1px solid var(--glass-border); padding-top:0.7rem; margin-top:0.2rem;">
             <div class="set-label-block" style="max-width:100%;">
               <div class="set-desc" style="font-size:0.68rem; line-height:1.5;"><i class="fas fa-circle-info" style="margin-right:4px;color:var(--text-muted)"></i>FinanceOS is local-first for speed and cloud-backed for continuity. This page was last reviewed for v7.2.0 (Nov 2026).</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="set-card">
+          <div style="display:flex; gap:10px; align-items:center; margin-bottom: 0.5rem;">
+            <div style="width:32px; height:32px; border-radius:50%; background:rgba(245,158,11,0.15); color:#f59e0b; display:flex; align-items:center; justify-content:center"><i class="fas fa-copyright"></i></div>
+            <div class="set-label-block">
+              <div class="set-lbl readable-white">Copyright &amp; Code Protection</div>
+              <div class="set-desc" style="margin-top:0">Ownership notice and how the app guards its code</div>
+            </div>
+          </div>
+
+          <div class="set-row">
+            <div class="set-label-block" style="max-width:100%;">
+              <div class="set-lbl readable-white" style="font-size:0.8rem">&copy; 2026 MC Enterprise. All rights reserved.</div>
+              <div class="set-desc">FinanceOS and PortfolioOS &mdash; the source code, design, layouts and content are proprietary. Copying, scraping, reproducing, reverse engineering or redistributing any part of this application without written permission is prohibited.</div>
+            </div>
+          </div>
+
+          <div class="set-row">
+            <div class="set-label-block">
+              <div class="set-lbl readable-white" style="font-size:0.8rem">Code protection level</div>
+              <div class="set-desc" id="fos-protect-desc">Blocks right-click and the F12, Ctrl+U, Ctrl+S and inspect shortcuts. Stops casual copying.</div>
+            </div>
+            <select class="set-input" id="fos-protect-sel" style="width:auto;min-width:120px" onchange="fosProtectSet(this.value)">
+              <option value="off">Off</option>
+              <option value="standard" selected>Standard</option>
+              <option value="strict">Strict</option>
+            </select>
+          </div>
+
+          <div class="set-row" style="border-top:1px solid var(--glass-border); padding-top:0.7rem; margin-top:0.2rem;">
+            <div class="set-label-block" style="max-width:100%;">
+              <div class="set-desc" style="font-size:0.68rem; line-height:1.5;"><i class="fas fa-circle-info" style="margin-right:4px;color:var(--text-muted)"></i>Protection is a deterrent, not a lock: code that runs in a browser can never be made completely unreadable. Your account data stays safe through your sign-in and database access rules, not through this setting.</div>
             </div>
           </div>
         </div>
@@ -21639,6 +21742,7 @@ function donutSliceStyle(canvas, colors) {
 // existing transition something to animate from.
 function animateLiquidBars(containerEl) {
   if (!containerEl) return;
+  if (window.FosMotion && !FosMotion.on('bar-load')) return;
   const bars = containerEl.querySelectorAll('[data-bar-fill]');
   if (!bars.length) return;
   bars.forEach(bar => {
@@ -38175,7 +38279,7 @@ body.light-mode .tx-bar select option,body.light-mode .tx-cls option{color:#111}
 <script id="fos-tour-js">
 /* ── New-user tutorial (product tour) ─────────────────────────────────────────
    Shows once for a newly created account, can be replayed from Settings > About FinanceOS.
-   Exactly three "Skip tour" points: the welcome step, the middle step, and the step before the last. */
+   "Skip tour" is available on every step (and with the Esc key); skipping marks the tour as done for the account. */
 (function () {
   var NAV = '#finance-sidebar ';
   var DESK = [
@@ -38227,6 +38331,7 @@ body.light-mode .tx-bar select option,body.light-mode .tx-cls option{color:#111}
       if (!active) return;
       if (e.key === 'ArrowRight' || e.key === 'Enter') { e.preventDefault(); go(1); }
       else if (e.key === 'ArrowLeft') { e.preventDefault(); go(-1); }
+      else if (e.key === 'Escape') { e.preventDefault(); finish(); }
     });
   }
   function esc(t) { return String(t).replace(/&/g, '&amp;').replace(/</g, '&lt;'); }
@@ -38237,7 +38342,7 @@ body.light-mode .tx-bar select option,body.light-mode .tx-cls option{color:#111}
       '<div class="ft-title">' + esc(st.t) + '</div><div class="ft-body">' + esc(st.b) + '</div>' +
       (st.todo ? '<div class="ft-todo">' + esc(st.todo) + '</div>' : '') +
       '<div class="ft-actions">' +
-        (skips[idx] ? '<button type="button" class="ft-skip" data-a="skip">Skip tour</button>' : '') +
+        (!isLast ? '<button type="button" class="ft-skip" data-a="skip">Skip tour</button>' : '') +
         '<span class="ft-sp"></span>' +
         (idx > 0 ? '<button type="button" class="ft-back" data-a="back">Back</button>' : '') +
         '<button type="button" class="ft-next" data-a="next">' + (idx === 0 ? 'Start tour' : isLast ? 'Finish' : 'Next') + '</button>' +
@@ -38955,6 +39060,7 @@ body.light-mode .fa-fl{background:#fff}
     groups.forEach(function (list, par) {
       var pw = par.getBoundingClientRect().width || 1;
       var stacked = list.length > 1 && getComputedStyle(par).display === 'flex';
+      if (window.FosMotion && !FosMotion.on(stacked ? 'bar-stacked' : 'bar-hover')) return;
       list.forEach(function (f) {
         var w = f.getBoundingClientRect().width; if (w < 1) return;
         f.style.transformOrigin = '0 50%';
@@ -38972,6 +39078,7 @@ body.light-mode .fa-fl{background:#fff}
 
   /* ───────────────────────── SVG rings ───────────────────────── */
   function playRings(rings) {
+    if (window.FosMotion && !FosMotion.on('ring-hover')) return [];
     return rings.map(function (r) {
       return r.el.animate([{ strokeDashoffset: r.da + 'px' }, { strokeDashoffset: r.off + 'px' }], { duration: RING_MS, easing: EASE });
     });
@@ -38979,7 +39086,7 @@ body.light-mode .fa-fl{background:#fff}
 
   /* ───────────────────────── CSS conic-gradient donuts (Credit Usage Breakdown) ───────────────────────── */
   function playConic(el) {
-    if (window.FosMotion && !FosMotion.on('chart')) return false;
+    if (window.FosMotion && !FosMotion.on('chart-donut')) return false;
     var orig = el.getAttribute('style') || '';
     var m = /conic-gradient\(([^;]*)\)/i.exec(orig);
     if (!m) return false;
@@ -39047,7 +39154,7 @@ body.light-mode .fa-fl{background:#fff}
     });
   }
   function runReveal(ch, mode, ms, shape) {
-    if (window.FosMotion && !FosMotion.on('chart')) return false;
+    if (window.FosMotion && !FosMotion.on(mode === 'radial' ? 'chart-donut' : mode === 'hbar' ? 'chart-hbar' : 'chart-trend')) return false;
     if (!ch || ch.$fosRevealRaf) return false;
     registerReveal();
     var t0 = null;
@@ -39767,7 +39874,7 @@ function fosPushRefreshUI() {
     'fos_currency','fos_number_system','fos_time','fos_date','financeOS_roughboard_v1','fos_remind_v1','fos_port_customsubs_v1','fos_port_targets_v1',
     'fos_port_tgtband','fos_port_tgtnew','fos_pi_bench','fos_tax_cls_v1','fos_tax_slab','fos_tax_fy','fos_notif_dismissed','fos_reminders_v1','fos_onboarding_goal',
     'fos_last_nw_milestone','fos_last_portfolio_update','fos_lh_unlocked','fos_academy_v1','fos_stress_v1'];
-  var DEVICE_SET = ['fos_set_app-theme', 'fos_set_sidebar-animation', 'fos_set_auto-sync', 'fos_set_ui-motion', 'fos_set_chart-anim', 'fos_set_count-anim'];   // per-device settings: never synced (push preferences DO sync; only the browser permission is per device)
+  var DEVICE_SET = ['fos_set_app-theme', 'fos_set_sidebar-animation', 'fos_set_auto-sync', 'fos_set_ui-motion', 'fos_set_chart-anim', 'fos_set_count-anim', 'fos_set_anim-items', 'fos_set_code-protect'];   // per-device settings: never synced (push preferences DO sync; only the browser permission is per device)
   function syncable(k) { return typeof k === 'string' && (SYNC.indexOf(k) > -1 || (k.indexOf('fos_set_') === 0 && DEVICE_SET.indexOf(k) < 0)); }
 
   var origSet = Storage.prototype.setItem, origGet = Storage.prototype.getItem;
@@ -40504,32 +40611,127 @@ body.light-mode .fos-np{background:#fff;color:#0f172a;box-shadow:0 8px 30px rgba
 })();
 </script>
 
+<style id="fos-anim-ui-css">
+#fos-anim-settings{margin-top:.6rem;border-top:1px solid rgba(255,255,255,.07);padding-top:.7rem}
+body.light-mode #fos-anim-settings{border-top-color:rgba(15,23,42,.1)}
+#fos-anim-settings .fam-tools{display:flex;gap:8px;align-items:center;margin:.5rem 0 .6rem;flex-wrap:wrap}
+#fos-anim-settings .fam-search{flex:1;min-width:140px}
+#fos-anim-settings .fam-grp{border:1px solid rgba(255,255,255,.07);border-radius:12px;margin-bottom:8px;overflow:hidden}
+body.light-mode #fos-anim-settings .fam-grp{border-color:rgba(15,23,42,.1)}
+#fos-anim-settings .fam-gh{display:flex;align-items:center;gap:10px;padding:9px 12px;cursor:pointer;background:rgba(255,255,255,.03);user-select:none}
+#fos-anim-settings .fam-gh i.fam-ic{width:22px;text-align:center;color:var(--c-net,#a78bfa)}
+#fos-anim-settings .fam-gh b{flex:1;font-size:.8rem}
+#fos-anim-settings .fam-gh small{font-size:.66rem;color:var(--text-muted)}
+#fos-anim-settings .fam-chev{transition:transform .2s;font-size:.7rem;color:var(--text-muted)}
+#fos-anim-settings .fam-grp.open .fam-chev{transform:rotate(90deg)}
+#fos-anim-settings .fam-body{display:none;padding:2px 12px 6px}
+#fos-anim-settings .fam-grp.open .fam-body{display:block}
+#fos-anim-settings .fam-body .set-row{padding:8px 0}
+</style>
 <script id="fos-motion-ui">
 (function () {
   var M = window.FosMotion; if (!M) return;
-  var ids = { ui: 'tog-ui-motion', chart: 'tog-chart-anim', count: 'tog-count-anim' };
-  function sync() {
-    var all = true;
-    Object.keys(ids).forEach(function (k) { var c = document.getElementById(ids[k]); if (c) c.checked = M.on(k); if (!M.on(k)) all = false; });
-    var a = document.getElementById('tog-anim-all'); if (a) a.checked = all;
-  }
+  var open = {}, q = '';
   function note(m) { try { if (typeof showSettingsToast === 'function') showSettingsToast(m); } catch (e) { } }
-  function set(k, v) { try { localStorage.setItem(M.keys[k], v ? 'true' : 'false'); } catch (e) { } }
-  function after(k) {
-    M.apply(); sync();
-    if (k === 'count' || k === 'all') {
-      if (!M.on('count')) { try { if (window.fosCountSnap) window.fosCountSnap(); } catch (e) { } }
-      else { try { if (window.fosCountUpReplay) window.fosCountUpReplay(); } catch (e) { } }
+  function esc(s) { return String(s).replace(/[&<>"]/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]; }); }
+  function sw(attr, id, checked) { return '<label class="toggle-switch" onclick="event.stopPropagation()"><input type="checkbox" ' + attr + '="' + id + '"' + (checked ? ' checked' : '') + '><span class="toggle-slider"></span></label>'; }
+  function render() {
+    var host = document.getElementById('fos-anim-settings'); if (!host) return;
+    var all = M.items.every(function (x) { return M.on(x.id); }), n = M.items.filter(function (x) { return M.on(x.id); }).length, ql = q.toLowerCase();
+    var html = '<div class="set-row" style="padding-top:0"><div class="set-label-block"><div class="set-lbl readable-white" style="font-size:.8rem">All animations</div><div class="set-desc">Master switch for every animation below (' + n + ' of ' + M.items.length + ' on). Fine-tune each one underneath.</div></div>' + sw('data-fam-all', 'all', all) + '</div>';
+    html += '<div class="fam-tools"><input type="text" class="set-input fam-search" id="fam-q" placeholder="Search animations (bars, rings, tooltips\u2026)" value="' + esc(q) + '"><button class="btn-secondary" style="font-size:.72rem;padding:5px 10px" data-fam-reset="1">Reset to defaults</button></div>';
+    M.groups.forEach(function (g) {
+      var its = M.items.filter(function (x) { return x.g === g.id && (!ql || (x.t + ' ' + x.d + ' ' + g.t).toLowerCase().indexOf(ql) > -1); });
+      if (!its.length) return;
+      var all1 = M.items.filter(function (x) { return x.g === g.id; }), c = all1.filter(function (x) { return M.on(x.id); }).length, isOpen = open[g.id] || !!ql;
+      html += '<div class="fam-grp' + (isOpen ? ' open' : '') + '" data-g="' + g.id + '"><div class="fam-gh" data-fam-head="' + g.id + '"><i class="fas fa-chevron-right fam-chev"></i><i class="fas ' + g.i + ' fam-ic"></i><b>' + esc(g.t) + '</b><small>' + c + ' of ' + all1.length + ' on</small>' + sw('data-fam-group', g.id, c === all1.length) + '</div><div class="fam-body">';
+      its.forEach(function (x) { html += '<div class="set-row"><div class="set-label-block"><div class="set-lbl readable-white" style="font-size:.78rem">' + esc(x.t) + '</div><div class="set-desc">' + esc(x.d) + '</div></div>' + sw('data-fam-item', x.id, M.on(x.id)) + '</div>'; });
+      html += '</div></div>';
+    });
+    var keep = document.activeElement && document.activeElement.id === 'fam-q', pos = keep ? document.activeElement.selectionStart : 0;
+    host.innerHTML = html;
+    host.querySelectorAll('input[data-fam-group]').forEach(function (cb) { var g = cb.getAttribute('data-fam-group'), l = M.items.filter(function (x) { return x.g === g; }), k = l.filter(function (x) { return M.on(x.id); }).length; cb.indeterminate = k > 0 && k < l.length; });
+    var a = host.querySelector('input[data-fam-all]'); if (a) a.indeterminate = n > 0 && n < M.items.length;
+    if (keep) { var f = document.getElementById('fam-q'); if (f) { f.focus(); try { f.setSelectionRange(pos, pos); } catch (e) { } } }
+  }
+  function side(ids) {
+    if (ids.some(function (i) { return i.indexOf('num') === 0; })) {
+      var anyNum = M.items.some(function (x) { return x.g === 'num' && M.on(x.id); });
+      try { if (!anyNum && window.fosCountSnap) window.fosCountSnap(); else if (anyNum && window.fosCountUpReplay) window.fosCountUpReplay(); } catch (e) { }
     }
   }
-  window.fosAnimToggle = function (k, cb) {
-    if (k === 'all') { ['ui', 'chart', 'count'].forEach(function (x) { set(x, cb.checked); }); after('all'); note('Updated: All animations ' + (cb.checked ? 'On' : 'Off')); return; }
-    set(k, cb.checked); after(k);
-    note('Updated: ' + { ui: 'Interface motion', chart: 'Chart animations', count: 'Number count-up' }[k] + ' ' + (cb.checked ? 'On' : 'Off'));
+  document.addEventListener('change', function (e) {
+    var t = e.target; if (!t || !t.closest || !t.closest('#fos-anim-settings')) return;
+    var id = t.getAttribute('data-fam-item'), g = t.getAttribute('data-fam-group');
+    if (id) { M.set(id, t.checked); note('Updated: ' + M.items.filter(function (x) { return x.id === id; })[0].t + ' ' + (t.checked ? 'On' : 'Off')); side([id]); }
+    else if (g) { var ids = M.items.filter(function (x) { return x.g === g; }).map(function (x) { return x.id; }); M.setMany(ids, t.checked); note('Updated: ' + M.groups.filter(function (x) { return x.id === g; })[0].t + ' ' + (t.checked ? 'On' : 'Off')); side(ids); }
+    else if (t.hasAttribute('data-fam-all')) { M.setMany(M.items.map(function (x) { return x.id; }), t.checked); note('Updated: All animations ' + (t.checked ? 'On' : 'Off')); side(['num']); }
+    else return;
+    render();
+  });
+  document.addEventListener('click', function (e) {
+    var t = e.target; if (!t || !t.closest || !t.closest('#fos-anim-settings')) return;
+    if (t.closest('.toggle-switch')) return;
+    var h = t.closest('[data-fam-head]'); if (h) { var g = h.getAttribute('data-fam-head'); open[g] = !open[g]; render(); return; }
+    if (t.closest('[data-fam-reset]')) { M.reset(); note('Animations reset to defaults'); side(['num']); render(); }
+  });
+  document.addEventListener('input', function (e) { if (e.target && e.target.id === 'fam-q') { q = e.target.value; render(); } });
+  var o = window.switchSettingsTab; if (typeof o === 'function') window.switchSettingsTab = function () { var r = o.apply(this, arguments); try { render(); } catch (e) { } return r; };
+  window.addEventListener('load', function () { M.apply(); render(); setTimeout(render, 800); });
+  document.addEventListener('DOMContentLoaded', render);
+})();
+</script>
+
+<script id="fos-protect">
+/*! © 2026 MC Enterprise. All rights reserved. FinanceOS & PortfolioOS: source code, design and content are proprietary. Copying, scraping, reproducing, reverse engineering or redistributing any part of this application without written permission is prohibited. */
+(function () {
+  var KEY = 'fos_set_code-protect';
+  /* Optional domain lock: list the hostnames this app may run on, e.g. ['app.yourdomain.com']. Empty = no lock. A copy hosted elsewhere will then refuse to start. */
+  var ALLOWED_HOSTS = [];
+  function level() { try { var v = localStorage.getItem(KEY); return v === 'off' || v === 'strict' ? v : 'standard'; } catch (e) { return 'standard'; } }
+  function editable(t) { return !!(t && t.closest && t.closest('input,textarea,select,[contenteditable="true"]')); }
+  try {
+    console.log('%cStop!', 'color:#ef4444;font-size:34px;font-weight:800');
+    console.log('%c\u00A9 2026 MC Enterprise. All rights reserved.\nThis application is proprietary. Copying, scraping or redistributing its code or content is prohibited. Never paste anything here that someone else gave you: it can steal your data.', 'font-size:13px;line-height:1.5');
+  } catch (e) { }
+  try {                                                               // domain lock
+    var h = location.hostname;
+    if (ALLOWED_HOSTS.length && location.protocol !== 'file:' && h !== 'localhost' && h !== '127.0.0.1' && ALLOWED_HOSTS.indexOf(h) < 0) {
+      document.documentElement.innerHTML = '<body style="font-family:sans-serif;background:#0b1120;color:#e2e8f0;display:flex;align-items:center;justify-content:center;height:100vh;margin:0;text-align:center"><div><h2>Unauthorised copy</h2><p>This application is not licensed to run on this website.</p></div></body>';
+      return;
+    }
+  } catch (e) { }
+  try { if (window.top !== window.self && ALLOWED_HOSTS.length) window.top.location = window.self.location; } catch (e) { }   // no embedding in other sites
+  document.addEventListener('contextmenu', function (e) { if (level() !== 'off' && !editable(e.target)) e.preventDefault(); }, true);
+  document.addEventListener('keydown', function (e) {
+    if (level() === 'off') return;
+    var k = (e.key || '').toLowerCase(), c = e.ctrlKey || e.metaKey;
+    if (k === 'f12' || (c && e.shiftKey && (k === 'i' || k === 'j' || k === 'c')) || (c && (k === 'u' || k === 's')) || (e.metaKey && e.altKey && (k === 'i' || k === 'u' || k === 'j' || k === 'c'))) { e.preventDefault(); e.stopPropagation(); }
+  }, true);
+  /* strict: when developer tools are docked open on a desktop screen, the app is covered until they are closed */
+  var cover = null;
+  function check() {
+    var strict = level() === 'strict', desk = false;
+    try { desk = matchMedia('(pointer:fine)').matches && window.innerWidth > 900; } catch (e) { }
+    var open = strict && desk && (window.outerWidth - window.innerWidth > 170 || window.outerHeight - window.innerHeight > 210);
+    if (open && !cover) {
+      cover = document.createElement('div');
+      cover.style.cssText = 'position:fixed;inset:0;z-index:2147483647;background:rgba(11,17,32,.97);color:#e2e8f0;display:flex;align-items:center;justify-content:center;text-align:center;font-family:sans-serif;padding:24px';
+      cover.innerHTML = '<div><div style="font-size:1.3rem;font-weight:800;margin-bottom:8px">Developer tools detected</div><div style="opacity:.8;font-size:.9rem">Close them to continue using FinanceOS.<br>\u00A9 2026 MC Enterprise. All rights reserved.</div></div>';
+      document.body.appendChild(cover);
+    } else if (!open && cover) { cover.remove(); cover = null; }
+  }
+  setInterval(check, 1000); window.addEventListener('resize', check);
+  /* settings: Privacy & Updates → Code protection level */
+  window.fosProtectLevel = level;
+  window.fosProtectSet = function (v) {
+    try { localStorage.setItem(KEY, v); } catch (e) { }
+    check(); sync();
+    try { if (typeof showSettingsToast === 'function') showSettingsToast('Updated: Code protection ' + v.charAt(0).toUpperCase() + v.slice(1)); } catch (e) { }
   };
+  function sync() { var s = document.getElementById('fos-protect-sel'); if (s) s.value = level(); var d = document.getElementById('fos-protect-desc'); if (d) d.textContent = { off: 'No protection. Right-click, F12 and View Source behave normally.', standard: 'Blocks right-click and the F12, Ctrl+U, Ctrl+S and inspect shortcuts. Stops casual copying.', strict: 'Standard, plus the app is covered while developer tools are open on desktop. Can annoy you if you debug it yourself.' }[level()]; }
+  window.addEventListener('load', sync); document.addEventListener('DOMContentLoaded', sync);
   var o = window.switchSettingsTab; if (typeof o === 'function') window.switchSettingsTab = function () { var r = o.apply(this, arguments); try { sync(); } catch (e) { } return r; };
-  window.addEventListener('load', function () { M.apply(); sync(); setTimeout(sync, 800); });
-  document.addEventListener('DOMContentLoaded', sync);
 })();
 </script>
 
@@ -40567,7 +40769,8 @@ body.light-mode .fos-np{background:#fff;color:#0f172a;box-shadow:0 8px 30px rgba
   function put(n, st, txt) { st.w = txt; if (n.nodeValue !== txt) n.nodeValue = txt; }
   function cls(el) { return el.getAttribute ? (el.getAttribute('class') || '') : ''; }
 
-  function play(n, force, prevTxt, vis) {
+  function numType(par) { return par.closest('svg') ? 'gauge' : (par.closest('td,th,tr,li,table') ? 'table' : 'kpi'); }
+  function play(n, force, prevTxt, vis, trig) {
     if (!N.enabled() || !n.isConnected) return;
     var st = n.__cu, cur = n.nodeValue, txt = (st && st.w != null && cur === st.w) ? st.fin : cur, P = N.parse(txt);
     if (!st) st = n.__cu = { fin: txt, w: null };
@@ -40575,6 +40778,8 @@ body.light-mode .fos-np{background:#fff;color:#0f172a;box-shadow:0 8px 30px rgba
     var par = n.parentElement; if (!par) return;
     var wasAct = act.has(n), curShown = st.w;
     st.fin = txt;
+    var MM = window.FosMotion;
+    if (MM && (!MM.on('num-' + (trig || 'open')) || !MM.on('num-' + numType(par)))) { act.delete(n); put(n, st, txt); return; }
     if (vis === undefined) vis = inView(par);
     if (!vis) { act.delete(n); put(n, st, txt); par.__cuWait = 1; observe(par); return; }
     var key = cls(par) + '|' + txt, now = performance.now();
@@ -40586,9 +40791,9 @@ body.light-mode .fos-np{background:#fff;color:#0f172a;box-shadow:0 8px 30px rgba
     act.add(n); par.classList && par.classList.add('fos-cu'); observe(par);
     put(n, st, N.build(P, 0, fv)); schedule();
   }
-  function playMany(arr, force) {
+  function playMany(arr, force, trig) {
     var vis = arr.map(function (a) { var p = a[0].parentElement; return !!p && inView(p); });
-    arr.forEach(function (a, i) { try { play(a[0], force, a[1], vis[i]); } catch (e) { } });
+    arr.forEach(function (a, i) { try { play(a[0], force, a[1], vis[i], trig); } catch (e) { } });
   }
   function schedule() { if (!tickId && act.size) tickId = requestAnimationFrame(loop); }
   function loop(now) {
@@ -40614,7 +40819,7 @@ body.light-mode .fos-np{background:#fff;color:#0f172a;box-shadow:0 8px 30px rgba
       if (el.__cuWait || (hid && Date.now() - hid > 800)) {
         el.__cuWait = 0;
         var arr = []; for (var c = el.firstChild; c; c = c.nextSibling) if (c.nodeType === 3 && /\d/.test(c.nodeValue) && inScope(c)) arr.push([c, null]);
-        playMany(arr, true);
+        playMany(arr, true, 'open');
       }
     });
   }
@@ -40624,12 +40829,12 @@ body.light-mode .fos-np{background:#fff;color:#0f172a;box-shadow:0 8px 30px rgba
     if (!window.Chart || !Chart.getChart || !N.kick || !root.querySelectorAll) return;
     root.querySelectorAll('canvas').forEach(function (c) { var ch = Chart.getChart(c); if (ch) N.kick(ch); });
   }
-  function replay(root) {
+  function replay(root, trig) {
     if (!root || !N.enabled()) return;
     var now = performance.now();
     var nodes = collect(root).filter(function (n) { var s = n.__cu; return !(s && act.has(n) && now - s.t0 < 250); });
-    playMany(nodes.map(function (n) { return [n, null]; }), true);
-    kickCharts(root);
+    playMany(nodes.map(function (n) { return [n, null]; }), true, trig || 'open');
+    if (!window.FosMotion || (FosMotion.on('num-' + (trig || 'open')) && FosMotion.on('num-chartlabel'))) kickCharts(root);
   }
   function containerOf(el) {
     for (var e = el; e && e.nodeType === 1; e = e.parentElement) {
@@ -40641,7 +40846,7 @@ body.light-mode .fos-np{background:#fff;color:#0f172a;box-shadow:0 8px 30px rgba
   function hit(el) {
     var c = containerOf(el); if (!c) return;
     var now = Date.now(); if (c.__cuT && now - c.__cuT < 450) return; c.__cuT = now;
-    replay(c);
+    replay(c, 'hover');
   }
   document.addEventListener('pointerdown', function (e) { if (e.pointerType === 'touch' || e.pointerType === 'pen') lastTouch = Date.now(); }, true);
   document.addEventListener('mouseover', function (e) {
@@ -40656,7 +40861,7 @@ body.light-mode .fos-np{background:#fff;color:#0f172a;box-shadow:0 8px 30px rgba
     var vo = new MutationObserver(function (ms) {
       ms.forEach(function (m) {
         var el = m.target, on = el.classList.contains('active');
-        if (on && !el.__cuOn) setTimeout(function () { replay(el); }, 120);
+        if (on && !el.__cuOn) setTimeout(function () { replay(el, 'open'); }, 120);
         el.__cuOn = on;
       });
     });
@@ -40689,7 +40894,7 @@ body.light-mode .fos-np{background:#fff;color:#0f172a;box-shadow:0 8px 30px rgba
   try { new MutationObserver(function () { if (document.body.classList.contains('pdf-export-mode')) snapAll(); }).observe(document.body, { attributes: true, attributeFilter: ['class'] }); } catch (e) { }
   window.addEventListener('beforeprint', snapAll);                                  // never print or export a half-counted number
   window.fosCountSnap = snapAll;
-  window.fosCountUpReplay = function () { document.querySelectorAll('.view-section.active').forEach(replay); };
+  window.fosCountUpReplay = function () { document.querySelectorAll('.view-section.active').forEach(function (v) { replay(v, 'open'); }); };
   window.addEventListener('load', function () {
     setTimeout(function () {
       var arr = []; document.querySelectorAll('.view-section.active').forEach(function (v) { collect(v).forEach(function (n) { if (!n.__cu) arr.push([n, null]); }); });
