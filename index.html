@@ -33857,6 +33857,14 @@ body.light-mode .txn-analytics-overlay{--txa-panel:linear-gradient(145deg,rgba(2
 .txn-analytics-overlay.txa-open .txn-analytics-modal{transform:none;opacity:1}
 .txn-analytics-modal::before{content:"";position:absolute;top:-120px;right:-80px;width:420px;height:320px;border-radius:50%;background:radial-gradient(circle,rgba(var(--brand-rgb,32,205,181),.16),transparent 70%);pointer-events:none}
 @media (prefers-reduced-motion:reduce){.txn-analytics-overlay,.txn-analytics-modal{transition:none}}
+/* Smooth open: the modal animates first, heavy content renders after, then fades in */
+.txn-analytics-modal{will-change:transform,opacity}
+.txn-analytics-modal .txa-body,.txn-analytics-modal .txa-controls,.txn-analytics-modal .txa-sub{transition:opacity .38s ease}
+.txn-analytics-modal:not(.txa-ready) .txa-body,.txn-analytics-modal:not(.txa-ready) .txa-controls,.txn-analytics-modal:not(.txa-ready) .txa-sub{opacity:0}
+.txn-analytics-modal::after{content:"";position:absolute;left:50%;top:56%;width:30px;height:30px;margin:-15px 0 0 -15px;border-radius:50%;border:3px solid rgba(var(--brand-rgb,32,205,181),.2);border-top-color:var(--brand,#20CDB5);animation:txaSpin .8s linear infinite;opacity:0;pointer-events:none;transition:opacity .2s ease}
+.txn-analytics-modal:not(.txa-ready)::after{opacity:1}
+@keyframes txaSpin{to{transform:rotate(360deg)}}
+@media (prefers-reduced-motion:reduce){.txn-analytics-modal .txa-body,.txn-analytics-modal .txa-controls,.txn-analytics-modal .txa-sub{transition:none}}
 
 /* ── Header ── */
 .txa-head{position:relative;display:grid;grid-template-columns:auto minmax(0,1fr) auto;grid-template-areas:"title controls close";align-items:center;gap:14px 18px;padding:18px 22px 14px;border-bottom:1px solid var(--txa-border);flex:0 0 auto}
@@ -34369,7 +34377,7 @@ body.light-mode .txa-badge.det{color:#6d28d9}
   var OTHERS = '__txa_others__', OTHERS_COLOR = '#64748b';
   var RANGES = [['this','This Month'],['last','Last Month'],['3','Last 3 Months'],['6','Last 6 Months'],['12','Last 12 Months'],['all','All Time'],['custom','Custom Date Range']];
 
-  var st = { open:false, key:'this', from:'', to:'', sel:null, sig:'', timer:null, lastFocus:null, charts:{}, data:null, downOnOverlay:false };
+  var st = { open:false, key:'this', from:'', to:'', sel:null, sig:'', timer:null, lastFocus:null, charts:{}, data:null, downOnOverlay:false, tail:[], stagger:false, boot:0 };
 
   function $(id) { return document.getElementById(id); }
   function esc(s) { return typeof _esc === 'function' ? _esc(s) : String(s == null ? '' : s).replace(/[&<>"']/g, function (c) { return ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'})[c]; }); }
@@ -34645,6 +34653,7 @@ body.light-mode .txa-badge.det{color:#6d28d9}
     try {
       if (st.charts[key]) { st.charts[key].destroy(); delete st.charts[key]; }
       var ex = Chart.getChart ? Chart.getChart(cv) : null; if (ex) ex.destroy();
+      if (window.__txaQuiet) { cfg.options = cfg.options || {}; cfg.options.animation = false; }
       st.charts[key] = new Chart(cv.getContext('2d'), cfg);
       return st.charts[key];
     } catch (e) { console.error('Transaction analytics chart failed (' + key + '):', e); return null; }
@@ -34887,27 +34896,49 @@ body.light-mode .txa-badge.det{color:#6d28d9}
 
     renderLegend(); renderInspector(false);
     drawCharts(A, range, W);
-    try { if (window.txaAdvRender) window.txaAdvRender(st.data); } catch (e) { console.error("Advanced analytics failed:", e); }
-    try { if (window.txaRecvRender) window.txaRecvRender(st.data); } catch (e) { console.error("Receivables analytics failed:", e); }
+    var runAdv = function () { try { if (window.txaAdvRender) window.txaAdvRender(st.data); } catch (e) { console.error("Advanced analytics failed:", e); } };
+    var runRecv = function () { try { if (window.txaRecvRender) window.txaRecvRender(st.data); } catch (e) { console.error("Receivables analytics failed:", e); } };
+    if (st.stagger) { st.tail.push(runAdv, runRecv); } else { runAdv(); runRecv(); }
   }
 
   /* ───────────── open / close ───────────── */
   var ov, closeBtn;
+  function reveal() {
+    window.__txaQuiet = false;
+    var m = $('txn-analytics-modal'); if (m) m.classList.add('txa-ready');
+    try { Object.keys(st.charts).forEach(function (k) { try { st.charts[k].resize(); } catch (e) {} }); } catch (e) {}
+    try { if (closeBtn) closeBtn.focus({ preventScroll: true }); } catch (e) {}
+  }
+  function runTail(i) {
+    if (!st.open) return;
+    var f = st.tail[i];
+    if (!f) { reveal(); return; }
+    setTimeout(function () { if (!st.open) return; try { f(); } catch (e) { console.error(e); } runTail(i + 1); }, 16);
+  }
   function open() {
     if (st.open) return;
     if (typeof activeView !== 'undefined' && activeView !== 'transactions') return;
     ov = ov || $('txn-analytics-overlay'); closeBtn = closeBtn || $('txa-close');
     st.open = true; st.lastFocus = document.activeElement;
+    var modal = $('txn-analytics-modal'); if (modal) modal.classList.remove('txa-ready');
     ov.classList.add('txa-show'); ov.setAttribute('aria-hidden', 'false');
     document.body.classList.add('txn-analytics-open');
-    try { renderAll(); } catch (e) { console.error('Transaction analytics render failed:', e); }
+    /* 1) start the open animation immediately — nothing heavy runs before the first frame */
     requestAnimationFrame(function () { requestAnimationFrame(function () { ov.classList.add('txa-open'); }); });
-    setTimeout(function () { if (!st.open) return; Object.keys(st.charts).forEach(function (k) { try { st.charts[k].resize(); } catch (e) {} }); try { closeBtn.focus({ preventScroll: true }); } catch (e) {} }, 340);
+    /* 2) once the modal has settled, build the content (charts drawn without animation), then fade it in */
+    clearTimeout(st.boot);
+    st.boot = setTimeout(function () {
+      if (!st.open) return;
+      window.__txaQuiet = true; st.tail = []; st.stagger = true;
+      try { renderAll(); } catch (e) { console.error('Transaction analytics render failed:', e); }
+      st.stagger = false;
+      runTail(0);
+    }, 340);
     clearInterval(st.timer); st.timer = setInterval(poll, 1200);
   }
   function close() {
     if (!st.open) return;
-    st.open = false; clearInterval(st.timer);
+    st.open = false; clearInterval(st.timer); clearTimeout(st.boot); window.__txaQuiet = false; st.stagger = false;
     ov.classList.remove('txa-open');
     setTimeout(function () {
       if (st.open) return;
@@ -35104,7 +35135,7 @@ body.light-mode .txa-advhead h2 i{color:#0f766e}
   function destroy() { Object.keys(ch).forEach(function (k) { try { ch[k].destroy(); } catch (e) {} delete ch[k]; }); }
   function mk(k, id, cfg) {
     var c = $(id); if (!c || typeof Chart === 'undefined') return;
-    try { if (ch[k]) { ch[k].destroy(); delete ch[k]; } var ex = Chart.getChart ? Chart.getChart(c) : null; if (ex) ex.destroy(); ch[k] = new Chart(c.getContext('2d'), cfg); }
+    try { if (ch[k]) { ch[k].destroy(); delete ch[k]; } var ex = Chart.getChart ? Chart.getChart(c) : null; if (ex) ex.destroy(); if (window.__txaQuiet) { cfg.options = cfg.options || {}; cfg.options.animation = false; } ch[k] = new Chart(c.getContext('2d'), cfg); }
     catch (e) { console.error('Advanced analytics chart failed (' + k + '):', e); }
   }
   function axes(h, stk) {
@@ -35378,7 +35409,7 @@ body.light-mode .txa-advhead h2 i{color:#0f766e}
   function destroy() { Object.keys(ch).forEach(function (k) { try { ch[k].destroy(); } catch (e) {} delete ch[k]; }); }
   function mk(k, id, cfg) {
     var c = $(id); if (!c || typeof Chart === 'undefined') return;
-    try { if (ch[k]) { ch[k].destroy(); delete ch[k]; } var ex = Chart.getChart ? Chart.getChart(c) : null; if (ex) ex.destroy(); ch[k] = new Chart(c.getContext('2d'), cfg); }
+    try { if (ch[k]) { ch[k].destroy(); delete ch[k]; } var ex = Chart.getChart ? Chart.getChart(c) : null; if (ex) ex.destroy(); if (window.__txaQuiet) { cfg.options = cfg.options || {}; cfg.options.animation = false; } ch[k] = new Chart(c.getContext('2d'), cfg); }
     catch (e) { console.error('Receivables chart failed (' + k + '):', e); }
   }
   function opts(h, legend) {
