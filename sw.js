@@ -5,7 +5,8 @@
    - Never touches cross-origin requests (Supabase, CDNs, fonts): they go straight to the network.
    - Receives push messages from the server and shows them even when the app is closed.
    - Opens/focuses the app when a notification is tapped. */
-const CACHE = 'financeos-shell-v3';
+const CACHE = 'financeos-shell-v4';
+const ACK_URL = 'https://fvkzhydshoklketmfqzz.supabase.co/functions/v1/push-ack';   // delivery confirmation, no auth data sent
 
 self.addEventListener('install', e => {
   e.waitUntil(
@@ -43,8 +44,10 @@ self.addEventListener('notificationclick', e => {
   const target = (e.notification.data && e.notification.data.url) || './';
   e.waitUntil(
     self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then(list => {
-      for (const c of list) { if ('focus' in c) return c.focus(); }
-      return self.clients.openWindow(target);
+      for (const c of list) {
+        if ('focus' in c) { c.postMessage({ type: 'push-open', url: target }); return c.focus(); }   // app routes to the section; sign-in / app lock still apply
+      }
+      return self.clients.openWindow(target);                                                     // cold start: app reads #n=… after it unlocks
     })
   );
 });
@@ -54,13 +57,17 @@ self.addEventListener('push', e => {
   let d = {};
   try { d = e.data ? e.data.json() : {}; } catch (x) { d = { title: 'FinanceOS', body: e.data ? e.data.text() : '' }; }
   const title = d.title || 'FinanceOS';
-  e.waitUntil(self.registration.showNotification(title, {
-    body: d.body || '',
-    tag: d.tag || undefined,
-    icon: 'icon-192.png',
-    badge: 'icon-192.png',
-    data: { url: d.url || './' }
-  }));
+  e.waitUntil(Promise.all([
+    self.registration.showNotification(title, {
+      body: d.body || '',
+      tag: d.tag || undefined,
+      icon: 'icon-192.png',
+      badge: 'icon-192.png',
+      data: { url: d.url || './', id: d.id || null, category: d.category || null }
+    }),
+    // tell the server this device really received it (queue id only, no tokens)
+    d.id ? fetch(ACK_URL, { method: 'POST', headers: { 'Content-Type': 'text/plain' }, body: JSON.stringify({ id: d.id }), keepalive: true }).catch(() => {}) : null
+  ]));
 });
 
 /* If the phone rotates the push subscription, tell the app to re-save it next time it opens. */
