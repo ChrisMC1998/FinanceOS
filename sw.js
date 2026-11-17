@@ -3,13 +3,14 @@
    - Network-first for the app's own files, so every update you deploy shows up
      immediately; the cache is only a fallback when you are offline.
    - Never touches cross-origin requests (Supabase, CDNs, fonts): they go straight to the network.
+   - Receives push messages from the server and shows them even when the app is closed.
    - Opens/focuses the app when a notification is tapped. */
-const CACHE = 'financeos-shell-v1';
+const CACHE = 'financeos-shell-v3';
 
 self.addEventListener('install', e => {
   e.waitUntil(
     caches.open(CACHE)
-      .then(c => c.addAll(['./', './manifest.webmanifest', './icons/icon-192.png', './icons/icon-512.png']).catch(() => {}))
+      .then(c => c.addAll(['./', './manifest.webmanifest', './icon-192.png', './icon-512.png']).catch(() => {}))
       .then(() => self.skipWaiting())
   );
 });
@@ -46,4 +47,23 @@ self.addEventListener('notificationclick', e => {
       return self.clients.openWindow(target);
     })
   );
+});
+
+/* ── BACKGROUND PUSH: arrives from the send-push server even when the app is closed ── */
+self.addEventListener('push', e => {
+  let d = {};
+  try { d = e.data ? e.data.json() : {}; } catch (x) { d = { title: 'FinanceOS', body: e.data ? e.data.text() : '' }; }
+  const title = d.title || 'FinanceOS';
+  e.waitUntil(self.registration.showNotification(title, {
+    body: d.body || '',
+    tag: d.tag || undefined,
+    icon: 'icon-192.png',
+    badge: 'icon-192.png',
+    data: { url: d.url || './' }
+  }));
+});
+
+/* If the phone rotates the push subscription, tell the app to re-save it next time it opens. */
+self.addEventListener('pushsubscriptionchange', e => {
+  e.waitUntil(self.clients.matchAll({ includeUncontrolled: true }).then(list => list.forEach(c => c.postMessage({ type: 'push-resubscribe' }))));
 });
