@@ -9237,7 +9237,7 @@ function passAppLockGate() {
             #credit-reg-table td { padding: 8px 4px !important; font-size: 0.72rem !important; white-space: nowrap !important; }
             #credit-reg-table .badge { padding: 2px 6px !important; font-size: 0.62rem !important; }
           </style>
-          <table class="port-table" id="credit-reg-table" style="width: 100%;">
+          <table class="port-table" id="credit-reg-table" data-no-count style="width: 100%;">
             <thead>
               <tr>
                 <th onclick="sortCreditTable('lenderName')">Lender / Card Name <span class="sort-arrow">↕</span></th>
@@ -24898,7 +24898,7 @@ function renderCreditIntel() {
     const col = loss === 0 ? '#34d399' : ratio > 0.6 ? '#f43f5e' : ratio > 0.3 ? '#fbbf24' : '#60a5fa';
     return '<div class="cin-fac"><div class="cin-fac-row"><span>' + label + '</span><span style="color:' + col + '">' + (loss === 0 ? 'OK' : '-' + loss) + '</span></div>'
       + '<div class="cin-track"><i style="--c:' + col + ';width:' + (loss === 0 ? 100 : Math.max(6, ratio * 100)) + '%"></i></div>'
-      + '<div class="cin-fac-note">' + note + '</div></div>';
+      + '<div class="cin-fac-note" data-no-count>' + note + '</div></div>';
   };
 
   const scoreHtml = '<div class="glass-panel cin-score">'
@@ -24918,14 +24918,14 @@ function renderCreditIntel() {
   const freeDate = A.monthsToFree > 0 ? new Date(new Date().getFullYear(), new Date().getMonth() + A.monthsToFree - 1, 1).toLocaleString('en-IN', { month:'short', year:'numeric' }) : '-';
   const badEmi = A.byV.bad + A.byV.waste;
   const foirCol = A.foir === null ? 'var(--text-muted)' : A.foir > 50 ? '#f43f5e' : A.foir > 40 ? '#f97316' : A.foir > 30 ? '#fbbf24' : '#34d399';
-  const tile = (l, v, s, col) => '<div class="cin-tile"><div class="l">' + l + '</div><div class="v" style="color:' + col + '">' + v + '</div><div class="s">' + s + '</div></div>';
+  const tile = (l, v, s, col, nc) => '<div class="cin-tile"' + (nc ? ' data-no-count' : '') + '><div class="l">' + l + '</div><div class="v" style="color:' + col + '">' + v + '</div><div class="s">' + s + '</div></div>';
   const tilesHtml = '<div class="cin-tiles">'
     + tile('EMI to income', A.foir === null ? '-' : A.foir.toFixed(0) + '%', A.foir === null ? 'Add income entries' : 'of income. Safe limit is 40%', foirCol)
     + tile('Interest every month', fmt(A.totalInt), fmt(A.totalInt * 12) + ' a year', '#f43f5e')
     + tile('Avg interest rate', A.wRate.toFixed(1) + '%', 'weighted by what you owe', A.wRate > 24 ? '#f43f5e' : A.wRate > 14 ? '#f97316' : '#34d399')
     + tile('Interest still to pay', fmt(A.intLeftTotal), 'approx. over the remaining tenure', '#fbbf24')
     + tile('Bad + unnecessary', fmt(badEmi) + '/mo', (A.totalEmi ? Math.round(badEmi / A.totalEmi * 100) : 0) + '% of your EMIs', badEmi > 0 ? '#f97316' : '#34d399')
-    + tile('Debt-free by', A.anyNever ? 'Not on track' : freeDate, A.anyNever ? 'an EMI does not cover its interest' : cinMonthsText(A.monthsToFree) + ' from now (at current EMIs)', A.anyNever ? '#f43f5e' : '#a78bfa')
+    + tile('Debt-free by', A.anyNever ? 'Not on track' : freeDate, A.anyNever ? 'an EMI does not cover its interest' : cinMonthsText(A.monthsToFree) + ' from now (at current EMIs)', A.anyNever ? '#f43f5e' : '#a78bfa', true)
     + '</div>';
 
   // EMI verdict mix + cards
@@ -24943,17 +24943,17 @@ function renderCreditIntel() {
     const tot = r.intPart + r.prinPart;
     const split = tot > 0
       ? '<div><div class="cin-split"><i class="i" style="width:' + (r.intPart / tot * 100) + '%"></i><i class="p" style="width:' + (r.prinPart / tot * 100) + '%"></i></div>'
-        + '<div class="cin-cap"><span>Interest <b>' + fmt(r.intPart) + '</b></span><span>Reduces debt <b>' + fmt(r.prinPart) + '</b></span></div></div>'
+        + '<div class="cin-cap" data-no-count><span>Interest <b>' + fmt(r.intPart) + '</b></span><span>Reduces debt <b>' + fmt(r.prinPart) + '</b></span></div></div>'
       : '';
     return '<div class="cin-card" style="--c:' + V.color + '">'
       + '<div class="cin-card-h"><div style="min-width:0"><div class="cin-card-n" title="' + _esc(r.c.lenderName) + '">' + _esc(r.c.lenderName) + '</div>'
-      + '<div class="cin-meta">' + _esc(r.c.type) + ' &middot; ' + r.rate + '% &middot; EMI ' + fmt(r.E) + '</div></div>'
+      + '<div class="cin-meta" data-no-count>' + _esc(r.c.type) + ' &middot; ' + r.rate + '% &middot; EMI ' + fmt(r.E) + '</div></div>'
       + '<span class="cin-chip" style="--c:' + V.color + '"><i class="fas ' + V.icon + '"></i>' + V.label + '</span></div>'
-      + '<div class="cin-why">' + r.v.why + '</div>'
+      + '<div class="cin-why" data-no-count>' + r.v.why + '</div>'
       + split
       + '<div class="cin-facts"><div><small>Outstanding</small><b>' + fmt(r.P) + '</b></div><div><small>Months left</small><b>' + cinMonthsText(r.n) + '</b></div><div><small>Interest left</small><b>' + (r.intLeft === null ? '-' : fmt(r.intLeft)) + '</b></div></div>'
       + '<label class="cin-pur"><span>Purpose</span><select onchange="setCreditPurpose(' + r.c.id + ',this.value)">' + opts + '</select></label>'
-      + (sel === 'auto' ? '<div class="cin-det">Auto-detected as ' + CIN_CLASS_LABEL[r.pc.cls] + '. Change the purpose if that is wrong.</div>' : '')
+      + (sel === 'auto' ? '<div class="cin-det" data-no-count>Auto-detected as ' + CIN_CLASS_LABEL[r.pc.cls] + '. Change the purpose if that is wrong.</div>' : '')
       + '</div>';
   }).join('');
   const verdictHtml = '<div class="glass-panel"><div class="panel-title" style="color:#f97316">EMI Verdicts: Good, Bad or Unnecessary</div>'
@@ -24973,22 +24973,22 @@ function renderCreditIntel() {
         return '<div class="cin-leak-row" style="--c:' + V.color + '"><div class="cin-rank">' + (i + 1) + '</div><div style="min-width:0">'
           + '<div class="cin-leak-top"><span>' + _esc(r.c.lenderName) + '</span><span>' + fmt(o.x) + '/mo</span></div>'
           + '<div class="cin-track"><i style="width:' + Math.max(4, o.x / maxX * 100) + '%"></i></div>'
-          + '<div class="cin-leak-cap">' + r.rate + '% on ' + fmt(r.P) + ' &middot; total interest ' + fmt(r.monthlyInt) + '/mo &middot; ' + Math.round(o.x / totalX * 100) + '% of avoidable</div></div></div>';
-      }).join('') + (leakRows.length > 6 ? '<div class="cin-leak-cap">+' + (leakRows.length - 6) + ' more costly accounts</div>' : '')
-      + (cheap.length ? '<div class="cin-leak-cap">Low-cost debt (' + cinNames(cheap) + ') costs ' + fmt(cheap.reduce((s, r) => s + r.monthlyInt, 0)) + '/mo in interest, but it is not the problem.</div>' : '') + '</div>'
+          + '<div class="cin-leak-cap" data-no-count>' + r.rate + '% on ' + fmt(r.P) + ' &middot; total interest ' + fmt(r.monthlyInt) + '/mo &middot; ' + Math.round(o.x / totalX * 100) + '% of avoidable</div></div></div>';
+      }).join('') + (leakRows.length > 6 ? '<div class="cin-leak-cap" data-no-count>+' + (leakRows.length - 6) + ' more costly accounts</div>' : '')
+      + (cheap.length ? '<div class="cin-leak-cap" data-no-count>Low-cost debt (' + cinNames(cheap) + ') costs ' + fmt(cheap.reduce((s, r) => s + r.monthlyInt, 0)) + '/mo in interest, but it is not the problem.</div>' : '') + '</div>'
     : '<div class="cin-empty">None of your debt costs much above a fair ' + FAIR + '% rate.</div>';
   const payOrder = A.rows.filter(r => r.rate > 0 && r.P > 0).sort((a, b) => b.rate - a.rate || a.P - b.P).slice(0, 6);
   const orderHtml = payOrder.length > 1
     ? '<div class="cin-order-h">Suggested payoff order (costliest first)</div><div class="cin-order">'
       + payOrder.map((r, i) => (i ? '<span class="cin-arrow">&rsaquo;</span>' : '') + '<span class="cin-pill" style="--c:' + CIN_V[r.v.k].color + '"><b>' + (i + 1) + '</b>' + _esc(r.c.lenderName) + ' <em>' + r.rate + '%</em></span>').join('')
-      + '</div><div class="cin-leak-cap" style="margin-top:8px">Keep paying every EMI on time, put any extra money on #1, and when it closes add its EMI to #2.</div>'
+      + '</div><div class="cin-leak-cap" data-no-count style="margin-top:8px">Keep paying every EMI on time, put any extra money on #1, and when it closes add its EMI to #2.</div>'
     : '';
   const dragHtml = '<div class="glass-panel"><div class="panel-title" style="color:#f97316">What Is Dragging You Down</div>'
     + '<div class="cin-sub">Interest above a fair ' + FAIR + '% rate is what a cheaper loan or early closure would save. ' + (totalX > 0 ? 'Avoidable now: ' + fmt(totalX) + ' a month (' + fmt(totalX * 12) + ' a year).' : '') + '</div>' + leakHtml + orderHtml + '</div>';
 
   const ins = cinInsights(A);
   const insHtml = '<div class="glass-panel"><div class="panel-title" style="color:#f97316">Smart Actions</div>'
-    + '<div class="cin-sub">What to do about it, most important first.</div><div class="cin-ins">'
+    + '<div class="cin-sub">What to do about it, most important first.</div><div class="cin-ins" data-no-count>'
     + ins.map(o => '<div class="cin-ins-i" style="--c:' + CIN_SEV[o.sev].c + '"><div class="ic"><i class="fas ' + CIN_SEV[o.sev].i + '"></i></div><div><div class="t">' + o.title + '</div><div class="d">' + o.text + '</div></div></div>').join('')
     + '</div></div>';
 
