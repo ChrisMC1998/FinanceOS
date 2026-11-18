@@ -5514,9 +5514,95 @@ body.light-mode .tv-min-btn:hover { background:#e2e8f0; color:#0f172a; }
 body:not(.light-mode) .pins-tile, body:not(.light-mode) .pins-pl { background: var(--t-inset-bg); border-color: var(--t-border); }
 body:not(.light-mode) .pins-bar { background: rgba(180,220,218,.08); }
 </style>
+<style id="fos-white-outline">
+/* ══════════════════════════════════════════════════════════════════════
+   WHITE LINE OUTLINE — DARK MODE ONLY (FinanceOS + PortfolioOS)
+   Every container (sidebars, top bar, panels, charts, KPI/metric cards)
+   gets a thin white outline. On hover the line brightens and glows white.
+   Backgrounds (incl. the teal/green tint) are NOT touched here.
+   Tune the look from the three tokens below.
+══════════════════════════════════════════════════════════════════════ */
+body:not(.light-mode) {
+  --wo-line:        rgba(255,255,255,0.24);   /* resting outline        */
+  --wo-line-hover:  rgba(255,255,255,0.92);   /* hover outline          */
+  --wo-glow:        0 0 0 1px rgba(255,255,255,0.45), 0 0 22px rgba(255,255,255,0.20);
+}
+
+/* 1 ─ Resting outline: cards, panels, chart containers */
+html body:not(.light-mode) :is(.glass-panel, .finai-panel, .cc-panel-box, .finai-score-card, .kpi-card, .port-kpi-card, .nw-card, .credit-kpi-card, .spark-card, .insight-kpi-card, .game-card, .market-card, .ins-kpi-card, .ins-expiry-card, .insight-rec-card, .nw-milestone, .finai-mini-stat, .finai-strat, .cin-tile, .ins-card, .sub-card, .emi-card, .cca-sum-card, .set-card, .cca-panel, .cca-strategy-card, .note-card, .notes-list-pane, .notes-editor-pane, .backup-option-card, .alert-rule-card, .budget-row-v2, .txa-card, .txa-kpi, .txa-sum, .txa-ins, .txa-bi, .sub-analytics-card, .ins-summary-card, .ins-coverage-box, .pins-tile, .pins-pl, .pol-card, .pol-tile, .fa-card, .fa-hub, .fa-ch, .p1-kpi, .p1-sec, .p1-sect, .p1-hl-i, .cc-card-item, .cc-active-detail, .cc-insight-row, .liteai-mini-score, .adm-stat, .fq-card, .fs-card, .ft-card, .budget-alert-item, .sub-bucket):not([style*="border-left"]) {
+  border-color: var(--wo-line) !important;
+}
+html body:not(.light-mode) :is(.glass-panel, .finai-panel, .cc-panel-box, .finai-score-card, .kpi-card, .port-kpi-card, .nw-card, .credit-kpi-card, .spark-card, .insight-kpi-card, .game-card, .market-card, .ins-kpi-card, .ins-expiry-card, .insight-rec-card, .nw-milestone, .finai-mini-stat, .finai-strat, .cin-tile, .ins-card, .sub-card, .emi-card, .cca-sum-card, .set-card, .cca-panel, .cca-strategy-card, .note-card, .notes-list-pane, .notes-editor-pane, .backup-option-card, .alert-rule-card, .budget-row-v2, .txa-card, .txa-kpi, .txa-sum, .txa-ins, .txa-bi, .sub-analytics-card, .ins-summary-card, .ins-coverage-box, .pins-tile, .pins-pl, .pol-card, .pol-tile, .fa-card, .fa-hub, .fa-ch, .p1-kpi, .p1-sec, .p1-sect, .p1-hl-i, .cc-card-item, .cc-active-detail, .cc-insight-row, .liteai-mini-score, .adm-stat, .fq-card, .fs-card, .ft-card, .budget-alert-item, .sub-bucket)[style*="border-left"] {
+  border-top-color: var(--wo-line) !important;
+  border-right-color: var(--wo-line) !important;
+  border-bottom-color: var(--wo-line) !important;
+}
+/* coloured left accent stripe stays; the other three sides go white */
+html body:not(.light-mode) .finai-card,
+  html body:not(.light-mode) .cin-card,
+  html body:not(.light-mode) .cin-ins-i {
+  border-top-color: var(--wo-line) !important;
+  border-right-color: var(--wo-line) !important;
+  border-bottom-color: var(--wo-line) !important;
+}
+/* modals / dialogs / search */
+html body:not(.light-mode) .modal-box,
+  html body:not(.light-mode) .export-modal-box,
+  html body:not(.light-mode) .backup-modal-box,
+  html body:not(.light-mode) .settings-modal-box,
+  html body:not(.light-mode) .login-box,
+  html body:not(.light-mode) .applock-box,
+  html body:not(.light-mode) .search-box,
+  html body:not(.light-mode) .pi-cs-box,
+  html body:not(.light-mode) .txn-analytics-modal {
+  border-color: rgba(255,255,255,0.32) !important;
+}
+
+/* 2 ─ Sidebars + top bar (desktop floating rails) */
+@media (min-width: 901px) {
+  html body:not(.light-mode) .sidebar,
+  html body:not(.light-mode) .port-sidebar,
+  html body:not(.light-mode) .topbar {
+    border-color: var(--wo-line) !important;
+  }
+  html body:not(.light-mode) .sidebar:hover,
+  html body:not(.light-mode) .port-sidebar:hover,
+  html body:not(.light-mode) .topbar:hover {
+    border-color: var(--wo-line-hover) !important;
+    box-shadow:
+      inset 0 1px 0 rgba(67,224,204,0.22),
+      inset 0 -1px 0 rgba(0,0,0,0.40),
+      0 20px 48px rgba(0,0,0,0.60),
+      0 4px 12px rgba(0,0,0,0.38),
+      0 0 0 1px rgba(255,255,255,0.45),
+      0 0 24px rgba(255,255,255,0.18) !important;
+  }
+}
+/* mobile header + drawer */
+html body:not(.light-mode) .mobile-header { border-bottom-color: var(--wo-line) !important; }
+html body:not(.light-mode) .mobile-drawer { border-right-color: var(--wo-line) !important; }
+html body:not(.light-mode) .mobile-liteai-sheet { border-top-color: var(--wo-line) !important; }
+
+/* 3 ─ Hover: the white line illuminates (teal glow underneath is kept) */
+@media (hover: hover) and (pointer: fine) {
+  html body:not(.light-mode) .view-section :is(.glass-panel, .finai-panel, .cc-panel-box, .finai-score-card, .kpi-card, .port-kpi-card, .nw-card, .credit-kpi-card, .spark-card, .insight-kpi-card, .game-card, .market-card, .ins-kpi-card, .ins-expiry-card, .insight-rec-card, .nw-milestone, .finai-mini-stat, .finai-strat, .cin-tile, .ins-card, .sub-card, .emi-card, .cca-sum-card, .set-card, .cca-panel, .cca-strategy-card, .note-card, .notes-list-pane, .notes-editor-pane, .backup-option-card, .alert-rule-card, .budget-row-v2, .txa-card, .txa-kpi, .txa-sum, .txa-ins, .txa-bi, .sub-analytics-card, .ins-summary-card, .ins-coverage-box, .pins-tile, .pins-pl, .pol-card, .pol-tile, .fa-card, .fa-hub, .fa-ch, .p1-kpi, .p1-sec, .p1-sect, .p1-hl-i, .cc-card-item, .cc-active-detail, .cc-insight-row, .liteai-mini-score, .adm-stat, .fq-card, .fs-card, .ft-card, .budget-alert-item, .sub-bucket):not(.dragging):not([onmouseover]):hover {
+    border-color: var(--wo-line-hover) !important;
+    box-shadow: 0 14px 36px -14px rgba(var(--brand-rgb, 32,205,181), .38), inset 0 1px 0 rgba(255,255,255,.05), var(--wo-glow) !important;
+  }
+  html body:not(.light-mode) .view-section :is(.finai-card, .cin-card, .cin-ins-i):not(.dragging):not([onmouseover]):hover {
+    border-top-color: var(--wo-line-hover) !important;
+    border-right-color: var(--wo-line-hover) !important;
+    border-bottom-color: var(--wo-line-hover) !important;
+    box-shadow: 0 14px 36px -14px rgba(var(--brand-rgb, 32,205,181), .38), inset 0 1px 0 rgba(255,255,255,.05), var(--wo-glow) !important;
+  }
+}
+/* containers that had no border of their own get a 1px one so they match */
+html body:not(.light-mode) :is(.market-card, .fs-card, .ft-card) { border-width: 1px; border-style: solid; }
+</style>
 
 <div id="app-lock-overlay" class="hidden">
   <div class="applock-box">
+    <svg class="applock-logo" id="applock-logo" viewBox="0 0 64 64" width="84" height="84" role="img" aria-label="FinanceOS"><use href="#fos-logo"/></svg>
     <div class="applock-icon" id="applock-icon"><i class="fas fa-fingerprint"></i></div>
     <div class="applock-title" id="applock-title">FinanceOS is locked</div>
     <div class="applock-sub" id="applock-sub">Verify it's you to continue</div>
@@ -7221,7 +7307,7 @@ function attemptDeviceLockUnlock() {
   if (errEl) errEl.style.display = 'none';
   verifyDeviceLock().then(ok => {
     if (ok) {
-      document.getElementById('app-lock-overlay').classList.add('hidden');
+      (window.fosLockDismiss ? fosLockDismiss() : document.getElementById('app-lock-overlay').classList.add('hidden'));
       if (_appLockResolve) { _appLockResolve(true); _appLockResolve = null; }
     } else if (errEl) {
       errEl.textContent = '❌ Verification failed or was cancelled. Try again.';
@@ -7238,7 +7324,7 @@ async function attemptPcLockUnlock() {
   if (!val) return;
   const ok = await verifyPcLock(val);
   if (ok) {
-    document.getElementById('app-lock-overlay').classList.add('hidden');
+    (window.fosLockDismiss ? fosLockDismiss() : document.getElementById('app-lock-overlay').classList.add('hidden'));
     if (_appLockResolve) { _appLockResolve(true); _appLockResolve = null; }
   } else if (errEl) {
     errEl.textContent = '❌ Incorrect PC Lock passkey.';
@@ -11082,7 +11168,7 @@ function passAppLockGate() {
           </div>
           <div style="display:flex; gap:10px; align-items:flex-start; padding:9px 10px; border:1px solid var(--glass-border); border-radius:10px; background:rgba(255,255,255,0.02);">
             <i class="fas fa-file-export" style="color:#38bdf8; width:18px; text-align:center; margin-top:2px;"></i>
-            <div><div class="set-lbl readable-white" style="font-size:0.78rem">Reports & Export</div><div class="set-desc" style="margin-top:2px">CSV, PDF and Advanced PDF reports for any mix of transactions, loans, credit, investments and holdings, with optional goal-funding, tax-summary and stress-test sections and a date range.</div></div>
+            <div><div class="set-lbl readable-white" style="font-size:0.78rem">Reports & Export</div><div class="set-desc" style="margin-top:2px">CSV, PDF and Advanced PDF reports for any mix of transactions, loans, credit, investments and holdings, plus receivables, budgets, subscriptions, insurance, card utilization, goals and net worth, with optional goal-funding, tax-summary and stress-test sections and a date range.</div></div>
           </div>
           <div style="display:flex; gap:10px; align-items:flex-start; padding:9px 10px; border:1px solid var(--glass-border); border-radius:10px; background:rgba(255,255,255,0.02);">
             <i class="fas fa-cloud" style="color:var(--accent); width:18px; text-align:center; margin-top:2px;"></i>
@@ -11465,6 +11551,34 @@ function passAppLockGate() {
       <label class="export-check-row">
         <input type="checkbox" id="exp-stress" checked>
         <div class="export-check-label"><i class="fas fa-bolt" style="color:#ef4444;margin-right:7px"></i>Stress test (current scenario)</div>
+      </label>
+      <label class="export-check-row">
+        <input type="checkbox" id="exp-recv" checked>
+        <div class="export-check-label"><i class="fas fa-handshake" style="color:#2dd4bf;margin-right:7px"></i>Receivables (money lent &amp; expected income)</div>
+      </label>
+      <label class="export-check-row">
+        <input type="checkbox" id="exp-budgets" checked>
+        <div class="export-check-label"><i class="fas fa-wallet" style="color:#10b981;margin-right:7px"></i>Budgets (limit vs spent)</div>
+      </label>
+      <label class="export-check-row">
+        <input type="checkbox" id="exp-subs" checked>
+        <div class="export-check-label"><i class="fas fa-redo" style="color:#ec4899;margin-right:7px"></i>Subscriptions</div>
+      </label>
+      <label class="export-check-row">
+        <input type="checkbox" id="exp-insurance" checked>
+        <div class="export-check-label"><i class="fas fa-shield-alt" style="color:#0ea5e9;margin-right:7px"></i>Insurance policies</div>
+      </label>
+      <label class="export-check-row">
+        <input type="checkbox" id="exp-cards" checked>
+        <div class="export-check-label"><i class="fas fa-credit-card" style="color:#f97316;margin-right:7px"></i>Credit card utilization</div>
+      </label>
+      <label class="export-check-row">
+        <input type="checkbox" id="exp-goalsall" checked>
+        <div class="export-check-label"><i class="fas fa-flag-checkered" style="color:#a78bfa;margin-right:7px"></i>Goals (all, with progress)</div>
+      </label>
+      <label class="export-check-row">
+        <input type="checkbox" id="exp-networth" checked>
+        <div class="export-check-label"><i class="fas fa-balance-scale" style="color:#34d399;margin-right:7px"></i>Net worth summary</div>
       </label>
     </div>
 
@@ -26475,7 +26589,7 @@ function runExport() {
   let csv = '';
   if (wantTransactions) {
     csv += 'TRANSACTIONS\nName,SubCategory,Type,Amount,Date,Recurring,Notes,Category,Payee,Subcategory\n';
-    dbNow().filter(r => r.type!=='Loan'&&r.type!=='Investment').filter(r=>inRange(r.date)).forEach(r => {
+    dbNow().filter(r => r.type!=='Loan'&&r.type!=='Investment'&&r.type!=='Receivable').filter(r=>inRange(r.date)).forEach(r => {
       csv += `"${r.name}","${r.sub||''}","${r.type}",${r.amount},"${r.date}",${r.recurring||false},"${r.notes||''}","${r.category||r.sub||''}","${fosPayeeOf(r)}","${r.subcategory||''}"\n`;
     });
     csv += '\n';
@@ -26523,6 +26637,7 @@ function runExport() {
     });
     csv += '\n';
   }
+  try { const X = window.fosExportExtra; if (X) csv += X.csv(X.build(X.selFromModal('exp'), { from: dateFrom, to: dateTo })); } catch (e) { console.warn('Extra export sections skipped', e); alert('One of the new export sections could not be added to the CSV: ' + ((e && e.message) || e)); }
   try { csv += fosPlanCsv({ goals: !!(document.getElementById('exp-goals') || {}).checked, tax: !!(document.getElementById('exp-tax') || {}).checked, stress: !!(document.getElementById('exp-stress') || {}).checked }); } catch (e) { console.warn('Planning export skipped', e); }
   if (!csv.trim()) { alert('Please select at least one export type.'); return; }
   const blob = new Blob([csv], {type:'text/csv'});
@@ -26553,7 +26668,7 @@ async function runPDFExport() {
     return true;
   }
 
-  if (!wantTransactions && !wantLoans && !wantCredit && !wantInvestments && !wantHoldings && !wantAssets && !(document.getElementById('exp-goals') || {}).checked && !(document.getElementById('exp-tax') || {}).checked && !(document.getElementById('exp-stress') || {}).checked) {
+  if (!wantTransactions && !wantLoans && !wantCredit && !wantInvestments && !wantHoldings && !wantAssets && !(document.getElementById('exp-goals') || {}).checked && !(document.getElementById('exp-tax') || {}).checked && !(document.getElementById('exp-stress') || {}).checked && !(window.fosExportExtra && window.fosExportExtra.anySelected('exp'))) {
     alert('Please select at least one export type.');
     return;
   }
@@ -26631,12 +26746,14 @@ async function runPDFExport() {
 
   const totalIncome = dbNow().filter(r => r.type === 'Income' && inRange(r.date)).reduce((sum, r) => sum + r.amount, 0);
   const totalExpenses = dbNow().filter(r => r.type === 'Expense' && inRange(r.date)).reduce((sum, r) => sum + r.amount, 0);
-  const netBalance = totalIncome - totalExpenses - dbNow().filter(r => (r.type === 'Loan' || r.type === 'Investment') && inRange(r.date)).reduce((sum, r) => sum + r.amount, 0);   // after EMIs and investments
+  const _rvPdf = (typeof fosRecvPeriod === 'function') ? fosRecvPeriod(dbNow().filter(r => inRange(r.date))) : { lent: 0, received: 0 };
+  const netBalance = totalIncome - totalExpenses - dbNow().filter(r => (r.type === 'Loan' || r.type === 'Investment') && inRange(r.date)).reduce((sum, r) => sum + r.amount, 0) - _rvPdf.lent + _rvPdf.received;   // after EMIs, investments and receivables: same rule as the dashboard Net Balance
 
   const summaryData = [
     ['Total Income', `₹${totalIncome.toLocaleString()}`],
     ['Total Expenses', `₹${totalExpenses.toLocaleString()}`],
-    ['Net Balance', `₹${netBalance.toLocaleString()}`]
+    ['Net Balance', `₹${netBalance.toLocaleString()}`],
+    ...(window.fosExportExtra ? window.fosExportExtra.recvSummaryRows() : [])
   ];
 
   doc.autoTable({
@@ -26660,7 +26777,7 @@ async function runPDFExport() {
     doc.text('Transactions', margin, yPos);
     yPos += 8;
 
-    const transactions = dbNow().filter(r => r.type !== 'Loan' && r.type !== 'Investment' && inRange(r.date));
+    const transactions = dbNow().filter(r => r.type !== 'Loan' && r.type !== 'Investment' && r.type !== 'Receivable' && inRange(r.date));
     
     if (transactions.length > 0) {
       // Create chart for income vs expenses
@@ -26964,6 +27081,33 @@ async function runPDFExport() {
       yPos = doc.lastAutoTable.finalY + 12;
     });
   } catch (e) { console.warn('Planning PDF sections skipped', e); }
+
+  // EXTRA SECTIONS: receivables, budgets, subscriptions, insurance, card utilization, goals, net worth
+  // (shared builder: identical numbers in the CSV, this report and the Advanced PDF)
+  try {
+    const X = window.fosExportExtra;
+    if (X) X.build(X.selFromModal('exp'), { from: dateFrom, to: dateTo }).forEach(function (grp) {
+      checkNewPage(50);
+      doc.setFontSize(16); doc.setFont('helvetica', 'bold'); doc.setTextColor(grp.rgb[0], grp.rgb[1], grp.rgb[2]);
+      doc.text(grp.title, margin, yPos); yPos += 8;
+      grp.tables.forEach(function (t) {
+        if (!t.body.length && !t.empty) return;
+        checkNewPage(36);
+        if (t.title !== grp.title) { doc.setFontSize(10); doc.setFont('helvetica', 'bold'); doc.setTextColor(70, 70, 70); doc.text(t.title, margin, yPos); yPos += 5; }
+        if (!t.body.length) { doc.setFontSize(9); doc.setFont('helvetica', 'normal'); doc.setTextColor(100, 100, 100); doc.text(t.empty, margin, yPos); yPos += 10; return; }
+        const cs = {}; t.types.forEach(function (ty, i) { if (ty === 'm' || ty === 'p' || ty === 'n') cs[i] = { halign: 'right' }; });
+        const last = t.totalRow ? t.body.length - 1 : -1;
+        doc.autoTable({
+          startY: yPos, head: [t.head],
+          body: t.body.map(function (r) { return r.map(function (c, i) { return X.fmt(c, t.types[i]); }); }),
+          theme: 'grid', headStyles: { fillColor: grp.rgb, textColor: 255, fontStyle: 'bold', fontSize: 8 },
+          styles: { fontSize: 8, cellPadding: 2.4, overflow: 'linebreak' }, margin: { left: margin, right: margin }, columnStyles: cs,
+          didParseCell: function (d) { if (d.section === 'body' && d.row.index === last) { d.cell.styles.fontStyle = 'bold'; d.cell.styles.fillColor = [238, 242, 255]; } }
+        });
+        yPos = doc.lastAutoTable.finalY + 10;
+      });
+    });
+  } catch (e) { console.warn('Extra PDF sections skipped', e); }
 
   // Footer on last page
   checkNewPage(30);
@@ -27659,6 +27803,10 @@ function openBackupModal() {
     { val: portDb.length,   lbl: 'Holdings' },
     { val: creditDb.length, lbl: 'Credit Entries' },
     { val: Object.keys(budgets).length, lbl: 'Budgets' },
+    { val: insuranceDb.length,     lbl: 'Insurance' },
+    { val: notesDb.length,         lbl: 'Notes' },
+    { val: subscriptionsDb.length, lbl: 'Subscriptions' },
+    { val: ccCards.length,         lbl: 'CC Cards' },
   ].map(s => `<div class="backup-stat"><div class="backup-stat-val">${s.val}</div><div class="backup-stat-lbl">${s.lbl}</div></div>`).join('');
   document.getElementById('restore-preview').style.display = 'none';
   document.getElementById('restore-confirm-btn').style.display = 'none';
@@ -27677,7 +27825,7 @@ function getAllSettingsToggles() {
 
 function downloadBackup() {
   const payload = {
-    version: 4,
+    version: 5,
     exportedAt: new Date().toISOString(),
     db, portDb, creditDb, budgets,
     insuranceDb,
@@ -27757,6 +27905,9 @@ function readRestoreFile(file) {
           ${(data.notesDb||[]).length} notes · 
           ${(data.ccCards||[]).length} CC cards · 
           ${(data.subscriptionsDb||[]).length} subscriptions · 
+          ${(data.finaiGoals||[]).length} goals · 
+          ${Object.keys(data.budgets||{}).length} budgets · 
+          ${data.extraKeys ? Object.keys(data.extraKeys).filter(k => data.extraKeys[k] !== null).length + ' extra settings · ' : ''}
           v${data.version||1} · 
           Exported ${data.exportedAt ? new Date(data.exportedAt).toLocaleDateString() : 'unknown date'}
         </span>`;
@@ -32013,7 +32164,7 @@ async function generateAdvancedPDF(btnElement) {
   const wantsPortfolio = document.getElementById('rep-portfolio').checked;
   const wantsAI        = document.getElementById('rep-ai').checked;
 
-  if (!wantsAnalytics && !wantsNetWorth && !wantsPortfolio && !wantsAI) {
+  if (!wantsAnalytics && !wantsNetWorth && !wantsPortfolio && !wantsAI && !(window.fosExportExtra && window.fosExportExtra.anySelected('rep'))) {
     alert("Please select at least one module to export.");
     return;
   }
@@ -32280,6 +32431,15 @@ async function generateAdvancedPDF(btnElement) {
       doc.setFont('helvetica', 'normal');
     }
 
+    // Draw one export-pack table (shared builder: same numbers as the CSV and the PDF Report)
+    function xTable(t, rgb, suffix) {
+      const X = window.fosExportExtra;
+      if (!t.body.length && !t.empty) return;   // nothing to say (e.g. no notes)
+      subHeading(t.title + (suffix || ''), rgb, 38);
+      const cs = {}; t.types.forEach((ty, i) => { if (ty === 'm' || ty === 'p' || ty === 'n') cs[i] = { halign: 'right' }; });
+      tableSection(t.head, t.body.map(r => r.map((c, i) => X.fmt(c, t.types[i]))), cs, { totalRow: !!t.totalRow, emptyMessage: t.empty || 'No records.' });
+    }
+
     // Run one report section; a failure in it is reported but never kills the rest
     function runSection(name, fn) {
       stage = 'building ' + name + ' section';
@@ -32316,8 +32476,9 @@ async function generateAdvancedPDF(btnElement) {
     const totalExp  = sumType('Expense', dbNow());
     const totalInv  = sumType('Investment', dbNow());
     const totalLoan = sumType('Loan', dbNow());
-    const netBal    = totalInc - totalExp;
-    const savRateN  = totalInc > 0 ? (netBal / totalInc) * 100 : 0;
+    const _rvA = (typeof fosRecvPeriod === 'function') ? fosRecvPeriod(dbNow()) : { lent: 0, received: 0 };
+    const netBal    = totalInc - totalExp - totalLoan - totalInv - _rvA.lent + _rvA.received;   // same rule as the dashboard Net Balance
+    const savRateN  = totalInc > 0 ? ((totalInc - totalExp - totalLoan) / totalInc) * 100 : 0;   // same rule as the dashboard Savings Rate
 
     doc.setFontSize(8); doc.setFont('helvetica', 'bold'); doc.setTextColor(0, 117, 255);
     doc.text('EXECUTIVE SUMMARY', margin, y); y += 3.5;
@@ -32340,14 +32501,18 @@ async function generateAdvancedPDF(btnElement) {
     if (wantsNetWorth) runSection('Net Worth', () => {
       startSection('NET WORTH TRACKER', 52, 211, 153);
 
-      const assets = Math.max(0, totalInc - totalExp - totalInv + totalLoan) + totalInv;
-      const nwVal = totalInc - totalExp;
+      // Same net worth as the Net Worth page: assets minus what you owe (loan balances, accrued interest, card dues)
+      let _nw = null; try { _nw = (typeof fosNW === 'function') ? fosNW() : null; } catch (e) { _nw = null; }
+      const assets = _nw ? _nw.assets : Math.max(0, totalInc - totalExp - totalInv + totalLoan) + totalInv;
+      const liabilities = _nw ? _nw.debt : totalLoan;
+      const nwVal = _nw ? _nw.net : totalInc - totalExp;
       kpiRow([
-        { label: 'Total Assets',      value: rs(assets),    color: [16, 185, 129] },
-        { label: 'Total Liabilities', value: rs(totalLoan), color: [239, 68, 68] },
-        { label: 'Net Worth',         value: rs(nwVal),     color: nwVal >= 0 ? [16, 185, 129] : [239, 68, 68] },
-        { label: 'Portfolio Value',   value: rs(portAggStats(getPortFiltered()).totalVal), color: [167, 139, 250] }
+        { label: 'Total Assets',      value: rs(assets),      color: [16, 185, 129] },
+        { label: 'Total Liabilities', value: rs(liabilities), color: [239, 68, 68] },
+        { label: 'Net Worth',         value: rs(nwVal),       color: nwVal >= 0 ? [16, 185, 129] : [239, 68, 68] },
+        { label: 'Portfolio Value',   value: rs(_nw ? _nw.portfolio : portAggStats(getPortFiltered()).totalVal), color: [167, 139, 250] }
       ]);
+      if (window.fosExportExtra) window.fosExportExtra.build({ networth: true }, {}).forEach(grp => grp.tables.forEach(t => xTable(t, [16, 150, 110])));
 
       if (!db.length) {
         emptyState('No transactions recorded yet, so there is no net worth history to chart. Add income, expense or investment entries to populate this section.', 20);
@@ -32371,7 +32536,7 @@ async function generateAdvancedPDF(btnElement) {
       const fInc  = sumType('Income', filteredData);
       const fExp  = sumType('Expense', filteredData);
       const fInv  = sumType('Investment', filteredData);
-      const fSavN = fInc > 0 ? ((fInc - fExp) / fInc * 100) : 0;
+      const fSavN = fInc > 0 ? ((fInc - fExp - sumType('Loan', filteredData)) / fInc * 100) : 0;   // same rule as the dashboard Savings Rate
 
       kpiRow([
         { label: 'Total Income',   value: rs(fInc),  color: [16, 185, 129] },
@@ -32485,6 +32650,21 @@ async function generateAdvancedPDF(btnElement) {
         { 2: { halign: 'right' }, 3: { halign: 'right' }, 4: { halign: 'right' }, 5: { halign: 'right' } },
         { widths: [34, 22, 24, 26, 14, 22, 20, 20], emptyMessage: 'No credit accounts recorded.' });
     });
+
+    // ══════════════════════════════════════════
+    // ADDITIONAL DATA: receivables, budgets, subscriptions, insurance, card utilization, goals
+    // (same builder as the CSV and the PDF Report, so the numbers match everywhere)
+    // ══════════════════════════════════════════
+    if (window.fosExportExtra) {
+      const X = window.fosExportExtra;
+      const xFrom = (document.getElementById('exp-date-from') || {}).value || '', xTo = (document.getElementById('exp-date-to') || {}).value || '';
+      const xRange = (xFrom || xTo) ? ' [' + (xFrom || 'start') + ' to ' + (xTo || 'today') + ']' : '';
+      X.build(X.selFromModal('rep', ['networth']), { from: xFrom, to: xTo }).forEach(grp => runSection(grp.title, () => {
+        startSection(grp.title.toUpperCase(), grp.rgb[0], grp.rgb[1], grp.rgb[2]);
+        if (grp.kpis.length) kpiRow(grp.kpis.slice(0, 4).map(k => ({ label: k.label, value: X.fmt(k.value, k.type), color: k.tone === 'bad' ? [239, 68, 68] : k.tone === 'good' ? [16, 185, 129] : undefined })));
+        grp.tables.forEach(t => xTable(t, grp.rgb, t.ranged ? xRange : ''));
+      }));
+    }
 
     // ══════════════════════════════════════════
     // AI INSIGHTS SECTION
@@ -33585,10 +33765,10 @@ function renderSubscriptions() {
     </div>
     
     <div style="color:var(--text-muted); font-size:0.85rem; line-height:1.4;">
-      Select the modules to include in your comprehensive PDF. Charts and AI insights will be automatically integrated.
+      Select the modules to include in your comprehensive PDF. Charts and AI insights are integrated automatically. The extra data modules use the date range chosen in the Export window.
     </div>
     
-    <div class="adv-report-list" style="display:flex; flex-direction:column; gap:4px; padding:6px; border-radius:12px; border:1px solid rgba(255,255,255,0.05);">
+    <div class="adv-report-list" style="display:flex; flex-direction:column; gap:4px; padding:6px; border-radius:12px; border:1px solid rgba(255,255,255,0.05); overflow-y:auto; min-height:0;">
       
       <label class="readable-white adv-report-row" style="display:flex; align-items:center; gap:12px; font-size:0.9rem; cursor:pointer; padding:10px 12px; border-radius:8px; transition:background 0.15s;">
         <input type="checkbox" id="rep-analytics" checked style="width:16px; height:16px; cursor:pointer;"> 
@@ -33619,6 +33799,49 @@ function renderSubscriptions() {
         <div>
           <div style="font-weight:600;">AI Insights & Forecasts</div>
           <div style="font-size:0.7rem; color:var(--text-muted);">Automated financial summary and risk warnings</div>
+        </div>
+      </label>
+
+      <label class="readable-white adv-report-row" style="display:flex; align-items:center; gap:12px; font-size:0.9rem; cursor:pointer; padding:10px 12px; border-radius:8px; transition:background 0.15s;">
+        <input type="checkbox" id="rep-recv" checked style="width:16px; height:16px; cursor:pointer;"> 
+        <div>
+          <div style="font-weight:600;">Receivables</div>
+          <div style="font-size:0.7rem; color:var(--text-muted);">Money lent, expected income, repayments</div>
+        </div>
+      </label>
+      <label class="readable-white adv-report-row" style="display:flex; align-items:center; gap:12px; font-size:0.9rem; cursor:pointer; padding:10px 12px; border-radius:8px; transition:background 0.15s;">
+        <input type="checkbox" id="rep-budgets" checked style="width:16px; height:16px; cursor:pointer;"> 
+        <div>
+          <div style="font-weight:600;">Budgets</div>
+          <div style="font-size:0.7rem; color:var(--text-muted);">Limit vs actual spending by category</div>
+        </div>
+      </label>
+      <label class="readable-white adv-report-row" style="display:flex; align-items:center; gap:12px; font-size:0.9rem; cursor:pointer; padding:10px 12px; border-radius:8px; transition:background 0.15s;">
+        <input type="checkbox" id="rep-subs" checked style="width:16px; height:16px; cursor:pointer;"> 
+        <div>
+          <div style="font-weight:600;">Subscriptions</div>
+          <div style="font-size:0.7rem; color:var(--text-muted);">Monthly and yearly cost, next billing</div>
+        </div>
+      </label>
+      <label class="readable-white adv-report-row" style="display:flex; align-items:center; gap:12px; font-size:0.9rem; cursor:pointer; padding:10px 12px; border-radius:8px; transition:background 0.15s;">
+        <input type="checkbox" id="rep-insurance" checked style="width:16px; height:16px; cursor:pointer;"> 
+        <div>
+          <div style="font-weight:600;">Insurance</div>
+          <div style="font-size:0.7rem; color:var(--text-muted);">Policies, cover, premiums, renewals</div>
+        </div>
+      </label>
+      <label class="readable-white adv-report-row" style="display:flex; align-items:center; gap:12px; font-size:0.9rem; cursor:pointer; padding:10px 12px; border-radius:8px; transition:background 0.15s;">
+        <input type="checkbox" id="rep-cards" checked style="width:16px; height:16px; cursor:pointer;"> 
+        <div>
+          <div style="font-weight:600;">Credit Card Utilization</div>
+          <div style="font-size:0.7rem; color:var(--text-muted);">Limit, used and utilization per card</div>
+        </div>
+      </label>
+      <label class="readable-white adv-report-row" style="display:flex; align-items:center; gap:12px; font-size:0.9rem; cursor:pointer; padding:10px 12px; border-radius:8px; transition:background 0.15s;">
+        <input type="checkbox" id="rep-goalsall" checked style="width:16px; height:16px; cursor:pointer;"> 
+        <div>
+          <div style="font-weight:600;">Goals</div>
+          <div style="font-size:0.7rem; color:var(--text-muted);">Progress, needed per month, status</div>
         </div>
       </label>
 
@@ -38612,11 +38835,23 @@ body.light-mode .tx-bar select option,body.light-mode .tx-cls option{color:#111}
   };
 
   /* ════════════════════ 3. BACKUP: settings that live outside the data arrays ════════════════════ */
+  /* Data & settings added by later features. Every key here is saved into the JSON backup (and the linked-drive file) and put back on restore. */
+  const XK_DATA = ['fos_finai_score_history', 'fos_notif_dismissed', 'fos_port_customsubs_v1', 'fos_port_targets_v1', 'fos_port_tgtband', 'fos_port_tgtnew', 'fos_pi_bench',
+    'fos_remind_v1', 'fos_reminders_v1', 'fos_lh_unlocked', 'fos_academy_v1', 'fos_loan_asof'];
+  const XK_UI = ['fos_sidebar_category_finance_collapsed', 'fos_sidebar_category_tools_collapsed', 'fos_sidebar_category_playbook_collapsed', 'fos_sidebar_category_insights_collapsed',
+    'fos_sidebar_category_my_zone_collapsed', 'pos_sidebar_by_asset_collapsed', 'pos_sidebar_intel_collapsed', 'fos_cc_bank_collapsed', 'fos_tv_minimized', 'fos_rem_minimized'];
   window.fosExtraState = function () {
+    const keys = {};
+    XK_DATA.concat(XK_UI).forEach(k => {
+      let raw = null; try { raw = localStorage.getItem(k); } catch (e) { }
+      if (raw === null) { keys[k] = null; return; }
+      try { keys[k] = JSON.parse(raw); } catch (e) { keys[k] = raw; }
+    });
     return {
       taxOverrides: jget('fos_tax_cls_v1', {}), taxSlab: localStorage.getItem('fos_tax_slab') || '', taxFy: localStorage.getItem('fos_tax_fy') || '',
       adminConfig: jget('fos_admin_config_v1', null), fxRates: jget('fos_fx_v1', {}),
-      refreshSettings: jget(RK, null), stressSettings: jget(SK, null)
+      refreshSettings: jget(RK, null), stressSettings: jget(SK, null),
+      extraKeys: keys, profileStore: jget('fos_profile_v1', {})
     };
   };
   window.fosRestoreExtra = function (d) {
@@ -38625,6 +38860,18 @@ body.light-mode .tx-bar select option,body.light-mode .tx-cls option{color:#111}
     set('fos_tax_cls_v1', d.taxOverrides); set('fos_tax_slab', d.taxSlab); set('fos_tax_fy', d.taxFy);
     set('fos_admin_config_v1', d.adminConfig); set('fos_fx_v1', d.fxRates);
     set(RK, d.refreshSettings); set(SK, d.stressSettings);
+    // Newer data & settings: a backup that carries this block is restored exactly (a key that was empty at backup time is cleared again).
+    if (d.extraKeys && typeof d.extraKeys === 'object') {
+      XK_DATA.concat(XK_UI).forEach(k => {
+        if (!Object.prototype.hasOwnProperty.call(d.extraKeys, k)) return;
+        const v = d.extraKeys[k];
+        try { if (v === null || v === undefined) localStorage.removeItem(k); else localStorage.setItem(k, typeof v === 'string' ? v : JSON.stringify(v)); } catch (e) { }
+      });
+    }
+    // Profile details are kept per account e-mail: merge, so other accounts on this device are not lost.
+    if (d.profileStore && typeof d.profileStore === 'object' && Object.keys(d.profileStore).length) {
+      try { const cur = jget('fos_profile_v1', {}); localStorage.setItem('fos_profile_v1', JSON.stringify(Object.assign({}, cur, d.profileStore))); } catch (e) { }
+    }
   };
 })();
 </script>
@@ -38945,7 +39192,7 @@ body.light-mode .fa-fl{background:#fff}
   ]},
   /* ═════════ DATA & SETTINGS ═════════ */
   { id: 'export', grp: 'Data & Settings', ic: '📤', t: 'Export: reports & CSV', m: 4, sum: 'Choose exactly what goes into a report and produce a PDF, Advanced PDF or CSV.', steps: [
-    { o: 'export', t: 'Choose what to include', s: ['#export-modal .modal-box'], w: 'Tick any mix of: *Transactions*, *Loans & EMI*, *Credit Tracker*, *Investments*, *Holdings Table*, *All Assets*, *Goal funding* (holdings tagged to goals), *Tax summary* (realised gains) and *Stress test* (current scenario).', r: 'A report built for one purpose: a loan application, a tax filing, a review with an adviser.', d: 'Tick two sections to see how they combine.' },
+    { o: 'export', t: 'Choose what to include', s: ['#export-modal .modal-box'], w: 'Tick any mix of: *Transactions*, *Loans & EMI*, *Credit Tracker*, *Investments*, *Holdings Table*, *All Assets*, *Goal funding* (holdings tagged to goals), *Tax summary* (realised gains), *Stress test* (current scenario), *Receivables* (money lent and expected income), *Budgets*, *Subscriptions*, *Insurance*, *Credit card utilization*, *Goals* and *Net worth*.', r: 'A report built for one purpose: a loan application, a tax filing, a review with an adviser.', d: 'Tick two sections to see how they combine.' },
     { o: 'export', t: 'Date range (optional)', s: ['#export-modal .panel-title', '#export-modal .modal-box'], w: 'A From and To date limit the exported rows. Leave both blank to include everything.', r: 'A clean slice, for example "April to March" for a financial year.' },
     { o: 'export', t: 'PDF, Advanced PDF, CSV', s: ['#export-modal .modal-box'], w: '*Export PDF Report* is a clean printable report. *Advanced PDF Report* opens a fuller, more detailed report builder. *Download CSV* gives raw rows for Excel or Sheets.', r: 'PDF to share or print; CSV to analyse or archive.', p: 'CSV is for reading and analysis. Use Backup (JSON) to move or restore the whole app.' }
   ]},
@@ -41089,26 +41336,6 @@ body.light-mode #fos-anim-settings .fam-grp{border-color:rgba(15,23,42,.1)}
 </script>
 
 <style id="fos-countup-css">.fos-cu{font-variant-numeric:tabular-nums}</style>
-
-<style id="fos-light-black-outline">
-/* LIGHT THEME ONLY: bold black outline on every container, black glow on hover (mirrors the dark theme's white outline). Dark mode untouched. */
-body.light-mode { --fos-ol:#0b0f14; --fos-ol-w:2px; }
-html body.light-mode :is(.glass-panel,.kpi-card,.port-kpi-card,.credit-kpi-card,.emi-card,.spark-card,.set-card,.game-card,.insight-kpi-card,.insight-rec-card,.cca-panel,.cca-sum-card,.cca-strategy-card,.cca-attn-item,.cc-panel-box,.cc-setup-panel,.cc-active-detail,.note-card,.notes-list-pane,.notes-editor-pane,.backup-option-card,.backup-stat,.alert-rule-card,.budget-row-v2,.nw-card,.nw-milestone,.market-card,.finai-panel,.finai-score-card,.finai-mini-stat,.finai-strat,.finai-pv-m,.liteai-mini-score,.ins-kpi-card,.ins-expiry-card,.ins-insight-item,.ins-coverage-box,.ins-claim-item,.ins-doc-item,.ins-summary-card,.ins-card,.ins-table-wrap,.sub-card,.sub-analytics-card,.sub-insight-item,.sub-bucket,.calc-display-wrap,.sci-display-wrap,.modal-box,.export-modal-box,.backup-modal-box,.settings-modal-box,.sidebar,.port-sidebar) {
-  border-color:var(--fos-ol) !important; border-style:solid !important; border-width:var(--fos-ol-w) !important;
-  box-shadow:0 1px 3px rgba(15,23,42,.10), inset 0 1px 0 rgba(var(--brand-rgb,10,143,120),.14) !important;
-}
-/* Fin AI cards keep their emerald left accent, other three sides go black */
-html body.light-mode .finai-card { border-top:var(--fos-ol-w) solid var(--fos-ol) !important; border-right:var(--fos-ol-w) solid var(--fos-ol) !important; border-bottom:var(--fos-ol-w) solid var(--fos-ol) !important; }
-html body.light-mode .finai-card:hover { box-shadow:0 0 0 1px var(--fos-ol), 0 0 20px rgba(0,0,0,.28), 0 0 0 5px rgba(var(--brand-rgb,10,143,120),.10) !important; }
-/* Hover: black glow with a soft emerald halo */
-html body.light-mode :is(.glass-panel:hover,.kpi-card:hover,.port-kpi-card:hover,.credit-kpi-card:hover,.emi-card:hover,.spark-card:hover,.set-card:hover,.game-card:hover,.insight-kpi-card:hover,.insight-rec-card:hover,.cca-panel:hover,.cca-sum-card:hover,.cca-strategy-card:hover,.cca-attn-item:hover,.cc-panel-box:hover,.cc-setup-panel:hover,.cc-active-detail:hover,.note-card:hover,.backup-option-card:hover,.backup-stat:hover,.alert-rule-card:hover,.budget-row-v2:hover,.nw-card:hover,.nw-milestone:hover,.market-card:hover,.finai-panel:hover,.finai-score-card:hover,.finai-mini-stat:hover,.finai-strat:hover,.finai-pv-m:hover,.liteai-mini-score:hover,.ins-kpi-card:hover,.ins-expiry-card:hover,.ins-insight-item:hover,.ins-coverage-box:hover,.ins-claim-item:hover,.ins-doc-item:hover,.ins-summary-card:hover,.ins-card:hover,.sub-card:hover,.sub-analytics-card:hover,.sub-insight-item:hover,.sub-bucket:hover,.calc-display-wrap:hover,.sci-display-wrap:hover) {
-  border-color:var(--fos-ol) !important;
-  box-shadow:0 0 0 1px var(--fos-ol), 0 0 22px rgba(0,0,0,.30), 0 10px 28px rgba(0,0,0,.16), 0 0 0 6px rgba(var(--brand-rgb,10,143,120),.10) !important;
-}
-@media (min-width:901px){
-  html body.light-mode :is(.sidebar,.port-sidebar):hover { box-shadow:0 0 0 1px var(--fos-ol), 0 0 26px rgba(0,0,0,.22), 0 12px 32px rgba(15,23,42,.14) !important; }
-}
-</style>
 <script>
 /* ── COUNT-UP v2: EVERY number on the app pages rises from 0 on open, and again on hover (desktop) / tap (mobile) ──
    Works at text-node level, so it needs no class names: any number in a whitelisted page animates, including tables,
@@ -41274,6 +41501,428 @@ html body.light-mode :is(.glass-panel:hover,.kpi-card:hover,.port-kpi-card:hover
       playMany(arr, false);
     }, 700);
   });
+})();
+</script>
+<script id="fos-export-extra">
+/* ════════════════════════════════════════════════════════════════════════════
+   EXPORT PACK — Receivables, Budgets, Subscriptions, Insurance, Credit-card
+   utilization, Goals, Net worth.
+   ONE builder feeds the CSV, the PDF Report and the Advanced PDF, so every
+   number is identical in all three. It reads the app's own calculations
+   (fosRecvBook, budgetSpent, subMonthlyEquivalent, finaiGoalCalc, fosNW …)
+   and never re-derives them.
+   Card numbers are masked to the last 4 digits; CVV is never stored or exported.
+   ════════════════════════════════════════════════════════════════════════════ */
+(function () {
+  'use strict';
+
+  var KEYS = ['recv', 'budgets', 'subs', 'insurance', 'cards', 'goalsall', 'networth'];
+  var RGB = {
+    recv: [45, 212, 191], budgets: [16, 185, 129], subs: [236, 72, 153], insurance: [14, 165, 233],
+    cards: [249, 115, 22], goalsall: [167, 139, 250], networth: [52, 211, 153]
+  };
+  var TITLE = {
+    recv: 'Receivables', budgets: 'Budgets', subs: 'Subscriptions', insurance: 'Insurance',
+    cards: 'Credit card utilization', goalsall: 'Goals', networth: 'Net worth'
+  };
+
+  var num = function (v) { var n = Number(v); return isFinite(n) ? n : 0; };
+  var r2 = function (v) { return Math.round(num(v) * 100) / 100; };
+  var str = function (v) { return v === null || v === undefined ? '' : String(v); };
+  var day = function (v) { return str(v).slice(0, 10); };
+  var today = function () {
+    if (typeof fosTodayISO === 'function') return fosTodayISO();
+    var d = new Date(); return d.getFullYear() + '-' + ('0' + (d.getMonth() + 1)).slice(-2) + '-' + ('0' + d.getDate()).slice(-2);
+  };
+  // the app's data arrays are top-level `let`s in the main script; read them directly (no eval anywhere)
+  var arr = function (v) { return Array.isArray(v) ? v : []; };
+  var rows = function (name) {
+    switch (name) {
+      case 'db': return typeof db !== 'undefined' ? arr(db) : [];
+      case 'insuranceDb': return typeof insuranceDb !== 'undefined' ? arr(insuranceDb) : [];
+      case 'subscriptionsDb': return typeof subscriptionsDb !== 'undefined' ? arr(subscriptionsDb) : [];
+      case 'ccCards': return typeof ccCards !== 'undefined' ? arr(ccCards) : [];
+      case 'finaiGoals': return typeof finaiGoals !== 'undefined' ? arr(finaiGoals) : [];
+      default: return [];
+    }
+  };
+
+  // Date-range test on ISO date strings (no timezone parsing, so a "To" date includes that whole day)
+  function rangeTest(from, to) {
+    var f = function (d) {
+      if (!from && !to) return true;
+      var x = day(d); if (!x) return false;
+      if (from && x < from) return false;
+      if (to && x > to) return false;
+      return true;
+    };
+    f.active = !!(from || to);
+    return f;
+  }
+
+  // ── cell formatting shared by both PDFs ──
+  // types: t text · d date · m money · p percent (value already in %) · n number
+  function fmtCell(v, type) {
+    if (v === null || v === undefined || v === '') return '';
+    if (type === 'm') { var m = num(v); return (m < 0 ? '-' : '') + '₹' + Math.abs(m).toLocaleString('en-IN', { maximumFractionDigits: 2 }); }
+    if (type === 'p') return num(v).toFixed(1) + '%';
+    if (type === 'n') return num(v).toLocaleString('en-IN', { maximumFractionDigits: 2 });
+    return str(v);
+  }
+
+  var sum = function (arr, f) { return arr.reduce(function (s, x) { return s + num(f(x)); }, 0); };
+
+  // ═════════════ RECEIVABLES ═════════════
+  function recvGroup(inRange) {
+    var book = typeof fosRecvBook === 'function' ? fosRecvBook() : [];
+    var all = book.slice();
+    // a receivable still owed always shows, whatever the date range, so the report never hides money you are waiting for
+    var list = all.filter(function (i) { return inRange(i.row.date) || i.outstanding > 0; })
+      .sort(function (a, b) { return (a.due || '9999').localeCompare(b.due || '9999') || day(a.row.date).localeCompare(day(b.row.date)); });
+    var body = list.map(function (i) {
+      return [str(i.row.name || i.row.payee), i.kind === 'exp' ? 'Expected income' : 'Lent money', day(i.row.date), day(i.due),
+        r2(i.amount), r2(i.received), r2(i.outstanding), i.outstanding <= 0 ? 'Settled' : (i.overdue ? 'Overdue' : 'Pending'), str(i.row.notes)];
+    });
+    if (body.length) body.push(['Total', '', '', '', r2(sum(list, function (i) { return i.amount; })), r2(sum(list, function (i) { return i.received; })), r2(sum(list, function (i) { return i.outstanding; })), '', '']);
+    var t1 = { title: 'Receivables - money lent and expected income' + (inRange.active ? ' (in period + everything still outstanding)' : ''), ranged: false, head: ['Person', 'Type', 'Date', 'Due', 'Amount', 'Received', 'Outstanding', 'Status', 'Notes'],
+      types: ['t', 't', 'd', 'd', 'm', 'm', 'm', 't', 't'], body: body, totalRow: body.length > 0, empty: 'No receivables recorded for this period.' };
+
+    var parents = {}; (rows('db')).forEach(function (r) { parents[r.id] = r; });
+    var inRows = (typeof dbNow === 'function' ? dbNow() : rows('db')).filter(function (r) {
+      return typeof fosRecvIsIn === 'function' && fosRecvIsIn(r) && parents[r.parent] && inRange(r.date);
+    }).sort(function (a, b) { return day(a.date).localeCompare(day(b.date)); });
+    var body2 = inRows.map(function (r) {
+      var p = parents[r.parent]; return [day(r.date), str(r.name || p.name), str(r.sub || r.category), day(p.date), r2(r.amount), str(r.notes)];
+    });
+    if (body2.length) body2.push(['Total', '', '', '', r2(sum(inRows, function (r) { return r.amount; })), '']);
+    var t2 = { title: 'Repayments and income received', ranged: true, head: ['Date received', 'Person', 'Type', 'Lent / expected on', 'Amount', 'Notes'],
+      types: ['d', 't', 't', 'd', 'm', 't'], body: body2, totalRow: body2.length > 0, empty: 'No repayments or income received in this period.' };
+
+    var lentOut = sum(all.filter(function (i) { return i.kind === 'lent'; }), function (i) { return i.outstanding; });
+    var expOut = sum(all.filter(function (i) { return i.kind === 'exp'; }), function (i) { return i.outstanding; });
+    var overdue = sum(all.filter(function (i) { return i.overdue; }), function (i) { return i.outstanding; });
+    var got = sum(inRows, function (r) { return r.amount; });
+    return { kpis: [
+      { label: 'Lent - to get back', value: r2(lentOut), type: 'm' },
+      { label: 'Expected income', value: r2(expOut), type: 'm' },
+      { label: 'Overdue', value: r2(overdue), type: 'm', tone: overdue > 0 ? 'bad' : 'good' },
+      { label: 'Received in period', value: r2(got), type: 'm', tone: 'good' }
+    ], tables: [t1, t2] };
+  }
+
+  // ═════════════ BUDGETS ═════════════
+  function budgetGroup(inRange) {
+    var bud = (function () { try { return typeof budgets === 'object' && budgets ? budgets : {}; } catch (e) { return {}; } })();
+    var data = (typeof dbNow === 'function' ? dbNow() : rows('db')).filter(function (r) { return inRange(r.date); });
+    var months = typeof budgetMonthsInScope === 'function' ? budgetMonthsInScope(data) : 1;
+    var cats = Object.keys(bud).filter(function (k) { return num(bud[k]) > 0; }).sort();
+    var body = cats.map(function (cat) {
+      var monthly = num(bud[cat]), limit = monthly * months;
+      var spent = typeof budgetSpent === 'function' ? budgetSpent(data, cat) : 0;
+      var used = limit > 0 ? spent / limit * 100 : (spent > 0 ? 100 : 0);
+      return [cat, r2(monthly), months, r2(limit), r2(spent), r2(limit - spent), r2(used), spent > limit ? 'Over budget' : (used >= 80 ? 'Near limit' : 'On track')];
+    });
+    var tl = sum(body, function (r) { return r[3]; }), ts = sum(body, function (r) { return r[4]; });
+    if (body.length) body.push(['Total', r2(sum(body, function (r) { return r[1]; })), '', r2(tl), r2(ts), r2(tl - ts), r2(tl > 0 ? ts / tl * 100 : 0), '']);
+    var over = body.filter(function (r) { return r[7] === 'Over budget'; }).length;
+    return { kpis: [
+      { label: 'Categories budgeted', value: cats.length, type: 'n' },
+      { label: 'Over budget', value: over, type: 'n', tone: over > 0 ? 'bad' : 'good' },
+      { label: 'Total budget', value: r2(tl), type: 'm' },
+      { label: 'Spent', value: r2(ts), type: 'm', tone: ts > tl && tl > 0 ? 'bad' : 'good' }
+    ], tables: [{ title: 'Budget vs actual spending (' + months + ' month' + (months > 1 ? 's' : '') + ' in scope)', ranged: true,
+      head: ['Category', 'Monthly limit', 'Months', 'Budget', 'Spent', 'Remaining', 'Used %', 'Status'],
+      types: ['t', 'm', 'n', 'm', 'm', 'm', 'p', 't'], body: body, totalRow: body.length > 0, empty: 'No budgets set. Add budget limits to see them here.' }] };
+  }
+
+  // ═════════════ SUBSCRIPTIONS ═════════════
+  function subsGroup() {
+    var list = typeof subActiveList === 'function' ? subActiveList() : rows('subscriptionsDb');
+    var eff = function (s) { try { return typeof subEffectiveStatus === 'function' ? subEffectiveStatus(s) : str(s.status); } catch (e) { return str(s.status); } };
+    var live = list.filter(function (s) { var e = eff(s); return e === 'Active' || e === 'Trial'; });
+    var monthly = function (s) { return typeof subMonthlyEquivalent === 'function' ? subMonthlyEquivalent(s) : num(s.amount); };
+    var annual = function (s) { return typeof subAnnualizedCost === 'function' ? subAnnualizedCost(s) : monthly(s) * 12; };
+    var body = list.map(function (s) {
+      var via = ''; try { via = typeof subPaymentSourceLabel === 'function' ? subPaymentSourceLabel(s) : str(s.payment_method); } catch (e) { via = str(s.payment_method); }
+      return [str(s.name), str(s.category), eff(s), str(s.billing_frequency), r2(s.amount), r2(monthly(s)), r2(annual(s)), day(s.next_billing_date), via];
+    });
+    if (body.length) body.push(['Total (Active + Trial)', '', '', '', '', r2(sum(live, monthly)), r2(sum(live, annual)), '', '']);
+    return { kpis: [
+      { label: 'Active + trial', value: live.length, type: 'n' },
+      { label: 'Monthly cost', value: r2(sum(live, monthly)), type: 'm' },
+      { label: 'Yearly cost', value: r2(sum(live, annual)), type: 'm' },
+      { label: 'Total tracked', value: list.length, type: 'n' }
+    ], tables: [{ title: 'Subscriptions (current list, not date-filtered)', head: ['Name', 'Category', 'Status', 'Billing', 'Amount', 'Per month', 'Per year', 'Next billing', 'Paid via'],
+      types: ['t', 't', 't', 't', 'm', 'm', 'm', 'd', 't'], body: body, totalRow: body.length > 0, empty: 'No subscriptions tracked yet.' }] };
+  }
+
+  // ═════════════ INSURANCE ═════════════
+  function insuranceGroup() {
+    var list = rows('insuranceDb');
+    var isActive = function (p) { return !p.status || p.status === 'Active'; };
+    var mult = function (p) { return p.frequency === 'Monthly' ? 12 : p.frequency === 'Quarterly' ? 4 : p.frequency === 'Half-Yearly' ? 2 : 1; };   // same rule as Fin AI
+    var annual = function (p) { return num(p.premium) * mult(p); };
+    var live = list.filter(isActive);
+    var labels = (typeof INS_BUCKET_LABELS === 'object' && INS_BUCKET_LABELS) ? INS_BUCKET_LABELS : {};
+    var body = list.map(function (p) {
+      return [str(p.provider), str(p.insType || labels[p.bucket] || p.category), str(p.policyNumber), str(p.holderName), r2(p.sumInsured), r2(p.premium), str(p.frequency), r2(annual(p)), str(p.status), day(p.endDate)];
+    });
+    if (body.length) body.push(['Total (active policies)', '', '', '', r2(sum(live, function (p) { return p.sumInsured; })), '', '', r2(sum(live, annual)), '', '']);
+    var t0 = new Date(today() + 'T00:00:00').getTime();
+    var soon = live.filter(function (p) { if (!p.endDate) return false; var d = (new Date(day(p.endDate) + 'T00:00:00').getTime() - t0) / 86400000; return d >= 0 && d <= 30; }).length;
+    return { kpis: [
+      { label: 'Active policies', value: live.length, type: 'n' },
+      { label: 'Total cover', value: r2(sum(live, function (p) { return p.sumInsured; })), type: 'm' },
+      { label: 'Yearly premium', value: r2(sum(live, annual)), type: 'm' },
+      { label: 'Ending in 30 days', value: soon, type: 'n', tone: soon > 0 ? 'bad' : 'good' }
+    ], tables: [{ title: 'Insurance policies (current list, not date-filtered)', head: ['Provider', 'Type', 'Policy no.', 'Holder', 'Sum insured', 'Premium', 'Frequency', 'Yearly premium', 'Status', 'Ends'],
+      types: ['t', 't', 't', 't', 'm', 'm', 't', 'm', 't', 'd'], body: body, totalRow: body.length > 0, empty: 'No insurance policies recorded yet.' }] };
+  }
+
+  // ═════════════ CREDIT CARD UTILIZATION ═════════════
+  function cardsGroup() {
+    var list = rows('ccCards');
+    var body = list.map(function (c) {
+      var lim = num(c.limit), used = num(c.used), last4 = str(c.number).replace(/\s+/g, '').slice(-4);
+      return [str(c.nickname || c.bankName), str(c.bankName), str(c.network).toUpperCase(), last4 ? '**** ' + last4 : '', r2(lim), r2(used), r2(lim - used), r2(lim > 0 ? used / lim * 100 : 0)];
+    });
+    var tl = sum(list, function (c) { return c.limit; }), tu = sum(list, function (c) { return c.used; });
+    if (body.length) body.push(['Total', '', '', '', r2(tl), r2(tu), r2(tl - tu), r2(tl > 0 ? tu / tl * 100 : 0)]);
+    var pct = tl > 0 ? tu / tl * 100 : 0;
+    return { kpis: [
+      { label: 'Cards', value: list.length, type: 'n' },
+      { label: 'Total limit', value: r2(tl), type: 'm' },
+      { label: 'Used', value: r2(tu), type: 'm' },
+      { label: 'Utilization', value: r2(pct), type: 'p', tone: pct >= 50 ? 'bad' : 'good' }
+    ], tables: [{ title: 'Credit card utilization (as of today)', head: ['Card', 'Bank', 'Network', 'Number', 'Limit', 'Used', 'Available', 'Utilization %'],
+      types: ['t', 't', 't', 't', 'm', 'm', 'm', 'p'], body: body, totalRow: body.length > 0, empty: 'No credit cards added yet.' }] };
+  }
+
+  // ═════════════ GOALS (all, with progress) ═════════════
+  function goalsGroup() {
+    var list = rows('finaiGoals');
+    var items = list.map(function (g) { var c = typeof finaiGoalCalc === 'function' ? finaiGoalCalc(g) : null; return c ? { g: g, c: c } : null; }).filter(Boolean);
+    var body = items.map(function (x) {
+      var c = x.c, status = c.done ? 'Complete' : (c.monthly <= 0 && c.need === null ? 'No monthly plan' : (c.need !== null && !c.onTrack ? 'Behind target' : 'On track'));
+      return [str(x.g.name || 'Goal'), r2(c.target), r2(c.saved), r2(c.fromHoldings), r2(c.rem), r2(c.pct), r2(c.monthly), day(x.g.targetDate), c.months === null ? '' : c.months, c.need === null ? '' : r2(c.need), status];
+    });
+    var tt = sum(items, function (x) { return x.c.target; });
+    var covered = sum(items, function (x) { return Math.min(x.c.saved, x.c.target); });
+    if (body.length) body.push(['Total', r2(tt), r2(sum(items, function (x) { return x.c.saved; })), r2(sum(items, function (x) { return x.c.fromHoldings; })), r2(sum(items, function (x) { return x.c.rem; })), r2(tt > 0 ? covered / tt * 100 : 0), r2(sum(items, function (x) { return x.c.monthly; })), '', '', '', '']);
+    var done = items.filter(function (x) { return x.c.done; }).length;
+    return { kpis: [
+      { label: 'Goals', value: items.length, type: 'n' },
+      { label: 'Completed', value: done, type: 'n', tone: 'good' },
+      { label: 'Total target', value: r2(tt), type: 'm' },
+      { label: 'Saved so far', value: r2(sum(items, function (x) { return x.c.saved; })), type: 'm' }
+    ], tables: [{ title: 'Goals - progress (saved includes tagged holdings)', head: ['Goal', 'Target', 'Saved', 'Of which holdings', 'Remaining', 'Progress %', 'Monthly', 'Target date', 'Months to go', 'Needed / month', 'Status'],
+      types: ['t', 'm', 'm', 'm', 'm', 'p', 'm', 'd', 'n', 'm', 't'], body: body, totalRow: body.length > 0, empty: 'No goals added yet.' }] };
+  }
+
+  // ═════════════ NET WORTH ═════════════
+  function networthGroup() {
+    var nw = typeof fosNW === 'function' ? fosNW() : null;
+    if (!nw) return { kpis: [], tables: [{ title: 'Net worth', head: ['Note'], types: ['t'], body: [], empty: 'Net worth is not available right now.' }] };
+    var body = [
+      ['Cash (estimated from your entries)', r2(nw.cash)],
+      ['Portfolio value (current holdings)', r2(nw.portfolio)],
+      ['Total assets', r2(nw.assets)],
+      ['Loan balances (estimated)', r2(nw.loanBal)],
+      ['Accrued loan interest', r2(nw.accrued)],
+      ['Credit card dues', r2(nw.cc)],
+      ['Total liabilities', r2(nw.debt)],
+      ['Net worth', r2(nw.net)]
+    ];
+    var t1 = { title: 'Net worth summary (as of today)', head: ['Item', 'Amount'], types: ['t', 'm'], body: body, totalRow: true, empty: '' };
+    var loanBody = (nw.loans || []).map(function (l) { return [str(l.name), r2(l.balance), r2(l.accrued), r2(l.liab)]; });
+    if (loanBody.length) loanBody.push(['Total', r2(sum(nw.loans, function (l) { return l.balance; })), r2(sum(nw.loans, function (l) { return l.accrued; })), r2(sum(nw.loans, function (l) { return l.liab; }))]);
+    var t2 = { title: 'Active loans (estimated balances)', head: ['Lender', 'Balance', 'Accrued interest', 'Total owed'], types: ['t', 'm', 'm', 'm'], body: loanBody, totalRow: loanBody.length > 0, empty: 'No active loans in the Credit Tracker.' };
+    // money lent is real money you will get back, but the app's net worth does not count it; say so instead of hiding it
+    var notes = (nw.notes || []).map(function (n) { return [str(n)]; });
+    try {
+      var b = typeof fosRecvBook === 'function' ? fosRecvBook() : [], open = sum(b, function (i) { return i.outstanding; });
+      if (open > 0) notes.unshift(['Receivables still to come in (money lent + expected income): ' + fmtCell(open, 'm') + '. This is NOT included in the net worth above.']);
+    } catch (e) { }
+    var t3 = { title: 'Net worth notes', head: ['Note'], types: ['t'], body: notes, empty: '' };
+    return { kpis: [
+      { label: 'Total assets', value: r2(nw.assets), type: 'm', tone: 'good' },
+      { label: 'Total liabilities', value: r2(nw.debt), type: 'm', tone: 'bad' },
+      { label: 'Net worth', value: r2(nw.net), type: 'm', tone: nw.net >= 0 ? 'good' : 'bad' },
+      { label: 'Portfolio value', value: r2(nw.portfolio), type: 'm' }
+    ], tables: [t1, t2, t3] };
+  }
+
+  var BUILD = { recv: recvGroup, budgets: budgetGroup, subs: subsGroup, insurance: insuranceGroup, cards: cardsGroup, goalsall: goalsGroup, networth: networthGroup };
+
+  // build({recv:true,…}, {from,to}) → [{key,title,rgb,kpis,tables}] — a failing group becomes a visible error table, never a silent gap
+  function build(sel, opts) {
+    opts = opts || {}; var inRange = rangeTest(opts.from || '', opts.to || ''), out = [];
+    KEYS.forEach(function (k) {
+      if (!sel || !sel[k]) return;
+      try { var g = BUILD[k](inRange); g.key = k; g.title = TITLE[k]; g.rgb = RGB[k]; out.push(g); }
+      catch (e) {
+        console.error('[Export] ' + k + ' failed', e);
+        out.push({ key: k, title: TITLE[k], rgb: RGB[k], kpis: [], tables: [{ title: TITLE[k] + ' - could not be generated', head: ['Error'], types: ['t'], body: [[str(e && e.message || e)]], empty: '' }] });
+      }
+    });
+    return out;
+  }
+
+  // which boxes are ticked: prefix 'exp' (Export modal) or 'rep' (Advanced report modal)
+  function selFromModal(prefix, skip) {
+    var sel = {}; KEYS.forEach(function (k) {
+      if (skip && skip.indexOf(k) !== -1) return;
+      var el = document.getElementById(prefix + '-' + k); sel[k] = !!(el && el.checked);
+    }); return sel;
+  }
+  function anySelected(prefix) { var s = selFromModal(prefix); return KEYS.some(function (k) { return s[k]; }); }
+
+  // CSV text for built groups: proper quoting, numbers stay numbers, text that could run as a spreadsheet formula is defused
+  function csv(groups) {
+    var q = function (v) { var t = str(v); if (/^[=+\-@\t\r]/.test(t)) t = "'" + t; return '"' + t.replace(/"/g, '""') + '"'; };
+    var out = '';
+    groups.forEach(function (g) {
+      g.tables.forEach(function (t) {
+        out += t.title.toUpperCase() + '\n' + t.head.map(function (h) { return q(h); }).join(',') + '\n';
+        t.body.forEach(function (r) {
+          out += r.map(function (c, i) { var ty = t.types[i]; return (ty === 'm' || ty === 'p' || ty === 'n') ? (c === '' || c === null || c === undefined ? '' : String(r2(c))) : q(c); }).join(',') + '\n';
+        });
+        out += '\n';
+      });
+    });
+    return out;
+  }
+
+  // two summary rows for the PDF Report's Executive Summary (only when there is something to show)
+  function recvSummaryRows(inRange) {
+    try {
+      var b = typeof fosRecvBook === 'function' ? fosRecvBook() : [], rr = [];
+      var lent = sum(b.filter(function (i) { return i.kind === 'lent'; }), function (i) { return i.outstanding; });
+      var exp = sum(b.filter(function (i) { return i.kind === 'exp'; }), function (i) { return i.outstanding; });
+      if (lent > 0) rr.push(['Lent Money (to get back)', fmtCell(lent, 'm')]);
+      if (exp > 0) rr.push(['Expected Income (to receive)', fmtCell(exp, 'm')]);
+      return rr;
+    } catch (e) { return []; }
+  }
+
+  window.fosExportExtra = { KEYS: KEYS, build: build, fmt: fmtCell, csv: csv, selFromModal: selFromModal, anySelected: anySelected, recvSummaryRows: recvSummaryRows };
+})();
+</script>
+
+
+<style id="fos-lock-reveal-css">
+/* Lock screen shows the FinanceOS logo (it flies to the sidebar on unlock) */
+.applock-logo { display:block; margin:0 auto 1.1rem; width:84px; height:84px; filter: drop-shadow(0 8px 22px rgba(var(--brand-rgb),0.38)); }
+.applock-icon { display:none !important; }
+@property --lk-r { syntax: '<length>'; inherits: false; initial-value: 0px; }
+</style>
+<script id="fos-lock-reveal">
+/* ══════════════════════════════════════════════════════════════════════
+   UNLOCK REVEAL — after a correct PC-lock passkey / device unlock:
+   1) the lock card fades away, leaving the logo alone in the centre
+   2) the logo glides to its home spot (top-left of the sidebar)
+   3) the lock screen wipes shut toward the logo (circle shrinks + fades),
+      revealing the dashboard, sidebar and menus underneath
+   Falls back to the plain instant dismiss if anything is missing, if the
+   person prefers reduced motion, or if anything throws.
+   Timings (ms) are the 4 numbers in T below.
+══════════════════════════════════════════════════════════════════════ */
+(function () {
+  var T = { cardFade: 320, flyDelay: 150, fly: 800, wipe: 1500, feather: 220 };   // reveal starts as the logo lands; wipe = how long it takes to reach the far bottom corner
+  var running = false;
+
+  function visibleRect(el) {
+    if (!el) return null;
+    var cs = getComputedStyle(el);
+    if (cs.display === 'none' || cs.visibility === 'hidden') return null;
+    var r = el.getBoundingClientRect();
+    if (r.width < 4 || r.height < 4) return null;
+    if (r.right < 0 || r.bottom < 0 || r.left > innerWidth || r.top > innerHeight) return null;
+    return r;
+  }
+  function findTarget() {
+    var list = document.querySelectorAll('.sidebar .brand-title .fos-mark, .port-sidebar .fos-mark, .mobile-title .fos-mark, .mobile-title i');
+    for (var i = 0; i < list.length; i++) { var r = visibleRect(list[i]); if (r) return { el: list[i], rect: r }; }
+    return null;
+  }
+  function plainDismiss(ov) { ov.classList.add('hidden'); }
+
+  window.fosLockDismiss = function () {
+    var ov = document.getElementById('app-lock-overlay');
+    if (!ov) return;
+    if (running) return;
+    try {
+      if (window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches) return plainDismiss(ov);
+      if (!ov.animate) return plainDismiss(ov);
+      var logo = document.getElementById('applock-logo');
+      var src = visibleRect(logo);
+      var tgt = findTarget();
+      if (!src || !tgt) return plainDismiss(ov);
+
+      running = true;
+      var box = ov.querySelector('.applock-box');
+      var s = src, t = tgt.rect;
+      var cx = t.left + t.width / 2, cy = t.top + t.height / 2;
+      var R = Math.hypot(innerWidth, innerHeight) + 40;
+
+      // flying copy of the logo, sitting exactly on top of the lock-screen logo
+      var c = document.createElement('div');
+      c.setAttribute('aria-hidden', 'true');
+      c.style.cssText = 'position:fixed;left:' + s.left + 'px;top:' + s.top + 'px;width:' + s.width + 'px;height:' + s.height +
+        'px;z-index:1000002;pointer-events:none;transform-origin:0 0;will-change:transform;' +
+        'filter:drop-shadow(0 6px 18px rgba(32,205,181,.35))';
+      c.innerHTML = '<svg viewBox="0 0 64 64" width="100%" height="100%"><use href="#fos-logo"/></svg>';
+      document.body.appendChild(c);
+      logo.style.visibility = 'hidden';
+      var prevVis = tgt.el.style.visibility;
+      tgt.el.style.visibility = 'hidden';
+
+      var finished = false;
+      function finish() {
+        if (finished) return; finished = true;
+        tgt.el.style.visibility = prevVis;
+        ov.classList.add('hidden');
+        try { ov.getAnimations().forEach(function (a) { a.cancel(); }); } catch (e) {}
+        try { if (box) box.getAnimations().forEach(function (a) { a.cancel(); }); } catch (e) {}
+        logo.style.visibility = '';
+        ov.style.webkitMaskImage = ''; ov.style.maskImage = '';
+        // clone and real logo are pixel-identical on desktop; on mobile (cube icon) let the clone dissolve
+        var out = c.animate([{ opacity: 1 }, { opacity: 0 }], { duration: 180, fill: 'forwards' });
+        out.onfinish = function () { if (c.parentNode) c.parentNode.removeChild(c); };
+        setTimeout(function () { if (c.parentNode) c.parentNode.removeChild(c); }, 400);
+        running = false;
+      }
+
+      // 1) card fades out, logo stays
+      if (box) box.animate([{ opacity: 1, transform: 'scale(1)' }, { opacity: 0, transform: 'scale(.96)' }],
+        { duration: T.cardFade, easing: 'ease-out', fill: 'forwards' });
+
+      // 2) logo glides to the sidebar corner
+      var k = t.width / s.width;
+      c.animate([{ transform: 'translate(0px,0px) scale(1)' },
+                 { transform: 'translate(' + (t.left - s.left) + 'px,' + (t.top - s.top) + 'px) scale(' + k + ')' }],
+        { duration: T.fly, delay: T.flyDelay, easing: 'cubic-bezier(.65,0,.2,1)', fill: 'both' });
+
+      // 3) lock screen dissolves OUTWARD from the logo, spreading to the bottom of the dashboard
+      var far = Math.max(Math.hypot(cx, innerHeight - cy), Math.hypot(innerWidth - cx, innerHeight - cy), Math.hypot(cx, cy), Math.hypot(innerWidth - cx, cy));
+      var wipe;
+      if (window.CSS && CSS.registerProperty) {
+        var mask = 'radial-gradient(circle at ' + cx + 'px ' + cy + 'px, transparent var(--lk-r), #000 calc(var(--lk-r) + ' + T.feather + 'px))';
+        ov.style.webkitMaskImage = mask; ov.style.maskImage = mask;
+        wipe = ov.animate([{ '--lk-r': (-T.feather) + 'px' }, { '--lk-r': (far + 20) + 'px' }],
+          { duration: T.wipe, delay: T.flyDelay + T.fly - 80, easing: 'cubic-bezier(.45,.05,.35,1)', fill: 'both' });
+      } else {   // very old browsers: plain slow fade
+        wipe = ov.animate([{ opacity: 1 }, { opacity: 0 }],
+          { duration: T.wipe * .6, delay: T.flyDelay + T.fly - 80, easing: 'ease-in-out', fill: 'both' });
+      }
+      wipe.onfinish = finish;
+      setTimeout(finish, T.flyDelay + T.fly + T.wipe + 900);   // safety net
+    } catch (err) {
+      running = false;
+      try { console.error('unlock reveal failed', err); } catch (e) {}
+      plainDismiss(ov);
+    }
+  };
 })();
 </script>
 </body>
