@@ -17588,7 +17588,7 @@ function renderBudgetAlerts(data) {
   const isAllMonths = fM === 'all' && fY === 'all';
   const multiplier = isAllMonths ? 12 : 1;
   
-  let html = '<div style="margin-bottom:1.3rem"><div class="panel-title">Budget Status</div><div class="budget-status-grid">';
+  let html = '<div data-no-count style="margin-bottom:1.3rem"><div class="panel-title">Budget Status</div><div class="budget-status-grid">';
   cats.forEach(cat => {
     const monthlyLimit = Number(budgets[cat]);
     const _scope = data || getFilteredData();
@@ -36287,10 +36287,10 @@ body.light-mode .txa-advhead h2 i{color:#0f766e}
     var how = '<details class="fhs-how"><summary>How this score is calculated</summary><div class="fhs-how-b"><div class="txa-note" style="margin-bottom:6px">Each measure is scored 0–10 and weighted. Measures without data are skipped and the rest are re-weighted, so missing data never lowers your score. A score needs measures worth at least ' + MIN_W + '% of the weight.</div>' +
       R.M.map(function (x) { return '<div class="fhs-mr"><span class="n">' + esc(x.name) + ' <em>' + x.w + '%</em></span>' + (x.score === null ? '<span class="v na">Not evaluated · ' + esc(x.why) + '</span>' : '<span class="v"><b>' + r1(x.score) + '</b>/10 · ' + esc(x.val) + '</span>') + '</div>'; }).join('') +
       '<div class="txa-note" style="margin-top:6px">Savings: 20% of income = 10. Spend ratio: ≤50% = 10, ≥100% = 0. EMIs: ≤10% = 10, ≥40% = 0. Investing: 10% of income = 10. Budgets: within limit = 10, 50% over = 0. Trend: flat or lower = 10, +30% = 0. Bands: 8+ Excellent, 6.5+ Good, 5+ Average.</div></div></details>';
-    host.innerHTML = '<div class="fhs-top">' + gauge(R.score, st[1]) + '<div class="fhs-stat"><span class="fhs-chip" style="--c:' + st[1] + '">' + st[0] + '</span><div class="fhs-sum">' + sum + '</div></div></div>' +
-      (R.ok ? '<div class="fhs-sec"><div class="fhs-h g"><i class="fas fa-circle-check"></i>What’s Going Well</div>' + (I.good.length ? list(I.good, 'g', 'fa-check') : '<div class="txa-note">No standout strengths yet in this period.</div>') + '</div>' +
-        '<div class="fhs-sec"><div class="fhs-h a"><i class="fas fa-triangle-exclamation"></i>What Needs Improvement</div>' + (I.bad.length ? list(I.bad, 'a', 'fa-exclamation') : '<div class="txa-note"><i class="fas fa-check" style="color:' + GREEN + '"></i> Nothing flagged for this period.</div>') + '</div>' +
-        '<div class="fhs-sec"><div class="fhs-h"><i class="fas fa-lightbulb"></i>Smart Recommendations</div>' + (I.rec.length ? '<ol class="fhs-ol">' + I.rec.map(function (t) { return '<li>' + t + '</li>'; }).join('') + '</ol>' : '<div class="txa-note">Keep tracking: recommendations appear as more data comes in.</div>') + '</div>' : '') + how;
+    host.innerHTML = '<div class="fhs-top">' + gauge(R.score, st[1]) + '<div class="fhs-stat" data-no-count><span class="fhs-chip" style="--c:' + st[1] + '">' + st[0] + '</span><div class="fhs-sum">' + sum + '</div></div></div>' +
+      (R.ok ? '<div class="fhs-sec" data-no-count><div class="fhs-h g"><i class="fas fa-circle-check"></i>What’s Going Well</div>' + (I.good.length ? list(I.good, 'g', 'fa-check') : '<div class="txa-note">No standout strengths yet in this period.</div>') + '</div>' +
+        '<div class="fhs-sec" data-no-count><div class="fhs-h a"><i class="fas fa-triangle-exclamation"></i>What Needs Improvement</div>' + (I.bad.length ? list(I.bad, 'a', 'fa-exclamation') : '<div class="txa-note"><i class="fas fa-check" style="color:' + GREEN + '"></i> Nothing flagged for this period.</div>') + '</div>' +
+        '<div class="fhs-sec" data-no-count><div class="fhs-h"><i class="fas fa-lightbulb"></i>Smart Recommendations</div>' + (I.rec.length ? '<ol class="fhs-ol">' + I.rec.map(function (t) { return '<li>' + t + '</li>'; }).join('') + '</ol>' : '<div class="txa-note">Keep tracking: recommendations appear as more data comes in.</div>') + '</div>' : '') + how;
   }
   window.fhsRender = render;
 })();
@@ -36407,7 +36407,7 @@ body.light-mode .txa-advhead h2 i{color:#0f766e}
     if (!budCats.length) status = ['#64748b', 'fa-circle-info', 'Set category budgets to see projected overspend.'];
     else if (overs.length) { var o = overs[0], sev = o.over >= o.lim * 0.2 ? RED : AMBER; status = [sev, 'fa-triangle-exclamation', '<b>' + m(o.over) + ' over budget in ' + esc(o.k) + '</b>' + (overs.length > 1 ? ' and ' + (overs.length - 1) + ' more categor' + (overs.length === 2 ? 'y' : 'ies') : '') + '.']; }
     else status = [GREEN, 'fa-circle-check', '<b>On track:</b> all ' + budCats.length + ' budgeted categor' + (budCats.length === 1 ? 'y is' : 'ies are') + ' projected within limit.'];
-    var range = F.lo != null ? '<span class="fcs-rng">likely between ' + m(F.lo) + ' and ' + m(F.hi) + '</span>' : '<span class="fcs-rng">' + (F.early ? 'early estimate: only ' + F.d + ' day' + (F.d === 1 ? '' : 's') + ' of data' : 'estimate: more history narrows the range') + '</span>';
+    var range = F.lo != null ? '<span class="fcs-rng" data-no-count>likely between ' + m(F.lo) + ' and ' + m(F.hi) + '</span>' : '<span class="fcs-rng" data-no-count>' + (F.early ? 'early estimate: only ' + F.d + ' day' + (F.d === 1 ? '' : 's') + ' of data' : 'estimate: more history narrows the range') + '</span>';
     var rows = overs.slice(0, 3).map(function (x) {
       var p = Math.min(100, x.proj / x.lim * 100); return '<div class="fcs-r"><span class="n" title="' + esc(x.k) + '">' + esc(x.k) + '</span><span class="v">' + m(x.proj) + ' <em>of ' + m(x.lim) + '</em></span><span class="fcs-bar"><i style="width:' + p + '%;background:' + (x.over >= x.lim * 0.2 ? RED : AMBER) + '"></i></span></div>';
     }).join('');
@@ -36415,9 +36415,9 @@ body.light-mode .txa-advhead h2 i{color:#0f766e}
     host.innerHTML = '<div class="fcs-head"><div class="fcs-k">Projected spending by month end</div><div class="fcs-big">' + m(F.proj) + '</div>' + range + netLine(F) + '</div>' +
       '<div class="fcs-stack" role="img" aria-label="Spent so far, committed, and expected spending"><i style="width:' + pct(T.sofar) + '%;background:var(--txa-acc)"></i><i style="width:' + pct(fixedRec) + '%;background:#a78bfa"></i><i style="width:' + pct(T.rem) + '%;background:rgba(var(--brand-rgb,32,205,181),.28)"></i></div>' +
       '<div class="fcs-leg"><span><s style="background:var(--txa-acc)"></s>Spent so far <b>' + m(T.sofar) + '</b></span><span><s style="background:#a78bfa"></s>Bills &amp; scheduled <b>' + m(fixedRec) + '</b></span><span><s style="background:rgba(var(--brand-rgb,32,205,181),.28)"></s>Usual pattern <b>' + m(T.rem) + '</b></span></div>' +
-      '<div class="fcs-status" style="--c:' + status[0] + '"><i class="fas ' + status[1] + '"></i><span>' + status[2] + '</span></div>' + (rows ? '<div class="fcs-rows">' + rows + '</div>' : '') +
-      '<div class="txa-note" style="margin-top:8px">' + recTxt + '</div>' +
-      '<details class="fhs-how"><summary>How this is forecast</summary><div class="fhs-how-b txa-note">Projected spend = what you have spent (' + m(T.sofar) + ') + entries already dated later this month (' + m(T.sched) + ') + recurring bills not yet recorded (' + m(T.rec) + ') + expected everyday spending (' + m(T.rem) + '). Everyday spending uses, per category, a blend of this month’s daily pace and the average of your last ' + (F.hist || 0) + ' month' + (F.hist === 1 ? '' : 's') + ' (more weight on this month as it progresses), times the ' + (F.D - F.d) + ' days left' + (F.pattern ? ', weighted by your usual weekday pattern' : '') + '. Recurring bills are entries marked recurring that appeared last month. Large one-off purchases are counted once and not repeated for the rest of the month. The range comes from how much your past months varied. Budgets are the monthly limits you set.</div></details>';
+      '<div class="fcs-status" data-no-count style="--c:' + status[0] + '"><i class="fas ' + status[1] + '"></i><span>' + status[2] + '</span></div>' + (rows ? '<div class="fcs-rows" data-no-count>' + rows + '</div>' : '') +
+      '<div class="txa-note" data-no-count style="margin-top:8px">' + recTxt + '</div>' +
+      '<details class="fhs-how" data-no-count><summary>How this is forecast</summary><div class="fhs-how-b txa-note">Projected spend = what you have spent (' + m(T.sofar) + ') + entries already dated later this month (' + m(T.sched) + ') + recurring bills not yet recorded (' + m(T.rec) + ') + expected everyday spending (' + m(T.rem) + '). Everyday spending uses, per category, a blend of this month’s daily pace and the average of your last ' + (F.hist || 0) + ' month' + (F.hist === 1 ? '' : 's') + ' (more weight on this month as it progresses), times the ' + (F.D - F.d) + ' days left' + (F.pattern ? ', weighted by your usual weekday pattern' : '') + '. Recurring bills are entries marked recurring that appeared last month. Large one-off purchases are counted once and not repeated for the rest of the month. The range comes from how much your past months varied. Budgets are the monthly limits you set.</div></details>';
   }
   function netLine(F) {
     try {
@@ -36429,7 +36429,7 @@ body.light-mode .txa-advhead h2 i{color:#0f766e}
       }
       var sched = 0; (creditDb || []).forEach(function (c) { if (c.status === 'Active') sched += Number(c.monthlyEmi || 0); });
       var emi = Math.max(L.emi, sched), left = inc - F.proj - emi - L.invest;
-      return '<div class="fcs-rng" style="margin-top:6px">Expected left after spending, EMIs &amp; investments: <b style="color:' + (left < 0 ? RED : GREEN) + '">' + m(left) + '</b> <span style="opacity:.8">(income ' + m(inc) + (est ? ', estimated from recent months' : '') + ' - spending ' + m(F.proj) + ' - EMIs ' + m(emi) + ' - invested ' + m(L.invest) + ')</span></div>';
+      return '<div class="fcs-rng" data-no-count style="margin-top:6px">Expected left after spending, EMIs &amp; investments: <b style="color:' + (left < 0 ? RED : GREEN) + '">' + m(left) + '</b> <span style="opacity:.8">(income ' + m(inc) + (est ? ', estimated from recent months' : '') + ' - spending ' + m(F.proj) + ' - EMIs ' + m(emi) + ' - invested ' + m(L.invest) + ')</span></div>';
     } catch (e) { return ''; }
   }
   window.fcsRender = render; window.fcsCompute = compute;
@@ -36876,12 +36876,12 @@ function paintME(){var el=$('pol-me');if(!el)return;var s=dataStats();
   var dg=0;try{dg=fosCUGroups().length}catch(e){}if(dg)fix.push(dg+' payee group'+(dg>1?'s look':' looks')+' like duplicates — <a class="pol-lnk2" onclick="fosOpenManager(\'clean\')">review merges</a>.');
   if(tp&&c.exp&&tp.t/c.exp>=0.25)fix.push(link('p',tp.name,m)+' took '+Math.round(tp.t/c.exp*100)+'% of your spending — worth a look.');
   fix=fix.slice(0,3);
-  el.innerHTML=head+tiles+'<div class="pol-two"><div><div class="pol-h">Biggest changes</div><ul>'+chH+'</ul></div><div><div class="pol-h">Fix next month</div><ul>'+(fix.length?fix.map(function(x){return '<li>'+x+'</li>'}).join(''):'<li>Nothing urgent — you’re on track. 👍</li>')+'</ul></div></div>'}
+  el.innerHTML=head+tiles+'<div class="pol-two" data-no-count><div><div class="pol-h">Biggest changes</div><ul>'+chH+'</ul></div><div><div class="pol-h">Fix next month</div><ul>'+(fix.length?fix.map(function(x){return '<li>'+x+'</li>'}).join(''):'<li>Nothing urgent — you’re on track. 👍</li>')+'</ul></div></div>'}
 window.polMeStep=function(d){var s=dataStats(),ks=s.months.filter(function(m){return dbNow().some(function(r){return r.type==='Expense'&&(r.date||'').slice(0,7)===m})}),i=ks.indexOf(ME.m)+d;if(i>=0&&i<ks.length){ME.m=ks[i];paintME()}};
 window.polMeToggle=function(){try{localStorage.setItem(LSM,localStorage.getItem(LSM)==='1'?'0':'1')}catch(e){}paintME()};
 
 /* ── wiring ── */
-function initDash(){var v=$('view-dashboard');if(v&&!$('pol-me'))v.insertAdjacentHTML('afterbegin','<div id="pol-me" class="glass-panel pol-card" style="display:none"></div><div id="pol-unlock-d" class="pol-card pol-un" style="display:none"></div><div id="pol-ms" class="glass-panel pol-card" style="display:none"></div><div id="pol-lh" class="glass-panel pol-card" style="display:none"></div>');
+function initDash(){var v=$('view-dashboard');if(v&&!$('pol-me'))v.insertAdjacentHTML('afterbegin','<div id="pol-me" class="glass-panel pol-card" style="display:none"></div><div id="pol-unlock-d" data-no-count class="pol-card pol-un" style="display:none"></div><div id="pol-ms" data-no-count class="glass-panel pol-card" style="display:none"></div><div id="pol-lh" data-no-count class="glass-panel pol-card" style="display:none"></div>');
   var a=$('view-analytics');if(a&&!$('pol-unlock-a'))a.insertAdjacentHTML('afterbegin','<div id="pol-unlock-a" class="pol-card pol-un" style="display:none"></div>')}
 function wrap(n,after){var o=window[n];if(typeof o!=='function'||o.__pol)return;var w=function(){var r=o.apply(this,arguments);try{after()}catch(e){console.error('polish:',e)}return r};w.__pol=1;window[n]=w}
 wrap('renderTable',tableAfter);
@@ -37000,7 +37000,7 @@ function paint(){var el=$('pol-smart');if(!el)return;
       '<div class="pol-hint">No festival-style spike is due in the next 4 months. Pink bars are months running 20%+ above your average.</div>'))}
   el.style.display='';el.innerHTML='<div class="pol-me-h"><b>Smarter insights</b></div>'+H.join('')}
 window.polSmartPaint=paint;
-function init(){var v=$('view-dashboard');if(!v||$('pol-smart'))return;var a=$('pol-unlock-d'),h='<div id="pol-smart" class="glass-panel pol-card" style="display:none"></div>';
+function init(){var v=$('view-dashboard');if(!v||$('pol-smart'))return;var a=$('pol-unlock-d'),h='<div id="pol-smart" data-no-count class="glass-panel pol-card" style="display:none"></div>';
   if(a)a.insertAdjacentHTML('afterend',h);else v.insertAdjacentHTML('afterbegin',h)}
 var o=window.renderDashboard;
 if(typeof o==='function'){var w=function(){var r=o.apply(this,arguments);try{init();paint()}catch(e){console.error('smart:',e)}return r};window.renderDashboard=w}
