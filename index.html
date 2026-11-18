@@ -517,6 +517,8 @@ function fosBrandRgba(a){return 'rgba('+fosBrandRgb()+','+a+')';}
   var KEY = 'fos_set_anim-items';
   var KEY_MASTER = 'fos_set_anim-master';   /* "All animations" master switch: its own setting, never derived from the items below */
   var master = true;
+  var KEY_GROUPS = 'fos_set_anim-groups';   /* category switches (Numbers, Capsule bars, Rings...): own setting each, never derived from the items inside */
+  var gOff = {};
   var Q = 'animation-duration:.001ms !important;animation-delay:0s !important;animation-iteration-count:1 !important;transition-duration:.001ms !important;transition-delay:0s !important;';
   var GROUPS = [
     { id: 'num', t: 'Numbers & counters', i: 'fa-hashtag' },
@@ -574,6 +576,7 @@ function fosBrandRgba(a){return 'rgba('+fosBrandRgb()+','+a+')';}
   var ov = {}, subs = [];
   function load() {
     try { master = localStorage.getItem(KEY_MASTER) !== 'off'; } catch (e) { master = true; }
+    try { gOff = JSON.parse(localStorage.getItem(KEY_GROUPS) || '{}') || {}; } catch (e) { gOff = {}; }
     var raw = null; try { raw = localStorage.getItem(KEY); } catch (e) { }
     if (raw) { try { ov = JSON.parse(raw) || {}; } catch (e) { ov = {}; } return; }
     ov = {};                                                           // migrate the three earlier switches, once
@@ -586,7 +589,8 @@ function fosBrandRgba(a){return 'rgba('+fosBrandRgb()+','+a+')';}
   function save() { try { localStorage.setItem(KEY, JSON.stringify(ov)); } catch (e) { } }
   /* own(id) = the individual switch only; on(id) = what actually runs (master switch AND individual switch) */
   function own(id) { return ov[id] === undefined ? !reduce : !!ov[id]; }
-  function on(id) { if (typeof id !== 'string') return true; return master && own(id); }
+  function on(id) { if (typeof id !== 'string') return true; var it = byId[id]; return master && !(it && gOff[it.g]) && own(id); }
+  function groupOn(g) { return !gOff[g]; }
   function esc(sel, pre) { return sel.split('|').map(function (x) { return pre + ' ' + x; }).join(','); }
   /* one stylesheet, one rule per item, switched by a class on <html> */
   function css() {
@@ -613,11 +617,13 @@ function fosBrandRgba(a){return 'rgba('+fosBrandRgb()+','+a+')';}
   }
   function set(id, v) { if (byId[id]) { ov[id] = !!v; save(); apply(); } }
   function setMany(ids, v) { ids.forEach(function (id) { if (byId[id]) ov[id] = !!v; }); save(); apply(); }
-  function reset() { ov = {}; master = true; try { localStorage.removeItem(KEY); localStorage.removeItem(KEY_MASTER); } catch (e) { } apply(); }
+  function reset() { ov = {}; master = true; gOff = {}; try { localStorage.removeItem(KEY); localStorage.removeItem(KEY_MASTER); localStorage.removeItem(KEY_GROUPS); } catch (e) { } apply(); }
+  /* category switch: stops / resumes everything in that category WITHOUT touching the individual switches inside it */
+  function setGroup(g, v) { if (v) delete gOff[g]; else gOff[g] = true; try { if (Object.keys(gOff).length) localStorage.setItem(KEY_GROUPS, JSON.stringify(gOff)); else localStorage.removeItem(KEY_GROUPS); } catch (e) { } apply(); }
   /* master switch: turns everything off / back on WITHOUT touching the individual switches, which keep their own settings */
   function setMaster(v) { master = !!v; try { if (master) localStorage.removeItem(KEY_MASTER); else localStorage.setItem(KEY_MASTER, 'off'); } catch (e) { } apply(); }
   load(); css();
-  window.FosMotion = { items: ITEMS, groups: GROUPS, on: on, own: own, master: function () { return master; }, setMaster: setMaster, set: set, setMany: setMany, reset: reset, apply: apply, onChange: function (f) { subs.push(f); } };
+  window.FosMotion = { items: ITEMS, groups: GROUPS, on: on, own: own, groupOn: groupOn, setGroup: setGroup, master: function () { return master; }, setMaster: setMaster, set: set, setMany: setMany, reset: reset, apply: apply, onChange: function (f) { subs.push(f); } };
   if (window.Chart && !Chart.prototype.$fosUpd) {                      // charts update without animating when "draw-in" is off
     var u = Chart.prototype.update; Chart.prototype.$fosUpd = 1;
     Chart.prototype.update = function (m) { return u.call(this, on('chart-draw-in') ? m : 'none'); };
@@ -40708,7 +40714,7 @@ function fosPushRefreshUI() {
     'fos_currency','fos_number_system','fos_time','fos_date','financeOS_roughboard_v1','fos_remind_v1','fos_port_customsubs_v1','fos_port_targets_v1',
     'fos_port_tgtband','fos_port_tgtnew','fos_pi_bench','fos_tax_cls_v1','fos_tax_slab','fos_tax_fy','fos_notif_dismissed','fos_reminders_v1','fos_onboarding_goal',
     'fos_last_nw_milestone','fos_last_portfolio_update','fos_lh_unlocked','fos_academy_v1','fos_stress_v1'];
-  var DEVICE_SET = ['fos_set_app-theme', 'fos_set_sidebar-animation', 'fos_set_auto-sync', 'fos_set_ui-motion', 'fos_set_chart-anim', 'fos_set_count-anim', 'fos_set_anim-items', 'fos_set_anim-master', 'fos_set_code-protect'];   // per-device settings: never synced (push preferences DO sync; only the browser permission is per device)
+  var DEVICE_SET = ['fos_set_app-theme', 'fos_set_sidebar-animation', 'fos_set_auto-sync', 'fos_set_ui-motion', 'fos_set_chart-anim', 'fos_set_count-anim', 'fos_set_anim-items', 'fos_set_anim-master', 'fos_set_anim-groups', 'fos_set_code-protect'];   // per-device settings: never synced (push preferences DO sync; only the browser permission is per device)
   function syncable(k) { return typeof k === 'string' && (SYNC.indexOf(k) > -1 || (k.indexOf('fos_set_') === 0 && DEVICE_SET.indexOf(k) < 0)); }
 
   var origSet = Storage.prototype.setItem, origGet = Storage.prototype.getItem;
@@ -41462,6 +41468,7 @@ body.light-mode #fos-anim-settings .fam-grp{border-color:rgba(15,23,42,.1)}
 #fos-anim-settings .fam-grp.open .fam-body{display:block}
 #fos-anim-settings .fam-body .set-row{padding:8px 0}
 #fos-anim-settings.fam-master-off .fam-grp{opacity:.5}
+#fos-anim-settings .fam-grp.grp-off .fam-body{opacity:.5}
 </style>
 <script id="fos-motion-ui">
 (function () {
@@ -41478,14 +41485,13 @@ body.light-mode #fos-anim-settings .fam-grp{border-color:rgba(15,23,42,.1)}
     M.groups.forEach(function (g) {
       var its = M.items.filter(function (x) { return x.g === g.id && (!ql || (x.t + ' ' + x.d + ' ' + g.t).toLowerCase().indexOf(ql) > -1); });
       if (!its.length) return;
-      var all1 = M.items.filter(function (x) { return x.g === g.id; }), c = all1.filter(function (x) { return M.own(x.id); }).length, isOpen = open[g.id] || !!ql;
-      html += '<div class="fam-grp' + (isOpen ? ' open' : '') + '" data-g="' + g.id + '"><div class="fam-gh" data-fam-head="' + g.id + '"><i class="fas fa-chevron-right fam-chev"></i><i class="fas ' + g.i + ' fam-ic"></i><b>' + esc(g.t) + '</b><small>' + c + ' of ' + all1.length + ' on</small>' + sw('data-fam-group', g.id, c === all1.length) + '</div><div class="fam-body">';
+      var all1 = M.items.filter(function (x) { return x.g === g.id; }), c = all1.filter(function (x) { return M.own(x.id); }).length, gon = M.groupOn(g.id), isOpen = open[g.id] || !!ql;
+      html += '<div class="fam-grp' + (isOpen ? ' open' : '') + (gon ? '' : ' grp-off') + '" data-g="' + g.id + '"><div class="fam-gh" data-fam-head="' + g.id + '"><i class="fas fa-chevron-right fam-chev"></i><i class="fas ' + g.i + ' fam-ic"></i><b>' + esc(g.t) + '</b><small>' + (gon ? c + ' of ' + all1.length + ' on' : 'Off') + '</small>' + sw('data-fam-group', g.id, gon) + '</div><div class="fam-body">';
       its.forEach(function (x) { html += '<div class="set-row"><div class="set-label-block"><div class="set-lbl readable-white" style="font-size:.78rem">' + esc(x.t) + '</div><div class="set-desc">' + esc(x.d) + '</div></div>' + sw('data-fam-item', x.id, M.own(x.id)) + '</div>'; });
       html += '</div></div>';
     });
     var keep = document.activeElement && document.activeElement.id === 'fam-q', pos = keep ? document.activeElement.selectionStart : 0;
     host.innerHTML = html;
-    host.querySelectorAll('input[data-fam-group]').forEach(function (cb) { var g = cb.getAttribute('data-fam-group'), l = M.items.filter(function (x) { return x.g === g; }), k = l.filter(function (x) { return M.own(x.id); }).length; cb.indeterminate = k > 0 && k < l.length; });
     host.classList.toggle('fam-master-off', !all);   /* individual switches look dimmed while the master switch is off */
     if (keep) { var f = document.getElementById('fam-q'); if (f) { f.focus(); try { f.setSelectionRange(pos, pos); } catch (e) { } } }
   }
@@ -41499,7 +41505,7 @@ body.light-mode #fos-anim-settings .fam-grp{border-color:rgba(15,23,42,.1)}
     var t = e.target; if (!t || !t.closest || !t.closest('#fos-anim-settings')) return;
     var id = t.getAttribute('data-fam-item'), g = t.getAttribute('data-fam-group');
     if (id) { M.set(id, t.checked); note('Updated: ' + M.items.filter(function (x) { return x.id === id; })[0].t + ' ' + (t.checked ? 'On' : 'Off')); side([id]); }
-    else if (g) { var ids = M.items.filter(function (x) { return x.g === g; }).map(function (x) { return x.id; }); M.setMany(ids, t.checked); note('Updated: ' + M.groups.filter(function (x) { return x.id === g; })[0].t + ' ' + (t.checked ? 'On' : 'Off')); side(ids); }
+    else if (g) { var ids = M.items.filter(function (x) { return x.g === g; }).map(function (x) { return x.id; }); M.setGroup(g, t.checked); note('Updated: ' + M.groups.filter(function (x) { return x.id === g; })[0].t + ' ' + (t.checked ? 'On' : 'Off')); side(ids); }
     else if (t.hasAttribute('data-fam-all')) { M.setMaster(t.checked); note('Updated: All animations ' + (t.checked ? 'On' : 'Off')); side(['num']); }
     else return;
     render();
