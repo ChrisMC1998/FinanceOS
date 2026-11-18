@@ -5514,9 +5514,95 @@ body.light-mode .tv-min-btn:hover { background:#e2e8f0; color:#0f172a; }
 body:not(.light-mode) .pins-tile, body:not(.light-mode) .pins-pl { background: var(--t-inset-bg); border-color: var(--t-border); }
 body:not(.light-mode) .pins-bar { background: rgba(180,220,218,.08); }
 </style>
+<style id="fos-white-outline">
+/* ══════════════════════════════════════════════════════════════════════
+   WHITE LINE OUTLINE — DARK MODE ONLY (FinanceOS + PortfolioOS)
+   Every container (sidebars, top bar, panels, charts, KPI/metric cards)
+   gets a thin white outline. On hover the line brightens and glows white.
+   Backgrounds (incl. the teal/green tint) are NOT touched here.
+   Tune the look from the three tokens below.
+══════════════════════════════════════════════════════════════════════ */
+body:not(.light-mode) {
+  --wo-line:        rgba(255,255,255,0.24);   /* resting outline        */
+  --wo-line-hover:  rgba(255,255,255,0.92);   /* hover outline          */
+  --wo-glow:        0 0 0 1px rgba(255,255,255,0.45), 0 0 22px rgba(255,255,255,0.20);
+}
+
+/* 1 ─ Resting outline: cards, panels, chart containers */
+html body:not(.light-mode) :is(.glass-panel, .finai-panel, .cc-panel-box, .finai-score-card, .kpi-card, .port-kpi-card, .nw-card, .credit-kpi-card, .spark-card, .insight-kpi-card, .game-card, .market-card, .ins-kpi-card, .ins-expiry-card, .insight-rec-card, .nw-milestone, .finai-mini-stat, .finai-strat, .cin-tile, .ins-card, .sub-card, .emi-card, .cca-sum-card, .set-card, .cca-panel, .cca-strategy-card, .note-card, .notes-list-pane, .notes-editor-pane, .backup-option-card, .alert-rule-card, .budget-row-v2, .txa-card, .txa-kpi, .txa-sum, .txa-ins, .txa-bi, .sub-analytics-card, .ins-summary-card, .ins-coverage-box, .pins-tile, .pins-pl, .pol-card, .pol-tile, .fa-card, .fa-hub, .fa-ch, .p1-kpi, .p1-sec, .p1-sect, .p1-hl-i, .cc-card-item, .cc-active-detail, .cc-insight-row, .liteai-mini-score, .adm-stat, .fq-card, .fs-card, .ft-card, .budget-alert-item, .sub-bucket):not([style*="border-left"]) {
+  border-color: var(--wo-line) !important;
+}
+html body:not(.light-mode) :is(.glass-panel, .finai-panel, .cc-panel-box, .finai-score-card, .kpi-card, .port-kpi-card, .nw-card, .credit-kpi-card, .spark-card, .insight-kpi-card, .game-card, .market-card, .ins-kpi-card, .ins-expiry-card, .insight-rec-card, .nw-milestone, .finai-mini-stat, .finai-strat, .cin-tile, .ins-card, .sub-card, .emi-card, .cca-sum-card, .set-card, .cca-panel, .cca-strategy-card, .note-card, .notes-list-pane, .notes-editor-pane, .backup-option-card, .alert-rule-card, .budget-row-v2, .txa-card, .txa-kpi, .txa-sum, .txa-ins, .txa-bi, .sub-analytics-card, .ins-summary-card, .ins-coverage-box, .pins-tile, .pins-pl, .pol-card, .pol-tile, .fa-card, .fa-hub, .fa-ch, .p1-kpi, .p1-sec, .p1-sect, .p1-hl-i, .cc-card-item, .cc-active-detail, .cc-insight-row, .liteai-mini-score, .adm-stat, .fq-card, .fs-card, .ft-card, .budget-alert-item, .sub-bucket)[style*="border-left"] {
+  border-top-color: var(--wo-line) !important;
+  border-right-color: var(--wo-line) !important;
+  border-bottom-color: var(--wo-line) !important;
+}
+/* coloured left accent stripe stays; the other three sides go white */
+html body:not(.light-mode) .finai-card,
+  html body:not(.light-mode) .cin-card,
+  html body:not(.light-mode) .cin-ins-i {
+  border-top-color: var(--wo-line) !important;
+  border-right-color: var(--wo-line) !important;
+  border-bottom-color: var(--wo-line) !important;
+}
+/* modals / dialogs / search */
+html body:not(.light-mode) .modal-box,
+  html body:not(.light-mode) .export-modal-box,
+  html body:not(.light-mode) .backup-modal-box,
+  html body:not(.light-mode) .settings-modal-box,
+  html body:not(.light-mode) .login-box,
+  html body:not(.light-mode) .applock-box,
+  html body:not(.light-mode) .search-box,
+  html body:not(.light-mode) .pi-cs-box,
+  html body:not(.light-mode) .txn-analytics-modal {
+  border-color: rgba(255,255,255,0.32) !important;
+}
+
+/* 2 ─ Sidebars + top bar (desktop floating rails) */
+@media (min-width: 901px) {
+  html body:not(.light-mode) .sidebar,
+  html body:not(.light-mode) .port-sidebar,
+  html body:not(.light-mode) .topbar {
+    border-color: var(--wo-line) !important;
+  }
+  html body:not(.light-mode) .sidebar:hover,
+  html body:not(.light-mode) .port-sidebar:hover,
+  html body:not(.light-mode) .topbar:hover {
+    border-color: var(--wo-line-hover) !important;
+    box-shadow:
+      inset 0 1px 0 rgba(67,224,204,0.22),
+      inset 0 -1px 0 rgba(0,0,0,0.40),
+      0 20px 48px rgba(0,0,0,0.60),
+      0 4px 12px rgba(0,0,0,0.38),
+      0 0 0 1px rgba(255,255,255,0.45),
+      0 0 24px rgba(255,255,255,0.18) !important;
+  }
+}
+/* mobile header + drawer */
+html body:not(.light-mode) .mobile-header { border-bottom-color: var(--wo-line) !important; }
+html body:not(.light-mode) .mobile-drawer { border-right-color: var(--wo-line) !important; }
+html body:not(.light-mode) .mobile-liteai-sheet { border-top-color: var(--wo-line) !important; }
+
+/* 3 ─ Hover: the white line illuminates (teal glow underneath is kept) */
+@media (hover: hover) and (pointer: fine) {
+  html body:not(.light-mode) .view-section :is(.glass-panel, .finai-panel, .cc-panel-box, .finai-score-card, .kpi-card, .port-kpi-card, .nw-card, .credit-kpi-card, .spark-card, .insight-kpi-card, .game-card, .market-card, .ins-kpi-card, .ins-expiry-card, .insight-rec-card, .nw-milestone, .finai-mini-stat, .finai-strat, .cin-tile, .ins-card, .sub-card, .emi-card, .cca-sum-card, .set-card, .cca-panel, .cca-strategy-card, .note-card, .notes-list-pane, .notes-editor-pane, .backup-option-card, .alert-rule-card, .budget-row-v2, .txa-card, .txa-kpi, .txa-sum, .txa-ins, .txa-bi, .sub-analytics-card, .ins-summary-card, .ins-coverage-box, .pins-tile, .pins-pl, .pol-card, .pol-tile, .fa-card, .fa-hub, .fa-ch, .p1-kpi, .p1-sec, .p1-sect, .p1-hl-i, .cc-card-item, .cc-active-detail, .cc-insight-row, .liteai-mini-score, .adm-stat, .fq-card, .fs-card, .ft-card, .budget-alert-item, .sub-bucket):not(.dragging):not([onmouseover]):hover {
+    border-color: var(--wo-line-hover) !important;
+    box-shadow: 0 14px 36px -14px rgba(var(--brand-rgb, 32,205,181), .38), inset 0 1px 0 rgba(255,255,255,.05), var(--wo-glow) !important;
+  }
+  html body:not(.light-mode) .view-section :is(.finai-card, .cin-card, .cin-ins-i):not(.dragging):not([onmouseover]):hover {
+    border-top-color: var(--wo-line-hover) !important;
+    border-right-color: var(--wo-line-hover) !important;
+    border-bottom-color: var(--wo-line-hover) !important;
+    box-shadow: 0 14px 36px -14px rgba(var(--brand-rgb, 32,205,181), .38), inset 0 1px 0 rgba(255,255,255,.05), var(--wo-glow) !important;
+  }
+}
+/* containers that had no border of their own get a 1px one so they match */
+html body:not(.light-mode) :is(.market-card, .fs-card, .ft-card) { border-width: 1px; border-style: solid; }
+</style>
 
 <div id="app-lock-overlay" class="hidden">
   <div class="applock-box">
+    <svg class="applock-logo" id="applock-logo" viewBox="0 0 64 64" width="84" height="84" role="img" aria-label="FinanceOS"><use href="#fos-logo"/></svg>
     <div class="applock-icon" id="applock-icon"><i class="fas fa-fingerprint"></i></div>
     <div class="applock-title" id="applock-title">FinanceOS is locked</div>
     <div class="applock-sub" id="applock-sub">Verify it's you to continue</div>
@@ -7221,7 +7307,7 @@ function attemptDeviceLockUnlock() {
   if (errEl) errEl.style.display = 'none';
   verifyDeviceLock().then(ok => {
     if (ok) {
-      document.getElementById('app-lock-overlay').classList.add('hidden');
+      (window.fosLockDismiss ? fosLockDismiss() : document.getElementById('app-lock-overlay').classList.add('hidden'));
       if (_appLockResolve) { _appLockResolve(true); _appLockResolve = null; }
     } else if (errEl) {
       errEl.textContent = '❌ Verification failed or was cancelled. Try again.';
@@ -7238,7 +7324,7 @@ async function attemptPcLockUnlock() {
   if (!val) return;
   const ok = await verifyPcLock(val);
   if (ok) {
-    document.getElementById('app-lock-overlay').classList.add('hidden');
+    (window.fosLockDismiss ? fosLockDismiss() : document.getElementById('app-lock-overlay').classList.add('hidden'));
     if (_appLockResolve) { _appLockResolve(true); _appLockResolve = null; }
   } else if (errEl) {
     errEl.textContent = '❌ Incorrect PC Lock passkey.';
@@ -41723,5 +41809,113 @@ body.light-mode #fos-anim-settings .fam-grp{border-color:rgba(15,23,42,.1)}
 })();
 </script>
 
+
+<style id="fos-lock-reveal-css">
+/* Lock screen shows the FinanceOS logo (it flies to the sidebar on unlock) */
+.applock-logo { display:block; margin:0 auto 1.1rem; width:84px; height:84px; filter: drop-shadow(0 8px 22px rgba(var(--brand-rgb),0.38)); }
+.applock-icon { display:none !important; }
+</style>
+<script id="fos-lock-reveal">
+/* ══════════════════════════════════════════════════════════════════════
+   UNLOCK REVEAL — after a correct PC-lock passkey / device unlock:
+   1) the lock card fades away, leaving the logo alone in the centre
+   2) the logo glides to its home spot (top-left of the sidebar)
+   3) the lock screen wipes shut toward the logo (circle shrinks + fades),
+      revealing the dashboard, sidebar and menus underneath
+   Falls back to the plain instant dismiss if anything is missing, if the
+   person prefers reduced motion, or if anything throws.
+   Timings (ms) are the 4 numbers in T below.
+══════════════════════════════════════════════════════════════════════ */
+(function () {
+  var T = { cardFade: 320, flyDelay: 150, fly: 800, wipe: 700 };   // wipe starts as the logo lands
+  var running = false;
+
+  function visibleRect(el) {
+    if (!el) return null;
+    var cs = getComputedStyle(el);
+    if (cs.display === 'none' || cs.visibility === 'hidden') return null;
+    var r = el.getBoundingClientRect();
+    if (r.width < 4 || r.height < 4) return null;
+    if (r.right < 0 || r.bottom < 0 || r.left > innerWidth || r.top > innerHeight) return null;
+    return r;
+  }
+  function findTarget() {
+    var list = document.querySelectorAll('.sidebar .brand-title .fos-mark, .port-sidebar .fos-mark, .mobile-title .fos-mark, .mobile-title i');
+    for (var i = 0; i < list.length; i++) { var r = visibleRect(list[i]); if (r) return { el: list[i], rect: r }; }
+    return null;
+  }
+  function plainDismiss(ov) { ov.classList.add('hidden'); }
+
+  window.fosLockDismiss = function () {
+    var ov = document.getElementById('app-lock-overlay');
+    if (!ov) return;
+    if (running) return;
+    try {
+      if (window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches) return plainDismiss(ov);
+      if (!ov.animate) return plainDismiss(ov);
+      var logo = document.getElementById('applock-logo');
+      var src = visibleRect(logo);
+      var tgt = findTarget();
+      if (!src || !tgt) return plainDismiss(ov);
+
+      running = true;
+      var box = ov.querySelector('.applock-box');
+      var s = src, t = tgt.rect;
+      var cx = t.left + t.width / 2, cy = t.top + t.height / 2;
+      var R = Math.hypot(innerWidth, innerHeight) + 40;
+
+      // flying copy of the logo, sitting exactly on top of the lock-screen logo
+      var c = document.createElement('div');
+      c.setAttribute('aria-hidden', 'true');
+      c.style.cssText = 'position:fixed;left:' + s.left + 'px;top:' + s.top + 'px;width:' + s.width + 'px;height:' + s.height +
+        'px;z-index:1000002;pointer-events:none;transform-origin:0 0;will-change:transform;' +
+        'filter:drop-shadow(0 6px 18px rgba(32,205,181,.35))';
+      c.innerHTML = '<svg viewBox="0 0 64 64" width="100%" height="100%"><use href="#fos-logo"/></svg>';
+      document.body.appendChild(c);
+      logo.style.visibility = 'hidden';
+      var prevVis = tgt.el.style.visibility;
+      tgt.el.style.visibility = 'hidden';
+
+      var finished = false;
+      function finish() {
+        if (finished) return; finished = true;
+        tgt.el.style.visibility = prevVis;
+        ov.classList.add('hidden');
+        try { ov.getAnimations().forEach(function (a) { a.cancel(); }); } catch (e) {}
+        try { if (box) box.getAnimations().forEach(function (a) { a.cancel(); }); } catch (e) {}
+        logo.style.visibility = '';
+        // clone and real logo are pixel-identical on desktop; on mobile (cube icon) let the clone dissolve
+        var out = c.animate([{ opacity: 1 }, { opacity: 0 }], { duration: 180, fill: 'forwards' });
+        out.onfinish = function () { if (c.parentNode) c.parentNode.removeChild(c); };
+        setTimeout(function () { if (c.parentNode) c.parentNode.removeChild(c); }, 400);
+        running = false;
+      }
+
+      // 1) card fades out, logo stays
+      if (box) box.animate([{ opacity: 1, transform: 'scale(1)' }, { opacity: 0, transform: 'scale(.96)' }],
+        { duration: T.cardFade, easing: 'ease-out', fill: 'forwards' });
+
+      // 2) logo glides to the sidebar corner
+      var k = t.width / s.width;
+      c.animate([{ transform: 'translate(0px,0px) scale(1)' },
+                 { transform: 'translate(' + (t.left - s.left) + 'px,' + (t.top - s.top) + 'px) scale(' + k + ')' }],
+        { duration: T.fly, delay: T.flyDelay, easing: 'cubic-bezier(.65,0,.2,1)', fill: 'both' });
+
+      // 3) lock screen wipes shut toward the logo, revealing the dashboard
+      var wipe = ov.animate([
+        { clipPath: 'circle(' + R + 'px at ' + cx + 'px ' + cy + 'px)', opacity: 1 },
+        { opacity: .9, offset: .55 },
+        { clipPath: 'circle(0px at ' + cx + 'px ' + cy + 'px)', opacity: 0 }
+      ], { duration: T.wipe, delay: T.flyDelay + T.fly - 80, easing: 'cubic-bezier(.7,0,.3,1)', fill: 'both' });
+      wipe.onfinish = finish;
+      setTimeout(finish, T.flyDelay + T.fly + T.wipe + 900);   // safety net
+    } catch (err) {
+      running = false;
+      try { console.error('unlock reveal failed', err); } catch (e) {}
+      plainDismiss(ov);
+    }
+  };
+})();
+</script>
 </body>
 </html>
