@@ -5600,6 +5600,90 @@ html body:not(.light-mode) .mobile-liteai-sheet { border-top-color: var(--wo-lin
 html body:not(.light-mode) :is(.market-card, .fs-card, .ft-card) { border-width: 1px; border-style: solid; }
 </style>
 
+<style id="fos-black-outline">
+/* ══════════════════════════════════════════════════════════════════════
+   BLACK LINE OUTLINE — LIGHT MODE ONLY (FinanceOS + PortfolioOS)
+   Mirror of the white outline block above (which is dark mode only).
+   Every container (sidebars, top bar, panels, charts, KPI/metric cards)
+   gets a black outline. On hover the line goes solid black and glows,
+   with the same green glow underneath that light mode already had.
+   Backgrounds are NOT touched here. Tune the look from the 3 tokens.
+══════════════════════════════════════════════════════════════════════ */
+body.light-mode {
+  --bo-line:        rgba(0,0,0,0.55);    /* resting outline        */
+  --bo-line-hover:  rgba(0,0,0,1);       /* hover outline          */
+  --bo-glow:        0 0 0 1px rgba(0,0,0,0.55), 0 0 18px rgba(0,0,0,0.28);
+}
+
+/* 1 - Resting outline: cards, panels, chart containers */
+html body.light-mode :is(.glass-panel, .finai-panel, .cc-panel-box, .finai-score-card, .kpi-card, .port-kpi-card, .nw-card, .credit-kpi-card, .spark-card, .insight-kpi-card, .game-card, .market-card, .ins-kpi-card, .ins-expiry-card, .insight-rec-card, .nw-milestone, .finai-mini-stat, .finai-strat, .cin-tile, .ins-card, .sub-card, .emi-card, .cca-sum-card, .set-card, .cca-panel, .cca-strategy-card, .note-card, .notes-list-pane, .notes-editor-pane, .backup-option-card, .alert-rule-card, .budget-row-v2, .txa-card, .txa-kpi, .txa-sum, .txa-ins, .txa-bi, .sub-analytics-card, .ins-summary-card, .ins-coverage-box, .pins-tile, .pins-pl, .pol-card, .pol-tile, .fa-card, .fa-hub, .fa-ch, .p1-kpi, .p1-sec, .p1-sect, .p1-hl-i, .cc-card-item, .cc-active-detail, .cc-insight-row, .liteai-mini-score, .adm-stat, .fq-card, .fs-card, .ft-card, .budget-alert-item, .sub-bucket):not([style*="border-left"]) {
+  border-color: var(--bo-line) !important;
+}
+html body.light-mode :is(.glass-panel, .finai-panel, .cc-panel-box, .finai-score-card, .kpi-card, .port-kpi-card, .nw-card, .credit-kpi-card, .spark-card, .insight-kpi-card, .game-card, .market-card, .ins-kpi-card, .ins-expiry-card, .insight-rec-card, .nw-milestone, .finai-mini-stat, .finai-strat, .cin-tile, .ins-card, .sub-card, .emi-card, .cca-sum-card, .set-card, .cca-panel, .cca-strategy-card, .note-card, .notes-list-pane, .notes-editor-pane, .backup-option-card, .alert-rule-card, .budget-row-v2, .txa-card, .txa-kpi, .txa-sum, .txa-ins, .txa-bi, .sub-analytics-card, .ins-summary-card, .ins-coverage-box, .pins-tile, .pins-pl, .pol-card, .pol-tile, .fa-card, .fa-hub, .fa-ch, .p1-kpi, .p1-sec, .p1-sect, .p1-hl-i, .cc-card-item, .cc-active-detail, .cc-insight-row, .liteai-mini-score, .adm-stat, .fq-card, .fs-card, .ft-card, .budget-alert-item, .sub-bucket)[style*="border-left"] {
+  border-top-color: var(--bo-line) !important;
+  border-right-color: var(--bo-line) !important;
+  border-bottom-color: var(--bo-line) !important;
+}
+/* coloured left accent stripe stays; the other three sides go black */
+html body.light-mode .finai-card,
+  html body.light-mode .cin-card,
+  html body.light-mode .cin-ins-i {
+  border-top-color: var(--bo-line) !important;
+  border-right-color: var(--bo-line) !important;
+  border-bottom-color: var(--bo-line) !important;
+}
+/* modals / dialogs / search */
+html body.light-mode .modal-box,
+  html body.light-mode .export-modal-box,
+  html body.light-mode .backup-modal-box,
+  html body.light-mode .settings-modal-box,
+  html body.light-mode .login-box,
+  html body.light-mode .applock-box,
+  html body.light-mode .search-box,
+  html body.light-mode .pi-cs-box,
+  html body.light-mode .txn-analytics-modal {
+  border-color: rgba(0,0,0,0.70) !important;
+}
+
+/* 2 - Sidebars + top bar (desktop) */
+@media (min-width: 901px) {
+  html body.light-mode .sidebar,
+  html body.light-mode .port-sidebar,
+  html body.light-mode .topbar {
+    border-color: var(--bo-line) !important;
+  }
+  html body.light-mode .sidebar:hover,
+  html body.light-mode .port-sidebar:hover,
+  html body.light-mode .topbar:hover {
+    border-color: var(--bo-line-hover) !important;
+    box-shadow:
+      0 10px 30px -10px rgba(var(--brand-rgb, 10,143,120), .32),
+      0 0 0 1px rgba(0,0,0,0.55),
+      0 0 22px rgba(0,0,0,0.22) !important;
+  }
+}
+/* mobile header + drawer */
+html body.light-mode .mobile-header { border-bottom-color: var(--bo-line) !important; }
+html body.light-mode .mobile-drawer { border-right-color: var(--bo-line) !important; }
+html body.light-mode .mobile-liteai-sheet { border-top-color: var(--bo-line) !important; }
+
+/* 3 - Hover: the black line glows (green glow underneath is kept) */
+@media (hover: hover) and (pointer: fine) {
+  html body.light-mode .view-section :is(.glass-panel, .finai-panel, .cc-panel-box, .finai-score-card, .kpi-card, .port-kpi-card, .nw-card, .credit-kpi-card, .spark-card, .insight-kpi-card, .game-card, .market-card, .ins-kpi-card, .ins-expiry-card, .insight-rec-card, .nw-milestone, .finai-mini-stat, .finai-strat, .cin-tile, .ins-card, .sub-card, .emi-card, .cca-sum-card, .set-card, .cca-panel, .cca-strategy-card, .note-card, .notes-list-pane, .notes-editor-pane, .backup-option-card, .alert-rule-card, .budget-row-v2, .txa-card, .txa-kpi, .txa-sum, .txa-ins, .txa-bi, .sub-analytics-card, .ins-summary-card, .ins-coverage-box, .pins-tile, .pins-pl, .pol-card, .pol-tile, .fa-card, .fa-hub, .fa-ch, .p1-kpi, .p1-sec, .p1-sect, .p1-hl-i, .cc-card-item, .cc-active-detail, .cc-insight-row, .liteai-mini-score, .adm-stat, .fq-card, .fs-card, .ft-card, .budget-alert-item, .sub-bucket):not(.dragging):not([onmouseover]):hover {
+    border-color: var(--bo-line-hover) !important;
+    box-shadow: 0 14px 32px -14px rgba(var(--brand-rgb, 10,143,120), .32), 0 1px 3px rgba(15,23,42,.08), var(--bo-glow) !important;
+  }
+  html body.light-mode .view-section :is(.finai-card, .cin-card, .cin-ins-i):not(.dragging):not([onmouseover]):hover {
+    border-top-color: var(--bo-line-hover) !important;
+    border-right-color: var(--bo-line-hover) !important;
+    border-bottom-color: var(--bo-line-hover) !important;
+    box-shadow: 0 14px 32px -14px rgba(var(--brand-rgb, 10,143,120), .32), 0 1px 3px rgba(15,23,42,.08), var(--bo-glow) !important;
+  }
+}
+/* containers that had no border of their own get a 1px one so they match */
+html body.light-mode :is(.market-card, .fs-card, .ft-card) { border-width: 1px; border-style: solid; }
+</style>
+
 <div id="app-lock-overlay" class="hidden">
   <div class="applock-box">
     <svg class="applock-logo" id="applock-logo" viewBox="0 0 64 64" width="84" height="84" role="img" aria-label="FinanceOS"><use href="#fos-logo"/></svg>
