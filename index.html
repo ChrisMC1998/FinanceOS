@@ -29740,7 +29740,7 @@ function ccCardFaceHTML(c) {
         <div>
           <div class="cc-face-name-lbl">Card Holder</div>
           <div class="cc-face-name">${c.nickname}</div>
-          <div class="cc-face-exp">Exp ${c.expiry}</div>
+          <div class="cc-face-exp" data-no-count>Exp ${c.expiry}</div>
         </div>
       </div>
       <div class="cc-face-ring-wrap" role="img" aria-label="Utilization ${pct.toFixed(0)}%">
@@ -29749,7 +29749,7 @@ function ccCardFaceHTML(c) {
           <circle class="cc-face-ring-fill" cx="26" cy="26" r="${r}" stroke="${color}"
             stroke-dasharray="${circ}" stroke-dashoffset="${circ}" data-target-offset="${offset}"></circle>
         </svg>
-        <div class="cc-face-ring-pct">${pct.toFixed(0)}%</div>
+        <div class="cc-face-ring-pct" data-cu-always>${pct.toFixed(0)}%</div>
       </div>
       <div class="cc-face-network" role="img" aria-label="${(c.network||'card').charAt(0).toUpperCase()+(c.network||'card').slice(1)} card network">${ccCardNetworkBadge(c.network)}</div>
     </div>`;
@@ -29802,7 +29802,7 @@ function renderCCCards() {
           <div class="cc-stack-outer" id="cc-stack-outer"></div>
         </div>
       </div>
-      <div class="cc-active-detail" id="cc-active-detail"></div>
+      <div class="cc-active-detail" id="cc-active-detail" data-no-count></div>
     `;
     stackOuter = document.getElementById('cc-stack-outer');
     Object.keys(ccStackEls).forEach(k => delete ccStackEls[k]);
@@ -30087,11 +30087,14 @@ function ccMoney(n) { return '₹' + Math.round(n).toLocaleString('en-IN'); }
 function ccTrendSVG(c) {
   const allPts = ccCardHistory(c);
   const allLbls = ccLast12MonthLabels();
+  const _now = new Date();
+  const allFull = Array.from({ length: 12 }, (_, k) => new Date(_now.getFullYear(), _now.getMonth() - (11 - k), 1).toLocaleString('en-US', { month: 'short', year: 'numeric' }));
   const n = Math.max(1, ccTrendMonths);
-  const pts = allPts.slice(12 - n);
-  const lbls = allLbls.slice(12 - n);
+  const off = 12 - n;
+  const pts = allPts.slice(off);
+  const lbls = allLbls.slice(off);
 
-  const W = 600, H = 190, padL = 34, padR = 12, padT = 14, padB = 26;
+  const W = 600, H = 190, padL = 34, padR = 12, padT = 22, padB = 26;
   const innerW = W - padL - padR, innerH = H - padT - padB;
   const x = i => pts.length > 1 ? padL + (i * innerW) / (pts.length - 1) : padL + innerW / 2;
   const y = pct => padT + innerH - (Math.max(0, Math.min(100, pct)) / 100) * innerH;
@@ -30107,31 +30110,54 @@ function ccTrendSVG(c) {
     <text x="${W-padR}" y="${(y(t.v)-3).toFixed(1)}" text-anchor="end" font-size="8" fill="${t.color}" opacity="0.75">${t.v}%</text>
   `).join('');
 
-  const dots = pts.map((p, i) => {
-    const outstanding = Math.round(c.limit * p / 100), avail = Math.max(0, c.limit - outstanding);
-    return `<circle cx="${x(i).toFixed(1)}" cy="${y(p).toFixed(1)}" r="3.4" fill="#f97316" stroke="#0b0e1e" stroke-width="1.4">
-      <title>${lbls[i]}&#10;Utilization: ${p.toFixed(1)}%&#10;Outstanding: ${ccMoney(outstanding)}&#10;Available: ${ccMoney(avail)}</title>
-    </circle>`;
+  // data for the hover card (read by the chart-hover script)
+  const data = pts.map((p, i) => {
+    const out = Math.round(c.limit * p / 100);
+    const pi = off + i - 1;
+    return { l: allFull[off + i], p: +p.toFixed(1), o: out, a: Math.max(0, c.limit - out), lim: c.limit,
+             pv: pi >= 0 ? +allPts[pi].toFixed(1) : null, pl: pi >= 0 ? allLbls[pi] : '' };
+  });
+
+  const dots = pts.map((p, i) => `<circle class="cca-tr-dot" data-i="${i}" cx="${x(i).toFixed(1)}" cy="${y(p).toFixed(1)}" r="3.4" fill="#f97316" stroke="#0b0e1e" stroke-width="1.4"/>`).join('');
+  const valLbls = n <= 6 ? pts.map((p, i) => `<text class="cca-tr-val" x="${x(i).toFixed(1)}" y="${(y(p) - 9).toFixed(1)}" text-anchor="middle" font-size="8.5" font-weight="700">${p.toFixed(0)}%</text>`).join('') : '';
+
+  const hits = pts.map((p, i) => {
+    const l = i === 0 ? 0 : (x(i - 1) + x(i)) / 2, r = i === pts.length - 1 ? W : (x(i) + x(i + 1)) / 2;
+    return `<rect class="cca-hit" data-i="${i}" x="${l.toFixed(1)}" y="0" width="${(r - l).toFixed(1)}" height="${H}"/>`;
   }).join('');
 
   const labelStep = pts.length > 8 ? 2 : 1;
   const xLabels = lbls.map((l, i) => (i % labelStep === 0 || i === lbls.length - 1)
-    ? `<text x="${x(i).toFixed(1)}" y="${H-6}" text-anchor="middle" font-size="8.5" fill="rgba(255,255,255,0.4)">${l}</text>` : '').join('');
+    ? `<text class="cca-tr-xl" x="${x(i).toFixed(1)}" y="${H-6}" text-anchor="middle" font-size="8.5">${l}</text>` : '').join('');
+
+  // plain-language read-out under the chart
+  const above = pts.filter(p => p > 30).length, diff = pts[pts.length - 1] - pts[0];
+  const say = n === 1
+    ? `This month you are at ${pts[0].toFixed(1)}% - ${pts[0] <= 30 ? 'within' : 'above'} the recommended 30%.`
+    : `Utilization ${Math.abs(diff) < 1 ? 'held steady' : (diff > 0 ? 'rose by ' : 'fell by ') + Math.abs(diff).toFixed(1) + ' pts'} over ${n} months and was above the recommended 30% in ${above} of ${n} months.`;
 
   return `
-    <svg viewBox="0 0 ${W} ${H}" width="100%" height="${H}" xmlns="http://www.w3.org/2000/svg" style="overflow:visible">
-      <defs>
-        <linearGradient id="ccTrendFill-${c.id}" x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0%" stop-color="#f97316" stop-opacity="0.32"/>
-          <stop offset="100%" stop-color="#f97316" stop-opacity="0"/>
-        </linearGradient>
-      </defs>
-      ${thresholdLines}
-      <path d="${areaPath}" fill="url(#ccTrendFill-${c.id})"/>
-      <path d="${linePath}" fill="none" stroke="#f97316" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>
-      ${dots}
-      ${xLabels}
-    </svg>`;
+    <div class="cca-trend-wrap" data-no-count data-cca-trend="${encodeURIComponent(JSON.stringify(data))}">
+      <svg viewBox="0 0 ${W} ${H}" width="100%" height="${H}" xmlns="http://www.w3.org/2000/svg" style="overflow:visible" role="img" aria-label="Utilization trend for ${n} month${n > 1 ? 's' : ''}. Hover or tap a point for details.">
+        <defs>
+          <linearGradient id="ccTrendFill-${c.id}" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" stop-color="#f97316" stop-opacity="0.32"/>
+            <stop offset="100%" stop-color="#f97316" stop-opacity="0"/>
+          </linearGradient>
+        </defs>
+        ${thresholdLines}
+        <path d="${areaPath}" fill="url(#ccTrendFill-${c.id})"/>
+        <path d="${linePath}" fill="none" stroke="#f97316" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>
+        <line class="cca-tr-guide" x1="0" y1="${padT - 6}" x2="0" y2="${padT + innerH}"/>
+        ${dots}
+        <circle class="cca-tr-halo" cx="0" cy="0" r="9"/>
+        ${valLbls}
+        ${xLabels}
+        ${hits}
+      </svg>
+      <div class="cca-tr-tip" aria-hidden="true"></div>
+    </div>
+    <div class="cca-tr-insight" data-no-count><i class="fas fa-circle-info"></i><span>${say} <em>Hover or tap a point for that month's details.</em></span></div>`;
 }
 
 function ccSetTrendRange(months) {
@@ -30187,23 +30213,23 @@ function renderCCAnalytics() {
         <div class="cca-sum-card">
           <div class="cca-sum-lbl">Current Utilization</div>
           <div class="cca-sum-val" style="color:${status.color}">${pct.toFixed(1)}%</div>
-          <div class="cca-sum-note">Recommended: Below 30%</div>
+          <div class="cca-sum-note" data-no-count>Recommended: Below 30%</div>
           <div class="cca-status-pill ${status.cls}">${status.label}</div>
         </div>
         <div class="cca-sum-card">
           <div class="cca-sum-lbl">Total Credit Limit</div>
           <div class="cca-sum-val">${ccMoney(c.limit)}</div>
-          <div class="cca-sum-note">Across selected card</div>
+          <div class="cca-sum-note" data-no-count>Across selected card</div>
         </div>
         <div class="cca-sum-card">
           <div class="cca-sum-lbl">Available Credit</div>
           <div class="cca-sum-val" style="color:#34d399">${ccMoney(avail)}</div>
-          <div class="cca-sum-note">${c.limit>0 ? (avail/c.limit*100).toFixed(1) : '0'}% of total limit</div>
+          <div class="cca-sum-note" data-no-count>${c.limit>0 ? (avail/c.limit*100).toFixed(1) : '0'}% of total limit</div>
         </div>
         <div class="cca-sum-card">
           <div class="cca-sum-lbl">Outstanding</div>
           <div class="cca-sum-val" style="color:${status.color}">${ccMoney(c.used)}</div>
-          <div class="cca-sum-note">Current reported balance</div>
+          <div class="cca-sum-note" data-no-count>Current reported balance</div>
         </div>
       </div>
 
@@ -30236,7 +30262,7 @@ function renderCCAnalytics() {
                 <div class="cca-bd-item-lbl"><div class="cca-bd-dot" style="background:rgba(255,255,255,0.15)"></div>Available Credit</div>
                 <div class="cca-bd-item-val">${ccMoney(avail)}</div>
               </div>
-              <div class="cca-bd-total"><span>${ccMoney(c.limit)} Total Limit</span><span>${pct.toFixed(1)}% used · ${(100-pct).toFixed(1)}% available</span></div>
+              <div class="cca-bd-total" data-no-count><span>${ccMoney(c.limit)} Total Limit</span><span>${pct.toFixed(1)}% used · ${(100-pct).toFixed(1)}% available</span></div>
             </div>
           </div>
         </div>
@@ -30244,7 +30270,7 @@ function renderCCAnalytics() {
 
       <!-- Payment Health + Recommendations -->
       <div class="cca-grid-2">
-        <div class="cca-panel">
+        <div class="cca-panel" data-no-count>
           <div class="cca-panel-title">Payment Health</div>
           <div class="cca-panel-sub">${c.nickname} · estimated cycle</div>
           <div class="cca-payment-grid">
@@ -30284,15 +30310,15 @@ function renderCCAnalytics() {
         <div class="cca-panel-sub">${c.nickname} · monthly guide</div>
         <div class="cca-strategy-grid">
           <div class="cca-strategy-card">
-            <div class="cca-strategy-lbl">Spendable Before 30%</div>
+            <div class="cca-strategy-lbl" data-no-count>Spendable Before 30%</div>
             <div class="cca-strategy-val" style="color:#60a5fa">${ccMoney(spendableBefore30)}</div>
           </div>
           <div class="cca-strategy-card">
-            <div class="cca-strategy-lbl">Pay Down to 30%</div>
+            <div class="cca-strategy-lbl" data-no-count>Pay Down to 30%</div>
             <div class="cca-strategy-val" style="color:#f97316">${ccMoney(toReduce)}</div>
           </div>
           <div class="cca-strategy-card">
-            <div class="cca-strategy-lbl">Available Credit</div>
+            <div class="cca-strategy-lbl" data-no-count>Available Credit</div>
             <div class="cca-strategy-val" style="color:#34d399">${ccMoney(avail)}</div>
           </div>
         </div>
@@ -30304,7 +30330,7 @@ function renderCCAnalytics() {
         <div class="cca-panel-title">Portfolio Utilization</div>
         <div class="cca-panel-sub">All active credit cards</div>
         <div class="cca-table-wrap">
-          <table class="cca-table">
+          <table class="cca-table" data-no-count>
             <thead><tr><th>Card</th><th>Limit</th><th>Outstanding</th><th>Available</th><th>Utilization</th><th>Status</th></tr></thead>
             <tbody>
               ${ccCards.map(x => {
@@ -30334,7 +30360,7 @@ function renderCCAnalytics() {
             <div class="cca-attn-dot">${critical ? '🔴' : '🟠'}</div>
             <div class="cca-attn-body">
               <b>${a.card.nickname} — ${a.pct.toFixed(1)}% utilization</b>
-              <span>${reduce > 0 ? `${ccMoney(reduce)} reduction needed to reach 30%.` : `Consider keeping future spending below ${ccMoney(a.card.limit*0.3)}.`}</span>
+              <span data-no-count>${reduce > 0 ? `${ccMoney(reduce)} reduction needed to reach 30%.` : `Consider keeping future spending below ${ccMoney(a.card.limit*0.3)}.`}</span>
             </div>
           </div>`;
         }).join('')}
@@ -41652,7 +41678,7 @@ body.light-mode #fos-anim-settings .fam-grp{border-color:rgba(15,23,42,.1)}
     if (vis === undefined) vis = inView(par);
     if (!vis) { act.delete(n); put(n, st, txt); par.__cuWait = 1; observe(par); return; }
     var key = cls(par) + '|' + txt, now = performance.now();
-    if (!force && !wasAct && recent[key] && now - recent[key] < 2500) { put(n, st, txt); return; }
+    if (!force && !wasAct && recent[key] && now - recent[key] < 2500 && !(par.hasAttribute && par.hasAttribute('data-cu-always'))) { put(n, st, txt); return; }
     var fv = null;
     if (!force) fv = N.fromVals(wasAct && curShown ? curShown : (prevTxt || ''), P);
     if (fv && P.toks.every(function (t, i) { return !t.ok || fv[i] === t.val; })) { act.delete(n); put(n, st, txt); return; }
@@ -41770,6 +41796,121 @@ body.light-mode #fos-anim-settings .fam-grp{border-color:rgba(15,23,42,.1)}
       playMany(arr, false);
     }, 700);
   });
+})();
+</script>
+<style id="cca-trend-fx">
+/* Utilization trend: interactive hover card, guide line and highlighted point */
+.cca-trend-wrap { position: relative; }
+.cca-trend-wrap svg { display: block; touch-action: pan-y; }
+.cca-hit { fill: transparent; cursor: crosshair; }
+.cca-tr-guide { stroke: var(--text-muted, #94a3b8); stroke-width: 1; stroke-dasharray: 3 3; opacity: 0; transition: opacity .15s; pointer-events: none; }
+.cca-tr-halo { fill: none; stroke: #f97316; stroke-width: 1.6; opacity: 0; transition: opacity .15s; pointer-events: none; }
+.cca-trend-wrap.on .cca-tr-guide { opacity: .75; }
+.cca-trend-wrap.on .cca-tr-halo { opacity: .95; }
+.cca-tr-dot { pointer-events: none; transition: r .15s; }
+.cca-tr-val { fill: var(--text-main, #e2e8f0); opacity: .9; pointer-events: none; }
+.cca-tr-xl { fill: var(--text-muted, #94a3b8); pointer-events: none; }
+.cca-tr-insight { display: flex; gap: 8px; align-items: flex-start; margin-top: 10px; font-size: .7rem; line-height: 1.5; color: var(--text-muted, #94a3b8); }
+.cca-tr-insight i { margin-top: 3px; color: #f97316; }
+.cca-tr-insight em { font-style: normal; opacity: .75; }
+.cca-tr-tip { position: absolute; left: 0; top: 0; z-index: 6; pointer-events: none; opacity: 0; visibility: hidden; transform: translateY(4px);
+  transition: opacity .15s ease, transform .18s ease, visibility 0s linear .18s; min-width: 176px; max-width: 250px; padding: 10px 13px 11px; border-radius: 12px;
+  background: rgba(11,16,18,.96); color: #e6f2f0; border: 1px solid rgba(255,255,255,.14); box-shadow: 0 14px 30px -10px rgba(0,0,0,.6);
+  font-size: .7rem; line-height: 1.35; font-family: 'DM Sans', system-ui, sans-serif; }
+.cca-trend-wrap.on .cca-tr-tip { opacity: 1; visibility: visible; transform: none; transition: opacity .15s ease, transform .18s ease, visibility 0s; }
+.cca-tr-tip .h { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-bottom: 5px; font-size: .62rem; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; opacity: .72; }
+.cca-tr-tip .pill { padding: 2px 8px; border-radius: 999px; font-size: .58rem; letter-spacing: .04em; color: #0b0e1e; opacity: 1; }
+.cca-tr-tip .big { font-family: 'DM Mono', ui-monospace, monospace; font-size: 1.1rem; font-weight: 700; margin-bottom: 4px; }
+.cca-tr-tip .r { display: flex; justify-content: space-between; gap: 14px; margin-top: 3px; }
+.cca-tr-tip .r span:first-child { opacity: .65; }
+.cca-tr-tip .r b { font-family: 'DM Mono', ui-monospace, monospace; font-weight: 700; }
+.cca-tr-tip .d.up { color: #f87171; } .cca-tr-tip .d.down { color: #34d399; } .cca-tr-tip .d.flat { opacity: .7; }
+.cca-tr-tip .note { margin-top: 7px; padding-top: 7px; border-top: 1px solid rgba(128,128,128,.28); opacity: .92; }
+body.light-mode .cca-tr-tip { background: rgba(255,255,255,.98); color: #0f172a; border-color: rgba(15,23,42,.16); box-shadow: 0 14px 28px -12px rgba(15,23,42,.3); }
+body.light-mode .cca-tr-guide { stroke: #475569; }
+html body .cc-face-ring-fill { transition: stroke-dashoffset 1.1s cubic-bezier(.215,.61,.355,1), stroke-width .25s; }  /* same length and easing as the % count-up */
+</style>
+<script id="cca-trend-fx-js">
+(function () {
+  var cur = null, lastTouch = 0;
+  var money = function (n) { return '\u20B9' + Math.round(n).toLocaleString('en-IN'); };
+  function status(p) { return p > 70 ? ['Very high', '#ef4444'] : p > 50 ? ['High', '#f97316'] : p > 30 ? ['Moderate', '#f59e0b'] : ['Healthy', '#34d399']; }
+  function hide(w) { if (w) w.classList.remove('on'); if (cur === w) cur = null; }
+  function show(w, i) {
+    var pts = w.__pts; if (!pts) { try { pts = w.__pts = JSON.parse(decodeURIComponent(w.getAttribute('data-cca-trend'))); } catch (e) { return; } }
+    var d = pts[i]; if (!d) return;
+    if (cur && cur !== w) hide(cur);
+    cur = w;
+    var svg = w.querySelector('svg'), dot = w.querySelector('.cca-tr-dot[data-i="' + i + '"]'), tip = w.querySelector('.cca-tr-tip');
+    if (!svg || !dot || !tip || !svg.getScreenCTM) return;
+    var st = status(d.p), over = Math.max(0, d.o - d.lim * 0.3), delta = '';
+    if (d.pv != null) {
+      var df = d.p - d.pv;
+      delta = Math.abs(df) < 0.05 ? '<div class="r"><span>vs ' + d.pl + '</span><b class="d flat">no change</b></div>'
+        : '<div class="r"><span>vs ' + d.pl + '</span><b class="d ' + (df > 0 ? 'up' : 'down') + '">' + (df > 0 ? '\u2191 +' : '\u2193 \u2212') + Math.abs(df).toFixed(1) + ' pts</b></div>';
+    }
+    var note = d.p <= 30 ? 'Within the recommended 30%. Good for your credit score.'
+      : d.p <= 50 ? 'Moderate: about ' + money(over) + ' above the 30% mark.'
+      : d.p <= 70 ? 'High: paying down about ' + money(over) + ' gets you under 30%.'
+      : 'Very high: this can hurt your credit score. Pay down about ' + money(over) + ' to get under 30%.';
+    tip.innerHTML = '<div class="h"><span>' + d.l + '</span><span class="pill" style="background:' + st[1] + '">' + st[0] + '</span></div>'
+      + '<div class="big" style="color:' + st[1] + '">' + d.p.toFixed(1) + '% used</div>'
+      + '<div class="r"><span>Outstanding</span><b>' + money(d.o) + '</b></div>'
+      + '<div class="r"><span>Available</span><b>' + money(d.a) + '</b></div>' + delta
+      + '<div class="note">' + note + '</div>';
+    var cx = +dot.getAttribute('cx'), cy = +dot.getAttribute('cy');
+    var guide = w.querySelector('.cca-tr-guide'), halo = w.querySelector('.cca-tr-halo');
+    if (guide) { guide.setAttribute('x1', cx); guide.setAttribute('x2', cx); }
+    if (halo) { halo.setAttribute('cx', cx); halo.setAttribute('cy', cy); }
+    w.querySelectorAll('.cca-tr-dot').forEach(function (e) { var on = e === dot; e.setAttribute('r', on ? 5.4 : 3.4); e.setAttribute('stroke', on ? '#ffffff' : '#0b0e1e'); });
+    w.classList.add('on');
+    var pt = svg.createSVGPoint(); pt.x = cx; pt.y = cy;
+    var sp = pt.matrixTransform(svg.getScreenCTM()), wr = w.getBoundingClientRect();
+    var px = sp.x - wr.left, py = sp.y - wr.top, tw = tip.offsetWidth, th = tip.offsetHeight;
+    var left = Math.max(0, Math.min(px - tw / 2, wr.width - tw)), top = py - th - 16, flip = top < -4;
+    if (flip) top = py + 18;
+    tip.style.left = left + 'px'; tip.style.top = top + 'px';
+  }
+  function hitOf(e) { return e.target && e.target.closest ? e.target.closest('.cca-hit') : null; }
+  document.addEventListener('pointerdown', function (e) {
+    if (e.pointerType === 'touch' || e.pointerType === 'pen') lastTouch = Date.now();
+    var h = hitOf(e);
+    if (h) { show(h.closest('.cca-trend-wrap'), +h.getAttribute('data-i')); return; }
+    if (cur && !(e.target.closest && e.target.closest('.cca-trend-wrap'))) hide(cur);
+  }, true);
+  document.addEventListener('pointermove', function (e) {
+    if (e.pointerType === 'touch') return;
+    var h = hitOf(e); if (!h) return;
+    show(h.closest('.cca-trend-wrap'), +h.getAttribute('data-i'));
+  }, true);
+  document.addEventListener('pointerout', function (e) {
+    if (e.pointerType !== 'mouse') return;
+    var w = e.target.closest && e.target.closest('.cca-trend-wrap'); if (!w) return;
+    if (!(e.relatedTarget && w.contains(e.relatedTarget))) hide(w);
+  }, true);
+  window.addEventListener('scroll', function () { if (cur) hide(cur); }, { passive: true, capture: true });
+
+  /* Credit-card face: hovering a card re-draws its ring AND counts the % up with it, same length and easing as on load */
+  var lastRing = 0;
+  function ringReplay(card) {
+    var M = window.FosMotion; if (M && M.on && !M.on('ring-load')) return;
+    var now = Date.now(); if (now - lastRing < 450) return; lastRing = now;
+    card.querySelectorAll('.cc-face-ring-fill').forEach(function (r) {
+      var t = r.getAttribute('data-target-offset'), c = r.getAttribute('stroke-dasharray'); if (t == null || c == null) return;
+      r.style.transition = 'none'; r.style.strokeDashoffset = c; void r.getBoundingClientRect(); r.style.transition = '';
+      requestAnimationFrame(function () { requestAnimationFrame(function () { r.style.strokeDashoffset = t; }); });
+    });
+  }
+  document.addEventListener('mouseover', function (e) {
+    if (Date.now() - lastTouch < 900) return;
+    var card = e.target.closest && e.target.closest('.cc-stack-card'); if (!card) return;
+    if (e.relatedTarget && card.contains(e.relatedTarget)) return;
+    ringReplay(card);
+  }, true);
+  document.addEventListener('click', function (e) {
+    if (Date.now() - lastTouch >= 900) return;
+    var card = e.target.closest && e.target.closest('.cc-stack-card'); if (card) ringReplay(card);
+  }, true);
 })();
 </script>
 <script id="fos-export-extra">
