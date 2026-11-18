@@ -5697,7 +5697,7 @@ html body.light-mode .mobile-liteai-sheet { border-top-color: var(--bo-line) !im
 html body.light-mode :is(.market-card, .fs-card, .ft-card) { border-width: 1px; border-style: solid; }
 </style>
 
-<style id="fos-spark-tip">
+<style id="fos-spark-tip-css">
 /* ══════════════════════════════════════════════════════════════════════
    SPARKLINE HOVER TOOLTIP (Income / Expense / Loan / Investment trend)
    Floating glass card that follows the active dot, tinted with each
@@ -17753,10 +17753,14 @@ function fosSparkHalo(color) {
       if (!act.length) return;
       const pt = chart.getDatasetMeta(act[0].datasetIndex).data[act[0].index].getProps(['x', 'y'], true);
       const a = chart.chartArea, c = chart.ctx;
+      // read the theme at draw time so it is always right after a dark/light switch
+      const light = document.body.classList.contains('light-mode');
+      const edge  = light ? '#000000' : '#ffffff';
       c.save();
-      c.strokeStyle = color + '55'; c.lineWidth = 1; c.setLineDash([3, 3]);
+      c.strokeStyle = light ? 'rgba(0,0,0,0.55)' : 'rgba(255,255,255,0.65)';
+      c.lineWidth = 1; c.setLineDash([3, 3]);
       c.beginPath(); c.moveTo(pt.x, a.top - 4); c.lineTo(pt.x, a.bottom + 4); c.stroke();
-      c.setLineDash([]); c.strokeStyle = color + 'B3'; c.lineWidth = 1.5;
+      c.setLineDash([]); c.strokeStyle = edge; c.lineWidth = 1.75;
       c.beginPath(); c.arc(pt.x, pt.y, 10, 0, Math.PI * 2); c.stroke();
       c.restore();
     }
