@@ -11452,37 +11452,53 @@ function passAppLockGate() {
           </div>
         </div>
 
-        <div class="set-card">
+        <div class="set-card" id="fos-legal-ownership">
           <div style="display:flex; gap:10px; align-items:center; margin-bottom: 0.5rem;">
             <div style="width:32px; height:32px; border-radius:50%; background:rgba(245,158,11,0.15); color:#f59e0b; display:flex; align-items:center; justify-content:center"><i class="fas fa-copyright"></i></div>
             <div class="set-label-block">
-              <div class="set-lbl readable-white">Copyright &amp; Code Protection</div>
-              <div class="set-desc" style="margin-top:0">Ownership notice and how the app guards its code</div>
+              <div class="set-lbl readable-white">Copyright, Code Protection &amp; Ownership</div>
+              <div class="set-desc" style="margin-top:0">Ownership notice and terms of use</div>
             </div>
           </div>
 
           <div class="set-row">
             <div class="set-label-block" style="max-width:100%;">
               <div class="set-lbl readable-white" style="font-size:0.8rem">&copy; 2026 MC Enterprise. All rights reserved.</div>
-              <div class="set-desc">FinanceOS and PortfolioOS &mdash; the source code, design, layouts and content are proprietary. Copying, scraping, reproducing, reverse engineering or redistributing any part of this application without written permission is prohibited.</div>
+              <div class="set-desc">FinanceOS and PortfolioOS are proprietary software. The source code, software, design, layouts, graphics, text, logos, names and all related content are the exclusive property of MC Enterprise and are protected by copyright and other intellectual property laws.</div>
             </div>
           </div>
 
           <div class="set-row">
-            <div class="set-label-block">
-              <div class="set-lbl readable-white" style="font-size:0.8rem">Code protection level</div>
-              <div class="set-desc" id="fos-protect-desc">Standard, plus the app is covered while developer tools are open on desktop. This is the built-in default.</div>
+            <div class="set-label-block" style="max-width:100%;">
+              <div class="set-lbl readable-white" style="font-size:0.8rem">Ownership and licence</div>
+              <div class="set-desc">Using the application gives you a personal, limited, non-exclusive, non-transferable and revocable licence to use it for your own purposes. It does not transfer to you any ownership of, or rights in, the application or any part of it. The financial data you enter remains yours.</div>
             </div>
-            <select class="set-input" id="fos-protect-sel" style="width:auto;min-width:120px" onchange="fosProtectSet(this.value)">
-              <option value="off">Off</option>
-              <option value="standard">Standard</option>
-              <option value="strict" selected>Strict (default)</option>
-            </select>
+          </div>
+
+          <div class="set-row">
+            <div class="set-label-block" style="max-width:100%;">
+              <div class="set-lbl readable-white" style="font-size:0.8rem">Code protection</div>
+              <div class="set-desc">The application is protected by technical measures that safeguard its code and content. These measures are an integral part of the application, are always active, and cannot be disabled, changed or bypassed by users. Any attempt to disable, bypass, tamper with or work around them, or to inspect, extract or obtain the code behind them, is a breach of these terms.</div>
+            </div>
+          </div>
+
+          <div class="set-row">
+            <div class="set-label-block" style="max-width:100%;">
+              <div class="set-lbl readable-white" style="font-size:0.8rem">Restrictions</div>
+              <div class="set-desc">Without the prior written permission of MC Enterprise, you may not copy, scrape, reproduce, modify, decompile, disassemble, reverse engineer, redistribute, sell, sublicense or host any part of the application, or use its code, design or content to create another product or service.</div>
+            </div>
           </div>
 
           <div class="set-row" style="border-top:1px solid var(--glass-border); padding-top:0.7rem; margin-top:0.2rem;">
             <div class="set-label-block" style="max-width:100%;">
-              <div class="set-desc" style="font-size:0.68rem; line-height:1.5;"><i class="fas fa-circle-info" style="margin-right:4px;color:var(--text-muted)"></i>Protection is a deterrent, not a lock: code that runs in a browser can never be made completely unreadable. Your account data stays safe through your sign-in and database access rules, not through this setting.</div>
+              <div class="set-lbl readable-white" style="font-size:0.8rem">Enforcement</div>
+              <div class="set-desc">Unauthorised use may result in suspension of access and legal action under applicable intellectual property and computer misuse laws. MC Enterprise reserves all rights not expressly granted in this notice.</div>
+            </div>
+          </div>
+
+          <div class="set-row">
+            <div class="set-label-block" style="max-width:100%;">
+              <div class="set-desc" style="font-size:0.68rem; line-height:1.5;"><i class="fas fa-circle-info" style="margin-right:4px;color:var(--text-muted)"></i>This notice is provided for information and does not limit any rights you have under applicable law. To request permission to use any part of the application, or to report misuse, contact MC Enterprise.</div>
             </div>
           </div>
         </div>
@@ -41529,14 +41545,12 @@ body.light-mode #fos-anim-settings .fam-grp{border-color:rgba(15,23,42,.1)}
   var KEY = 'fos_set_code-protect';
   /* Optional domain lock: list the hostnames this app may run on, e.g. ['app.yourdomain.com']. Empty = no lock. A copy hosted elsewhere will then refuse to start. */
   var ALLOWED_HOSTS = [];
-  /* Built in: protection runs in STRICT mode for everyone by default, whether or not the setting was ever touched.
-     The Settings option still exists and overrides this default per device. To remove the option's effect later and
-     force it for every user, change LOCK_LEVEL from null to 'strict'. */
-  var DEFAULT_LEVEL = 'strict', LOCK_LEVEL = null;
-  function level() {
-    if (LOCK_LEVEL) return LOCK_LEVEL;
-    try { var v = localStorage.getItem(KEY); return v === 'off' || v === 'standard' || v === 'strict' ? v : DEFAULT_LEVEL; } catch (e) { return DEFAULT_LEVEL; }
-  }
+  /* LOCKED: strict protection is always on for every user. There is no setting, storage value or function that
+     changes it (a future admin panel is the only place that should ever do so). Saved values from the old
+     setting are ignored and removed. For debugging YOUR OWN local copy only, change LEVEL to 'off' - never deploy that. */
+  var LEVEL = 'strict';
+  try { localStorage.removeItem(KEY); } catch (e) { }
+  function level() { return LEVEL; }
   function editable(t) { return !!(t && t.closest && t.closest('input,textarea,select,[contenteditable="true"]')); }
   try {
     console.log('%cStop!', 'color:#ef4444;font-size:34px;font-weight:800');
@@ -41583,16 +41597,6 @@ body.light-mode #fos-anim-settings .fam-grp{border-color:rgba(15,23,42,.1)}
     } else if (!open && cover) { try { cover.remove(); } catch (e) { } cover = null; }
   }
   setInterval(check, 1000); window.addEventListener('resize', check);
-  /* settings: Privacy & Updates → Code protection level */
-  window.fosProtectLevel = level;
-  window.fosProtectSet = function (v) {
-    try { localStorage.setItem(KEY, v); } catch (e) { }
-    check(); sync();
-    try { if (typeof showSettingsToast === 'function') showSettingsToast('Updated: Code protection ' + v.charAt(0).toUpperCase() + v.slice(1)); } catch (e) { }
-  };
-  function sync() { var s = document.getElementById('fos-protect-sel'); if (s) s.value = level(); var d = document.getElementById('fos-protect-desc'); if (d) d.textContent = { off: 'No protection. Right-click, F12 and View Source behave normally.', standard: 'Blocks right-click and the F12, Ctrl+U, Ctrl+S and inspect shortcuts. Stops casual copying.', strict: 'Standard, plus the app is covered with a \u201Cnice try\u201D screen while developer tools are open on desktop. This is the built-in default. It will get in your way if you debug the app yourself, so set Standard or Off on your own device.' }[level()]; }
-  window.addEventListener('load', sync); document.addEventListener('DOMContentLoaded', sync);
-  var o = window.switchSettingsTab; if (typeof o === 'function') window.switchSettingsTab = function () { var r = o.apply(this, arguments); try { sync(); } catch (e) { } return r; };
 })();
 </script>
 
