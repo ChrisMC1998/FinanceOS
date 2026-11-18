@@ -11471,12 +11471,12 @@ function passAppLockGate() {
           <div class="set-row">
             <div class="set-label-block">
               <div class="set-lbl readable-white" style="font-size:0.8rem">Code protection level</div>
-              <div class="set-desc" id="fos-protect-desc">Blocks right-click and the F12, Ctrl+U, Ctrl+S and inspect shortcuts. Stops casual copying.</div>
+              <div class="set-desc" id="fos-protect-desc">Standard, plus the app is covered while developer tools are open on desktop. This is the built-in default.</div>
             </div>
             <select class="set-input" id="fos-protect-sel" style="width:auto;min-width:120px" onchange="fosProtectSet(this.value)">
               <option value="off">Off</option>
-              <option value="standard" selected>Standard</option>
-              <option value="strict">Strict</option>
+              <option value="standard">Standard</option>
+              <option value="strict" selected>Strict (default)</option>
             </select>
           </div>
 
@@ -41529,7 +41529,14 @@ body.light-mode #fos-anim-settings .fam-grp{border-color:rgba(15,23,42,.1)}
   var KEY = 'fos_set_code-protect';
   /* Optional domain lock: list the hostnames this app may run on, e.g. ['app.yourdomain.com']. Empty = no lock. A copy hosted elsewhere will then refuse to start. */
   var ALLOWED_HOSTS = [];
-  function level() { try { var v = localStorage.getItem(KEY); return v === 'off' || v === 'strict' ? v : 'standard'; } catch (e) { return 'standard'; } }
+  /* Built in: protection runs in STRICT mode for everyone by default, whether or not the setting was ever touched.
+     The Settings option still exists and overrides this default per device. To remove the option's effect later and
+     force it for every user, change LOCK_LEVEL from null to 'strict'. */
+  var DEFAULT_LEVEL = 'strict', LOCK_LEVEL = null;
+  function level() {
+    if (LOCK_LEVEL) return LOCK_LEVEL;
+    try { var v = localStorage.getItem(KEY); return v === 'off' || v === 'standard' || v === 'strict' ? v : DEFAULT_LEVEL; } catch (e) { return DEFAULT_LEVEL; }
+  }
   function editable(t) { return !!(t && t.closest && t.closest('input,textarea,select,[contenteditable="true"]')); }
   try {
     console.log('%cStop!', 'color:#ef4444;font-size:34px;font-weight:800');
@@ -41550,17 +41557,30 @@ body.light-mode #fos-anim-settings .fam-grp{border-color:rgba(15,23,42,.1)}
     if (k === 'f12' || (c && e.shiftKey && (k === 'i' || k === 'j' || k === 'c')) || (c && (k === 'u' || k === 's')) || (e.metaKey && e.altKey && (k === 'i' || k === 'u' || k === 'j' || k === 'c'))) { e.preventDefault(); e.stopPropagation(); }
   }, true);
   /* strict: when developer tools are docked open on a desktop screen, the app is covered until they are closed */
-  var cover = null;
+  var cover = null, seen = 0, probe = null;
+  /* second detector: catches dev tools opened in their own window (the size check below only sees docked ones).
+     The console only reads this element's "id" when it is open, which tells us it is open. */
+  try { probe = new Image(); Object.defineProperty(probe, 'id', { get: function () { seen = Date.now(); return ''; } }); } catch (e) { probe = null; }
+  function decoy() {                                                  // what an inspector sees instead of anything useful
+    try {
+      console.clear();
+      console.log('%cNice try \uD83D\uDE09', 'color:#f59e0b;font-size:34px;font-weight:800');
+      console.log('%cBetter luck next time. Nothing to see here.', 'font-size:14px');
+    } catch (e) { }
+  }
   function check() {
     var strict = level() === 'strict', desk = false;
     try { desk = matchMedia('(pointer:fine)').matches && window.innerWidth > 900; } catch (e) { }
-    var open = strict && desk && (window.outerWidth - window.innerWidth > 170 || window.outerHeight - window.innerHeight > 210);
-    if (open && !cover) {
+    if (strict && desk && probe) { try { console.log(probe); } catch (e) { } }
+    var open = strict && desk && (window.outerWidth - window.innerWidth > 170 || window.outerHeight - window.innerHeight > 210 || (Date.now() - seen) < 2500);
+    if (open && (!cover || !cover.isConnected)) {                    // also re-created if someone deletes it from the page
+      var first = !cover; if (cover) { try { cover.remove(); } catch (e) { } }
       cover = document.createElement('div');
-      cover.style.cssText = 'position:fixed;inset:0;z-index:2147483647;background:rgba(11,17,32,.97);color:#e2e8f0;display:flex;align-items:center;justify-content:center;text-align:center;font-family:sans-serif;padding:24px';
-      cover.innerHTML = '<div><div style="font-size:1.3rem;font-weight:800;margin-bottom:8px">Developer tools detected</div><div style="opacity:.8;font-size:.9rem">Close them to continue using FinanceOS.<br>\u00A9 2026 MC Enterprise. All rights reserved.</div></div>';
+      cover.style.cssText = 'position:fixed;inset:0;z-index:2147483647;background:rgba(11,17,32,.99);color:#e2e8f0;display:flex;align-items:center;justify-content:center;text-align:center;font-family:sans-serif;padding:24px';
+      cover.innerHTML = '<div><div style="font-size:1.5rem;font-weight:800;margin-bottom:8px">Nice try \uD83D\uDE09</div><div style="opacity:.85;font-size:.95rem">Better luck next time. This application is protected.<br><span style="opacity:.7">Close developer tools to continue using FinanceOS.</span><br><br>\u00A9 2026 MC Enterprise. All rights reserved.</div></div>';
       document.body.appendChild(cover);
-    } else if (!open && cover) { cover.remove(); cover = null; }
+      if (first) decoy();
+    } else if (!open && cover) { try { cover.remove(); } catch (e) { } cover = null; }
   }
   setInterval(check, 1000); window.addEventListener('resize', check);
   /* settings: Privacy & Updates → Code protection level */
@@ -41570,7 +41590,7 @@ body.light-mode #fos-anim-settings .fam-grp{border-color:rgba(15,23,42,.1)}
     check(); sync();
     try { if (typeof showSettingsToast === 'function') showSettingsToast('Updated: Code protection ' + v.charAt(0).toUpperCase() + v.slice(1)); } catch (e) { }
   };
-  function sync() { var s = document.getElementById('fos-protect-sel'); if (s) s.value = level(); var d = document.getElementById('fos-protect-desc'); if (d) d.textContent = { off: 'No protection. Right-click, F12 and View Source behave normally.', standard: 'Blocks right-click and the F12, Ctrl+U, Ctrl+S and inspect shortcuts. Stops casual copying.', strict: 'Standard, plus the app is covered while developer tools are open on desktop. Can annoy you if you debug it yourself.' }[level()]; }
+  function sync() { var s = document.getElementById('fos-protect-sel'); if (s) s.value = level(); var d = document.getElementById('fos-protect-desc'); if (d) d.textContent = { off: 'No protection. Right-click, F12 and View Source behave normally.', standard: 'Blocks right-click and the F12, Ctrl+U, Ctrl+S and inspect shortcuts. Stops casual copying.', strict: 'Standard, plus the app is covered with a \u201Cnice try\u201D screen while developer tools are open on desktop. This is the built-in default. It will get in your way if you debug the app yourself, so set Standard or Off on your own device.' }[level()]; }
   window.addEventListener('load', sync); document.addEventListener('DOMContentLoaded', sync);
   var o = window.switchSettingsTab; if (typeof o === 'function') window.switchSettingsTab = function () { var r = o.apply(this, arguments); try { sync(); } catch (e) { } return r; };
 })();
