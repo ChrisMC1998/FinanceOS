@@ -5684,6 +5684,68 @@ html body.light-mode .mobile-liteai-sheet { border-top-color: var(--bo-line) !im
 html body.light-mode :is(.market-card, .fs-card, .ft-card) { border-width: 1px; border-style: solid; }
 </style>
 
+<style id="fos-spark-tip">
+/* ══════════════════════════════════════════════════════════════════════
+   SPARKLINE HOVER TOOLTIP (Income / Expense / Loan / Investment trend)
+   Floating glass card that follows the active dot, tinted with each
+   card's own colour. Dark + light themes. Not clipped by the card.
+══════════════════════════════════════════════════════════════════════ */
+#fos-spark-tip {
+  position: fixed; left: 0; top: 0; z-index: 100000;
+  pointer-events: none; opacity: 0; visibility: hidden;
+  transform: translateY(5px) scale(.97); transform-origin: var(--fst-ax, 50%) 100%;
+  transition: opacity .16s ease, transform .2s cubic-bezier(.22,1,.36,1), visibility 0s linear .2s;
+  min-width: 124px; padding: 11px 15px 12px; border-radius: 14px; overflow: visible;
+  font-family: 'DM Sans', system-ui, sans-serif; line-height: 1.2;
+  background: rgba(11,16,18,.94); color: #e6f2f0;
+  border: 1px solid rgba(255,255,255,.14);
+  -webkit-backdrop-filter: blur(12px); backdrop-filter: blur(12px);
+  box-shadow: 0 16px 34px -10px rgba(0,0,0,.65), 0 0 22px -6px var(--fst-glow, rgba(32,205,181,.35));
+}
+#fos-spark-tip.show {
+  opacity: 1; visibility: visible; transform: translateY(0) scale(1);
+  transition: opacity .16s ease, transform .2s cubic-bezier(.22,1,.36,1), visibility 0s;
+}
+/* accent bar along the top edge */
+#fos-spark-tip::before {
+  content: ''; position: absolute; left: 14px; right: 14px; top: -1px; height: 2px; border-radius: 2px;
+  background: linear-gradient(90deg, transparent, var(--fst-accent, #20cdb5), transparent);
+}
+/* pointer arrow aimed at the dot */
+#fos-spark-tip::after {
+  content: ''; position: absolute; left: var(--fst-ax, 50%); bottom: -5px; width: 9px; height: 9px;
+  background: inherit; border-right: 1px solid rgba(255,255,255,.14); border-bottom: 1px solid rgba(255,255,255,.14);
+  transform: translateX(-50%) rotate(45deg); border-radius: 0 0 3px 0;
+}
+#fos-spark-tip.below::after {
+  bottom: auto; top: -5px; transform: translateX(-50%) rotate(225deg);
+}
+#fos-spark-tip .fst-head { display: flex; align-items: center; justify-content: space-between; gap: 14px; margin-bottom: 7px; }
+#fos-spark-tip .fst-month { font-size: 10.5px; font-weight: 700; letter-spacing: .09em; text-transform: uppercase; color: rgba(230,242,240,.62); }
+#fos-spark-tip .fst-type  { display: inline-flex; align-items: center; gap: 6px; font-size: 10.5px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; color: var(--fst-accent, #20cdb5); }
+#fos-spark-tip .fst-dot   { width: 7px; height: 7px; border-radius: 50%; background: var(--fst-accent, #20cdb5); box-shadow: 0 0 8px var(--fst-accent, #20cdb5); }
+#fos-spark-tip .fst-val   { font-family: 'DM Mono', ui-monospace, monospace; font-size: 18px; font-weight: 700; letter-spacing: -.01em; color: #ffffff; white-space: nowrap; }
+#fos-spark-tip .fst-delta { margin-top: 6px; font-size: 11px; font-weight: 600; white-space: nowrap; }
+#fos-spark-tip .fst-delta.up   { color: #34d399; }
+#fos-spark-tip .fst-delta.down { color: #f87171; }
+#fos-spark-tip .fst-delta.flat { color: rgba(230,242,240,.55); }
+
+/* Light theme: white glass card, dark text */
+body.light-mode #fos-spark-tip {
+  background: rgba(255,255,255,.97); color: #0f172a;
+  border-color: rgba(15,23,42,.16);
+  box-shadow: 0 16px 30px -12px rgba(15,23,42,.28), 0 0 20px -8px var(--fst-glow, rgba(10,143,120,.35));
+}
+body.light-mode #fos-spark-tip::after { border-right-color: rgba(15,23,42,.16); border-bottom-color: rgba(15,23,42,.16); }
+body.light-mode #fos-spark-tip .fst-month { color: #64748b; }
+body.light-mode #fos-spark-tip .fst-val   { color: #0f172a; }
+body.light-mode #fos-spark-tip .fst-dot   { box-shadow: none; }
+body.light-mode #fos-spark-tip .fst-delta.up   { color: #047857; }
+body.light-mode #fos-spark-tip .fst-delta.down { color: #dc2626; }
+body.light-mode #fos-spark-tip .fst-delta.flat { color: #64748b; }
+@media (prefers-reduced-motion: reduce) { #fos-spark-tip, #fos-spark-tip.show { transition: opacity .01s linear; transform: none; } }
+</style>
+
 <div id="app-lock-overlay" class="hidden">
   <div class="applock-box">
     <svg class="applock-logo" id="applock-logo" viewBox="0 0 64 64" width="84" height="84" role="img" aria-label="FinanceOS"><use href="#fos-logo"/></svg>
@@ -17597,6 +17659,52 @@ function ordinal(n) {
   return s[(v-20)%10] || s[v] || s[0];
 }
 
+// ── SPARKLINE TOOLTIP (custom floating card; not clipped by the 48px canvas) ──
+function fosSparkTip(key, color) {
+  const goodUp = (key === 'Income' || key === 'Investment');
+  const hide = () => { const t = document.getElementById('fos-spark-tip'); if (t) t.classList.remove('show'); };
+  if (!window.__fosSparkTipBound) {
+    window.__fosSparkTipBound = true;
+    window.addEventListener('scroll', hide, { passive: true, capture: true });
+  }
+  return (context) => {
+    const { chart, tooltip } = context;
+    let el = document.getElementById('fos-spark-tip');
+    if (!el) { el = document.createElement('div'); el.id = 'fos-spark-tip'; document.body.appendChild(el); }
+    if (!tooltip || tooltip.opacity === 0 || !tooltip.dataPoints || !tooltip.dataPoints.length) { el.classList.remove('show'); return; }
+
+    const idx   = tooltip.dataPoints[0].dataIndex;
+    const data  = chart.data.datasets[0].data;
+    const label = chart.data.labels[idx];
+    const val   = data[idx] || 0;
+    const prev  = idx > 0 ? (data[idx - 1] || 0) : 0;
+    let delta = '';
+    if (idx > 0 && prev > 0) {
+      const diff = val - prev, pct = Math.abs((diff / prev) * 100).toFixed(1);
+      const cls = diff === 0 ? 'flat' : ((diff >= 0) === goodUp ? 'up' : 'down');
+      const arrow = diff === 0 ? '→' : (diff > 0 ? '↑' : '↓');
+      delta = `<div class="fst-delta ${cls}">${arrow} ${pct}% vs ${chart.data.labels[idx - 1]}</div>`;
+    }
+    el.style.setProperty('--fst-accent', color);
+    el.style.setProperty('--fst-glow', color + '59');
+    el.innerHTML = `<div class="fst-head"><span class="fst-month">${label}</span><span class="fst-type"><i class="fst-dot"></i>${key}</span></div>`
+                 + `<div class="fst-val">${fmt(val)}</div>${delta}`;
+
+    // position above the active dot (flip below if there is no room), keep inside the screen
+    const r = chart.canvas.getBoundingClientRect();
+    const x = r.left + tooltip.caretX, y = r.top + tooltip.caretY;
+    const w = el.offsetWidth, h = el.offsetHeight, gap = 14;
+    let left = Math.max(8, Math.min(x - w / 2, window.innerWidth - w - 8));
+    let top  = y - h - gap, below = false;
+    if (top < 8) { top = y + gap + 6; below = true; }
+    el.classList.toggle('below', below);
+    el.style.setProperty('--fst-ax', Math.max(16, Math.min(x - left, w - 16)) + 'px');
+    el.style.left = left + 'px';
+    el.style.top  = top + 'px';
+    el.classList.add('show');
+  };
+}
+
 // ── SPARKLINES ─────────────────────────────────────────────────────────────
 function renderSparklines() {
   // Build last 6 months of data
@@ -17662,6 +17770,9 @@ function renderSparklines() {
           pointBorderColor: color,         
           pointBorderWidth: 0,             // Removes the hollow border effect
           pointHoverRadius: 6,
+          pointHoverBackgroundColor: color,
+          pointHoverBorderWidth: 2,
+          pointHoverBorderColor: () => document.body.classList.contains('light-mode') ? '#ffffff' : 'rgb(11,16,18)',
           fill: true,                      // Re-enables the fill
           backgroundColor: (context) => {  // Creates the smooth neon underglow
             const chartCtx = context.chart.ctx;
@@ -17678,7 +17789,7 @@ function renderSparklines() {
       },
       options: {
         responsive: true, maintainAspectRatio: false,
-        plugins: { legend:{display:false}, tooltip:{ callbacks:{label:c=>' '+fmt(c.raw)} } },
+        plugins: { legend:{display:false}, tooltip:{ enabled:false, external: fosSparkTip(key, color) } },
         scales: { x:{display:false}, y:{display:false,beginAtZero:true} },
         animation: { duration: 700, easing: 'easeOutQuart' }
       }
