@@ -27659,6 +27659,10 @@ function openBackupModal() {
     { val: portDb.length,   lbl: 'Holdings' },
     { val: creditDb.length, lbl: 'Credit Entries' },
     { val: Object.keys(budgets).length, lbl: 'Budgets' },
+    { val: insuranceDb.length,     lbl: 'Insurance' },
+    { val: notesDb.length,         lbl: 'Notes' },
+    { val: subscriptionsDb.length, lbl: 'Subscriptions' },
+    { val: ccCards.length,         lbl: 'CC Cards' },
   ].map(s => `<div class="backup-stat"><div class="backup-stat-val">${s.val}</div><div class="backup-stat-lbl">${s.lbl}</div></div>`).join('');
   document.getElementById('restore-preview').style.display = 'none';
   document.getElementById('restore-confirm-btn').style.display = 'none';
@@ -27677,7 +27681,7 @@ function getAllSettingsToggles() {
 
 function downloadBackup() {
   const payload = {
-    version: 4,
+    version: 5,
     exportedAt: new Date().toISOString(),
     db, portDb, creditDb, budgets,
     insuranceDb,
@@ -27757,6 +27761,9 @@ function readRestoreFile(file) {
           ${(data.notesDb||[]).length} notes · 
           ${(data.ccCards||[]).length} CC cards · 
           ${(data.subscriptionsDb||[]).length} subscriptions · 
+          ${(data.finaiGoals||[]).length} goals · 
+          ${Object.keys(data.budgets||{}).length} budgets · 
+          ${data.extraKeys ? Object.keys(data.extraKeys).filter(k => data.extraKeys[k] !== null).length + ' extra settings · ' : ''}
           v${data.version||1} · 
           Exported ${data.exportedAt ? new Date(data.exportedAt).toLocaleDateString() : 'unknown date'}
         </span>`;
@@ -38612,11 +38619,23 @@ body.light-mode .tx-bar select option,body.light-mode .tx-cls option{color:#111}
   };
 
   /* ════════════════════ 3. BACKUP: settings that live outside the data arrays ════════════════════ */
+  /* Data & settings added by later features. Every key here is saved into the JSON backup (and the linked-drive file) and put back on restore. */
+  const XK_DATA = ['fos_finai_score_history', 'fos_notif_dismissed', 'fos_port_customsubs_v1', 'fos_port_targets_v1', 'fos_port_tgtband', 'fos_port_tgtnew', 'fos_pi_bench',
+    'fos_remind_v1', 'fos_reminders_v1', 'fos_lh_unlocked', 'fos_academy_v1', 'fos_loan_asof'];
+  const XK_UI = ['fos_sidebar_category_finance_collapsed', 'fos_sidebar_category_tools_collapsed', 'fos_sidebar_category_playbook_collapsed', 'fos_sidebar_category_insights_collapsed',
+    'fos_sidebar_category_my_zone_collapsed', 'pos_sidebar_by_asset_collapsed', 'pos_sidebar_intel_collapsed', 'fos_cc_bank_collapsed', 'fos_tv_minimized', 'fos_rem_minimized'];
   window.fosExtraState = function () {
+    const keys = {};
+    XK_DATA.concat(XK_UI).forEach(k => {
+      let raw = null; try { raw = localStorage.getItem(k); } catch (e) { }
+      if (raw === null) { keys[k] = null; return; }
+      try { keys[k] = JSON.parse(raw); } catch (e) { keys[k] = raw; }
+    });
     return {
       taxOverrides: jget('fos_tax_cls_v1', {}), taxSlab: localStorage.getItem('fos_tax_slab') || '', taxFy: localStorage.getItem('fos_tax_fy') || '',
       adminConfig: jget('fos_admin_config_v1', null), fxRates: jget('fos_fx_v1', {}),
-      refreshSettings: jget(RK, null), stressSettings: jget(SK, null)
+      refreshSettings: jget(RK, null), stressSettings: jget(SK, null),
+      extraKeys: keys, profileStore: jget('fos_profile_v1', {})
     };
   };
   window.fosRestoreExtra = function (d) {
@@ -38625,6 +38644,18 @@ body.light-mode .tx-bar select option,body.light-mode .tx-cls option{color:#111}
     set('fos_tax_cls_v1', d.taxOverrides); set('fos_tax_slab', d.taxSlab); set('fos_tax_fy', d.taxFy);
     set('fos_admin_config_v1', d.adminConfig); set('fos_fx_v1', d.fxRates);
     set(RK, d.refreshSettings); set(SK, d.stressSettings);
+    // Newer data & settings: a backup that carries this block is restored exactly (a key that was empty at backup time is cleared again).
+    if (d.extraKeys && typeof d.extraKeys === 'object') {
+      XK_DATA.concat(XK_UI).forEach(k => {
+        if (!Object.prototype.hasOwnProperty.call(d.extraKeys, k)) return;
+        const v = d.extraKeys[k];
+        try { if (v === null || v === undefined) localStorage.removeItem(k); else localStorage.setItem(k, typeof v === 'string' ? v : JSON.stringify(v)); } catch (e) { }
+      });
+    }
+    // Profile details are kept per account e-mail: merge, so other accounts on this device are not lost.
+    if (d.profileStore && typeof d.profileStore === 'object' && Object.keys(d.profileStore).length) {
+      try { const cur = jget('fos_profile_v1', {}); localStorage.setItem('fos_profile_v1', JSON.stringify(Object.assign({}, cur, d.profileStore))); } catch (e) { }
+    }
   };
 })();
 </script>
