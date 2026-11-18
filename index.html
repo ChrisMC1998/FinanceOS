@@ -515,6 +515,8 @@ function fosBrandRgba(a){return 'rgba('+fosBrandRgb()+','+a+')';}
   if (window.FosMotion && window.FosMotion.items) return;
   var reduce = false; try { reduce = matchMedia('(prefers-reduced-motion: reduce)').matches; } catch (e) { }
   var KEY = 'fos_set_anim-items';
+  var KEY_MASTER = 'fos_set_anim-master';   /* "All animations" master switch: its own setting, never derived from the items below */
+  var master = true;
   var Q = 'animation-duration:.001ms !important;animation-delay:0s !important;animation-iteration-count:1 !important;transition-duration:.001ms !important;transition-delay:0s !important;';
   var GROUPS = [
     { id: 'num', t: 'Numbers & counters', i: 'fa-hashtag' },
@@ -571,6 +573,7 @@ function fosBrandRgba(a){return 'rgba('+fosBrandRgb()+','+a+')';}
   var byId = {}; ITEMS.forEach(function (x) { byId[x.id] = x; });
   var ov = {}, subs = [];
   function load() {
+    try { master = localStorage.getItem(KEY_MASTER) !== 'off'; } catch (e) { master = true; }
     var raw = null; try { raw = localStorage.getItem(KEY); } catch (e) { }
     if (raw) { try { ov = JSON.parse(raw) || {}; } catch (e) { ov = {}; } return; }
     ov = {};                                                           // migrate the three earlier switches, once
@@ -581,7 +584,9 @@ function fosBrandRgba(a){return 'rgba('+fosBrandRgb()+','+a+')';}
     } catch (e) { }
   }
   function save() { try { localStorage.setItem(KEY, JSON.stringify(ov)); } catch (e) { } }
-  function on(id) { if (typeof id !== 'string') return true; return ov[id] === undefined ? !reduce : !!ov[id]; }
+  /* own(id) = the individual switch only; on(id) = what actually runs (master switch AND individual switch) */
+  function own(id) { return ov[id] === undefined ? !reduce : !!ov[id]; }
+  function on(id) { if (typeof id !== 'string') return true; return master && own(id); }
   function esc(sel, pre) { return sel.split('|').map(function (x) { return pre + ' ' + x; }).join(','); }
   /* one stylesheet, one rule per item, switched by a class on <html> */
   function css() {
@@ -608,9 +613,11 @@ function fosBrandRgba(a){return 'rgba('+fosBrandRgb()+','+a+')';}
   }
   function set(id, v) { if (byId[id]) { ov[id] = !!v; save(); apply(); } }
   function setMany(ids, v) { ids.forEach(function (id) { if (byId[id]) ov[id] = !!v; }); save(); apply(); }
-  function reset() { ov = {}; try { localStorage.removeItem(KEY); } catch (e) { } apply(); }
+  function reset() { ov = {}; master = true; try { localStorage.removeItem(KEY); localStorage.removeItem(KEY_MASTER); } catch (e) { } apply(); }
+  /* master switch: turns everything off / back on WITHOUT touching the individual switches, which keep their own settings */
+  function setMaster(v) { master = !!v; try { if (master) localStorage.removeItem(KEY_MASTER); else localStorage.setItem(KEY_MASTER, 'off'); } catch (e) { } apply(); }
   load(); css();
-  window.FosMotion = { items: ITEMS, groups: GROUPS, on: on, set: set, setMany: setMany, reset: reset, apply: apply, onChange: function (f) { subs.push(f); } };
+  window.FosMotion = { items: ITEMS, groups: GROUPS, on: on, own: own, master: function () { return master; }, setMaster: setMaster, set: set, setMany: setMany, reset: reset, apply: apply, onChange: function (f) { subs.push(f); } };
   if (window.Chart && !Chart.prototype.$fosUpd) {                      // charts update without animating when "draw-in" is off
     var u = Chart.prototype.update; Chart.prototype.$fosUpd = 1;
     Chart.prototype.update = function (m) { return u.call(this, on('chart-draw-in') ? m : 'none'); };
@@ -5744,6 +5751,11 @@ body.light-mode #fos-spark-tip .fst-delta.up   { color: #047857; }
 body.light-mode #fos-spark-tip .fst-delta.down { color: #dc2626; }
 body.light-mode #fos-spark-tip .fst-delta.flat { color: #64748b; }
 @media (prefers-reduced-motion: reduce) { #fos-spark-tip, #fos-spark-tip.show { transition: opacity .01s linear; transform: none; } }
+/* Sparkline canvas: 12px taller on top, 10px at the bottom and 12px each side, pulled back with negative
+   margins so card layout is unchanged. Gives the hover ring room; the old 5% zoom on hover would push the
+   ring against the card edge, so it is switched off for these four charts only. */
+html body .spark-canvas-wrap { height: 70px; margin: -12px -16px -10px; }
+html body .spark-canvas-wrap:hover { transform: none !important; }
 </style>
 
 <div id="app-lock-overlay" class="hidden">
@@ -17671,9 +17683,12 @@ function fosSparkTip(key, color) {
     const { chart, tooltip } = context;
     let el = document.getElementById('fos-spark-tip');
     if (!el) { el = document.createElement('div'); el.id = 'fos-spark-tip'; document.body.appendChild(el); }
-    if (!tooltip || tooltip.opacity === 0 || !tooltip.dataPoints || !tooltip.dataPoints.length) { el.classList.remove('show'); return; }
-
-    const idx   = tooltip.dataPoints[0].dataIndex;
+    // NOTE: tooltip.opacity / caretX are animated (still 0 on the first call), so read the
+    // hovered point straight from the chart instead.
+    const act = (chart.getActiveElements && chart.getActiveElements()) || [];
+    if (!act.length) { el.classList.remove('show'); return; }
+    const hit   = act[0];
+    const idx   = hit.index;
     const data  = chart.data.datasets[0].data;
     const label = chart.data.labels[idx];
     const val   = data[idx] || 0;
@@ -17691,8 +17706,10 @@ function fosSparkTip(key, color) {
                  + `<div class="fst-val">${fmt(val)}</div>${delta}`;
 
     // position above the active dot (flip below if there is no room), keep inside the screen
-    const r = chart.canvas.getBoundingClientRect();
-    const x = r.left + tooltip.caretX, y = r.top + tooltip.caretY;
+    const r  = chart.canvas.getBoundingClientRect();
+    const pt = chart.getDatasetMeta(hit.datasetIndex).data[idx].getProps(['x', 'y'], true);
+    const sx = r.width / chart.width, sy = r.height / chart.height;   // allow for CSS scaling
+    const x = r.left + pt.x * sx, y = r.top + pt.y * sy;
     const w = el.offsetWidth, h = el.offsetHeight, gap = 14;
     let left = Math.max(8, Math.min(x - w / 2, window.innerWidth - w - 8));
     let top  = y - h - gap, below = false;
@@ -17702,6 +17719,25 @@ function fosSparkTip(key, color) {
     el.style.left = left + 'px';
     el.style.top  = top + 'px';
     el.classList.add('show');
+  };
+}
+
+// Compact hover effect for the sparklines: thin guide line + one tight ring that always fits inside the chart.
+function fosSparkHalo(color) {
+  return {
+    id: 'fosSparkHalo',
+    afterDatasetsDraw(chart) {
+      const act = (chart.getActiveElements && chart.getActiveElements()) || [];
+      if (!act.length) return;
+      const pt = chart.getDatasetMeta(act[0].datasetIndex).data[act[0].index].getProps(['x', 'y'], true);
+      const a = chart.chartArea, c = chart.ctx;
+      c.save();
+      c.strokeStyle = color + '55'; c.lineWidth = 1; c.setLineDash([3, 3]);
+      c.beginPath(); c.moveTo(pt.x, a.top - 4); c.lineTo(pt.x, a.bottom + 4); c.stroke();
+      c.setLineDash([]); c.strokeStyle = color + 'B3'; c.lineWidth = 1.5;
+      c.beginPath(); c.arc(pt.x, pt.y, 10, 0, Math.PI * 2); c.stroke();
+      c.restore();
+    }
   };
 }
 
@@ -17770,6 +17806,7 @@ function renderSparklines() {
           pointBorderColor: color,         
           pointBorderWidth: 0,             // Removes the hollow border effect
           pointHoverRadius: 6,
+          pointHitRadius: 14,              // bigger invisible target so the dots are easy to hover / tap
           pointHoverBackgroundColor: color,
           pointHoverBorderWidth: 2,
           pointHoverBorderColor: () => document.body.classList.contains('light-mode') ? '#000000' : '#ffffff',
@@ -17789,10 +17826,12 @@ function renderSparklines() {
       },
       options: {
         responsive: true, maintainAspectRatio: false,
-        plugins: { legend:{display:false}, tooltip:{ enabled:false, external: fosSparkTip(key, color) } },
+        layout: { padding: { top: 12, bottom: 10, left: 12, right: 12 } },   // room so the hover ring is never cut off
+        plugins: { legend:{display:false}, fosHoverFx:{ enabled:false }, tooltip:{ enabled:false, external: fosSparkTip(key, color) } },
         scales: { x:{display:false}, y:{display:false,beginAtZero:true} },
         animation: { duration: 700, easing: 'easeOutQuart' }
-      }
+      },
+      plugins: [fosSparkHalo(color)]
     });
   });
 }
@@ -40669,7 +40708,7 @@ function fosPushRefreshUI() {
     'fos_currency','fos_number_system','fos_time','fos_date','financeOS_roughboard_v1','fos_remind_v1','fos_port_customsubs_v1','fos_port_targets_v1',
     'fos_port_tgtband','fos_port_tgtnew','fos_pi_bench','fos_tax_cls_v1','fos_tax_slab','fos_tax_fy','fos_notif_dismissed','fos_reminders_v1','fos_onboarding_goal',
     'fos_last_nw_milestone','fos_last_portfolio_update','fos_lh_unlocked','fos_academy_v1','fos_stress_v1'];
-  var DEVICE_SET = ['fos_set_app-theme', 'fos_set_sidebar-animation', 'fos_set_auto-sync', 'fos_set_ui-motion', 'fos_set_chart-anim', 'fos_set_count-anim', 'fos_set_anim-items', 'fos_set_code-protect'];   // per-device settings: never synced (push preferences DO sync; only the browser permission is per device)
+  var DEVICE_SET = ['fos_set_app-theme', 'fos_set_sidebar-animation', 'fos_set_auto-sync', 'fos_set_ui-motion', 'fos_set_chart-anim', 'fos_set_count-anim', 'fos_set_anim-items', 'fos_set_anim-master', 'fos_set_code-protect'];   // per-device settings: never synced (push preferences DO sync; only the browser permission is per device)
   function syncable(k) { return typeof k === 'string' && (SYNC.indexOf(k) > -1 || (k.indexOf('fos_set_') === 0 && DEVICE_SET.indexOf(k) < 0)); }
 
   var origSet = Storage.prototype.setItem, origGet = Storage.prototype.getItem;
@@ -41422,6 +41461,7 @@ body.light-mode #fos-anim-settings .fam-grp{border-color:rgba(15,23,42,.1)}
 #fos-anim-settings .fam-body{display:none;padding:2px 12px 6px}
 #fos-anim-settings .fam-grp.open .fam-body{display:block}
 #fos-anim-settings .fam-body .set-row{padding:8px 0}
+#fos-anim-settings.fam-master-off .fam-grp{opacity:.5}
 </style>
 <script id="fos-motion-ui">
 (function () {
@@ -41432,21 +41472,21 @@ body.light-mode #fos-anim-settings .fam-grp{border-color:rgba(15,23,42,.1)}
   function sw(attr, id, checked) { return '<label class="toggle-switch" onclick="event.stopPropagation()"><input type="checkbox" ' + attr + '="' + id + '"' + (checked ? ' checked' : '') + '><span class="toggle-slider"></span></label>'; }
   function render() {
     var host = document.getElementById('fos-anim-settings'); if (!host) return;
-    var all = M.items.every(function (x) { return M.on(x.id); }), n = M.items.filter(function (x) { return M.on(x.id); }).length, ql = q.toLowerCase();
-    var html = '<div class="set-row" style="padding-top:0"><div class="set-label-block"><div class="set-lbl readable-white" style="font-size:.8rem">All animations</div><div class="set-desc">Master switch for every animation below (' + n + ' of ' + M.items.length + ' on). Fine-tune each one underneath.</div></div>' + sw('data-fam-all', 'all', all) + '</div>';
+    var all = M.master(), n = M.items.filter(function (x) { return M.own(x.id); }).length, ql = q.toLowerCase();
+    var html = '<div class="set-row" style="padding-top:0"><div class="set-label-block"><div class="set-lbl readable-white" style="font-size:.8rem">All animations</div><div class="set-desc">' + (all ? 'Master switch. Turn it off to stop every animation at once; your individual choices below are kept (' + n + ' of ' + M.items.length + ' set on).' : 'Off: no animation is running. The individual switches below keep their own settings and apply again when you turn this back on.') + '</div></div>' + sw('data-fam-all', 'all', all) + '</div>';
     html += '<div class="fam-tools"><input type="text" class="set-input fam-search" id="fam-q" placeholder="Search animations (bars, rings, tooltips\u2026)" value="' + esc(q) + '"><button class="btn-secondary" style="font-size:.72rem;padding:5px 10px" data-fam-reset="1">Reset to defaults</button></div>';
     M.groups.forEach(function (g) {
       var its = M.items.filter(function (x) { return x.g === g.id && (!ql || (x.t + ' ' + x.d + ' ' + g.t).toLowerCase().indexOf(ql) > -1); });
       if (!its.length) return;
-      var all1 = M.items.filter(function (x) { return x.g === g.id; }), c = all1.filter(function (x) { return M.on(x.id); }).length, isOpen = open[g.id] || !!ql;
+      var all1 = M.items.filter(function (x) { return x.g === g.id; }), c = all1.filter(function (x) { return M.own(x.id); }).length, isOpen = open[g.id] || !!ql;
       html += '<div class="fam-grp' + (isOpen ? ' open' : '') + '" data-g="' + g.id + '"><div class="fam-gh" data-fam-head="' + g.id + '"><i class="fas fa-chevron-right fam-chev"></i><i class="fas ' + g.i + ' fam-ic"></i><b>' + esc(g.t) + '</b><small>' + c + ' of ' + all1.length + ' on</small>' + sw('data-fam-group', g.id, c === all1.length) + '</div><div class="fam-body">';
-      its.forEach(function (x) { html += '<div class="set-row"><div class="set-label-block"><div class="set-lbl readable-white" style="font-size:.78rem">' + esc(x.t) + '</div><div class="set-desc">' + esc(x.d) + '</div></div>' + sw('data-fam-item', x.id, M.on(x.id)) + '</div>'; });
+      its.forEach(function (x) { html += '<div class="set-row"><div class="set-label-block"><div class="set-lbl readable-white" style="font-size:.78rem">' + esc(x.t) + '</div><div class="set-desc">' + esc(x.d) + '</div></div>' + sw('data-fam-item', x.id, M.own(x.id)) + '</div>'; });
       html += '</div></div>';
     });
     var keep = document.activeElement && document.activeElement.id === 'fam-q', pos = keep ? document.activeElement.selectionStart : 0;
     host.innerHTML = html;
-    host.querySelectorAll('input[data-fam-group]').forEach(function (cb) { var g = cb.getAttribute('data-fam-group'), l = M.items.filter(function (x) { return x.g === g; }), k = l.filter(function (x) { return M.on(x.id); }).length; cb.indeterminate = k > 0 && k < l.length; });
-    var a = host.querySelector('input[data-fam-all]'); if (a) a.indeterminate = n > 0 && n < M.items.length;
+    host.querySelectorAll('input[data-fam-group]').forEach(function (cb) { var g = cb.getAttribute('data-fam-group'), l = M.items.filter(function (x) { return x.g === g; }), k = l.filter(function (x) { return M.own(x.id); }).length; cb.indeterminate = k > 0 && k < l.length; });
+    host.classList.toggle('fam-master-off', !all);   /* individual switches look dimmed while the master switch is off */
     if (keep) { var f = document.getElementById('fam-q'); if (f) { f.focus(); try { f.setSelectionRange(pos, pos); } catch (e) { } } }
   }
   function side(ids) {
@@ -41460,7 +41500,7 @@ body.light-mode #fos-anim-settings .fam-grp{border-color:rgba(15,23,42,.1)}
     var id = t.getAttribute('data-fam-item'), g = t.getAttribute('data-fam-group');
     if (id) { M.set(id, t.checked); note('Updated: ' + M.items.filter(function (x) { return x.id === id; })[0].t + ' ' + (t.checked ? 'On' : 'Off')); side([id]); }
     else if (g) { var ids = M.items.filter(function (x) { return x.g === g; }).map(function (x) { return x.id; }); M.setMany(ids, t.checked); note('Updated: ' + M.groups.filter(function (x) { return x.id === g; })[0].t + ' ' + (t.checked ? 'On' : 'Off')); side(ids); }
-    else if (t.hasAttribute('data-fam-all')) { M.setMany(M.items.map(function (x) { return x.id; }), t.checked); note('Updated: All animations ' + (t.checked ? 'On' : 'Off')); side(['num']); }
+    else if (t.hasAttribute('data-fam-all')) { M.setMaster(t.checked); note('Updated: All animations ' + (t.checked ? 'On' : 'Off')); side(['num']); }
     else return;
     render();
   });
