@@ -41814,6 +41814,7 @@ body.light-mode #fos-anim-settings .fam-grp{border-color:rgba(15,23,42,.1)}
 /* Lock screen shows the FinanceOS logo (it flies to the sidebar on unlock) */
 .applock-logo { display:block; margin:0 auto 1.1rem; width:84px; height:84px; filter: drop-shadow(0 8px 22px rgba(var(--brand-rgb),0.38)); }
 .applock-icon { display:none !important; }
+@property --lk-r { syntax: '<length>'; inherits: false; initial-value: 0px; }
 </style>
 <script id="fos-lock-reveal">
 /* ══════════════════════════════════════════════════════════════════════
@@ -41827,7 +41828,7 @@ body.light-mode #fos-anim-settings .fam-grp{border-color:rgba(15,23,42,.1)}
    Timings (ms) are the 4 numbers in T below.
 ══════════════════════════════════════════════════════════════════════ */
 (function () {
-  var T = { cardFade: 320, flyDelay: 150, fly: 800, wipe: 700 };   // wipe starts as the logo lands
+  var T = { cardFade: 320, flyDelay: 150, fly: 800, wipe: 1500, feather: 220 };   // reveal starts as the logo lands; wipe = how long it takes to reach the far bottom corner
   var running = false;
 
   function visibleRect(el) {
@@ -41884,6 +41885,7 @@ body.light-mode #fos-anim-settings .fam-grp{border-color:rgba(15,23,42,.1)}
         try { ov.getAnimations().forEach(function (a) { a.cancel(); }); } catch (e) {}
         try { if (box) box.getAnimations().forEach(function (a) { a.cancel(); }); } catch (e) {}
         logo.style.visibility = '';
+        ov.style.webkitMaskImage = ''; ov.style.maskImage = '';
         // clone and real logo are pixel-identical on desktop; on mobile (cube icon) let the clone dissolve
         var out = c.animate([{ opacity: 1 }, { opacity: 0 }], { duration: 180, fill: 'forwards' });
         out.onfinish = function () { if (c.parentNode) c.parentNode.removeChild(c); };
@@ -41901,12 +41903,18 @@ body.light-mode #fos-anim-settings .fam-grp{border-color:rgba(15,23,42,.1)}
                  { transform: 'translate(' + (t.left - s.left) + 'px,' + (t.top - s.top) + 'px) scale(' + k + ')' }],
         { duration: T.fly, delay: T.flyDelay, easing: 'cubic-bezier(.65,0,.2,1)', fill: 'both' });
 
-      // 3) lock screen wipes shut toward the logo, revealing the dashboard
-      var wipe = ov.animate([
-        { clipPath: 'circle(' + R + 'px at ' + cx + 'px ' + cy + 'px)', opacity: 1 },
-        { opacity: .9, offset: .55 },
-        { clipPath: 'circle(0px at ' + cx + 'px ' + cy + 'px)', opacity: 0 }
-      ], { duration: T.wipe, delay: T.flyDelay + T.fly - 80, easing: 'cubic-bezier(.7,0,.3,1)', fill: 'both' });
+      // 3) lock screen dissolves OUTWARD from the logo, spreading to the bottom of the dashboard
+      var far = Math.max(Math.hypot(cx, innerHeight - cy), Math.hypot(innerWidth - cx, innerHeight - cy), Math.hypot(cx, cy), Math.hypot(innerWidth - cx, cy));
+      var wipe;
+      if (window.CSS && CSS.registerProperty) {
+        var mask = 'radial-gradient(circle at ' + cx + 'px ' + cy + 'px, transparent var(--lk-r), #000 calc(var(--lk-r) + ' + T.feather + 'px))';
+        ov.style.webkitMaskImage = mask; ov.style.maskImage = mask;
+        wipe = ov.animate([{ '--lk-r': (-T.feather) + 'px' }, { '--lk-r': (far + 20) + 'px' }],
+          { duration: T.wipe, delay: T.flyDelay + T.fly - 80, easing: 'cubic-bezier(.45,.05,.35,1)', fill: 'both' });
+      } else {   // very old browsers: plain slow fade
+        wipe = ov.animate([{ opacity: 1 }, { opacity: 0 }],
+          { duration: T.wipe * .6, delay: T.flyDelay + T.fly - 80, easing: 'ease-in-out', fill: 'both' });
+      }
       wipe.onfinish = finish;
       setTimeout(finish, T.flyDelay + T.fly + T.wipe + 900);   // safety net
     } catch (err) {
