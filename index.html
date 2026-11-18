@@ -17772,7 +17772,7 @@ function renderSparklines() {
           pointHoverRadius: 6,
           pointHoverBackgroundColor: color,
           pointHoverBorderWidth: 2,
-          pointHoverBorderColor: () => document.body.classList.contains('light-mode') ? '#ffffff' : 'rgb(11,16,18)',
+          pointHoverBorderColor: () => document.body.classList.contains('light-mode') ? '#000000' : '#ffffff',
           fill: true,                      // Re-enables the fill
           backgroundColor: (context) => {  // Creates the smooth neon underglow
             const chartCtx = context.chart.ctx;
