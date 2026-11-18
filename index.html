@@ -29433,7 +29433,7 @@ function triggerBackupExport() {
 // ══════════════════════════════════════════════════
 const CC_BANKS = [
   { id:'hdfc',    name:'HDFC',           abbr:'HDFC', color:'#004C8F', text:'#fff', logo:'https://www.google.com/s2/favicons?domain=hdfcbank.com&sz=128' },
-  { id:'sbi',     name:'SBI',            abbr:'SBI',  color:'#2563eb', text:'#fff', logo:'https://logo.clearbit.com/bank.sbi', logoFallback:'https://www.google.com/s2/favicons?domain=bank.sbi&sz=128' },
+  { id:'sbi',     name:'SBI',            abbr:'SBI',  color:'#2563eb', text:'#fff', logo:'data:image/svg+xml,%3Csvg%20xmlns=%27http://www.w3.org/2000/svg%27%20viewBox=%270%200%2064%2064%27%3E%3Ccircle%20cx=%2732%27%20cy=%2732%27%20r=%2730%27%20fill=%27%231C57A5%27/%3E%3Ccircle%20cx=%2732%27%20cy=%2726%27%20r=%279%27%20fill=%27%23fff%27/%3E%3Cpolygon%20points=%2727,47%2037,47%2034.6,31%2029.4,31%27%20fill=%27%23fff%27/%3E%3Ccircle%20cx=%2732%27%20cy=%2726%27%20r=%273.2%27%20fill=%27%231C57A5%27/%3E%3C/svg%3E' },
   { id:'icici',   name:'ICICI',          abbr:'ICIC', color:'#F37021', text:'#fff', logo:'https://www.google.com/s2/favicons?domain=icicibank.com&sz=128' },
   { id:'axis',    name:'Axis',           abbr:'AXIS', color:'#97144D', text:'#fff', logo:'https://www.google.com/s2/favicons?domain=axisbank.com&sz=128' },
   { id:'kotak',   name:'Kotak',          abbr:'KMB',  color:'#ED1C24', text:'#fff', logo:'https://www.google.com/s2/favicons?domain=kotak.com&sz=128' },
@@ -29445,8 +29445,8 @@ const CC_BANKS = [
   { id:'amex',    name:'Amex',           abbr:'AMEX', color:'#016FD0', text:'#fff', logo:'https://www.google.com/s2/favicons?domain=americanexpress.com&sz=128' },
   { id:'citi',    name:'Citi',           abbr:'CITI', color:'#003B8E', text:'#fff', logo:'https://www.google.com/s2/favicons?domain=citi.com&sz=128' },
   { id:'bob',     name:'Bank of Baroda', abbr:'BOB',  color:'#F26522', text:'#fff', logo:'https://www.google.com/s2/favicons?domain=bankofbaroda.in&sz=128' },
-  { id:'pnb',     name:'PNB',            abbr:'PNB',  color:'#8B0000', text:'#fff', logo:'https://www.google.com/s2/favicons?domain=pnbindia.in&sz=128' },
-  { id:'union',   name:'Union Bank',     abbr:'UBI',  color:'#1B4F8A', text:'#fff', logo:'https://logo.clearbit.com/unionbankofindia.co.in', logoFallback:'https://www.google.com/s2/favicons?domain=unionbankofindia.co.in&sz=128' },
+  { id:'pnb',     name:'PNB',            abbr:'PNB',  color:'#8B0000', text:'#fff', logo:'data:image/svg+xml,%3Csvg%20xmlns=%27http://www.w3.org/2000/svg%27%20viewBox=%270%200%2064%2064%27%3E%3Ccircle%20cx=%2732%27%20cy=%2732%27%20r=%2729%27%20fill=%27%23A6192E%27%20stroke=%27%23F2A900%27%20stroke-width=%274%27/%3E%3Ctext%20x=%2732%27%20y=%2739%27%20text-anchor=%27middle%27%20font-family=%27Arial,Helvetica,sans-serif%27%20font-size=%2719%27%20font-weight=%27800%27%20fill=%27%23fff%27%3Epnb%3C/text%3E%3C/svg%3E' },
+  { id:'union',   name:'Union Bank',     abbr:'UBI',  color:'#1B4F8A', text:'#fff', logo:'data:image/svg+xml,%3Csvg%20xmlns=%27http://www.w3.org/2000/svg%27%20viewBox=%270%200%2064%2064%27%3E%3Cpath%20d=%27M18%2012%20V34%20A14%2014%200%200%200%2032%2048%27%20fill=%27none%27%20stroke=%27%231B4F8A%27%20stroke-width=%279%27%20stroke-linecap=%27round%27/%3E%3Cpath%20d=%27M32%2048%20A14%2014%200%200%200%2046%2034%20V12%27%20fill=%27none%27%20stroke=%27%23E31E24%27%20stroke-width=%279%27%20stroke-linecap=%27round%27/%3E%3C/svg%3E' },
   { id:'canara',  name:'Canara',         abbr:'CNR',  color:'#005F6A', text:'#fff', logo:'https://www.google.com/s2/favicons?domain=canarabank.com&sz=128' },
   { id:'idfc',    name:'IDFC First',     abbr:'IDFC', color:'#F26522', text:'#fff', logo:'https://www.google.com/s2/favicons?domain=idfcfirstbank.com&sz=128' },
   { id:'au',      name:'AU Small',       abbr:'AU',   color:'#E31837', text:'#fff', logo:'https://www.google.com/s2/favicons?domain=aubank.in&sz=128' },
@@ -29735,11 +29735,11 @@ function ccCardFaceHTML(c) {
         <div class="cc-face-chip"></div>
         ${logoHTML}
       </div>
-      <div class="cc-face-number">${maskedNum}</div>
+      <div class="cc-face-number" data-no-count>${maskedNum}</div>
       <div class="cc-face-bottom">
         <div>
           <div class="cc-face-name-lbl">Card Holder</div>
-          <div class="cc-face-name">${c.nickname}</div>
+          <div class="cc-face-name" data-no-count>${c.nickname}</div>
           <div class="cc-face-exp" data-no-count>Exp ${c.expiry}</div>
         </div>
       </div>
@@ -29802,7 +29802,7 @@ function renderCCCards() {
           <div class="cc-stack-outer" id="cc-stack-outer"></div>
         </div>
       </div>
-      <div class="cc-active-detail" id="cc-active-detail" data-no-count></div>
+      <div class="cc-active-detail" id="cc-active-detail"></div>
     `;
     stackOuter = document.getElementById('cc-stack-outer');
     Object.keys(ccStackEls).forEach(k => delete ccStackEls[k]);
@@ -29958,7 +29958,7 @@ function ccInsightsHTML(c, pct, avail) {
   });
 
   return `
-    <div class="cc-insights">
+    <div class="cc-insights" data-no-count>
       <div class="cc-insights-head"><i class="fas fa-lightbulb"></i><span>Insights & Suggestions</span></div>
       ${rows.map(r => `
         <div class="cc-insight-row">
@@ -29977,7 +29977,7 @@ function ccInsightsHTML(c, pct, avail) {
 // under Insights with something useful rather than blank canvas.
 function ccActionsHTML(c) {
   return `
-    <div class="cc-actions-block">
+    <div class="cc-actions-block" data-no-count>
       <div class="cc-insights-head"><i class="fas fa-bolt"></i><span>Card Actions</span></div>
       <div class="cc-actions-row">
         <button class="cc-action-btn ${c.frozen ? 'active' : ''}" onclick="toggleCCFreeze(${c.id})">
@@ -30237,9 +30237,9 @@ function renderCCAnalytics() {
       <div class="cca-grid-2">
         <div class="cca-panel">
           <div class="cca-panel-title">Utilization Trend</div>
-          <div class="cca-panel-sub">${c.nickname} · Highest ${Math.max(...ccCardHistory(c)).toFixed(0)}% · Lowest ${Math.min(...ccCardHistory(c)).toFixed(0)}% · Current ${pct.toFixed(1)}%</div>
+          <div class="cca-panel-sub" data-no-count>${c.nickname} · Highest ${Math.max(...ccCardHistory(c)).toFixed(0)}% · Lowest ${Math.min(...ccCardHistory(c)).toFixed(0)}% · Current ${pct.toFixed(1)}%</div>
           ${ccTrendSVG(c)}
-          <div class="cca-trend-legend">
+          <div class="cca-trend-legend" data-no-count>
             <div class="cca-trend-legend-item"><div class="cca-trend-legend-dot" style="background:#34d399"></div>30% recommended</div>
             <div class="cca-trend-legend-item"><div class="cca-trend-legend-dot" style="background:#f59e0b"></div>50% caution</div>
             <div class="cca-trend-legend-item"><div class="cca-trend-legend-dot" style="background:#ef4444"></div>70% high</div>
@@ -30248,7 +30248,7 @@ function renderCCAnalytics() {
 
         <div class="cca-panel">
           <div class="cca-panel-title">Credit Usage Breakdown</div>
-          <div class="cca-panel-sub">${c.nickname}</div>
+          <div class="cca-panel-sub" data-no-count>${c.nickname}</div>
           <div class="cca-breakdown-row">
             <div class="cca-donut" style="background:conic-gradient(${status.color} 0deg ${donutOffset}deg, rgba(255,255,255,0.08) ${donutOffset}deg 360deg)">
               <div class="cca-donut-pct"><b>${pct.toFixed(0)}%</b><span>Used</span></div>
@@ -30272,7 +30272,7 @@ function renderCCAnalytics() {
       <div class="cca-grid-2">
         <div class="cca-panel" data-no-count>
           <div class="cca-panel-title">Payment Health</div>
-          <div class="cca-panel-sub">${c.nickname} · estimated cycle</div>
+          <div class="cca-panel-sub" data-no-count>${c.nickname} · estimated cycle</div>
           <div class="cca-payment-grid">
             <div><div class="cca-pay-lbl">Statement Balance</div><div class="cca-pay-val">${ccMoney(pay.statementBalance)}</div></div>
             <div><div class="cca-pay-lbl">Minimum Due</div><div class="cca-pay-val">${ccMoney(pay.minDue)}</div></div>
@@ -30284,9 +30284,9 @@ function renderCCAnalytics() {
           <div class="cca-pay-status ${pay.status.cls}">${pay.status.icon} ${pay.status.label}</div>
         </div>
 
-        <div class="cca-panel">
+        <div class="cca-panel" data-no-count>
           <div class="cca-panel-title">How to Improve Your Utilization</div>
-          <div class="cca-panel-sub">${c.nickname}</div>
+          <div class="cca-panel-sub" data-no-count>${c.nickname}</div>
           ${toReduce > 0 ? `
             <div class="cca-reco-box warn">
               <div class="cca-reco-title">Bring utilization below 30%</div>
@@ -30307,7 +30307,7 @@ function renderCCAnalytics() {
       <!-- Credit Strategy -->
       <div class="cca-panel" style="margin-bottom:1rem">
         <div class="cca-panel-title">Credit Strategy</div>
-        <div class="cca-panel-sub">${c.nickname} · monthly guide</div>
+        <div class="cca-panel-sub" data-no-count>${c.nickname} · monthly guide</div>
         <div class="cca-strategy-grid">
           <div class="cca-strategy-card">
             <div class="cca-strategy-lbl" data-no-count>Spendable Before 30%</div>
@@ -30328,7 +30328,7 @@ function renderCCAnalytics() {
       ${ccCards.length > 1 ? `
       <div class="cca-panel" style="margin-bottom:1rem">
         <div class="cca-panel-title">Portfolio Utilization</div>
-        <div class="cca-panel-sub">All active credit cards</div>
+        <div class="cca-panel-sub" data-no-count>All active credit cards</div>
         <div class="cca-table-wrap">
           <table class="cca-table" data-no-count>
             <thead><tr><th>Card</th><th>Limit</th><th>Outstanding</th><th>Available</th><th>Utilization</th><th>Status</th></tr></thead>
@@ -30394,7 +30394,7 @@ function renderCCActiveDetail() {
 
   wrap.innerHTML = `
     <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:0.9rem">
-      <div style="font-size:0.92rem;font-weight:700;color:var(--text-main)">${c.nickname}</div>
+      <div data-no-count style="font-size:0.92rem;font-weight:700;color:var(--text-main)">${c.nickname}</div>
       <div class="cc-card-actions">
         <button class="cc-card-del" onclick="editCCCard(${c.id})" title="Edit card" style="background:rgba(var(--brand-rgb),0.07);border-color:rgba(var(--brand-rgb),0.25);color:var(--brand-2);margin-right:4px">
           <i class="fas fa-edit"></i>
@@ -30415,7 +30415,7 @@ function renderCCActiveDetail() {
       <div class="cc-util-track">
         <div class="cc-util-fill" style="width:${pct}%;background:linear-gradient(90deg,${color}99,${color})"></div>
       </div>
-      <div class="cc-util-legend">
+      <div class="cc-util-legend" data-no-count>
         <div class="cc-util-legend-item">
           <div class="cc-util-legend-dot" style="background:${color}"></div>
           Outstanding: ₹${c.used.toLocaleString('en-IN')}
