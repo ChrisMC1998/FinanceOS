@@ -8829,7 +8829,7 @@ function passAppLockGate() {
       <div class="glass-panel">
         <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:.9rem">
           <div class="panel-title" style="margin-bottom:0">Net Worth Trajectory</div>
-          <div style="display:flex;gap:6px">
+          <div data-no-count style="display:flex;gap:6px">
             <button onclick="setNwRange(6,this)"  class="filter-mode-btn active" id="nw-r6">6M</button>
             <button onclick="setNwRange(12,this)" class="filter-mode-btn" id="nw-r12">12M</button>
             <button onclick="setNwRange(0,this)"  class="filter-mode-btn" id="nw-rall">All</button>
@@ -21260,7 +21260,7 @@ function renderNetWorth() {
     { label:'Next Milestone', val:nextTarget?fmt(nextTarget):'🏆 Goal Met!', sub:nextTarget?fmt(nextTarget-curNW)+' to go':'amazing work!' },
   ];
   milestoneEl.innerHTML = milestones.map(ms => `
-    <div class="nw-milestone">
+    <div class="nw-milestone nw-ms-tile">
       <div class="nw-milestone-label">${ms.label}</div>
       <div class="nw-milestone-val">${ms.val}</div>
       <div class="nw-milestone-sub">${ms.sub}</div>
@@ -34695,7 +34695,7 @@ body.light-mode .txa-badge.det{color:#6d28d9}
     I.rows = expRows(I); I.prev = prevRows(I); I.maps = txMaps('Expense'); I.total = sum(I.rows); I.sig = sig(I);
     var tabs = '<div class="txa-chips fxb-tabs" role="group" aria-label="Breakdown by">' + ['c', 's', 'p'].map(function (k) {
       return '<button type="button" class="txa-chip' + (I.dim === k ? ' on' : '') + '" data-fxb-dim="' + p + '|' + k + '" aria-pressed="' + (I.dim === k) + '">' + TITLES[k] + '</button>';
-    }).join('') + '</div><div class="fxb-scope">' + esc(fosScopeLabel(I.monthId, I.yearId)) + ' · ' + I.rows.length + ' expense transaction' + (I.rows.length === 1 ? '' : 's') + '</div>';
+    }).join('') + '</div><div class="fxb-scope"' + (p === 'ana' ? ' data-no-count' : '') + '>' + esc(fosScopeLabel(I.monthId, I.yearId)) + ' · ' + I.rows.length + ' expense transaction' + (I.rows.length === 1 ? '' : 's') + '</div>';
     if (!I.rows.length) { I.S = []; if (p === 'dash') fxbModal(false); host.innerHTML = tabs + '<div class="txa-muted-empty">No expense data for this period</div>'; return; }
     I.S = slices(I);
     if (I.sel !== null && !selSlice(I)) { I.sel = null; I.dr = []; }
@@ -34819,8 +34819,8 @@ body.light-mode .txa-badge.det{color:#6d28d9}
     function mainCat(g) { var c = txGroup(g.items, 'c', maps)[0]; return c ? c.name : ''; }
     function kpi(ic, col, lb, v, sub, noV, noS) { return '<div class="txa-kpi" style="--k:' + col + '"><div class="txa-kpi-top"><div class="txa-kpi-ico"><i class="fas ' + ic + '"></i></div><span class="txa-lbl">' + lb + '</span></div><div class="txa-kpi-val"' + (noV ? ' data-no-count' : '') + ' title="' + esc(v) + '">' + esc(v) + '</div><div class="txa-kpi-sub"' + (noS ? ' data-no-count' : '') + '>' + sub + '</div></div>'; }
     var kp = '<div class="fxb-kpis">' +
-      kpi('fa-store', '#f472b6', 'Top payee', top.name, '<span class="t">' + fmt(top.total) + ' · ' + r1(total ? top.total / total * 100 : 0) + '% of spend</span>', true, false) +
-      kpi('fa-repeat', '#38bdf8', 'Most frequent', freq.name, '<span class="t">' + freq.count + ' txns · avg ' + fmt(freq.total / freq.count) + '</span>', true, false) +
+      kpi('fa-store', '#f472b6', 'Top payee', top.name, '<span class="t">' + fmt(top.total) + ' · ' + r1(total ? top.total / total * 100 : 0) + '% of spend</span>', true, true) +
+      kpi('fa-repeat', '#38bdf8', 'Most frequent', freq.name, '<span class="t">' + freq.count + ' txns · avg ' + fmt(freq.total / freq.count) + '</span>', true, true) +
       kpi('fa-bullseye', '#fbbf24', 'Top-5 concentration', r1(total ? top5 / total * 100 : 0) + '%', '<span class="t">of expenses go to 5 payees</span>', false, true) +
       kpi('fa-users', '#34d399', 'Unique payees', String(named.length), '<span class="t">' + (none ? fmt(none.total) + ' has no payee (' + r1(total ? none.total / total * 100 : 0) + '%)' : 'every expense has a payee') + '</span>', false, true) + '</div>';
     var max = top.total || 1;
@@ -37406,7 +37406,7 @@ try{init();paint()}catch(e){}
         E.rows.map(function (x) { return R(_esc(propertyName(x.rec)), fmt(Math.round(x.equity)), x.loan ? fmt(Math.round(x.value)) + ' − ' + _esc(x.loan.lenderName || 'loan') + ' ' + fmt(Math.round(x.owed)) + (x.byName ? ' (matched by lender name)' : '') : 'no loan linked'); }).join('');
       if (E.unlinkedHomeLoans.length) eqHtml += '<div class="fosnw-note">' + E.unlinkedHomeLoans.length + ' home loan' + (E.unlinkedHomeLoans.length > 1 ? 's are' : ' is') + ' not linked to a property (' + E.unlinkedHomeLoans.map(function (l) { return _esc(l.lenderName || 'Loan'); }).slice(0, 3).join(', ') + '), so that property’s equity looks higher than it is.</div>';
     }
-    host.innerHTML = '<details class="glass-panel fosnw"' + (window._fosNWOpen ? ' open' : '') + ' ontoggle="window._fosNWOpen=this.open"><summary>How net worth is calculated<small>assets ' + fmt(Math.round(N.assets)) + ' − liabilities ' + fmt(Math.round(N.debt)) + ' = ' + fmt(Math.round(N.net)) + '</small></summary>' +
+    host.innerHTML = '<details class="glass-panel fosnw" data-no-count' + (window._fosNWOpen ? ' open' : '') + ' ontoggle="window._fosNWOpen=this.open"><summary>How net worth is calculated<small>assets ' + fmt(Math.round(N.assets)) + ' − liabilities ' + fmt(Math.round(N.debt)) + ' = ' + fmt(Math.round(N.net)) + '</small></summary>' +
       R('Cash on hand', fmt(Math.round(N.cash)), 'income − expenses − investments − EMIs paid') +
       R('Portfolio, current value', fmt(Math.round(N.portfolio)), 'cost ' + fmt(Math.round(N.portCost))) +
       R('Total assets', fmt(Math.round(N.assets)), '', 'tot') +
