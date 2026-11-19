@@ -8724,7 +8724,7 @@ function passAppLockGate() {
           <div class="insight-kpi-icon" style="background:rgba(52,211,153,0.12);color:#34d399"><i class="fas fa-piggy-bank"></i></div>
           <div style="font-size:0.65rem;color:var(--text-muted);text-transform:uppercase;letter-spacing:1px;font-weight:600">Avg Monthly Savings</div>
           <div style="font-family:'DM Mono',monospace;font-size:1.35rem;font-weight:700" id="insight-savings">₹0</div>
-          <div style="font-size:0.71rem;color:var(--text-mid)" id="insight-savings-sub">—</div>
+          <div style="font-size:0.71rem;color:var(--text-mid)" id="insight-savings-sub" data-no-count>—</div>
         </div>
         <div class="insight-kpi-card">
           <div class="insight-kpi-icon" style="background:rgba(244,114,182,0.12);color:#f472b6"><i class="fas fa-chart-line"></i></div>
@@ -8735,14 +8735,14 @@ function passAppLockGate() {
         <div class="insight-kpi-card">
           <div class="insight-kpi-icon" style="background:rgba(251,191,36,0.12);color:#fbbf24"><i class="fas fa-receipt"></i></div>
           <div style="font-size:0.65rem;color:var(--text-muted);text-transform:uppercase;letter-spacing:1px;font-weight:600">Top Expense Category</div>
-          <div style="font-family:'DM Mono',monospace;font-size:1rem;font-weight:700" id="insight-top-cat">—</div>
-          <div style="font-size:0.71rem;color:var(--text-mid)" id="insight-top-cat-amt">₹0 spent</div>
+          <div style="font-family:'DM Mono',monospace;font-size:1rem;font-weight:700" id="insight-top-cat" data-no-count>—</div>
+          <div style="font-size:0.71rem;color:var(--text-mid)" id="insight-top-cat-amt" data-no-count>₹0 spent</div>
         </div>
         <div class="insight-kpi-card">
           <div class="insight-kpi-icon" style="background:rgba(96,165,250,0.12);color:#60a5fa"><i class="fas fa-calendar-check"></i></div>
           <div style="font-size:0.65rem;color:var(--text-muted);text-transform:uppercase;letter-spacing:1px;font-weight:600">Busiest Spending Day</div>
-          <div style="font-family:'DM Mono',monospace;font-size:1.35rem;font-weight:700" id="insight-day">—</div>
-          <div style="font-size:0.71rem;color:var(--text-mid)" id="insight-day-sub">of the month</div>
+          <div style="font-family:'DM Mono',monospace;font-size:1.35rem;font-weight:700" id="insight-day" data-no-count>—</div>
+          <div style="font-size:0.71rem;color:var(--text-mid)" id="insight-day-sub" data-no-count>of the month</div>
         </div>
       </div>
 
@@ -8786,7 +8786,7 @@ function passAppLockGate() {
       <!-- Financial Insights -->
       <div class="glass-panel span-full" style="margin-bottom:1.3rem">
         <div class="panel-title" style="margin-bottom:1rem">Financial Insights &amp; Recommendations</div>
-        <div id="insights-container" style="display:grid;grid-template-columns:1fr 1fr;gap:1rem"></div>
+        <div id="insights-container" data-no-count style="display:grid;grid-template-columns:1fr 1fr;gap:1rem"></div>
       </div>
 
       <!-- Debt vs Assets + Expense Composition -->
@@ -34817,12 +34817,12 @@ body.light-mode .txa-badge.det{color:#6d28d9}
     var top5 = named.slice(0, 5).reduce(function (s, g) { return s + g.total; }, 0), top = named[0];
     var pmap = {}; if (prev) txGroup(prev, 'p', maps).forEach(function (g) { pmap[g.key] = g; });
     function mainCat(g) { var c = txGroup(g.items, 'c', maps)[0]; return c ? c.name : ''; }
-    function kpi(ic, col, lb, v, sub) { return '<div class="txa-kpi" style="--k:' + col + '"><div class="txa-kpi-top"><div class="txa-kpi-ico"><i class="fas ' + ic + '"></i></div><span class="txa-lbl">' + lb + '</span></div><div class="txa-kpi-val" title="' + esc(v) + '">' + esc(v) + '</div><div class="txa-kpi-sub">' + sub + '</div></div>'; }
+    function kpi(ic, col, lb, v, sub, noV, noS) { return '<div class="txa-kpi" style="--k:' + col + '"><div class="txa-kpi-top"><div class="txa-kpi-ico"><i class="fas ' + ic + '"></i></div><span class="txa-lbl">' + lb + '</span></div><div class="txa-kpi-val"' + (noV ? ' data-no-count' : '') + ' title="' + esc(v) + '">' + esc(v) + '</div><div class="txa-kpi-sub"' + (noS ? ' data-no-count' : '') + '>' + sub + '</div></div>'; }
     var kp = '<div class="fxb-kpis">' +
-      kpi('fa-store', '#f472b6', 'Top payee', top.name, '<span class="t">' + fmt(top.total) + ' · ' + r1(total ? top.total / total * 100 : 0) + '% of spend</span>') +
-      kpi('fa-repeat', '#38bdf8', 'Most frequent', freq.name, '<span class="t">' + freq.count + ' txns · avg ' + fmt(freq.total / freq.count) + '</span>') +
-      kpi('fa-bullseye', '#fbbf24', 'Top-5 concentration', r1(total ? top5 / total * 100 : 0) + '%', '<span class="t">of expenses go to 5 payees</span>') +
-      kpi('fa-users', '#34d399', 'Unique payees', String(named.length), '<span class="t">' + (none ? fmt(none.total) + ' has no payee (' + r1(total ? none.total / total * 100 : 0) + '%)' : 'every expense has a payee') + '</span>') + '</div>';
+      kpi('fa-store', '#f472b6', 'Top payee', top.name, '<span class="t">' + fmt(top.total) + ' · ' + r1(total ? top.total / total * 100 : 0) + '% of spend</span>', true, false) +
+      kpi('fa-repeat', '#38bdf8', 'Most frequent', freq.name, '<span class="t">' + freq.count + ' txns · avg ' + fmt(freq.total / freq.count) + '</span>', true, false) +
+      kpi('fa-bullseye', '#fbbf24', 'Top-5 concentration', r1(total ? top5 / total * 100 : 0) + '%', '<span class="t">of expenses go to 5 payees</span>', false, true) +
+      kpi('fa-users', '#34d399', 'Unique payees', String(named.length), '<span class="t">' + (none ? fmt(none.total) + ' has no payee (' + r1(total ? none.total / total * 100 : 0) + '%)' : 'every expense has a payee') + '</span>', false, true) + '</div>';
     var max = top.total || 1;
     var list = named.slice(0, 8).map(function (g, i) {
       var pg = prev ? pmap[g.key] : null;
@@ -34835,7 +34835,7 @@ body.light-mode .txa-badge.det{color:#6d28d9}
       mv = '<div class="txa-lbl" style="margin:0 0 6px">Biggest increases vs previous period</div>' + (inc.length ? inc.map(function (x) { return '<div class="txa-mv"><span class="nm" title="' + esc(x.g.name) + '">' + esc(x.g.name) + '</span><span class="v">' + fmt(x.pt) + ' → ' + fmt(x.g.total) + '</span>' + delta(x.g.total, x.pt) + '</div>'; }).join('') : '<div class="txa-muted-empty" style="padding:8px">No payee spending increased.</div>') +
         '<div class="txa-lbl" style="margin:12px 0 6px">New payees this period</div>' + (neu.length ? '<div class="txa-note"><b>' + neu.length + '</b> new: ' + neu.slice(0, 5).map(function (g) { return esc(g.name) + ' (' + fmt(g.total) + ')'; }).join(', ') + (neu.length > 5 ? ' …' : '') + '</div>' : '<div class="txa-note">None — every payee was also used in the previous period.</div>');
     } else mv = '<div class="txa-note">Pick a month (or a year) with the “Only” filter to compare payees with the previous period.</div>';
-    host.innerHTML = kp + '<div class="fxb-two"><div><div class="txa-lbl" style="margin:0 0 8px">Where your money goes — top payees <span class="fxb-hint">click to drill down</span></div><div class="txa-rank">' + list + '</div></div><div>' + mv + '</div></div>';
+    host.innerHTML = kp + '<div class="fxb-two"><div><div class="txa-lbl" style="margin:0 0 8px">Where your money goes — top payees <span class="fxb-hint">click to drill down</span></div><div class="txa-rank" data-no-count>' + list + '</div></div><div>' + mv + '</div></div>';
   }
 
   function renderAll() { render('dash'); render('ana'); payeePanel(); }
@@ -36908,7 +36908,7 @@ window.polMeToggle=function(){try{localStorage.setItem(LSM,localStorage.getItem(
 
 /* ── wiring ── */
 function initDash(){var v=$('view-dashboard');if(v&&!$('pol-me'))v.insertAdjacentHTML('afterbegin','<div id="pol-me" class="glass-panel pol-card" style="display:none"></div><div id="pol-unlock-d" data-no-count class="pol-card pol-un" style="display:none"></div><div id="pol-ms" data-no-count class="glass-panel pol-card" style="display:none"></div><div id="pol-lh" data-no-count class="glass-panel pol-card" style="display:none"></div>');
-  var a=$('view-analytics');if(a&&!$('pol-unlock-a'))a.insertAdjacentHTML('afterbegin','<div id="pol-unlock-a" class="pol-card pol-un" style="display:none"></div>')}
+  var a=$('view-analytics');if(a&&!$('pol-unlock-a'))a.insertAdjacentHTML('afterbegin','<div id="pol-unlock-a" data-no-count class="pol-card pol-un" style="display:none"></div>')}
 function wrap(n,after){var o=window[n];if(typeof o!=='function'||o.__pol)return;var w=function(){var r=o.apply(this,arguments);try{after()}catch(e){console.error('polish:',e)}return r};w.__pol=1;window[n]=w}
 wrap('renderTable',tableAfter);
 wrap('renderDashboard',function(){initDash();paintME();paintUnlock('pol-unlock-d');paintMS();paintLH()});
