@@ -37542,8 +37542,8 @@ body.light-mode .adm-toast{background:#e0f7fc;color:#06303c}body.light-mode .adm
   var PK = 'fos_admin_pin_v1', SS = 'fos_admin_sess', IDLE = 10 * 60 * 1000;
   var S = { tab: 'overview', filter: '', modOnly: false, gate: null, fails: 0, until: 0, last: Date.now(), ok: false, built: {}, pv: null, month: null, openG: {} };
   var TABS = [
-    ['overview', 'Overview', 'fa-gauge-high', 1], ['lab', 'Calculation Lab', 'fa-flask', 1], ['formula', 'Formula Studio', 'fa-square-root-variable', 1], ['chart', 'Chart Studio', 'fa-chart-pie', 0],
-    ['rules', 'Insight & Alert Rules', 'fa-bell', 0], ['unlocks', 'Unlocks & Streaks', 'fa-unlock', 0], ['data', 'Data Manager', 'fa-table', 0], ['tax', 'Taxonomy', 'fa-tags', 0],
+    ['overview', 'Overview', 'fa-gauge-high', 1], ['lab', 'Calculation Lab', 'fa-flask', 1], ['formula', 'Formula Studio', 'fa-square-root-variable', 1], ['chart', 'Chart Studio', 'fa-chart-pie', 1],
+    ['rules', 'Insight & Alert Rules', 'fa-bell', 1], ['unlocks', 'Unlocks & Streaks', 'fa-unlock', 0], ['data', 'Data Manager', 'fa-table', 0], ['tax', 'Taxonomy', 'fa-tags', 0],
     ['port', 'Portfolio & Credit', 'fa-briefcase', 0], ['theme', 'Layout & Theme', 'fa-palette', 0], ['flags', 'Feature Flags', 'fa-toggle-on', 0], ['integrity', 'Integrity Checker', 'fa-shield-halved', 0],
     ['backups', 'Backups & Versions', 'fa-clock-rotate-left', 1], ['audit', 'Audit Log', 'fa-list-check', 1], ['dev', 'Developer Tools', 'fa-terminal', 0]
   ];
@@ -37588,8 +37588,10 @@ body.light-mode .adm-toast{background:#e0f7fc;color:#06303c}body.light-mode .adm
   }
   function body() {
     var b = document.getElementById('adm-body'); if (!b) return; var t = S.tab;
-    try { b.innerHTML = t === 'overview' ? overview() : t === 'lab' ? lab() : t === 'backups' ? backups() : t === 'audit' ? auditTab() : (t === 'formula' && window.FOS_FORMULA_STUDIO) ? window.FOS_FORMULA_STUDIO.html() : planned(t); } catch (e) { console.error('Admin tab failed:', e); b.innerHTML = '<div class="set-card"><b>This tab failed to load.</b><div class="adm-muted">' + E(e.message) + '</div></div>'; }
+    try { b.innerHTML = t === 'overview' ? overview() : t === 'lab' ? lab() : t === 'backups' ? backups() : t === 'audit' ? auditTab() : (t === 'formula' && window.FOS_FORMULA_STUDIO) ? window.FOS_FORMULA_STUDIO.html() : (t === 'chart' && window.FOS_CHART_STUDIO) ? window.FOS_CHART_STUDIO.html() : (t === 'rules' && window.FOS_RULES) ? window.FOS_RULES.html() : planned(t); } catch (e) { console.error('Admin tab failed:', e); b.innerHTML = '<div class="set-card"><b>This tab failed to load.</b><div class="adm-muted">' + E(e.message) + '</div></div>'; }
     if (t === 'lab') labPreview();
+    if (t === 'rules' && window.FOS_RULES) { try { window.FOS_RULES.after(); } catch (e) { console.error('Rules failed:', e); } }
+    if (t === 'chart' && window.FOS_CHART_STUDIO) { try { window.FOS_CHART_STUDIO.after(); } catch (e) { console.error('Chart Studio failed:', e); } }
     if (t === 'formula' && window.FOS_FORMULA_STUDIO) { try { window.FOS_FORMULA_STUDIO.after(); } catch (e) { console.error('Formula Studio failed:', e); } }
   }
   function planned(t) { var n = TABS.filter(function (x) { return x[0] === t; })[0]; return '<div class="set-card adm-soon"><i class="fas ' + n[2] + '"></i><b>' + E(n[1]) + '</b><p>Not built yet. This tab is planned for a later stage and does nothing today.</p></div>'; }
@@ -37874,6 +37876,20 @@ body.light-mode #adm-root{--fs-ok:#059669;--fs-bad:#dc2626;--fs-warn:#b45309}
 .adm-btn:disabled{opacity:.45}
 .fos-fs-tile .kpi-value{font-family:'DM Mono',monospace}
 @media(prefers-reduced-motion:reduce){.fs-star,.fs-chip{transition:none}}
+/* ── FOS ADMIN · Chart Studio (scoped to .cs-*) ── */
+.cs-wrap{display:grid;grid-template-columns:310px minmax(0,1fr);gap:12px;align-items:start}
+.cs-side{position:sticky;top:0;min-width:0}.cs-main{min-width:0;display:flex;flex-direction:column}
+@media(max-width:900px){.cs-wrap{grid-template-columns:minmax(0,1fr)}.cs-side{position:static}}
+.cs-lbl{font-size:.72rem;font-weight:700;margin:4px 0 6px}
+.cs-ser{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:8px}
+.cs-ser .set-input{width:auto;min-width:0;flex:1 1 150px;margin:0!important;box-sizing:border-box}
+.cs-ser .cs-expr{flex:2 1 220px}.cs-ser .cs-fm{flex:0 1 100px}.cs-ser .cs-lab{flex:1 1 120px}
+.cs-col{width:38px!important;flex:0 0 38px!important;height:34px;padding:2px!important;border-radius:8px;cursor:pointer;background:transparent}
+.cs-opts{display:flex;flex-wrap:wrap;gap:6px 18px;margin:10px 0 0}
+.cs-prev{border-radius:12px;background:var(--adm-soft);padding:6px;overflow:hidden}
+.cs-prev svg{max-height:420px}
+.cs-wrap [hidden]{display:none!important}
+.fos-cs-panel svg{max-height:340px}
 </style>
 <script id="fos-formula-studio">
 /* ═══════════════════════════════════════════════════════════════════════
@@ -38366,12 +38382,714 @@ body.light-mode #adm-root{--fs-ok:#059669;--fs-bad:#dc2626;--fs-warn:#b45309}
   /* ── boot ──────────────────────────────────────────────────────────── */
   window.FOS_FORMULA_STUDIO = {
     html: html, after: after, items: items, run: function (key, mk) { var f = byKey(key); return f ? run(f.expr, f.key, mk || curMonth(), null) : { ok: false, msg: 'No such formula' }; },
+    evalExpr: function (expr, mk) { return run(expr, null, mk || curMonth(), null); }, clearCache: function () { S.cache = {}; },
     repaintPins: paintPins, templates: TEMPLATES
   };
   C.onChange(function () { S.cache = {}; paintPins(); });
   hookDash(); wire();
   window.addEventListener('load', function () { hookDash(); setTimeout(paintPins, 900); });
   if (document.readyState === 'complete') setTimeout(paintPins, 400);
+})();
+</script>
+<script id="fos-chart-studio">
+/* ═══════════════════════════════════════════════════════════════════════
+   FOS ADMIN · CHART STUDIO
+   Build your own charts from ledger numbers, your Formula Studio formulas, or a
+   custom expression (safe engine, no eval). Drawn as dependency-free inline SVG, so
+   it also works offline. Saved in localStorage 'fos_admin_charts_v1'. Pinned charts
+   appear as panels on the Dashboard (hidden while Safe mode is on).
+   ═══════════════════════════════════════════════════════════════════════ */
+(function () {
+  'use strict';
+  if (window.FOS_CHART_STUDIO) return;
+  var X = window.FOS_EXPR, C = window.FOS_CONFIG;
+  if (!X || !C) return;
+  function FS() { return window.FOS_FORMULA_STUDIO || null; }
+
+  var KEY = 'fos_admin_charts_v1', MAXC = 30, MAXS = 4;
+  var TYPES = { bar: 'Bars (side by side)', stack: 'Bars (stacked)', line: 'Line', area: 'Area', donut: 'Donut', hbar: 'Horizontal bars' };
+  var TIME_T = ['bar', 'stack', 'line', 'area'], BRK_T = ['donut', 'hbar'];
+  var RANGES = { 3: 'Last 3 months', 6: 'Last 6 months', 12: 'Last 12 months', 24: 'Last 24 months' };
+  var ROLES = { expense: 'Expenses', income: 'Income', emi: 'EMI / loans', invest: 'Investments' };
+  var PAL = ['#22d3ee', '#a78bfa', '#f59e0b', '#34d399', '#f43f5e', '#38bdf8', '#fb923c', '#e879f9'];
+  var LBL = { income: 'Income', expense: 'Expense', emi: 'EMI', invest: 'Investments', savings: 'Savings', cashLeft: 'Cash left', avg3: '3-mo avg expense', avg6: '6-mo avg expense', prevIncome: 'Prev. income', prevExpense: 'Prev. expense', prevSavings: 'Prev. savings', essential: 'Essential', discretionary: 'Discretionary' };
+  var VARLIST = X.VARS.filter(function (v) { return v !== 'month' && v !== 'days'; });
+  var TEMPLATES = [
+    { name: 'Income vs expense', mode: 'time', type: 'bar', range: 12, series: [{ src: 'v', ref: 'income' }, { src: 'v', ref: 'expense' }] },
+    { name: 'Savings trend', mode: 'time', type: 'area', range: 12, series: [{ src: 'v', ref: 'savings' }] },
+    { name: 'Savings rate (%)', mode: 'time', type: 'line', range: 12, target: 20, series: [{ src: 'x', ref: 'if(income > 0, savings / income * 100, 0)', fmt: 'percent', label: 'Savings rate' }] },
+    { name: 'Where the money goes', mode: 'time', type: 'stack', range: 12, series: [{ src: 'v', ref: 'expense' }, { src: 'v', ref: 'emi' }, { src: 'v', ref: 'invest' }] },
+    { name: 'Cash left each month', mode: 'time', type: 'bar', range: 12, series: [{ src: 'v', ref: 'cashLeft' }] },
+    { name: 'Expenses by category', mode: 'brk', type: 'donut', range: 3, role: 'expense', topN: 6 },
+    { name: 'Top spending categories', mode: 'brk', type: 'hbar', range: 6, role: 'expense', topN: 8 }
+  ];
+
+  /* ── helpers ───────────────────────────────────────────────────────── */
+  function E(s) { try { return _esc(s); } catch (e) { return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]; }); } }
+  function $(id) { return document.getElementById(id); }
+  function uid() { return 'c' + Date.now().toString(36) + Math.random().toString(36).slice(2, 6); }
+  function nowIso() { return new Date().toISOString(); }
+  function curMonth() { try { return localMonthKey(new Date()); } catch (e) { var d = new Date(); return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0'); } }
+  function monthLabel(mk) { try { return new Date(+mk.slice(0, 4), +mk.slice(5, 7) - 1, 1).toLocaleString(undefined, { month: 'short', year: '2-digit' }); } catch (e) { return mk; } }
+  function allMonths() { var m = {}; try { (db || []).forEach(function (r) { var k = String(r && r.date || '').slice(0, 7); if (/^\d{4}-\d{2}$/.test(k)) m[k] = 1; }); } catch (e) { } m[curMonth()] = 1; return Object.keys(m).sort(); }
+  function theme() { var l = document.body && document.body.classList.contains('light-mode'); return l ? { text: '#0f172a', muted: '#475569', grid: 'rgba(15,23,42,.13)', bg: '#ffffff', zero: 'rgba(15,23,42,.45)' } : { text: '#e5e7eb', muted: '#94a3b8', grid: 'rgba(255,255,255,.11)', bg: '#0b1220', zero: 'rgba(255,255,255,.4)' }; }
+  function r1(x) { return String(Math.round(x * 10) / 10); }
+  function compact(v) {
+    var a = Math.abs(v), s = v < 0 ? '−' : '', ind = true; try { ind = (localStorage.getItem('fos_number_system') || 'indian') === 'indian'; } catch (e) { }
+    if (ind) { if (a >= 1e7) return s + r1(a / 1e7) + 'Cr'; if (a >= 1e5) return s + r1(a / 1e5) + 'L'; if (a >= 1e3) return s + r1(a / 1e3) + 'k'; }
+    else { if (a >= 1e9) return s + r1(a / 1e9) + 'B'; if (a >= 1e6) return s + r1(a / 1e6) + 'M'; if (a >= 1e3) return s + r1(a / 1e3) + 'k'; }
+    return s + r1(a);
+  }
+  function axisFmt(sp, v) { return sp.fmt === 'percent' ? r1(v) + '%' : compact(v); }
+  function labFmt(sp, v) { var c = ''; try { c = localStorage.getItem('fos_currency') || '₹'; } catch (e) { } return sp.fmt === 'percent' ? r1(v) + '%' : sp.fmt === 'money' ? c + compact(v) : compact(v); }
+  function fullFmt(sp, v) {
+    if (v === null || v === undefined || !isFinite(v)) return '—'; var d = sp.dec == null ? (sp.fmt === 'percent' ? 1 : sp.fmt === 'money' ? 0 : 2) : sp.dec;
+    if (sp.fmt === 'money') { try { return fmt(v, d); } catch (e) { } } if (sp.fmt === 'percent') return v.toLocaleString(undefined, { minimumFractionDigits: d, maximumFractionDigits: d }) + '%';
+    if (sp.fmt === 'ratio') return v.toFixed(d) + '×'; if (sp.fmt === 'months') return v.toFixed(d) + ' mo'; return v.toLocaleString(undefined, { maximumFractionDigits: d });
+  }
+  function nice(lo, hi, n) {
+    if (hi === lo) { hi = lo + 1; } var rough = (hi - lo) / (n || 5), p = Math.pow(10, Math.floor(Math.log10(rough))), f = rough / p, step = (f <= 1 ? 1 : f <= 2 ? 2 : f <= 5 ? 5 : 10) * p;
+    return { lo: Math.floor(lo / step + 1e-9) * step, hi: Math.ceil(hi / step - 1e-9) * step, step: step };
+  }
+
+  /* ── storage ───────────────────────────────────────────────────────── */
+  var store = null;
+  function cleanSeries(s, i) {
+    if (!s || typeof s !== 'object') return null; var src = s.src === 'f' || s.src === 'x' ? s.src : 'v', ref = String(s.ref || '').slice(0, 500);
+    if (src === 'v' && VARLIST.indexOf(ref) < 0) return null;
+    return { src: src, ref: ref, label: String(s.label || '').slice(0, 40), color: /^#[0-9a-fA-F]{6}$/.test(s.color || '') ? s.color : PAL[i % PAL.length], fmt: ['number', 'money', 'percent'].indexOf(s.fmt) >= 0 ? s.fmt : 'number' };
+  }
+  function clean(o) {
+    if (!o || typeof o !== 'object') return null; var mode = o.mode === 'brk' ? 'brk' : 'time', type = (mode === 'brk' ? BRK_T : TIME_T).indexOf(o.type) >= 0 ? o.type : (mode === 'brk' ? 'donut' : 'bar');
+    var ser = (Array.isArray(o.series) ? o.series : []).slice(0, MAXS).map(cleanSeries).filter(Boolean); ser.forEach(function (s, i) { if (!/^#/.test(s.color)) s.color = PAL[i]; });
+    var tg = (o.target === null || o.target === undefined || o.target === '' || !isFinite(o.target)) ? null : Number(o.target);
+    return { id: String(o.id || uid()), name: String(o.name || 'Chart').slice(0, 60), desc: String(o.desc || '').slice(0, 200), mode: mode, type: type, range: RANGES[o.range] ? Number(o.range) : 12, series: ser,
+      role: ROLES[o.role] ? o.role : 'expense', topN: Math.max(3, Math.min(12, Math.floor(Number(o.topN)) || 6)), showVals: !!o.showVals, legend: o.legend !== false, zero: o.zero !== false, target: tg, pin: !!o.pin, wide: !!o.wide,
+      created: String(o.created || nowIso()), updated: String(o.updated || nowIso()) };
+  }
+  function load() { var o = null; try { o = JSON.parse(localStorage.getItem(KEY)); } catch (e) { } var out = []; (o && Array.isArray(o.items) ? o.items : []).forEach(function (x) { var c = clean(x); if (c && out.length < MAXC) out.push(c); }); store = { version: 1, items: out }; }
+  function persist() { try { localStorage.setItem(KEY, JSON.stringify(store)); return true; } catch (e) { return false; } }
+  function items() { if (!store) load(); return store.items; }
+  function byId(id) { return items().filter(function (x) { return x.id === id; })[0]; }
+
+  /* ── data ──────────────────────────────────────────────────────────── */
+  function evalExpr(expr, mk) {
+    var f = FS(); if (f && f.evalExpr) return f.evalExpr(expr, mk);
+    try { return X.run(expr, X.varsFor(mk)); } catch (e) { return { ok: false, msg: 'Could not evaluate' }; }
+  }
+  function seriesSpec(s) {
+    if (s.src === 'f') { var f = FS(), it = f && f.items().filter(function (x) { return x.key === s.ref; })[0]; return it ? { fmt: it.fmt, dec: it.dec } : { fmt: 'number', dec: 2 }; }
+    if (s.src === 'x') return { fmt: s.fmt, dec: s.fmt === 'percent' ? 1 : s.fmt === 'money' ? 0 : 2 };
+    return { fmt: 'money', dec: 0 };
+  }
+  function autoLabel(s) {
+    if (s.src === 'v') return LBL[s.ref] || s.ref; if (s.src === 'f') { var f = FS(), it = f && f.items().filter(function (x) { return x.key === s.ref; })[0]; return it ? it.name : s.ref; } return 'Custom';
+  }
+  function evalSeries(s, mk) {
+    if (s.src === 'f') { var f = FS(); return f ? f.run(s.ref, mk) : { ok: false, msg: 'Formula Studio is not available' }; }
+    return evalExpr(s.src === 'v' ? s.ref : s.ref, mk);
+  }
+  function buildData(c) {
+    var f = FS(); if (f && f.clearCache) f.clearCache();
+    var months = allMonths().slice(-c.range);
+    if (c.mode === 'brk') {
+      var T = []; try { T = FOSC('ledger.types.' + c.role) || []; } catch (e) { } var set = {}, sums = {}, total = 0; months.forEach(function (m) { set[m] = 1; });
+      try { dbNow().forEach(function (r) { if (!r || !set[String(r.date || '').slice(0, 7)] || T.indexOf(r.type) < 0) return; var a = Number(r.amount) || 0; if (a <= 0) return; var k = String(r.category || r.sub || 'Uncategorised'); sums[k] = (sums[k] || 0) + a; total += a; }); } catch (e) { }
+      var all = Object.keys(sums).map(function (k) { return { label: k, v: sums[k] }; }).sort(function (a, b) { return b.v - a.v; }), top = all.slice(0, c.topN), rest = all.slice(c.topN), ov = rest.reduce(function (s, x) { return s + x.v; }, 0);
+      if (ov > 0) top.push({ label: 'Other (' + rest.length + ')', v: ov, other: true });
+      return { kind: 'brk', items: top, total: total, spec: { fmt: 'money', dec: 0 }, months: months, role: c.role };
+    }
+    var err = '', ser = c.series.map(function (s, i) {
+      var vals = months.map(function (mk) { var r = evalSeries(s, mk); if (r.ok) return r.value; if (!err && r.msg && !/has no value/.test(r.msg)) err = (autoLabel(s)) + ': ' + r.msg; return null; });
+      return { label: s.label || autoLabel(s), color: s.color || PAL[i % PAL.length], vals: vals, spec: seriesSpec(s) };
+    });
+    return { kind: 'time', labels: months, series: ser, err: err };
+  }
+
+  /* ── svg rendering ─────────────────────────────────────────────────── */
+  var FONT = "font-family=\"'DM Sans',system-ui,sans-serif\"";
+  function tx(x, y, s, o) { o = o || {}; return '<text x="' + x.toFixed(1) + '" y="' + y.toFixed(1) + '" ' + FONT + ' font-size="' + (o.size || 10) + '" fill="' + (o.fill) + '"' + (o.anchor ? ' text-anchor="' + o.anchor + '"' : '') + (o.bold ? ' font-weight="700"' : '') + '>' + E(s) + '</text>'; }
+  function wrapSvg(c, W, H, body, th, o, summary) {
+    return '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ' + W + ' ' + H + '" width="' + W + '" height="' + H + '" role="img" aria-label="' + E(summary) + '" style="width:100%;height:auto;display:block">' + (o.bg ? '<rect width="' + W + '" height="' + H + '" fill="' + th.bg + '"/>' : '') + '<title>' + E(summary) + '</title>' + (o.title ? tx(14, 22, c.name, { size: 14, fill: th.text, bold: 1 }) : '') + body + '</svg>';
+  }
+  function emptySvg(c, msg, th, o) { return wrapSvg(c, o.w, o.h, tx(o.w / 2, o.h / 2, msg, { size: 12, fill: th.muted, anchor: 'middle' }), th, o, msg); }
+  function timeSvg(c, d, o) {
+    var th = o.th, W = o.w, H = o.h, n = d.labels.length, S = d.series, any = S.some(function (s) { return s.vals.some(function (v) { return v !== null; }); });
+    if (!S.length) return emptySvg(c, 'Add a series to draw this chart.', th, o); if (!any) return emptySvg(c, d.err || 'No data to show for this range.', th, o);
+    var legend = c.legend && S.length > 1, ml = 54, mr = 14, mt = o.title ? 40 : 16, mb = legend ? 54 : 32, type = c.type, stack = type === 'stack', lo = 0, hi = 0, spec = S[0].spec, i;
+    if (stack) { for (i = 0; i < n; i++) { var pos = 0, neg = 0; S.forEach(function (s) { var v = s.vals[i]; if (v === null) return; if (v >= 0) pos += v; else neg += v; }); hi = Math.max(hi, pos); lo = Math.min(lo, neg); } }
+    else S.forEach(function (s) { s.vals.forEach(function (v) { if (v !== null) { hi = Math.max(hi, v); lo = Math.min(lo, v); } }); });
+    if (c.target !== null) { hi = Math.max(hi, c.target); lo = Math.min(lo, c.target); }
+    if (type === 'line' && c.zero === false) { var all = []; S.forEach(function (s) { s.vals.forEach(function (v) { if (v !== null) all.push(v); }); }); if (c.target !== null) all.push(c.target); lo = Math.min.apply(null, all); hi = Math.max.apply(null, all); var pad = (hi - lo) * 0.08 || 1; lo -= pad; hi += pad; }
+    var sc = nice(lo, hi, 5), y = function (v) { return mt + (sc.hi - v) / (sc.hi - sc.lo) * (H - mt - mb); }, bw = (W - ml - mr) / n, cx = function (k) { return ml + (k + 0.5) * bw; }, g = '', k;
+    for (var tv = sc.lo; tv <= sc.hi + sc.step * 0.001; tv += sc.step) { var tvr = Math.round(tv * 1e9) / 1e9, yy = y(tvr); g += '<line x1="' + ml + '" x2="' + (W - mr) + '" y1="' + yy.toFixed(1) + '" y2="' + yy.toFixed(1) + '" stroke="' + (tvr === 0 ? th.zero : th.grid) + '" stroke-width="1"/>' + tx(ml - 6, yy + 3.5, axisFmt(spec, tvr), { fill: th.muted, anchor: 'end' }); }
+    var skip = Math.max(1, Math.ceil(n / (W > 520 ? 12 : 7))); for (k = 0; k < n; k++) if (k % skip === 0 || k === n - 1) g += tx(cx(k), H - mb + 15, monthLabel(d.labels[k]), { fill: th.muted, anchor: 'middle' });
+    var z = y(0), showV = c.showVals && n * (stack ? 1 : S.length) <= 26, body = '';
+    if (type === 'bar' || stack) {
+      var gw = Math.min(bw * 0.78, 64 * (stack ? 1 : S.length)), bwid = stack ? gw : gw / S.length;
+      for (k = 0; k < n; k++) {
+        var pp = 0, nn = 0;
+        S.forEach(function (s, si) {
+          var v = s.vals[k]; if (v === null) return; var x0 = cx(k) - gw / 2 + (stack ? 0 : si * bwid), y0, y1;
+          if (stack) { if (v >= 0) { y0 = y(pp + v); y1 = y(pp); pp += v; } else { y0 = y(nn); y1 = y(nn + v); nn += v; } } else { y0 = Math.min(y(v), z); y1 = Math.max(y(v), z); }
+          body += '<rect x="' + (x0 + 0.5).toFixed(1) + '" y="' + y0.toFixed(1) + '" width="' + Math.max(1, bwid - 1).toFixed(1) + '" height="' + Math.max(1.5, y1 - y0).toFixed(1) + '" rx="2.5" fill="' + s.color + '"><title>' + E(s.label + ' · ' + monthLabel(d.labels[k]) + ': ' + fullFmt(s.spec, v)) + '</title></rect>';
+          if (showV && !stack) body += tx(x0 + bwid / 2, (v >= 0 ? y0 - 3 : y1 + 10), labFmt(s.spec, v), { size: 9, fill: th.text, anchor: 'middle' });
+        });
+      }
+    } else {
+      S.forEach(function (s) {
+        var seg = [], segs = [], pts = ''; s.vals.forEach(function (v, i2) { if (v === null) { if (seg.length) segs.push(seg); seg = []; } else seg.push([cx(i2), y(v), v, i2]); }); if (seg.length) segs.push(seg);
+        segs.forEach(function (sg) {
+          var dpath = sg.map(function (p, i3) { return (i3 ? 'L' : 'M') + p[0].toFixed(1) + ' ' + p[1].toFixed(1); }).join(' ');
+          if (type === 'area') body += '<path d="' + dpath + ' L' + sg[sg.length - 1][0].toFixed(1) + ' ' + z.toFixed(1) + ' L' + sg[0][0].toFixed(1) + ' ' + z.toFixed(1) + ' Z" fill="' + s.color + '" fill-opacity="0.2"/>';
+          body += '<path d="' + dpath + '" fill="none" stroke="' + s.color + '" stroke-width="2.2" stroke-linejoin="round" stroke-linecap="round"/>';
+          sg.forEach(function (p) { body += '<circle cx="' + p[0].toFixed(1) + '" cy="' + p[1].toFixed(1) + '" r="3.2" fill="' + s.color + '"><title>' + E(s.label + ' · ' + monthLabel(d.labels[p[3]]) + ': ' + fullFmt(s.spec, p[2])) + '</title></circle>'; if (showV) body += tx(p[0], p[1] - 7, labFmt(s.spec, p[2]), { size: 9, fill: th.text, anchor: 'middle' }); });
+        });
+      });
+    }
+    if (c.target !== null) body += '<line x1="' + ml + '" x2="' + (W - mr) + '" y1="' + y(c.target).toFixed(1) + '" y2="' + y(c.target).toFixed(1) + '" stroke="#fbbf24" stroke-width="1.4" stroke-dasharray="6 4"/>' + tx(W - mr, y(c.target) - 4, 'target ' + axisFmt(spec, c.target), { size: 9, fill: '#fbbf24', anchor: 'end' });
+    var lg = ''; if (legend) { var wd = S.map(function (s) { return 20 + s.label.length * 6.3; }), tot = wd.reduce(function (a, b) { return a + b; }, 0), x = Math.max(ml, (W - tot) / 2); S.forEach(function (s, i2) { lg += '<rect x="' + x.toFixed(1) + '" y="' + (H - 18) + '" width="11" height="11" rx="3" fill="' + s.color + '"/>' + tx(x + 16, H - 8.5, s.label, { size: 11, fill: th.text }); x += wd[i2]; }); }
+    return wrapSvg(c, W, H, g + body + lg, th, o, c.name + ': ' + TYPES[type].toLowerCase() + ' chart of ' + S.map(function (s) { return s.label; }).join(', ') + ' over ' + n + ' months');
+  }
+  function arc(cx, cy, R, r, a0, a1) {
+    var p = function (rad, a) { return (cx + rad * Math.cos(a)).toFixed(2) + ' ' + (cy + rad * Math.sin(a)).toFixed(2); }, big = a1 - a0 > Math.PI ? 1 : 0;
+    return 'M' + p(R, a0) + ' A' + R + ' ' + R + ' 0 ' + big + ' 1 ' + p(R, a1) + ' L' + p(r, a1) + ' A' + r + ' ' + r + ' 0 ' + big + ' 0 ' + p(r, a0) + ' Z';
+  }
+  function brkColor(it, i) { return it.other ? '#94a3b8' : PAL[i % PAL.length]; }
+  function brkSvg(c, d, o) {
+    var th = o.th, W = o.w, H = o.h, its = d.items; if (!its.length || d.total <= 0) return emptySvg(c, 'No ' + ROLES[c.role].toLowerCase() + ' in this range.', th, o);
+    var body = '', top = o.title ? 40 : 16, summary = c.name + ': ' + ROLES[c.role].toLowerCase() + ' by category, ' + its.length + ' groups, total ' + fullFmt(d.spec, d.total);
+    if (c.type === 'donut') {
+      var cy = top + (H - top) / 2, R = Math.min(118, (H - top - 16) / 2), cx = R + 24, a = -Math.PI / 2;
+      its.forEach(function (it, i) { var sw = it.v / d.total * Math.PI * 2, col = brkColor(it, i), t = '<title>' + E(it.label + ': ' + fullFmt(d.spec, it.v) + ' (' + r1(it.v / d.total * 100) + '%)') + '</title>'; if (its.length === 1) body += '<circle cx="' + cx + '" cy="' + cy + '" r="' + ((R + R * 0.6) / 2).toFixed(1) + '" fill="none" stroke="' + col + '" stroke-width="' + (R * 0.4).toFixed(1) + '">' + t + '</circle>'; else body += '<path d="' + arc(cx, cy, R, R * 0.6, a, a + sw - 0.012) + '" fill="' + col + '">' + t + '</path>'; a += sw; });
+      body += tx(cx, cy - 2, labFmt(d.spec, d.total), { size: 16, fill: th.text, anchor: 'middle', bold: 1 }) + tx(cx, cy + 14, 'total', { size: 10, fill: th.muted, anchor: 'middle' });
+      var lx = cx + R + 34, ly = cy - (its.length * 24) / 2 + 12; its.forEach(function (it, i) { var yy = ly + i * 24; body += '<rect x="' + lx + '" y="' + (yy - 10) + '" width="11" height="11" rx="3" fill="' + brkColor(it, i) + '"/>' + tx(lx + 17, yy, it.label.length > 24 ? it.label.slice(0, 23) + '…' : it.label, { size: 11, fill: th.text }) + tx(W - 14, yy, r1(it.v / d.total * 100) + '%  ' + labFmt(d.spec, it.v), { size: 11, fill: th.muted, anchor: 'end' }); });
+    } else {
+      var rowH = Math.min(30, (H - top - 12) / its.length), lw = 140, mx = Math.max.apply(null, its.map(function (x) { return x.v; })), bwMax = W - lw - 90;
+      its.forEach(function (it, i) { var yy = top + i * rowH, w = Math.max(2, it.v / mx * bwMax); body += tx(lw - 8, yy + rowH / 2 + 3, it.label.length > 20 ? it.label.slice(0, 19) + '…' : it.label, { size: 11, fill: th.text, anchor: 'end' }) + '<rect x="' + lw + '" y="' + (yy + 3) + '" width="' + w.toFixed(1) + '" height="' + (rowH - 8).toFixed(1) + '" rx="3" fill="' + brkColor(it, i) + '"><title>' + E(it.label + ': ' + fullFmt(d.spec, it.v) + ' (' + r1(it.v / d.total * 100) + '%)') + '</title></rect>' + tx(lw + w + 6, yy + rowH / 2 + 3, labFmt(d.spec, it.v) + ' · ' + r1(it.v / d.total * 100) + '%', { size: 10, fill: th.muted }); });
+    }
+    return wrapSvg(c, W, H, body, th, o, summary);
+  }
+  function chartSvg(c, d, o) { o = o || {}; o.w = o.w || 640; o.h = o.h || 300; o.th = o.th || theme(); return d.kind === 'brk' ? brkSvg(c, d, o) : timeSvg(c, d, o); }
+  function tableHtml(c, d) {
+    if (d.kind === 'brk') return '<table class="adm-tbl"><thead><tr><th>Category</th><th>Amount</th><th>Share</th></tr></thead><tbody>' + d.items.map(function (x) { return '<tr><th scope="row">' + E(x.label) + '</th><td>' + E(fullFmt(d.spec, x.v)) + '</td><td>' + r1(x.v / d.total * 100) + '%</td></tr>'; }).join('') + '</tbody></table>';
+    return '<table class="adm-tbl"><thead><tr><th>Month</th>' + d.series.map(function (s) { return '<th>' + E(s.label) + '</th>'; }).join('') + '</tr></thead><tbody>' + d.labels.map(function (m, i) { return '<tr><th scope="row">' + E(m) + '</th>' + d.series.map(function (s) { return '<td>' + E(fullFmt(s.spec, s.vals[i])) + '</td>'; }).join('') + '</tr>'; }).reverse().join('') + '</tbody></table>';
+  }
+
+  /* ── dashboard pins ────────────────────────────────────────────────── */
+  function paintCharts() {
+    try {
+      var host = $('view-dashboard'); if (!host) return; var box = $('fos-custom-charts'), pins = C.safe() ? [] : items().filter(function (c) { return c.pin; });
+      if (!pins.length) { if (box) box.remove(); return; }
+      var anchor = $('fos-custom-kpis') || host.querySelector('.kpi-grid'); if (!anchor) return;
+      if (!box) { box = document.createElement('div'); box.id = 'fos-custom-charts'; box.style.cssText = 'display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,360px),1fr));gap:1.3rem;margin-top:1.3rem'; }
+      if (box.previousElementSibling !== anchor) anchor.parentNode.insertBefore(box, anchor.nextSibling);
+      box.innerHTML = pins.map(function (c) {
+        var d = buildData(c), sub = c.mode === 'brk' ? ROLES[c.role] + ' · ' + RANGES[c.range].toLowerCase() : RANGES[c.range];
+        return '<div class="glass-panel fos-cs-panel" style="margin:0;' + (c.wide ? 'grid-column:1/-1' : '') + '"><div class="panel-title fhs-title"><span><i class="fas fa-chart-simple" style="margin-right:7px;color:var(--brand,#20CDB5)"></i>' + E(c.name) + '</span><small>' + E(sub) + '</small></div>' + chartSvg(c, d, { title: false }) + '</div>';
+      }).join('');
+    } catch (e) { console.warn('Chart Studio pins:', e); }
+  }
+  function hookDash() { try { var o = window.renderDashboardImmediate; if (typeof o === 'function' && !o.__cs) { var w = function () { var r = o.apply(this, arguments); try { paintCharts(); } catch (e) { } return r; }; w.__cs = 1; w.__fs = o.__fs; window.renderDashboardImmediate = w; } } catch (e) { } }
+
+  /* ── state + editor ────────────────────────────────────────────────── */
+  var S = { sel: null, d: null, sig: '', dirty: false, q: '', tplOpen: false, tabOpen: false, data: null, tm: null };
+  function blank() { return { id: null, name: '', desc: '', mode: 'time', type: 'bar', range: 12, series: [{ src: 'v', ref: 'income', label: '', color: PAL[0], fmt: 'number' }], role: 'expense', topN: 6, showVals: false, legend: true, zero: true, target: null, pin: false, wide: false }; }
+  function sig(d) { return JSON.stringify([d.name, d.desc, d.mode, d.type, d.range, d.series, d.role, d.topN, d.showVals, d.legend, d.zero, d.target, d.pin, d.wide]); }
+  function select(id) { var c = id && id !== 'new' ? byId(id) : null; if (c) { S.sel = c.id; S.d = JSON.parse(JSON.stringify(c)); } else { S.sel = 'new'; S.d = blank(); } S.sig = sig(S.d); S.dirty = false; }
+  function initSel() { if (!S.d || (S.sel !== 'new' && !byId(S.sel))) select(items().length ? items()[0].id : 'new'); }
+  function confirmDiscard() { return !S.dirty || confirm('You have unsaved changes to this chart. Discard them?'); }
+  function note(msg, bad) { var el = $('cs-note'); if (!el) return; el.textContent = msg || ''; el.className = 'fs-note' + (bad ? ' bad' : ''); clearTimeout(note._t); if (msg) note._t = setTimeout(function () { var e2 = $('cs-note'); if (e2) e2.textContent = ''; }, 6000); }
+  function validateDraft(d) {
+    var name = String(d.name || '').trim(); if (!name) return 'Give the chart a name.';
+    if (!d.id && items().length >= MAXC) return 'You can keep up to ' + MAXC + ' charts.';
+    if (d.mode === 'time') {
+      if (!d.series.length) return 'Add at least one series.';
+      for (var i = 0; i < d.series.length; i++) {
+        var s = d.series[i]; if (s.src === 'x') { if (!String(s.ref).trim()) return 'Series ' + (i + 1) + ': write an expression.'; var r = evalExpr(s.ref, curMonth()); if (!r.ok && r.parse) return 'Series ' + (i + 1) + ': ' + r.msg; }
+        if (s.src === 'f') { var f = FS(); if (!f || !f.items().filter(function (x) { return x.key === s.ref; })[0]) return 'Series ' + (i + 1) + ': pick one of your formulas.'; }
+      }
+    }
+    if (d.target !== null && d.target !== '' && !isFinite(d.target)) return 'Target must be a number.'; return '';
+  }
+  function listHtml() {
+    var q = S.q.toLowerCase(), list = items().filter(function (c) { return !q || (c.name + ' ' + c.desc).toLowerCase().indexOf(q) >= 0; });
+    if (!list.length) return '<div class="adm-muted" style="padding:6px 2px">' + (items().length ? 'No charts match.' : 'No charts yet. Pick a starter template below, or click New.') + '</div>';
+    return list.map(function (c) { return '<div class="fs-li cs-li' + (S.sel === c.id ? ' on' : '') + '" role="button" tabindex="0" data-cs="sel" data-id="' + E(c.id) + '"><div class="fs-li-m"><b>' + E(c.name) + '</b><span class="fs-key">' + E(TYPES[c.type]) + ' · ' + (c.mode === 'brk' ? E(ROLES[c.role]) : c.series.length + ' series') + '</span></div><span></span><button type="button" class="fs-star' + (c.pin ? ' on' : '') + '" data-cs="pin" data-id="' + E(c.id) + '" aria-pressed="' + (c.pin ? 'true' : 'false') + '" aria-label="' + (c.pin ? 'Remove from Dashboard: ' : 'Show on Dashboard: ') + E(c.name) + '" title="Show on Dashboard"><i class="fas fa-thumbtack"></i></button></div>'; }).join('');
+  }
+  function srcOptions(s) {
+    var cur = s.src === 'x' ? 'x' : s.src + ':' + s.ref, f = FS(), mine = f ? f.items() : [], o = '<optgroup label="Ledger numbers">' + VARLIST.map(function (v) { return '<option value="v:' + v + '"' + (cur === 'v:' + v ? ' selected' : '') + '>' + E(LBL[v] || v) + '</option>'; }).join('') + '</optgroup>';
+    if (mine.length) o += '<optgroup label="Your formulas">' + mine.map(function (x) { return '<option value="f:' + E(x.key) + '"' + (cur === 'f:' + x.key ? ' selected' : '') + '>' + E(x.name) + '</option>'; }).join('') + '</optgroup>';
+    return o + '<optgroup label="Other"><option value="x"' + (cur === 'x' ? ' selected' : '') + '>Custom expression…</option></optgroup>';
+  }
+  function seriesHtml() {
+    var d = S.d; if (d.mode !== 'time') return '';
+    return d.series.map(function (s, i) {
+      return '<div class="cs-ser" data-i="' + i + '"><input type="color" class="cs-sin cs-col" data-k="color" data-i="' + i + '" value="' + E(s.color) + '" aria-label="Series ' + (i + 1) + ' colour">' +
+        '<select class="set-input cs-sin" data-k="src" data-i="' + i + '" aria-label="Series ' + (i + 1) + ' data">' + srcOptions(s) + '</select>' +
+        (s.src === 'x' ? '<input class="set-input adm-mono cs-sin cs-expr" data-k="ref" data-i="' + i + '" value="' + E(s.ref) + '" placeholder="savings / income * 100" aria-label="Series ' + (i + 1) + ' expression" spellcheck="false"><select class="set-input cs-sin cs-fm" data-k="fmt" data-i="' + i + '" aria-label="Series ' + (i + 1) + ' format"><option value="number"' + (s.fmt === 'number' ? ' selected' : '') + '>Number</option><option value="money"' + (s.fmt === 'money' ? ' selected' : '') + '>Money</option><option value="percent"' + (s.fmt === 'percent' ? ' selected' : '') + '>Percent</option></select>' : '') +
+        '<input class="set-input cs-sin cs-lab" data-k="label" data-i="' + i + '" value="' + E(s.label) + '" maxlength="40" placeholder="' + E(autoLabel(s)) + '" aria-label="Series ' + (i + 1) + ' label">' +
+        '<button type="button" class="adm-ic" data-cs="rmser" data-i="' + i + '" aria-label="Remove series ' + (i + 1) + '" title="Remove"' + (d.series.length < 2 ? ' disabled' : '') + '><i class="fas fa-xmark"></i></button></div>';
+    }).join('') + '<button type="button" class="adm-btn ghost sm" data-cs="addser"' + (d.series.length >= MAXS ? ' disabled' : '') + '><i class="fas fa-plus"></i> Add series</button>';
+  }
+  function html() {
+    initSel(); var d = S.d, f = FS();
+    var typeOpts = (d.mode === 'brk' ? BRK_T : TIME_T).map(function (t) { return '<option value="' + t + '"' + (d.type === t ? ' selected' : '') + '>' + TYPES[t] + '</option>'; }).join('');
+    var rangeOpts = Object.keys(RANGES).map(function (k) { return '<option value="' + k + '"' + (+k === d.range ? ' selected' : '') + '>' + RANGES[k] + '</option>'; }).join('');
+    var roleOpts = Object.keys(ROLES).map(function (k) { return '<option value="' + k + '"' + (d.role === k ? ' selected' : '') + '>' + ROLES[k] + '</option>'; }).join('');
+    var tpl = TEMPLATES.map(function (t, i) { return '<div class="fs-tpl-i"><div><b>' + E(t.name) + '</b><div class="adm-muted">' + E(TYPES[t.type]) + ' · ' + E(RANGES[t.range]) + '</div></div><button type="button" class="adm-btn sm ghost" data-cs="tpl" data-i="' + i + '">Use</button></div>'; }).join('');
+    return (C.safe() ? '<div class="adm-banner" role="note">Safe mode is on, so pinned charts are hidden from the Dashboard. The studio itself still works.</div>' : '') + '<div class="cs-wrap">' +
+      '<aside class="cs-side"><div class="set-card"><div class="adm-bar2"><input type="search" id="cs-q" class="set-input" placeholder="Search charts…" aria-label="Search charts" value="' + E(S.q) + '"><button type="button" class="adm-btn sm" data-cs="new"><i class="fas fa-plus"></i> New</button></div><div id="cs-list" class="fs-list" role="list" aria-label="Your charts">' + listHtml() + '</div><div class="adm-muted fs-foot">The pin shows a chart on the Dashboard.</div></div>' +
+      '<details class="adm-grp fs-tpl" id="cs-tpl"' + (S.tplOpen || !items().length ? ' open' : '') + '><summary>Starter templates <em>' + TEMPLATES.length + '</em></summary>' + tpl + '</details>' +
+      '<div class="adm-actions"><button type="button" class="adm-btn ghost sm" data-cs="export"><i class="fas fa-file-export"></i> Export</button><button type="button" class="adm-btn ghost sm" data-cs="import"><i class="fas fa-file-import"></i> Import</button><input type="file" id="cs-file" accept="application/json,.json" hidden></div></aside>' +
+      '<section class="cs-main"><div class="set-card"><div class="fs-head"><div class="adm-h" id="cs-title" style="margin:0"></div></div>' +
+      '<div class="fs-grid"><div class="fs-f"><label for="cs-name">Name</label><input id="cs-name" class="set-input" maxlength="60" value="' + E(d.name) + '" placeholder="e.g. Income vs expense" autocomplete="off"></div>' +
+      '<div class="fs-f"><label for="cs-mode">Show</label><select id="cs-mode" class="set-input"><option value="time"' + (d.mode === 'time' ? ' selected' : '') + '>Numbers over time</option><option value="brk"' + (d.mode === 'brk' ? ' selected' : '') + '>Breakdown by category</option></select></div>' +
+      '<div class="fs-f"><label for="cs-type">Chart type</label><select id="cs-type" class="set-input">' + typeOpts + '</select></div>' +
+      '<div class="fs-f"><label for="cs-range">Period</label><select id="cs-range" class="set-input">' + rangeOpts + '</select></div></div>' +
+      '<div id="cs-time"' + (d.mode === 'time' ? '' : ' hidden') + '><div class="cs-lbl">Series <span class="adm-muted">up to ' + MAXS + '. Use one unit per chart (all money, or all percent).</span></div><div id="cs-series">' + seriesHtml() + '</div>' + (f ? '' : '<div class="adm-muted">Formula Studio is not loaded, so your own formulas are unavailable here.</div>') + '</div>' +
+      '<div id="cs-brk"' + (d.mode === 'brk' ? '' : ' hidden') + '><div class="fs-grid"><div class="fs-f"><label for="cs-role">Category totals for</label><select id="cs-role" class="set-input">' + roleOpts + '</select></div><div class="fs-f"><label for="cs-topn">Show top</label><input id="cs-topn" type="number" min="3" max="12" step="1" class="set-input" value="' + d.topN + '"><div class="adm-muted">The rest are grouped as "Other".</div></div></div></div>' +
+      '<div class="fs-grid" style="margin-top:10px"><div class="fs-f"><label for="cs-desc">Description <span class="adm-muted">(optional)</span></label><input id="cs-desc" class="set-input" maxlength="200" value="' + E(d.desc) + '"></div>' +
+      '<div class="fs-f" id="cs-target-f"><label for="cs-target">Target line <span class="adm-muted">(optional)</span></label><input id="cs-target" type="number" step="any" class="set-input" value="' + E(d.target === null ? '' : d.target) + '" placeholder="none"></div></div>' +
+      '<div class="cs-opts"><label class="adm-chk2"><input type="checkbox" id="cs-vals"' + (d.showVals ? ' checked' : '') + '> Show values</label><label class="adm-chk2"><input type="checkbox" id="cs-legend"' + (d.legend ? ' checked' : '') + '> Legend</label><label class="adm-chk2" id="cs-zero-l"><input type="checkbox" id="cs-zero"' + (d.zero ? ' checked' : '') + '> Line starts at zero</label>' +
+      '<label class="adm-chk2"><input type="checkbox" id="cs-pin"' + (d.pin ? ' checked' : '') + '> Show on Dashboard</label><label class="adm-chk2"><input type="checkbox" id="cs-wide"' + (d.wide ? ' checked' : '') + '> Full width there</label></div>' +
+      '<div class="fs-actions"><span class="fs-spacer"></span><span id="cs-dirty" class="fs-dirty" hidden>Unsaved changes</span><span id="cs-note" class="fs-note" role="status" aria-live="polite"></span>' +
+      '<button type="button" class="adm-btn ghost sm" data-cs="revert" id="cs-revert">Discard changes</button><button type="button" class="adm-btn ghost sm" data-cs="dup" id="cs-dup">Duplicate</button><button type="button" class="adm-btn danger sm" data-cs="del" id="cs-del">Delete</button><button type="button" class="adm-btn" data-cs="save" id="cs-save" title="Ctrl+S"><i class="fas fa-floppy-disk"></i> Save</button></div></div>' +
+      '<div class="set-card"><div class="fs-head"><div class="adm-h" style="margin:0">Preview</div><div class="adm-actions" style="margin:0"><button type="button" class="adm-btn ghost sm" data-cs="svg"><i class="fas fa-download"></i> SVG</button><button type="button" class="adm-btn ghost sm" data-cs="png"><i class="fas fa-image"></i> PNG</button></div></div><div id="cs-prev" class="cs-prev"></div><div id="cs-warn" class="adm-muted"></div>' +
+      '<details id="cs-tabd"' + (S.tabOpen ? ' open' : '') + ' style="margin-top:8px"><summary class="adm-muted" style="cursor:pointer">Show the numbers behind it</summary><div class="adm-scroll" id="cs-tab"></div></details></div></section></div>';
+  }
+  function paint() {
+    var d = S.d; S.data = buildData(d);
+    var t = $('cs-title'); if (t) t.textContent = S.sel === 'new' ? 'New chart' : (d.name || 'Chart'); var dirty = $('cs-dirty'); if (dirty) dirty.hidden = !S.dirty;
+    var isNew = S.sel === 'new'; ['cs-del', 'cs-dup'].forEach(function (i) { var b = $(i); if (b) b.disabled = isNew; }); var rv = $('cs-revert'); if (rv) rv.disabled = !S.dirty;
+    var tf = $('cs-target-f'); if (tf) tf.hidden = d.mode === 'brk'; var zl = $('cs-zero-l'); if (zl) zl.hidden = d.type !== 'line'; var lg = $('cs-legend'); if (lg && lg.parentNode) lg.parentNode.hidden = d.mode === 'brk'; var vv = $('cs-vals'); if (vv && vv.parentNode) vv.parentNode.hidden = d.mode === 'brk' && d.type === 'donut';
+    var p = $('cs-prev'); if (p) p.innerHTML = chartSvg(d, S.data, { title: true });
+    var w = $('cs-warn'); if (w) { var msg = ''; if (S.data.kind === 'time') { var fm = {}; S.data.series.forEach(function (s) { fm[s.spec.fmt] = 1; }); if (Object.keys(fm).length > 1) msg = 'These series use different units (' + Object.keys(fm).join(', ') + ') on one axis. Consider separate charts.'; else if (S.data.err) msg = S.data.err; } w.textContent = msg; w.style.color = msg ? 'var(--fs-warn,#fbbf24)' : ''; }
+    var tb = $('cs-tab'); if (tb) tb.innerHTML = tableHtml(d, S.data);
+  }
+  function schedule() { clearTimeout(S.tm); S.tm = setTimeout(paint, 80); }
+  function markDirty() { S.dirty = sig(S.d) !== S.sig; var d = $('cs-dirty'); if (d) d.hidden = !S.dirty; var rv = $('cs-revert'); if (rv) rv.disabled = !S.dirty; }
+  function rerender() { var b = $('adm-body'); if (!b || !$('cs-name')) return; b.innerHTML = html(); after(); }
+  function listRefresh() { var l = $('cs-list'); if (l) l.innerHTML = listHtml(); }
+  function reSeries() { var el = $('cs-series'); if (el) el.innerHTML = seriesHtml(); }
+
+  /* ── actions ───────────────────────────────────────────────────────── */
+  function doSave() {
+    var d = S.d, bad = validateDraft(d); if (bad) return note(bad, true); d.name = d.name.trim(); var isNew = S.sel === 'new', c;
+    if (isNew) { c = clean(Object.assign({}, d, { id: uid() })); items().push(c); } else { c = byId(S.sel); var keep = { id: c.id, created: c.created }; var n = clean(Object.assign({}, d, keep)); Object.keys(n).forEach(function (k) { c[k] = n[k]; }); c.updated = nowIso(); }
+    if (!persist()) { if (isNew) items().pop(); return note('Could not save (browser storage is full).', true); } select(c.id); paintCharts(); rerender(); note('Saved.');
+  }
+  function doDelete() { var c = byId(S.sel); if (!c || !confirm('Delete "' + c.name + '"? This cannot be undone.')) return; store.items = items().filter(function (x) { return x.id !== c.id; }); persist(); select(items().length ? items()[0].id : 'new'); paintCharts(); rerender(); note('Deleted.'); }
+  function doDup() { var c = byId(S.sel); if (!c || !confirmDiscard()) return; var n = JSON.parse(JSON.stringify(c)); n.id = null; n.name = (c.name + ' copy').slice(0, 60); n.pin = false; S.sel = 'new'; S.d = n; S.sig = ''; S.dirty = true; rerender(); note('Duplicated. Save to keep it.'); }
+  function useTemplate(i) {
+    var t = TEMPLATES[i]; if (!t || !confirmDiscard()) return; var c = clean(Object.assign({ legend: true, zero: true }, t, { id: 'tmp', series: (t.series || []).map(function (s, k) { return Object.assign({ color: PAL[k % PAL.length] }, s); }) })); c.id = null; c.pin = false;
+    S.sel = 'new'; S.d = c; S.sig = ''; S.dirty = true; S.tplOpen = true; rerender(); note('Template loaded. Edit it, then Save.');
+  }
+  function svgString(withBg) { return chartSvg(S.d, S.data || buildData(S.d), { title: true, bg: withBg !== false }); }
+  function download(blob, name) { var u = URL.createObjectURL(blob), l = document.createElement('a'); l.href = u; l.download = name; document.body.appendChild(l); l.click(); l.remove(); setTimeout(function () { URL.revokeObjectURL(u); }, 1500); }
+  function fname() { return (String(S.d.name || 'chart').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '') || 'chart'); }
+  function doSvg() { download(new Blob([svgString()], { type: 'image/svg+xml' }), fname() + '.svg'); }
+  function doPng() {
+    var svg = svgString(), img = new Image(), url = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(svg);
+    img.onload = function () { try { var cv = document.createElement('canvas'); cv.width = 1280; cv.height = 600; var cx = cv.getContext('2d'); cx.drawImage(img, 0, 0, 1280, 600); cv.toBlob(function (b) { if (b) download(b, fname() + '.png'); else note('Could not create the PNG.', true); }, 'image/png'); } catch (e) { note('Could not create the PNG. Use SVG instead.', true); } };
+    img.onerror = function () { note('Could not create the PNG. Use SVG instead.', true); }; img.src = url;
+  }
+  function doExport() { download(new Blob([JSON.stringify({ app: 'FinanceOS', kind: 'admin-charts', version: 1, exportedAt: nowIso(), items: items() }, null, 2)], { type: 'application/json' }), 'financeos-charts.json'); }
+  function doImport(inp) {
+    var file = inp.files && inp.files[0]; if (!file) return; var fr = new FileReader();
+    fr.onload = function () {
+      inp.value = ''; var o; try { o = JSON.parse(String(fr.result)); } catch (e) { return note('That file is not valid JSON.', true); } if (!o || o.kind !== 'admin-charts' || !Array.isArray(o.items)) return note('Not a FinanceOS charts file.', true);
+      var added = 0, skipped = 0; o.items.forEach(function (x) { var c = clean(x); if (c && (c.mode === 'brk' || c.series.length) && items().length < MAXC) { c.id = uid(); items().push(c); added++; } else skipped++; });
+      persist(); paintCharts(); rerender(); note('Imported ' + added + (skipped ? ', skipped ' + skipped : '') + '.');
+    }; fr.onerror = function () { note('Could not read that file.', true); }; fr.readAsText(file);
+  }
+
+  /* ── events ────────────────────────────────────────────────────────── */
+  function inStudio(t) { return t && t.closest && t.closest('.cs-wrap'); }
+  function onClick(e) {
+    var t = e.target; if (!inStudio(t)) return; var b = t.closest('[data-cs]'); if (!b) return; var a = b.getAttribute('data-cs'), i = +b.getAttribute('data-i');
+    if (a === 'sel') { var id = b.getAttribute('data-id'); if (id === S.sel || !confirmDiscard()) return; select(id); return rerender(); }
+    if (a === 'pin') { e.stopPropagation(); var c = byId(b.getAttribute('data-id')); if (!c) return; c.pin = !c.pin; if (S.d && S.d.id === c.id) { S.d.pin = c.pin; var pc = $('cs-pin'); if (pc) pc.checked = c.pin; S.sig = sig(c); } persist(); paintCharts(); listRefresh(); markDirty(); return; }
+    if (a === 'new') { if (!confirmDiscard()) return; select('new'); return rerender(); }
+    if (a === 'tpl') return useTemplate(i); if (a === 'save') return doSave(); if (a === 'del') return doDelete(); if (a === 'dup') return doDup();
+    if (a === 'revert') { select(S.sel); return rerender(); }
+    if (a === 'addser') { if (S.d.series.length >= MAXS) return; var used = S.d.series.map(function (s) { return s.color; }), col = PAL.filter(function (c2) { return used.indexOf(c2) < 0; })[0] || PAL[0], ref = ['income', 'expense', 'savings', 'invest', 'emi', 'cashLeft'].filter(function (v) { return !S.d.series.some(function (s) { return s.src === 'v' && s.ref === v; }); })[0] || 'income'; S.d.series.push({ src: 'v', ref: ref, label: '', color: col, fmt: 'number' }); reSeries(); markDirty(); return paint(); }
+    if (a === 'rmser') { if (S.d.series.length < 2) return; S.d.series.splice(i, 1); reSeries(); markDirty(); return paint(); }
+    if (a === 'svg') return doSvg(); if (a === 'png') return doPng(); if (a === 'export') return doExport(); if (a === 'import') { var fi = $('cs-file'); if (fi) fi.click(); }
+  }
+  function onInput(e) {
+    var t = e.target, id = t.id || '', d = S.d; if (!d) return;
+    if (t.classList && t.classList.contains('cs-sin')) { var s = d.series[+t.getAttribute('data-i')], k = t.getAttribute('data-k'); if (!s || k === 'src' || k === 'fmt') return; s[k] = t.value; markDirty(); return schedule(); }
+    if (id.indexOf('cs-') !== 0) return;
+    if (id === 'cs-q') { S.q = t.value; return listRefresh(); }
+    if (id === 'cs-name') { d.name = t.value; markDirty(); var ti = $('cs-title'); return schedule(); } if (id === 'cs-desc') { d.desc = t.value; return markDirty(); }
+    if (id === 'cs-target') { d.target = t.value === '' ? null : Number(t.value); markDirty(); return schedule(); } if (id === 'cs-topn') { d.topN = Math.max(3, Math.min(12, Math.floor(Number(t.value)) || 6)); markDirty(); return schedule(); }
+  }
+  function onChange(e) {
+    var t = e.target, id = t.id || '', d = S.d; if (id === 'cs-file') return doImport(t); if (!d) return;
+    if (t.classList && t.classList.contains('cs-sin')) {
+      var s = d.series[+t.getAttribute('data-i')], k = t.getAttribute('data-k'); if (!s) return;
+      if (k === 'src') { var v = t.value; if (v === 'x') { s.src = 'x'; s.ref = s.ref && s.src === 'x' ? s.ref : ''; } else { s.src = v.charAt(0); s.ref = v.slice(2); } reSeries(); }
+      else if (k === 'fmt') s.fmt = t.value; markDirty(); return paint();
+    }
+    if (id.indexOf('cs-') !== 0) return;
+    if (id === 'cs-mode') { d.mode = t.value; d.type = d.mode === 'brk' ? 'donut' : 'bar'; if (d.mode === 'brk' && d.range < 3) d.range = 3; var b = $('adm-body'); markDirty(); var keepName = d.name; b.innerHTML = html(); after(); return; }
+    if (id === 'cs-type') { d.type = t.value; markDirty(); return paint(); } if (id === 'cs-range') { d.range = +t.value; markDirty(); return paint(); } if (id === 'cs-role') { d.role = t.value; markDirty(); return paint(); }
+    var map = { 'cs-vals': 'showVals', 'cs-legend': 'legend', 'cs-zero': 'zero', 'cs-pin': 'pin', 'cs-wide': 'wide' }; if (map[id]) { d[map[id]] = t.checked; markDirty(); return paint(); }
+  }
+  function onKey(e) {
+    var t = e.target; if (!inStudio(t)) return;
+    if ((e.ctrlKey || e.metaKey) && String(e.key).toLowerCase() === 's') { e.preventDefault(); return doSave(); }
+    if ((e.key === 'Enter' || e.key === ' ') && t.getAttribute && t.getAttribute('data-cs') === 'sel') { e.preventDefault(); t.click(); }
+  }
+  function wire() {
+    var r = $('adm-root'); if (!r || r.__cs) return; r.__cs = 1; r.addEventListener('click', onClick); r.addEventListener('input', onInput); r.addEventListener('change', onChange); document.addEventListener('keydown', onKey, true);
+    r.addEventListener('toggle', function (e) { var t = e.target; if (!t || !t.id) return; if (t.id === 'cs-tpl') S.tplOpen = t.open; else if (t.id === 'cs-tabd') S.tabOpen = t.open; }, true);
+  }
+  function after() { wire(); paint(); paintCharts(); }
+
+  window.FOS_CHART_STUDIO = { html: html, after: after, items: items, repaint: paintCharts, build: buildData, svg: chartSvg, templates: TEMPLATES };
+  C.onChange(function () { paintCharts(); });
+  hookDash(); wire();
+  window.addEventListener('load', function () { hookDash(); setTimeout(paintCharts, 1000); });
+  if (document.readyState === 'complete') setTimeout(paintCharts, 500);
+})();
+</script>
+<style id="fos-rules-style">
+/* ── FOS ADMIN · Insight & Alert Rules (scoped to .rl-*) ── */
+.rl-wrap{display:grid;grid-template-columns:310px minmax(0,1fr);gap:12px;align-items:start}
+.rl-side{position:sticky;top:0;min-width:0}.rl-main{min-width:0;display:flex;flex-direction:column}
+@media(max-width:900px){.rl-wrap{grid-template-columns:minmax(0,1fr)}.rl-side{position:static}}
+.rl-wrap [hidden]{display:none!important}
+.rl-li{grid-template-columns:minmax(0,1fr) auto 44px!important}.rl-li.rl-off .fs-li-m{opacity:.55}
+.rl-st{display:inline-block;font-size:.62rem;font-weight:800;padding:2px 8px;border-radius:99px;border:1px solid var(--adm-line);white-space:nowrap;color:var(--text-muted)}
+.rl-st.fire{color:var(--fs-warn,#fbbf24);border-color:var(--fs-warn,#fbbf24)}.rl-st.bad{color:var(--fs-bad,#f87171);border-color:var(--fs-bad,#f87171)}.rl-st.quiet{color:var(--fs-ok,#34d399);border-color:transparent}
+.rl-sw{position:relative;width:38px;height:22px;border-radius:99px;border:1px solid var(--adm-line);background:transparent;cursor:pointer;padding:0}
+.rl-sw span{position:absolute;top:2px;left:2px;width:16px;height:16px;border-radius:50%;background:var(--text-muted);transition:transform .15s}
+.rl-sw.on{background:var(--adm-soft);border-color:var(--adm-a)}.rl-sw.on span{transform:translateX(16px);background:var(--adm-a)}
+.rl-modes{display:flex;gap:6px;align-items:center;flex-wrap:wrap;margin:6px 0 8px}
+.rl-mode{border:1px solid var(--adm-line);background:transparent;color:var(--text-main);border-radius:99px;padding:4px 14px;font-size:.74rem;font-weight:700;cursor:pointer;font-family:inherit}.rl-mode.on{background:var(--adm-soft);border-color:var(--adm-a);color:var(--adm-a)}
+.rl-build{display:flex;gap:8px;align-items:center;flex-wrap:wrap}.rl-build .set-input{width:auto;min-width:0;margin:0!important;flex:0 1 auto;box-sizing:border-box}.rl-bref{display:inline-flex;gap:8px;align-items:center}
+.rl-reads{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:10px}
+.rl-prev{display:flex;gap:12px;align-items:flex-start;padding:10px 12px;border-radius:12px;background:var(--adm-soft)}
+.rl-prev-ic,.fos-ins-ic{width:34px;height:34px;border-radius:9px;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.rl-prev-t,.fos-ins-t{font-size:.84rem;font-weight:700;color:var(--text-main)}.rl-prev-m,.fos-ins-m{font-size:.76rem;color:var(--text-mid,var(--text-muted));line-height:1.5;margin-top:2px}
+.rl-bts{display:flex;gap:6px;flex-wrap:wrap}.rl-bc{display:flex;flex-direction:column;align-items:center;gap:2px;min-width:46px;padding:5px 6px;border-radius:9px;border:1px solid var(--adm-line);font-size:.62rem;color:var(--text-muted)}
+.rl-bc b{font-size:.9rem}.rl-bc.yes b{color:var(--fs-warn,#fbbf24)}.rl-bc.no b{color:var(--fs-ok,#34d399)}.rl-bc.sel{border-color:var(--adm-a)}
+.fos-ins-list{display:flex;flex-direction:column;gap:10px}.fos-ins-i{display:flex;gap:12px;align-items:flex-start}
+</style>
+<script id="fos-rules">
+/* ═══════════════════════════════════════════════════════════════════════
+   FOS ADMIN · INSIGHT & ALERT RULES
+   Your own "when this is true, tell me" rules. A condition (guided builder or a
+   safe expression, with access to ledger numbers and your Formula Studio formulas)
+   is checked against this month or last month. When it holds, a rule can:
+     · send an in-app notification (through the app's own notification centre,
+       so snooze, quiet hours, sound and push settings all still apply), and/or
+     · show an insight card on the Dashboard while it stays true.
+   Messages can include {income}, {savings_rate}, or a calculation like {=round(expense/avg3*100,0)}.
+   Saved in localStorage 'fos_admin_rules_v1'. Paused in Safe mode.
+   ═══════════════════════════════════════════════════════════════════════ */
+(function () {
+  'use strict';
+  if (window.FOS_RULES) return;
+  var X = window.FOS_EXPR, C = window.FOS_CONFIG;
+  if (!X || !C) return;
+  function FS() { return window.FOS_FORMULA_STUDIO || null; }
+
+  var KEY = 'fos_admin_rules_v1', MAXR = 40;
+  var SEV = {
+    info: { l: 'Info', color: '#38bdf8', icon: 'fa-lightbulb', pre: '💡 ' }, good: { l: 'Good news', color: '#34d399', icon: 'fa-circle-check', pre: '✅ ' },
+    warning: { l: 'Warning', color: '#f59e0b', icon: 'fa-triangle-exclamation', pre: '⚠️ ' }, critical: { l: 'Critical', color: '#ef4444', icon: 'fa-circle-exclamation', pre: '🚨 ' }
+  };
+  var FREQ = { month: 'Once a month', day: 'Once a day', every: 'Every check (until dismissed)' };
+  var OPS = ['>', '>=', '<', '<=', '==', '!='];
+  var OPL = { '>': 'is above', '>=': 'is at least', '<': 'is below', '<=': 'is at most', '==': 'equals', '!=': 'is not' };
+  var LBL = { income: 'Income', expense: 'Expense', emi: 'EMI', invest: 'Investments', savings: 'Savings', cashLeft: 'Cash left', avg3: '3-month avg expense', avg6: '6-month avg expense', month: 'Month number', days: 'Days in month', prevIncome: 'Last month income', prevExpense: 'Last month expense', prevSavings: 'Last month savings', essential: 'Essential spend', discretionary: 'Discretionary spend' };
+  var NOMONEY = { month: 1, days: 1 };
+  var TEMPLATES = [
+    { name: 'Spending above your usual', sev: 'warning', day1: 10, freq: 'month', b: { l: 'expense', op: '>', rt: 'ref', rv: 'avg3', mul: 1.2 }, title: 'Spending is running high', msg: 'This month you have spent {expense}, about {=round((expense/avg3-1)*100,0)}% above your 3-month average of {avg3}.' },
+    { name: 'Low savings rate', sev: 'warning', day1: 20, freq: 'month', cond: 'income > 0 && savings / income < 0.1', title: 'Savings are thin this month', msg: 'You have saved {savings} so far, {=round(savings/income*100,1)}% of your income of {income}.' },
+    { name: 'Negative cash flow', sev: 'critical', day1: 1, freq: 'day', b: { l: 'cashLeft', op: '<', rt: 'num', rv: 0, mul: 1 }, title: 'You are spending more than you earn', msg: 'Cash left this month is {cashLeft}. Income {income}, expense {expense}, EMI {emi}.' },
+    { name: 'EMI burden too high', sev: 'warning', day1: 1, freq: 'month', cond: 'income > 0 && emi / income > 0.4', title: 'EMIs take a large share of income', msg: 'EMIs of {emi} are {=round(emi/income*100,0)}% of your income this month. A common ceiling is 40%.' },
+    { name: 'No investing yet', sev: 'info', day1: 15, freq: 'month', cond: 'invest == 0 && income > 0', title: 'Nothing invested this month', msg: 'You have earned {income} this month but not invested anything yet.' },
+    { name: 'Wants share is high', sev: 'info', day1: 15, freq: 'month', cond: 'income > 0 && discretionary / income > 0.3', title: 'Discretionary spending is above 30% of income', msg: 'Discretionary spend is {discretionary}, {=round(discretionary/income*100,0)}% of income.' },
+    { name: 'Strong savings month', sev: 'good', day1: 1, freq: 'month', notify: false, dash: true, cond: 'income > 0 && savings / income >= 0.3', title: 'Strong savings month', msg: 'You are saving {=round(savings/income*100,0)}% of your income ({savings}).' },
+    { name: 'Spending fell vs last month', sev: 'good', day1: 20, freq: 'month', notify: false, dash: true, cond: 'prevExpense > 0 && expense < prevExpense * 0.9', title: 'Spending is down on last month', msg: 'Expenses of {expense} are {=round((1-expense/prevExpense)*100,0)}% lower than last month ({prevExpense}).' }
+  ];
+
+  /* ── helpers ───────────────────────────────────────────────────────── */
+  function E(s) { try { return _esc(s); } catch (e) { return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]; }); } }
+  function $(id) { return document.getElementById(id); }
+  function uid() { return 'r' + Date.now().toString(36) + Math.random().toString(36).slice(2, 5); }
+  function nowIso() { return new Date().toISOString(); }
+  function pad(n) { return (n < 10 ? '0' : '') + n; }
+  function curMonth() { try { return localMonthKey(new Date()); } catch (e) { var d = new Date(); return d.getFullYear() + '-' + pad(d.getMonth() + 1); } }
+  function todayIso() { var d = new Date(); return d.getFullYear() + '-' + pad(d.getMonth() + 1) + '-' + pad(d.getDate()); }
+  function prevMonth(mk) { var y = +mk.slice(0, 4), m = +mk.slice(5, 7); return m === 1 ? (y - 1) + '-12' : y + '-' + pad(m - 1); }
+  function allMonths() { var m = {}; try { (db || []).forEach(function (r) { var k = String(r && r.date || '').slice(0, 7); if (/^\d{4}-\d{2}$/.test(k)) m[k] = 1; }); } catch (e) { } m[curMonth()] = 1; return Object.keys(m).sort(); }
+  function scopeMonth(r) { return r.scope === 'previous' ? prevMonth(curMonth()) : curMonth(); }
+  function evalExpr(expr, mk) { var f = FS(); if (f && f.evalExpr) return f.evalExpr(expr, mk); try { return X.run(expr, X.varsFor(mk)); } catch (e) { return { ok: false, msg: 'Could not evaluate' }; } }
+  function formulaItems() { var f = FS(); return f ? f.items() : []; }
+  function fmtBy(sp, v) {
+    if (v === null || v === undefined || !isFinite(v)) return '—'; var d = sp.dec == null ? 2 : sp.dec;
+    if (sp.fmt === 'money') { try { return fmt(v, d); } catch (e) { } } if (sp.fmt === 'percent') return v.toLocaleString(undefined, { minimumFractionDigits: d, maximumFractionDigits: d }) + '%';
+    if (sp.fmt === 'ratio') return v.toFixed(d) + '×'; if (sp.fmt === 'months') return v.toFixed(d) + ' mo'; return v.toLocaleString(undefined, { maximumFractionDigits: d });
+  }
+  function nameSpec(name) {
+    if (X.VARS.indexOf(name) >= 0) return { fmt: NOMONEY[name] ? 'number' : 'money', dec: 0 };
+    var it = formulaItems().filter(function (x) { return x.key === name; })[0]; return it ? { fmt: it.fmt, dec: it.dec } : null;
+  }
+  function render(tpl, mk) {
+    return String(tpl || '').replace(/\{([^{}]{1,200})\}/g, function (m, inner) {
+      inner = inner.trim();
+      if (inner.charAt(0) === '=') { var r = evalExpr(inner.slice(1), mk); return r.ok ? String(Math.round(r.value * 100) / 100) : '—'; }
+      var sp = nameSpec(inner); if (!sp) return m; var rv = evalExpr(inner, mk); return rv.ok ? fmtBy(sp, rv.value) : '—';
+    });
+  }
+  function varsIn(n, out) { out = out || []; if (!n) return out; if (n.t === 'var') { if (out.indexOf(n.v) < 0) out.push(n.v); } else if (n.t === 'bin') { varsIn(n.l, out); varsIn(n.r, out); } else if (n.t === 'un') varsIn(n.a, out); else if (n.t === 'call') n.a.forEach(function (x) { varsIn(x, out); }); return out; }
+
+  /* ── storage ───────────────────────────────────────────────────────── */
+  var store = null;
+  function genCond(b) { if (!b) return ''; var rhs = b.rt === 'num' ? String(Number(b.rv) || 0) : (Number(b.mul) === 1 || !isFinite(b.mul) ? String(b.rv) : '(' + b.rv + ' * ' + Number(b.mul) + ')'); return b.l + ' ' + b.op + ' ' + rhs; }
+  function cleanB(b) { if (!b || typeof b !== 'object') return null; var id = /^[A-Za-z_][A-Za-z0-9_]{0,39}$/; if (!id.test(String(b.l))) return null; var rt = b.rt === 'num' ? 'num' : 'ref'; if (rt === 'ref' && !id.test(String(b.rv))) return null; return { l: String(b.l), op: OPS.indexOf(b.op) >= 0 ? b.op : '>', rt: rt, rv: rt === 'num' ? (isFinite(b.rv) ? Number(b.rv) : 0) : String(b.rv), mul: isFinite(b.mul) && Number(b.mul) !== 0 ? Number(b.mul) : 1 }; }
+  function clean(o) {
+    if (!o || typeof o !== 'object') return null; var b = cleanB(o.b), mode = o.mode === 'simple' && b ? 'simple' : 'adv', cond = mode === 'simple' ? genCond(b) : String(o.cond || '').slice(0, 500);
+    var d1 = Math.max(1, Math.min(31, Math.floor(Number(o.day1)) || 1)), d2 = Math.max(d1, Math.min(31, Math.floor(Number(o.day2)) || 31));
+    return { id: String(o.id || uid()), name: String(o.name || 'Rule').slice(0, 60), on: o.on !== false, sev: SEV[o.sev] ? o.sev : 'info', scope: o.scope === 'previous' ? 'previous' : 'current', day1: d1, day2: d2, freq: FREQ[o.freq] ? o.freq : 'month',
+      mode: mode, b: b || { l: 'expense', op: '>', rt: 'ref', rv: 'avg3', mul: 1.2 }, cond: cond, title: String(o.title || '').slice(0, 80), msg: String(o.msg || '').slice(0, 300), notify: o.notify !== false, dash: !!o.dash,
+      lastKey: String(o.lastKey || ''), lastFired: String(o.lastFired || ''), count: Math.max(0, Math.floor(Number(o.count)) || 0), created: String(o.created || nowIso()), updated: String(o.updated || nowIso()) };
+  }
+  function load() { var o = null; try { o = JSON.parse(localStorage.getItem(KEY)); } catch (e) { } var out = []; (o && Array.isArray(o.items) ? o.items : []).forEach(function (x) { var c = clean(x); if (c && out.length < MAXR) out.push(c); }); store = { version: 1, items: out }; }
+  function persist() { try { localStorage.setItem(KEY, JSON.stringify(store)); return true; } catch (e) { return false; } }
+  function items() { if (!store) load(); return store.items; }
+  function byId(id) { return items().filter(function (x) { return x.id === id; })[0]; }
+
+  /* ── evaluation ────────────────────────────────────────────────────── */
+  function evalRule(r, mk) {
+    if (!String(r.cond || '').trim()) return { ok: false, msg: 'No condition' };
+    var res = evalExpr(r.cond, mk); if (!res.ok) return { ok: false, msg: res.msg, parse: res.parse, pos: res.pos };
+    return { ok: true, fired: res.value !== 0, value: res.value, ast: res.ast, env: res.env };
+  }
+  function inWindow(r) { var d = new Date().getDate(); return d >= r.day1 && d <= r.day2; }
+  function masterOn() { try { var v = localStorage.getItem('fos_set_desktop-notif'); return v === null ? true : v === 'true'; } catch (e) { return true; } }
+  function notifShown(id) { try { return notifications.some(function (n) { return n.id === id; }); } catch (e) { return false; } }
+  function send(r, id, mk) {
+    var sv = SEV[r.sev], title = render(r.title || r.name, mk), msg = render(r.msg || r.name, mk);
+    addNotification(id, sv.icon, sv.color, sv.pre + E(title), E(msg), 'user-rule');
+  }
+  function evaluate() {
+    if (C.safe() || typeof addNotification !== 'function' || !masterOn()) return; var changed = false;
+    items().forEach(function (r) {
+      if (!r.on || !r.notify || !inWindow(r)) return; var mk = scopeMonth(r), res = evalRule(r, mk); if (!res.ok || !res.fired) return;
+      var pk = r.freq === 'month' ? mk : r.freq === 'day' ? todayIso() : '*'; if (r.freq !== 'every' && r.lastKey === pk) return;
+      var id = 'rule-' + r.id + (pk === '*' ? '' : '-' + pk), before = notifShown(id); send(r, id, mk);
+      if (!before && notifShown(id)) { r.lastKey = pk; r.lastFired = nowIso(); r.count++; changed = true; }
+    });
+    if (changed) persist();
+  }
+  function firingInsights() {
+    if (C.safe()) return []; var out = [];
+    items().forEach(function (r) { if (!r.on || !r.dash || !inWindow(r)) return; var mk = scopeMonth(r), res = evalRule(r, mk); if (res.ok && res.fired) out.push({ r: r, title: render(r.title || r.name, mk), msg: render(r.msg || '', mk) }); });
+    var rank = { critical: 0, warning: 1, info: 2, good: 3 }; return out.sort(function (a, b) { return rank[a.r.sev] - rank[b.r.sev]; });
+  }
+
+  /* ── dashboard insights ────────────────────────────────────────────── */
+  function paintInsights() {
+    try {
+      var host = $('view-dashboard'); if (!host) return; var box = $('fos-custom-insights'), list = firingInsights();
+      if (!list.length) { if (box) box.remove(); return; }
+      var anchor = $('fos-custom-charts') || $('fos-custom-kpis') || host.querySelector('.kpi-grid'); if (!anchor) return;
+      if (!box) { box = document.createElement('div'); box.id = 'fos-custom-insights'; box.className = 'glass-panel'; box.style.marginTop = '1.3rem'; }
+      if (box.previousElementSibling !== anchor) anchor.parentNode.insertBefore(box, anchor.nextSibling);
+      box.innerHTML = '<div class="panel-title fhs-title"><span><i class="fas fa-wand-magic-sparkles" style="margin-right:7px;color:var(--brand,#20CDB5)"></i>Insights for you</span><small>' + list.length + ' active</small></div>' +
+        '<div class="fos-ins-list">' + list.map(function (x) { var sv = SEV[x.r.sev]; return '<div class="fos-ins-i"><div class="fos-ins-ic" style="background:' + sv.color + '22;color:' + sv.color + '"><i class="fas ' + sv.icon + '"></i></div><div><div class="fos-ins-t">' + E(x.title) + '</div><div class="fos-ins-m">' + E(x.msg) + '</div></div></div>'; }).join('') + '</div>';
+    } catch (e) { console.warn('Insights:', e); }
+  }
+  function hookAll() {
+    try { var o = window.renderDashboardImmediate; if (typeof o === 'function' && !o.__rl) { var w = function () { var r = o.apply(this, arguments); try { paintInsights(); } catch (e) { } return r; }; w.__rl = 1; w.__fs = o.__fs; w.__cs = o.__cs; window.renderDashboardImmediate = w; } } catch (e) { }
+    try { var a = window.checkAlerts; if (typeof a === 'function' && !a.__rl) { var w2 = function () { var r = a.apply(this, arguments); try { evaluate(); } catch (e) { console.warn('Rules:', e); } return r; }; w2.__rl = 1; window.checkAlerts = w2; } } catch (e) { }
+  }
+
+  /* ── editor state ──────────────────────────────────────────────────── */
+  var S = { sel: null, d: null, sig: '', dirty: false, q: '', month: null, tplOpen: false, btOpen: false, cur: null, tm: null };
+  function blank() { return clean({ id: 'tmp', name: '', on: true, sev: 'warning', scope: 'current', day1: 1, day2: 31, freq: 'month', mode: 'simple', b: { l: 'expense', op: '>', rt: 'ref', rv: 'avg3', mul: 1.2 }, title: '', msg: '', notify: true, dash: false }); }
+  function sig(d) { return JSON.stringify([d.name, d.on, d.sev, d.scope, d.day1, d.day2, d.freq, d.mode, d.b, d.cond, d.title, d.msg, d.notify, d.dash]); }
+  function select(id) { var r = id && id !== 'new' ? byId(id) : null; if (r) { S.sel = r.id; S.d = JSON.parse(JSON.stringify(r)); } else { S.sel = 'new'; S.d = blank(); S.d.id = null; } S.sig = sig(S.d); S.dirty = false; }
+  function initSel() { if (!S.d || (S.sel !== 'new' && !byId(S.sel))) select(items().length ? items()[0].id : 'new'); if (!S.month) S.month = curMonth(); }
+  function confirmDiscard() { return !S.dirty || confirm('You have unsaved changes to this rule. Discard them?'); }
+  function note(msg, bad) { var el = $('rl-note'); if (!el) return; el.textContent = msg || ''; el.className = 'fs-note' + (bad ? ' bad' : ''); clearTimeout(note._t); if (msg) note._t = setTimeout(function () { var e2 = $('rl-note'); if (e2) e2.textContent = ''; }, 6000); }
+  function validateDraft(d) {
+    if (!String(d.name || '').trim()) return 'Give the rule a name.'; if (!d.id && items().length >= MAXR) return 'You can keep up to ' + MAXR + ' rules.';
+    if (!String(d.cond || '').trim()) return 'Add a condition.'; var r = evalExpr(d.cond, curMonth()); if (!r.ok && (r.parse || /Unknown|refers back|too deeply/.test(r.msg || ''))) return 'Condition: ' + r.msg;
+    if (!d.notify && !d.dash) return 'Choose at least one: send a notification or show on the Dashboard.'; if (!String(d.title || '').trim()) return 'Write a short title.'; return '';
+  }
+
+  /* ── html ──────────────────────────────────────────────────────────── */
+  function metricOptions(sel) {
+    var o = '<optgroup label="Ledger numbers">' + X.VARS.map(function (v) { return '<option value="' + v + '"' + (sel === v ? ' selected' : '') + '>' + E(LBL[v] || v) + '</option>'; }).join('') + '</optgroup>', f = formulaItems();
+    if (f.length) o += '<optgroup label="Your formulas">' + f.map(function (x) { return '<option value="' + E(x.key) + '"' + (sel === x.key ? ' selected' : '') + '>' + E(x.name) + '</option>'; }).join('') + '</optgroup>'; return o;
+  }
+  function statusOf(r) {
+    if (!r.on) return { c: 'off', t: 'Paused' }; var res = evalRule(r, scopeMonth(r)); if (!res.ok) return { c: 'bad', t: res.parse ? 'Error' : 'No data' };
+    if (res.fired && inWindow(r)) return { c: 'fire', t: 'Firing now' }; return { c: 'quiet', t: res.fired ? 'Outside days' : 'Quiet' };
+  }
+  function listHtml() {
+    var q = S.q.toLowerCase(), list = items().filter(function (r) { return !q || r.name.toLowerCase().indexOf(q) >= 0; });
+    if (!list.length) return '<div class="adm-muted" style="padding:6px 2px">' + (items().length ? 'No rules match.' : 'No rules yet. Pick a starter template below, or click New.') + '</div>';
+    return list.map(function (r) {
+      var st = statusOf(r), sv = SEV[r.sev];
+      return '<div class="fs-li rl-li' + (S.sel === r.id ? ' on' : '') + (r.on ? '' : ' rl-off') + '" role="button" tabindex="0" data-rl="sel" data-id="' + E(r.id) + '"><div class="fs-li-m"><b><i class="fas ' + sv.icon + '" style="color:' + sv.color + ';margin-right:6px" aria-hidden="true"></i>' + E(r.name) + '</b><span class="fs-key">' + (r.notify ? 'notify' : '') + (r.notify && r.dash ? ' + ' : '') + (r.dash ? 'dashboard' : '') + ' · ' + r.count + ' sent</span></div>' +
+        '<span class="rl-st ' + st.c + '">' + E(st.t) + '</span><button type="button" class="rl-sw' + (r.on ? ' on' : '') + '" role="switch" aria-checked="' + (r.on ? 'true' : 'false') + '" aria-label="' + E(r.name) + ' enabled" data-rl="toggle" data-id="' + E(r.id) + '"><span></span></button></div>';
+    }).join('');
+  }
+  function html() {
+    initSel(); var d = S.d, mo = allMonths(); if (mo.indexOf(S.month) < 0) S.month = curMonth();
+    var tpl = TEMPLATES.map(function (t, i) { return '<div class="fs-tpl-i"><div><b>' + E(t.name) + '</b><div class="adm-muted">' + E(SEV[t.sev].l) + ' · ' + (t.notify === false ? 'dashboard insight' : 'notification') + '</div></div><button type="button" class="adm-btn sm ghost" data-rl="tpl" data-i="' + i + '">Use</button></div>'; }).join('');
+    var sevO = Object.keys(SEV).map(function (k) { return '<option value="' + k + '"' + (d.sev === k ? ' selected' : '') + '>' + SEV[k].l + '</option>'; }).join('');
+    var frO = Object.keys(FREQ).map(function (k) { return '<option value="' + k + '"' + (d.freq === k ? ' selected' : '') + '>' + FREQ[k] + '</option>'; }).join('');
+    var opO = OPS.map(function (o) { return '<option value="' + o + '"' + (d.b.op === o ? ' selected' : '') + '>' + OPL[o] + '</option>'; }).join('');
+    var mopt = mo.slice().reverse().map(function (m) { return '<option value="' + m + '"' + (m === S.month ? ' selected' : '') + '>' + E(m) + '</option>'; }).join('');
+    var chips = X.VARS.map(function (v) { return '<button type="button" class="fs-chip" data-rl="ph" data-t="' + v + '" title="' + E(LBL[v] || v) + '"><b>{' + v + '}</b></button>'; }).join('') + formulaItems().map(function (x) { return '<button type="button" class="fs-chip mine" data-rl="ph" data-t="' + E(x.key) + '" title="' + E(x.name) + '"><b>{' + E(x.key) + '}</b></button>'; }).join('') + '<button type="button" class="fs-chip" data-rl="ph" data-t="=" title="Insert a calculation"><b>{=…}</b></button>';
+    return (C.safe() ? '<div class="adm-banner" role="note">Safe mode is on, so your rules are paused. They resume when Safe mode is turned off.</div>' : '') + (!masterOn() ? '<div class="adm-banner" role="note">Notifications are switched off in Preferences → Notifications, so rules will not send alerts (Dashboard insights still show).</div>' : '') +
+      '<div class="rl-wrap"><aside class="rl-side"><div class="set-card"><div class="adm-bar2"><input type="search" id="rl-q" class="set-input" placeholder="Search rules…" aria-label="Search rules" value="' + E(S.q) + '"><button type="button" class="adm-btn sm" data-rl="new"><i class="fas fa-plus"></i> New</button></div><div id="rl-list" class="fs-list" role="list" aria-label="Your rules">' + listHtml() + '</div><div class="adm-muted fs-foot">Rules are checked whenever the app checks alerts, and right after you save.</div></div>' +
+      '<details class="adm-grp fs-tpl" id="rl-tpl"' + (S.tplOpen || !items().length ? ' open' : '') + '><summary>Starter templates <em>' + TEMPLATES.length + '</em></summary>' + tpl + '</details>' +
+      '<div class="adm-actions"><button type="button" class="adm-btn ghost sm" data-rl="export"><i class="fas fa-file-export"></i> Export</button><button type="button" class="adm-btn ghost sm" data-rl="import"><i class="fas fa-file-import"></i> Import</button><input type="file" id="rl-file" accept="application/json,.json" hidden></div></aside>' +
+      '<section class="rl-main"><div class="set-card"><div class="fs-head"><div class="adm-h" id="rl-title" style="margin:0"></div><label class="adm-chk2"><input type="checkbox" id="rl-on"' + (d.on ? ' checked' : '') + '> Rule is on</label></div>' +
+      '<div class="fs-grid"><div class="fs-f"><label for="rl-name">Name</label><input id="rl-name" class="set-input" maxlength="60" value="' + E(d.name) + '" placeholder="e.g. Spending above your usual" autocomplete="off"></div>' +
+      '<div class="fs-f"><label for="rl-sev">Severity</label><select id="rl-sev" class="set-input">' + sevO + '</select></div>' +
+      '<div class="fs-f"><label for="rl-scope">Check</label><select id="rl-scope" class="set-input"><option value="current"' + (d.scope === 'current' ? ' selected' : '') + '>This month</option><option value="previous"' + (d.scope === 'previous' ? ' selected' : '') + '>Last month</option></select></div>' +
+      '<div class="fs-f"><label for="rl-freq">Notify</label><select id="rl-freq" class="set-input">' + frO + '</select></div>' +
+      '<div class="fs-f"><label for="rl-d1">Only from day</label><input id="rl-d1" type="number" min="1" max="31" class="set-input" value="' + d.day1 + '"></div>' +
+      '<div class="fs-f"><label for="rl-d2">Until day</label><input id="rl-d2" type="number" min="1" max="31" class="set-input" value="' + d.day2 + '"></div></div>' +
+      '<div class="rl-modes" role="tablist" aria-label="Condition style"><button type="button" role="tab" class="rl-mode' + (d.mode === 'simple' ? ' on' : '') + '" aria-selected="' + (d.mode === 'simple') + '" data-rl="mode" data-m="simple">Guided</button><button type="button" role="tab" class="rl-mode' + (d.mode === 'adv' ? ' on' : '') + '" aria-selected="' + (d.mode === 'adv') + '" data-rl="mode" data-m="adv">Advanced</button><span class="adm-muted">Condition: the rule fires when this is true</span></div>' +
+      '<div id="rl-simple"' + (d.mode === 'simple' ? '' : ' hidden') + ' class="rl-build"><span class="adm-muted">When</span><select id="rl-bl" class="set-input" aria-label="Metric">' + metricOptions(d.b.l) + '</select><select id="rl-bop" class="set-input" aria-label="Comparison">' + opO + '</select>' +
+      '<select id="rl-brt" class="set-input" aria-label="Compare with"><option value="num"' + (d.b.rt === 'num' ? ' selected' : '') + '>a number</option><option value="ref"' + (d.b.rt === 'ref' ? ' selected' : '') + '>another metric</option></select>' +
+      '<input id="rl-bnum" type="number" step="any" class="set-input" value="' + E(d.b.rt === 'num' ? d.b.rv : 0) + '" aria-label="Number"' + (d.b.rt === 'num' ? '' : ' hidden') + '>' +
+      '<span id="rl-bref" class="rl-bref"' + (d.b.rt === 'ref' ? '' : ' hidden') + '><select id="rl-brv" class="set-input" aria-label="Other metric">' + metricOptions(d.b.rt === 'ref' ? d.b.rv : 'avg3') + '</select><span class="adm-muted">×</span><input id="rl-bmul" type="number" step="any" class="set-input" value="' + E(d.b.mul) + '" aria-label="Multiplier" style="max-width:90px"></span></div>' +
+      '<div id="rl-adv"' + (d.mode === 'adv' ? '' : ' hidden') + '><textarea id="rl-cond" class="set-input adm-mono fs-expr" rows="2" spellcheck="false" autocomplete="off" placeholder="income > 0 && savings / income < 0.1" aria-label="Condition expression">' + E(d.cond) + '</textarea></div>' +
+      '<div id="rl-valid" class="fs-valid" aria-live="polite"></div>' +
+      '<div class="fs-f" style="margin-top:10px"><label for="rl-title-i">Title</label><input id="rl-title-i" class="set-input" maxlength="80" value="' + E(d.title) + '" placeholder="Spending is running high"></div>' +
+      '<div class="fs-f"><label for="rl-msg">Message</label><textarea id="rl-msg" class="set-input" rows="3" maxlength="300" placeholder="This month you have spent {expense}…">' + E(d.msg) + '</textarea></div>' +
+      '<div class="fs-chips-l">Insert a value</div><div class="fs-chips">' + chips + '</div>' +
+      '<div class="cs-opts"><label class="adm-chk2"><input type="checkbox" id="rl-notify"' + (d.notify ? ' checked' : '') + '> Send a notification</label><label class="adm-chk2"><input type="checkbox" id="rl-dash"' + (d.dash ? ' checked' : '') + '> Show as an insight on the Dashboard while true</label></div>' +
+      '<div class="fs-actions"><span class="fs-spacer"></span><span id="rl-dirty" class="fs-dirty" hidden>Unsaved changes</span><span id="rl-note" class="fs-note" role="status" aria-live="polite"></span><button type="button" class="adm-btn ghost sm" data-rl="revert" id="rl-revert">Discard changes</button><button type="button" class="adm-btn ghost sm" data-rl="dup" id="rl-dup">Duplicate</button><button type="button" class="adm-btn danger sm" data-rl="del" id="rl-del">Delete</button><button type="button" class="adm-btn" data-rl="save" id="rl-save" title="Ctrl+S"><i class="fas fa-floppy-disk"></i> Save</button></div></div>' +
+      '<div class="set-card"><div class="fs-head"><div class="adm-h" style="margin:0">Try it</div><div class="fs-month"><label for="rl-month" class="adm-muted">Test on month</label><select id="rl-month" class="set-input">' + mopt + '</select></div></div><div id="rl-res" aria-live="polite"></div><div class="adm-actions" style="margin-top:10px"><button type="button" class="adm-btn ghost sm" data-rl="test"><i class="fas fa-paper-plane"></i> Send a test notification</button></div></div>' +
+      '<div class="set-card"><div class="adm-h">Would it have fired? <small>last 12 months</small></div><div id="rl-bt"></div></div>' +
+      '<details class="adm-grp"><summary>How rules work</summary><div class="fs-guide"><p><b>Guided</b> builds the condition for you. <b>Advanced</b> accepts any expression, such as <code>income &gt; 0 &amp;&amp; savings / income &lt; 0.1</code>, and can use your Formula Studio formulas by key.</p><p><b>Days:</b> "Only from day / until day" stops early-month false alarms. For example, check spending only from day 10.</p><p><b>Notify</b> sends through the app\'s notification centre, so snooze, quiet hours, sound and push settings still apply. "Once a month" will not repeat even if you dismiss it.</p><p><b>Dashboard insights</b> appear under your KPI row while the condition is true and disappear when it is not.</p><p><b>No data:</b> if a number is missing (for example last month has no entries), the rule stays quiet instead of guessing.</p></div></details></section></div>';
+  }
+
+  /* ── painting ──────────────────────────────────────────────────────── */
+  function compute() { S.cur = evalRule(S.d, S.month); }
+  function paintValid() {
+    var el = $('rl-valid'); if (!el) return; var r = S.cur, d = S.d;
+    if (!String(d.cond).trim()) { el.innerHTML = '<span class="adm-muted">Set a condition above.</span>'; return; }
+    if (!r.ok && r.parse) { var snip = (r.pos != null && d.mode === 'adv') ? '<div class="fs-snip"><code>' + E(d.cond.slice(0, r.pos)) + '<mark>' + E(d.cond.charAt(r.pos) || '⏎') + '</mark>' + E(d.cond.slice(r.pos + 1)) + '</code></div>' : ''; el.innerHTML = '<div class="adm-err" style="display:block"><i class="fas fa-circle-exclamation"></i> ' + E(r.msg) + '</div>' + snip; return; }
+    el.innerHTML = '<span class="adm-ok"><i class="fas fa-circle-check"></i> Condition is valid.</span> <span class="adm-muted">Reads as: <code>' + E(d.cond) + '</code></span>';
+  }
+  function paintRes() {
+    var el = $('rl-res'); if (!el) return; var r = S.cur, d = S.d, mk = S.month, sv = SEV[d.sev];
+    var verdict = !r.ok ? '<span class="rl-st bad">' + (r.parse ? 'Error' : 'No data') + '</span> <span class="adm-muted">' + E(r.msg || '') + '</span>' : r.fired ? '<span class="rl-st fire">Would fire</span> <span class="adm-muted">for ' + E(mk) + '</span>' : '<span class="rl-st quiet">Would stay quiet</span> <span class="adm-muted">for ' + E(mk) + '</span>';
+    var reads = ''; if (r.ast && r.env) { reads = '<div class="rl-reads">' + varsIn(r.ast).map(function (v) { var sp = nameSpec(v) || { fmt: 'number', dec: 2 }; return '<span class="fs-chip fs-var"><b>' + E(v) + '</b><span>' + E(fmtBy(sp, r.env[v])) + '</span></span>'; }).join('') + '</div>'; }
+    var shown = !r.ok ? '' : '<div class="rl-prev"><div class="rl-prev-ic" style="background:' + sv.color + '22;color:' + sv.color + '"><i class="fas ' + sv.icon + '"></i></div><div><div class="rl-prev-t">' + E(sv.pre + render(d.title || d.name || 'Title', mk)) + '</div><div class="rl-prev-m">' + E(render(d.msg || '', mk)) + '</div><div class="adm-muted" style="margin-top:3px">Preview of the ' + (d.notify ? 'notification' : 'insight') + ' text for ' + E(mk) + (r.fired ? '' : ' (not triggered for this month)') + '</div></div></div>';
+    el.innerHTML = '<div style="margin-bottom:8px">' + verdict + '</div>' + reads + shown;
+  }
+  function paintBt() {
+    var el = $('rl-bt'); if (!el) return; var d = S.d, ms = allMonths().slice(-12), fired = 0, cells = ms.map(function (mk) {
+      var r = evalRule(d, mk); if (r.ok && r.fired) fired++; var c = !r.ok ? 'na' : r.fired ? 'yes' : 'no', t = !r.ok ? 'no data' : r.fired ? 'fires' : 'quiet';
+      return '<div class="rl-bc ' + c + (mk === S.month ? ' sel' : '') + '" title="' + E(mk + ': ' + t + (r.ok ? '' : ' (' + r.msg + ')')) + '"><span>' + E(mk.slice(2)) + '</span><b>' + (c === 'yes' ? '●' : c === 'no' ? '○' : '–') + '</b></div>';
+    }).join('');
+    el.innerHTML = '<div class="rl-bts">' + cells + '</div><div class="adm-muted" style="margin-top:6px">Would have fired in <b>' + fired + '</b> of ' + ms.length + ' months' + (fired > ms.length / 2 ? '. That may be too noisy; consider a higher threshold.' : '.') + ' Day limits are not applied here.</div>';
+  }
+  function paint() {
+    compute(); var d = S.d, t = $('rl-title'); if (t) t.textContent = S.sel === 'new' ? 'New rule' : (d.name || 'Rule'); var di = $('rl-dirty'); if (di) di.hidden = !S.dirty;
+    var isNew = S.sel === 'new'; ['rl-del', 'rl-dup'].forEach(function (i) { var b = $(i); if (b) b.disabled = isNew; }); var rv = $('rl-revert'); if (rv) rv.disabled = !S.dirty;
+    paintValid(); paintRes(); paintBt();
+  }
+  function schedule() { clearTimeout(S.tm); S.tm = setTimeout(paint, 80); }
+  function markDirty() { S.dirty = sig(S.d) !== S.sig; var d = $('rl-dirty'); if (d) d.hidden = !S.dirty; var rv = $('rl-revert'); if (rv) rv.disabled = !S.dirty; }
+  function rerender() { var b = $('adm-body'); if (!b || !$('rl-name')) return; b.innerHTML = html(); after(); }
+  function listRefresh() { var l = $('rl-list'); if (l) l.innerHTML = listHtml(); }
+  function syncCond() { var d = S.d; if (d.mode === 'simple') { d.cond = genCond(d.b); } }
+
+  /* ── actions ───────────────────────────────────────────────────────── */
+  function doSave() {
+    var d = S.d; syncCond(); var bad = validateDraft(d); if (bad) return note(bad, true); d.name = d.name.trim(); var isNew = S.sel === 'new', r;
+    if (isNew) { r = clean(Object.assign({}, d, { id: uid() })); items().push(r); } else { r = byId(S.sel); var keep = { id: r.id, created: r.created, lastKey: r.lastKey, lastFired: r.lastFired, count: r.count }; var n = clean(Object.assign({}, d, keep)); Object.keys(n).forEach(function (k) { r[k] = n[k]; }); if (sig(d) !== S.sig) { r.lastKey = ''; } r.updated = nowIso(); }
+    if (!persist()) { if (isNew) items().pop(); return note('Could not save (browser storage is full).', true); }
+    select(r.id); try { evaluate(); } catch (e) { } paintInsights(); rerender(); note('Saved. Rules were checked now.');
+  }
+  function doDelete() { var r = byId(S.sel); if (!r || !confirm('Delete "' + r.name + '"? This cannot be undone.')) return; store.items = items().filter(function (x) { return x.id !== r.id; }); persist(); select(items().length ? items()[0].id : 'new'); paintInsights(); rerender(); note('Deleted.'); }
+  function doDup() { var r = byId(S.sel); if (!r || !confirmDiscard()) return; var n = JSON.parse(JSON.stringify(r)); n.id = null; n.name = (r.name + ' copy').slice(0, 60); n.count = 0; n.lastKey = ''; n.lastFired = ''; S.sel = 'new'; S.d = n; S.sig = ''; S.dirty = true; rerender(); note('Duplicated. Save to keep it.'); }
+  function useTemplate(i) {
+    var t = TEMPLATES[i]; if (!t || !confirmDiscard()) return; var o = { name: t.name, sev: t.sev, day1: t.day1, freq: t.freq, title: t.title, msg: t.msg, notify: t.notify !== false, dash: !!t.dash, scope: 'current' };
+    if (t.b) { o.mode = 'simple'; o.b = t.b; } else { o.mode = 'adv'; o.cond = t.cond; } var d = clean(Object.assign({ id: 'tmp' }, o)); d.id = null; S.sel = 'new'; S.d = d; S.sig = ''; S.dirty = true; S.tplOpen = true; rerender(); note('Template loaded. Edit it, then Save.');
+  }
+  function insertPh(t) {
+    var ids = ['rl-msg', 'rl-title-i'], ta = document.activeElement && ids.indexOf(document.activeElement.id) >= 0 ? document.activeElement : $('rl-msg'); if (!ta) return; var txt = t === '=' ? '{=}' : '{' + t + '}', s = ta.selectionStart == null ? ta.value.length : ta.selectionStart, e = ta.selectionEnd == null ? s : ta.selectionEnd, v = ta.value;
+    ta.value = v.slice(0, s) + txt + v.slice(e); var c = s + txt.length - (t === '=' ? 1 : 0); try { ta.setSelectionRange(c, c); } catch (x) { } ta.focus(); if (ta.id === 'rl-msg') S.d.msg = ta.value; else S.d.title = ta.value; markDirty(); paint();
+  }
+  function doTest() {
+    if (typeof addNotification !== 'function') return note('The notification centre is not available.', true); var d = S.d, sv = SEV[d.sev], id = 'rule-test-' + Date.now();
+    addNotification(id, sv.icon, sv.color, sv.pre + E(render(d.title || d.name || 'Test', S.month)), E(render(d.msg || 'This is a test of your rule.', S.month)), 'user-rule');
+    note(notifShown(id) ? 'Test sent. Check the bell.' : 'Not shown: notifications are switched off or silenced.', !notifShown(id));
+  }
+  function download(blob, name) { var u = URL.createObjectURL(blob), l = document.createElement('a'); l.href = u; l.download = name; document.body.appendChild(l); l.click(); l.remove(); setTimeout(function () { URL.revokeObjectURL(u); }, 1500); }
+  function doExport() { download(new Blob([JSON.stringify({ app: 'FinanceOS', kind: 'admin-rules', version: 1, exportedAt: nowIso(), items: items() }, null, 2)], { type: 'application/json' }), 'financeos-rules.json'); }
+  function doImport(inp) {
+    var file = inp.files && inp.files[0]; if (!file) return; var fr = new FileReader();
+    fr.onload = function () {
+      inp.value = ''; var o; try { o = JSON.parse(String(fr.result)); } catch (e) { return note('That file is not valid JSON.', true); } if (!o || o.kind !== 'admin-rules' || !Array.isArray(o.items)) return note('Not a FinanceOS rules file.', true);
+      var added = 0, skipped = 0; o.items.forEach(function (x) { var r = clean(x); if (r && items().length < MAXR) { r.id = uid(); r.count = 0; r.lastKey = ''; r.lastFired = ''; items().push(r); added++; } else skipped++; });
+      persist(); paintInsights(); rerender(); note('Imported ' + added + (skipped ? ', skipped ' + skipped : '') + '.');
+    }; fr.onerror = function () { note('Could not read that file.', true); }; fr.readAsText(file);
+  }
+
+  /* ── events ────────────────────────────────────────────────────────── */
+  function inStudio(t) { return t && t.closest && t.closest('.rl-wrap'); }
+  function onClick(e) {
+    var t = e.target; if (!inStudio(t)) return; var b = t.closest('[data-rl]'); if (!b) return; var a = b.getAttribute('data-rl'), i = +b.getAttribute('data-i');
+    if (a === 'sel') { var id = b.getAttribute('data-id'); if (id === S.sel || !confirmDiscard()) return; select(id); return rerender(); }
+    if (a === 'toggle') { e.stopPropagation(); var r = byId(b.getAttribute('data-id')); if (!r) return; r.on = !r.on; if (S.d && S.d.id === r.id) { S.d.on = r.on; var oc = $('rl-on'); if (oc) oc.checked = r.on; S.sig = sig(r); } persist(); paintInsights(); if (r.on) { try { evaluate(); } catch (x) { } } listRefresh(); markDirty(); return; }
+    if (a === 'new') { if (!confirmDiscard()) return; select('new'); return rerender(); }
+    if (a === 'tpl') return useTemplate(i); if (a === 'save') return doSave(); if (a === 'del') return doDelete(); if (a === 'dup') return doDup(); if (a === 'revert') { select(S.sel); return rerender(); }
+    if (a === 'mode') { var m = b.getAttribute('data-m'); if (m === S.d.mode) return; S.d.mode = m; if (m === 'simple') S.d.cond = genCond(S.d.b); markDirty(); var bd = $('adm-body'); bd.innerHTML = html(); return after(); }
+    if (a === 'ph') return insertPh(b.getAttribute('data-t')); if (a === 'test') return doTest(); if (a === 'export') return doExport(); if (a === 'import') { var fi = $('rl-file'); if (fi) fi.click(); }
+  }
+  function onInput(e) {
+    var t = e.target, id = t.id || '', d = S.d; if (!d || id.indexOf('rl-') !== 0) return;
+    if (id === 'rl-q') { S.q = t.value; return listRefresh(); } if (id === 'rl-name') { d.name = t.value; markDirty(); return schedule(); }
+    if (id === 'rl-title-i') { d.title = t.value; markDirty(); return schedule(); } if (id === 'rl-msg') { d.msg = t.value; markDirty(); return schedule(); }
+    if (id === 'rl-cond') { d.cond = t.value; markDirty(); return schedule(); }
+    if (id === 'rl-bnum') { d.b.rv = Number(t.value) || 0; syncCond(); markDirty(); return schedule(); } if (id === 'rl-bmul') { d.b.mul = Number(t.value) || 1; syncCond(); markDirty(); return schedule(); }
+    if (id === 'rl-d1') { d.day1 = Math.max(1, Math.min(31, Math.floor(Number(t.value)) || 1)); if (d.day2 < d.day1) d.day2 = d.day1; markDirty(); return schedule(); } if (id === 'rl-d2') { d.day2 = Math.max(d.day1, Math.min(31, Math.floor(Number(t.value)) || 31)); markDirty(); return schedule(); }
+  }
+  function onChange(e) {
+    var t = e.target, id = t.id || '', d = S.d; if (id === 'rl-file') return doImport(t); if (!d || id.indexOf('rl-') !== 0) return;
+    if (id === 'rl-month') { S.month = t.value; return paint(); }
+    var map = { 'rl-sev': 'sev', 'rl-scope': 'scope', 'rl-freq': 'freq' }; if (map[id]) { d[map[id]] = t.value; markDirty(); return paint(); }
+    var cb = { 'rl-on': 'on', 'rl-notify': 'notify', 'rl-dash': 'dash' }; if (cb[id]) { d[cb[id]] = t.checked; markDirty(); return paint(); }
+    if (id === 'rl-bl') { d.b.l = t.value; syncCond(); markDirty(); return paint(); } if (id === 'rl-bop') { d.b.op = t.value; syncCond(); markDirty(); return paint(); }
+    if (id === 'rl-brv') { d.b.rv = t.value; syncCond(); markDirty(); return paint(); }
+    if (id === 'rl-brt') { d.b.rt = t.value; d.b.rv = t.value === 'num' ? 0 : 'avg3'; syncCond(); markDirty(); var bd = $('adm-body'); bd.innerHTML = html(); return after(); }
+  }
+  function onKey(e) {
+    var t = e.target; if (!inStudio(t)) return;
+    if ((e.ctrlKey || e.metaKey) && String(e.key).toLowerCase() === 's') { e.preventDefault(); return doSave(); }
+    if ((e.key === 'Enter' || e.key === ' ') && t.getAttribute && t.getAttribute('data-rl') === 'sel') { e.preventDefault(); t.click(); }
+  }
+  function wire() {
+    var r = $('adm-root'); if (!r || r.__rl) return; r.__rl = 1; r.addEventListener('click', onClick); r.addEventListener('input', onInput); r.addEventListener('change', onChange); document.addEventListener('keydown', onKey, true);
+    r.addEventListener('mousedown', function (e) { var c = e.target.closest && e.target.closest('.rl-wrap .fs-chip'); if (c) e.preventDefault(); });
+    r.addEventListener('toggle', function (e) { var t = e.target; if (t && t.id === 'rl-tpl') S.tplOpen = t.open; }, true);
+  }
+  function after() { wire(); paint(); paintInsights(); }
+
+  window.FOS_RULES = { html: html, after: after, items: items, evaluate: evaluate, repaint: paintInsights, templates: TEMPLATES };
+  C.onChange(function () { paintInsights(); });
+  hookAll(); wire();
+  window.addEventListener('load', function () { hookAll(); setTimeout(function () { try { evaluate(); paintInsights(); } catch (e) { } }, 1500); });
+  if (document.readyState === 'complete') setTimeout(function () { try { evaluate(); paintInsights(); } catch (e) { } }, 600);
 })();
 </script>
 <script>
