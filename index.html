@@ -37919,6 +37919,7 @@ body.light-mode .adm-toast{background:#e0f7fc;color:#06303c}body.light-mode .adm
   function mk(id, cfg) { const c = $(id); if (!c) return; destroyChart(id); charts[id] = new Chart(c.getContext('2d'), cfg); }
   const panel = (t, b, x, nc) => `<div class="glass-panel"${nc ? ' data-no-count' : ''} style="margin-bottom:1.1rem;${x || ''}"><div class="panel-title">${t}</div>${b}</div>`;
   const kpi = (l, v, s, nc) => `<div class="port-kpi-card"><div class="kpi-label">${l}</div><div class="port-kpi-val">${v}</div>${s ? `<div class="pi-sub"${nc ? ' data-no-count' : ''}>${s}</div>` : ''}</div>`;
+  const noData = (t,m)=>`<div style="padding:1.4rem 1rem;text-align:center;border:1px dashed rgba(167,139,250,.28);border-radius:12px;margin:.4rem 0"><i class="fas fa-chart-simple" style="font-size:1.3rem;opacity:.55;margin-bottom:.5rem;display:block"></i><div style="font-weight:700;font-size:.85rem">${t}</div><div class="pi-sub" style="margin-top:.3rem">${m}</div></div>`;
   const tbl = (h, r, nc) => `<div class="pi-scroll"${nc ? ' data-no-count' : ''}><table class="pi-t"><thead><tr>${h.map(x => `<th>${x}</th>`).join('')}</tr></thead><tbody>${r.map(x => `<tr>${x.map(c => `<td>${c}</td>`).join('')}</tr>`).join('')}</tbody></table></div>`;
 
   // ── target allocation & rebalancing ──
@@ -37993,12 +37994,12 @@ body.light-mode .adm-toast{background:#e0f7fc;color:#06303c}body.light-mode .adm
       ['Realized (sold)', sold.length, fmt(sum(sold, r => r.c.totalInvestment)), fmt(sum(sold, r => r.c.currentValue)), `<b class="${cls(rea)}">${fmt(rea)}</b>`, fmt(sum(sold.filter(r => !lt(r)), r => r.c.gainLoss)), fmt(sum(sold.filter(lt), r => r.c.gainLoss))],
       ['Unrealized (held)', act.length, fmt(sum(act, r => r.c.totalInvestment)), fmt(tot), `<b class="${cls(unr)}">${fmt(unr)}</b>`, fmt(sum(act.filter(r => !lt(r)), r => r.c.gainLoss)), fmt(sum(act.filter(lt), r => r.c.gainLoss))]], true) + '<div class="pi-sub">Holding-period split is informational; it is not tax advice.</div>');
     // income
-    const rc = receivedByKind(all), kinds = [...new Set(Object.keys(inc).concat(Object.keys(rc.y12), Object.keys(rc.all)))], tsum = o => Object.values(o).reduce((x, y) => x + y, 0);
-    h += panel('Passive income — estimated vs received', `<div class="pi-two"><div style="height:200px"><canvas id="pi-inc"></canvas></div>${tbl(['Source','Estimated / yr','Received (12m)','Received (all)'], kinds.map(k => [k, fmt(inc[k] || 0), fmt(rc.y12[k] || 0), fmt(rc.all[k] || 0)]).concat(kinds.length ? [['<b>Total</b>', `<b>${fmt(incT)}</b>`, `<b>${fmt(tsum(rc.y12))}</b>`, `<b>${fmt(tsum(rc.all))}</b>`]] : []))}</div><div class="pi-sub">Estimates come from yield, rate and rent fields. “Received” is what you logged on each holding (open a holding → Income received) and is included in XIRR, CAGR and total return.</div>`);
+    const rc = receivedByKind(all), kinds = [...new Set(Object.keys(inc).concat(Object.keys(rc.y12), Object.keys(rc.all)))], tsum = o => Object.values(o).reduce((x, y) => x + y, 0), hasInc = kinds.length > 0 && (incT > 0 || tsum(rc.y12) > 0 || tsum(rc.all) > 0);
+    h += panel('Passive income — estimated vs received', (hasInc ? `<div class="pi-two"><div style="height:200px"><canvas id="pi-inc"></canvas></div>${tbl(['Source','Estimated / yr','Received (12m)','Received (all)'], kinds.map(k => [k, fmt(inc[k] || 0), fmt(rc.y12[k] || 0), fmt(rc.all[k] || 0)]).concat(kinds.length ? [['<b>Total</b>', `<b>${fmt(incT)}</b>`, `<b>${fmt(tsum(rc.y12))}</b>`, `<b>${fmt(tsum(rc.all))}</b>`]] : []))}</div>` : noData('No data available to present', 'The chart is working, but there is no passive income to plot yet. Add yield, rate or rent fields on a holding, or log income received, and it will appear here.')) + `<div class="pi-sub">Estimates come from yield, rate and rent fields. “Received” is what you logged on each holding (open a holding → Income received) and is included in XIRR, CAGR and total return.</div>`);
     // liquidity + maturity
     const tiers = TIERS.map(() => 0); act.forEach(r => { const d = LIQ[r.t] || 30, i = TIERS.findIndex(t => d <= t[1]); tiers[i] += r.c.currentValue; });
     const now = localISO(), mat = act.filter(r => r.e.meta && r.e.meta.maturityDate && r.e.meta.maturityDate >= now).sort((a, b) => a.e.meta.maturityDate < b.e.meta.maturityDate ? -1 : 1);
-    h += `<div class="pi-two">${panel('Liquidity ladder', '<div style="height:200px"><canvas id="pi-liq"></canvas></div>', 'margin-bottom:0')}${panel('Maturity schedule', mat.length ? tbl(['Holding','Matures','Value'], mat.slice(0, 8).map(r => [_esc(r.e.subType || assetTypeLabel(r.t)), fmtDate(r.e.meta.maturityDate) + (r.e.meta.maturityDate <= localISO(new Date(Date.now() + 90 * DAY)) ? ' <span class="pi-dn">· soon</span>' : ''), fmt(r.c.currentValue)])) : '<div class="pi-sub">No maturity dates recorded. Add them on bonds, deposits or retirement holdings.</div>', 'margin-bottom:0')}</div><div style="height:1.1rem"></div>`;
+    h += `<div class="pi-two">${panel('Liquidity ladder', '<div style="height:200px"><canvas id="pi-liq"></canvas></div>', 'margin-bottom:0')}${panel('Maturity schedule', mat.length ? tbl(['Holding','Matures','Value'], mat.slice(0, 8).map(r => [_esc(r.e.subType || assetTypeLabel(r.t)), fmtDate(r.e.meta.maturityDate) + (r.e.meta.maturityDate <= localISO(new Date(Date.now() + 90 * DAY)) ? ' <span class="pi-dn">· soon</span>' : ''), fmt(r.c.currentValue)])) : noData('No data available to present', 'No maturity dates are recorded yet. Add a maturity date on a bond, deposit or retirement holding and it will be listed here.'), 'margin-bottom:0')}</div><div style="height:1.1rem"></div>`;
     // history
     const hs = history(all);
     h += panel('Historical valuation & performance', '<div style="height:260px"><canvas id="pi-hist"></canvas></div>' + (() => {
@@ -38010,7 +38011,7 @@ body.light-mode .adm-toast{background:#e0f7fc;color:#06303c}body.light-mode .adm
     })());
     root.innerHTML = h;
     if (G.length) mk('pi-alloc', { type: 'doughnut', data: { labels: G.map(x => x.k), datasets: [{ data: G.map(x => x.v), backgroundColor: COL, borderWidth: 0 }] }, options: { maintainAspectRatio: false, cutout: '62%', plugins: { legend: { position: 'right', labels: { boxWidth: 10 } } } } });
-    if (kinds.length) mk('pi-inc', { type: 'bar', data: { labels: kinds, datasets: [{ label: 'Estimated / yr', data: kinds.map(k => inc[k] || 0), backgroundColor: '#a78bfa' }, { label: 'Received (12m)', data: kinds.map(k => rc.y12[k] || 0), backgroundColor: '#34d399' }] }, options: { maintainAspectRatio: false, plugins: { legend: { labels: { boxWidth: 10 } } } } });
+    if (hasInc) mk('pi-inc', { type: 'bar', data: { labels: kinds, datasets: [{ label: 'Estimated / yr', data: kinds.map(k => inc[k] || 0), backgroundColor: '#a78bfa' }, { label: 'Received (12m)', data: kinds.map(k => rc.y12[k] || 0), backgroundColor: '#34d399' }] }, options: { maintainAspectRatio: false, plugins: { legend: { labels: { boxWidth: 10 } } } } });
     mkTargets();
     mk('pi-liq', { type: 'bar', data: { labels: TIERS.map(t => t[0]), datasets: [{ data: tiers, backgroundColor: TIERS.map(t => t[2]) }] }, options: { indexAxis: 'y', maintainAspectRatio: false, plugins: { legend: { display: false } } } });
     mk('pi-hist', { type: 'line', data: { labels: hs.map(x => x.D), datasets: [{ label: 'Value', data: hs.map(x => x.V), borderColor: '#a78bfa', backgroundColor: 'rgba(167,139,250,.15)', fill: true, tension: .25, pointRadius: 0 }, { label: 'Invested', data: hs.map(x => x.I), borderColor: '#94a3b8', borderDash: [5, 4], pointRadius: 0 }, { label: 'Benchmark ' + b + '%', data: hs.map(x => x.B), borderColor: '#f59e0b', pointRadius: 0, tension: .25 }] }, options: { maintainAspectRatio: false, interaction: { mode: 'index', intersect: false }, plugins: { legend: { labels: { boxWidth: 10 } } } } });
@@ -38443,8 +38444,8 @@ body.light-mode .tx-bar select option,body.light-mode .tx-cls option{color:#111}
   }
 
   /* ── view ── */
-  const panel = (t, b, x) => `<div class="glass-panel" style="margin-bottom:1.1rem;${x || ''}"><div class="panel-title">${t}</div>${b}</div>`;
-  const kpi = (l, v, s) => `<div class="port-kpi-card"><div class="kpi-label">${l}</div><div class="port-kpi-val">${v}</div>${s ? `<div class="pi-sub">${s}</div>` : ''}</div>`;
+  const panel = (t, b, x, nc) => `<div class="glass-panel"${nc ? ' data-no-count' : ''} style="margin-bottom:1.1rem;${x || ''}"><div class="panel-title">${t}</div>${b}</div>`;
+  const kpi = (l, v, s, nc, nl) => `<div class="port-kpi-card"><div class="kpi-label"${nl ? ' data-no-count' : ''}>${l}</div><div class="port-kpi-val">${v}</div>${s ? `<div class="pi-sub"${nc ? ' data-no-count' : ''}>${s}</div>` : ''}</div>`;
   const tbl = (h, r, cls) => `<div class="pi-scroll"><table class="pi-t ${cls || ''}"><thead><tr>${h.map(x => `<th>${x}</th>`).join('')}</tr></thead><tbody>${r.map(x => `<tr${x._c ? ` class="${x._c}"` : ''}>${x.map(c => `<td>${c}</td>`).join('')}</tr>`).join('')}</tbody></table></div>`;
   const chip = t => `<span class="tx-chip ${t === 'LT' ? 'lt' : 'st'}">${t === 'LT' ? 'Long-term' : 'Short-term'}</span>`;
   const clsSel = r => `<select class="tx-cls" onchange="txSetCls(${r.id},this.value)" title="Change which tax rule applies to this holding">${['auto'].concat(CLS.map(c => c[0])).map(k => `<option value="${k}"${(k === 'auto' ? !ovr()[r.id] : ovr()[r.id] === k) ? ' selected' : ''}>${k === 'auto' ? 'Auto · ' + _esc(NAME[autoClass(r.e)]) : _esc(NAME[k])}</option>`).join('')}</select>`;
@@ -38488,10 +38489,10 @@ body.light-mode .tx-bar select option,body.light-mode .tx-cls option{color:#111}
       <button class="tx-btn" onclick="txCsv()"><i class="fas fa-file-csv"></i> Download realised gains (CSV)</button>
       <button class="tx-btn" onclick="txOpenAdmin()"><i class="fas fa-sliders-h"></i> Tax rules</button></div>`;
 
-    h += `<div class="pi-kpis">${kpi('Realised gain, FY ' + fyLbl(fySel), `<span class="${col(calc.gain)}">${sgn(calc.gain)}</span>`, real.length + ' sale lot' + (real.length === 1 ? '' : 's'))}
-      ${kpi('Estimated tax', money(calc.tax), 'incl. ' + cess() + '% cess, after loss set-off')}
-      ${kpi('Equity gains still exempt', money(calc.eqLeft), 'of ₹' + fmt(rule('eq').ex) + ' yearly limit' + (isCur && eqLTunreal > 0 ? ' · ₹' + fmt(Math.round(eqLTunreal)) + ' long-term equity gain unrealised' : ''))}
-      ${kpi('Turning long-term in 90 days', money(in90.reduce((s, r) => s + r.gain, 0)), in90.length + ' lot' + (in90.length === 1 ? '' : 's') + ' with a gain')}</div>`;
+    h += `<div class="pi-kpis">${kpi('Realised gain, FY ' + fyLbl(fySel), `<span class="${col(calc.gain)}">${sgn(calc.gain)}</span>`, real.length + ' sale lot' + (real.length === 1 ? '' : 's'), true, true)}
+      ${kpi('Estimated tax', money(calc.tax), 'incl. ' + cess() + '% cess, after loss set-off', true, true)}
+      ${kpi('Equity gains still exempt', money(calc.eqLeft), 'of ₹' + fmt(rule('eq').ex) + ' yearly limit' + (isCur && eqLTunreal > 0 ? ' · ₹' + fmt(Math.round(eqLTunreal)) + ' long-term equity gain unrealised' : ''), true, true)}
+      ${kpi('Turning long-term in 90 days', money(in90.reduce((s, r) => s + r.gain, 0)), in90.length + ' lot' + (in90.length === 1 ? '' : 's') + ' with a gain', true, true)}</div>`;
 
     // realised by class
     const cr = CLS.filter(c => c[0] !== 'exm').map(c => [c[0], calc.R[c[0]]]).filter(x => x[1].cost || x[1].proc);
@@ -38502,12 +38503,12 @@ body.light-mode .tx-bar select option,body.light-mode .tx-cls option{color:#111}
     if (calc.unused > 0.5) notes += `<div class="tx-warn">Losses of ${money(calc.unused)} could not be set off this year. If you file on time they can usually be carried forward for 8 years.</div>`;
     if (calc.lostVda > 0.5) notes += `<div class="tx-warn">Crypto losses of ${money(calc.lostVda)} cannot offset any other gain, and cannot be carried forward.</div>`;
     h += panel('Realised gains by asset class — FY ' + fyLbl(fySel), (byRows.length ? tbl(['Asset class', 'Cost', 'Sale value', 'Short-term gain', 'Long-term gain', 'Taxable', 'Est. tax'], byRows) : '<div class="tx-empty">No holdings sold in this financial year. Mark a holding as sold (with a sell date) and it appears here.</div>') + notes +
-      '<div class="tx-note">Short-term losses are set off against any gain, long-term losses only against long-term gains. Surcharge, TDS already deducted and carried-forward losses from earlier years are not included.</div>');
+      '<div class="tx-note">Short-term losses are set off against any gain, long-term losses only against long-term gains. Surcharge, TDS already deducted and carried-forward losses from earlier years are not included.</div>', '', true);
 
     // realised lots
     if (real.length) {
       const rr = real.sort((a, b) => a.sale < b.sale ? 1 : -1).map(r => [fmtDate(r.sale), _esc(nameOf(r.e)), fmtDate(r.buy), money(r.cost), money(r.proc), `<span class="${col(r.gain)}">${sgn(r.gain)}</span>`, chip(r.term), clsSel(r)]);
-      h += panel('Sale lots', tbl(['Sold', 'Holding', 'Bought', 'Cost', 'Sale value', 'Gain', 'Term', 'Tax rule used'], rr));
+      h += panel('Sale lots', tbl(['Sold', 'Holding', 'Bought', 'Cost', 'Sale value', 'Gain', 'Term', 'Tax rule used'], rr), '', true);
     }
 
     // unrealised
@@ -38517,9 +38518,9 @@ body.light-mode .tx-bar select option,body.light-mode .tx-cls option{color:#111}
       return [_esc(nameOf(r.e)), fmtDate(r.buy), money(r.cost), money(r.proc), `<span class="${col(r.gain)}">${sgn(r.gain)}</span>`, chip(r.term), when, r.gain > 0 ? money(est) : '—', clsSel(r)];
     });
     h += panel('If you sold today (unrealised)', (ur.length ? tbl(['Holding', 'Bought', 'Cost', 'Value', 'Gain', 'Term now', 'Long-term from', 'Est. tax', 'Tax rule used'], ur) +
-      '<div class="tx-note">Each row is taxed on its own, so the equity exemption and loss set-off are not applied here. “Long-term from” is the first day the longer holding period is met.</div>' : '<div class="tx-empty">No active holdings with a taxable gain profile.</div>'));
+      '<div class="tx-note">Each row is taxed on its own, so the equity exemption and loss set-off are not applied here. “Long-term from” is the first day the longer holding period is met.</div>' : '<div class="tx-empty">No active holdings with a taxable gain profile.</div>'), '', true);
 
-    h += panel('Rules in force', rulesTable());
+    h += panel('Rules in force', rulesTable(), '', true);
     h += '<div class="tx-note" style="margin-bottom:1rem">Planning estimates, not tax advice. Check figures with a chartered accountant before filing.</div>';
     root.innerHTML = h;
   };
@@ -39060,8 +39061,8 @@ body.light-mode .tx-bar select option,body.light-mode .tx-cls option{color:#111}
   };
 
   /* ── view ── */
-  const panel = (t, b, x) => `<div class="glass-panel" style="margin-bottom:1.1rem;${x || ''}"><div class="panel-title">${t}</div>${b}</div>`;
-  const kpi = (l, v, s) => `<div class="port-kpi-card"><div class="kpi-label">${l}</div><div class="port-kpi-val">${v}</div>${s ? `<div class="pi-sub">${s}</div>` : ''}</div>`;
+  const panel = (t, b, x, nc) => `<div class="glass-panel"${nc ? ' data-no-count' : ''} style="margin-bottom:1.1rem;${x || ''}"><div class="panel-title">${t}</div>${b}</div>`;
+  const kpi = (l, v, s, nc, nl) => `<div class="port-kpi-card"><div class="kpi-label"${nl ? ' data-no-count' : ''}>${l}</div><div class="port-kpi-val">${v}</div>${s ? `<div class="pi-sub"${nc ? ' data-no-count' : ''}>${s}</div>` : ''}</div>`;
   const tbl = (h, r, cls) => `<div class="pi-scroll"><table class="pi-t ${cls || ''}"><thead><tr>${h.map(x => `<th>${x}</th>`).join('')}</tr></thead><tbody>${r.map(x => `<tr${x._c ? ` class="${x._c}"` : ''}>${x.map(c => `<td>${c}</td>`).join('')}</tr>`).join('')}</tbody></table></div>`;
 
   function renderStress() {
@@ -39076,23 +39077,23 @@ body.light-mode .tx-bar select option,body.light-mode .tx-cls option{color:#111}
     if (!R.rows.length) { root.innerHTML = h + panel('Stress test', '<div class="tx-empty">No active holdings yet. Add holdings to the portfolio to see how a shock would hit them.</div>'); return; }
     const d = R.after - R.now, dp = R.now ? d / R.now * 100 : 0;
     h += `<div class="pi-kpis">${kpi('Portfolio value', money(R.now) + ' → ' + money(R.after), 'before → after the shock')}
-      ${kpi('Change', `<span class="${col(d)}">${sgn(d)}</span>`, `<span class="${col(dp)}">${pcs(dp)}</span> of the portfolio`)}
-      ${R.nwNow === null ? '' : kpi('Net worth', money(R.nwAfter), 'from ' + money(R.nwNow) + ' (debts unchanged)')}
-      ${kpi('Cash runway', mo(R.rwAfter), 'was ' + mo(R.rwNow) + (R.out === null ? ' · needs a few months of entries' : ' · income down ' + S.cut + '%'))}</div>`;
+      ${kpi('Change', `<span class="${col(d)}">${sgn(d)}</span>`, `<span class="${col(dp)}">${pcs(dp)}</span> of the portfolio`, true)}
+      ${R.nwNow === null ? '' : kpi('Net worth', money(R.nwAfter), 'from ' + money(R.nwNow) + ' (debts unchanged)', true)}
+      ${kpi('Cash runway', mo(R.rwAfter), 'was ' + mo(R.rwNow) + (R.out === null ? ' · needs a few months of entries' : ' · income down ' + S.cut + '%'), true)}</div>`;
 
     const cr = CLS.filter(c => R.by[c[0]].n).map(c => {
       const o = R.by[c[0]], s = R.sh[c[0]], dd = o.after - o.now;
       return [esc(c[1]) + `<div class="st-sub">${o.n} holding${o.n === 1 ? '' : 's'}</div>`, money(o.now), `<input class="st-in" type="number" step="1" min="-100" max="1000" value="${s}" onchange="stShock('${c[0]}',this.value)"> %`, money(o.after), `<span class="${col(dd)}">${sgn(dd)}</span>`];
     });
     const tr = ['Total', money(R.now), R.now ? pcs(dp) : '0%', money(R.after), sgn(d)]; tr._c = 'tx-hl'; cr.push(tr);
-    h += panel('Effect by asset class', tbl(['Asset class', 'Value now', 'Shock', 'Value after', 'Change'], cr));
+    h += panel('Effect by asset class', tbl(['Asset class', 'Value now', 'Shock', 'Value after', 'Change'], cr), '', true);
 
     const top = R.rows.filter(r => r.d < 0).sort((a, b) => a.d - b.d).slice(0, 6);
-    if (top.length) h += panel('Biggest hits', tbl(['Holding', 'Class', 'Value now', 'Value after', 'Change'], top.map(r => [esc(nameOf(r.e)), esc(CNAME[r.k]), money(r.now), money(r.after), `<span class="pi-dn">${sgn(r.d)}</span>`])));
+    if (top.length) h += panel('Biggest hits', tbl(['Holding', 'Class', 'Value now', 'Value after', 'Change'], top.map(r => [esc(nameOf(r.e)), esc(CNAME[r.k]), money(r.now), money(r.after), `<span class="pi-dn">${sgn(r.d)}</span>`])), '', true);
 
     if (R.props.length) {
       const pr = R.props.map(p => [esc(propName(p.r.rec)), money(p.v1), p.owed > 0 ? money(p.owed) : '—', money(p.e1), money(p.v2), `<span class="${col(p.e2)}">${money(p.e2)}</span>` + (p.e2 < 0 ? ' <span class="tx-chip st">owes more than it is worth</span>' : '')]);
-      h += panel('Property equity', tbl(['Property', 'Value now', 'Loan owed', 'Equity now', 'Value after', 'Equity after'], pr) + '<div class="tx-note">A loan does not shrink when the property’s value falls, so equity moves by more than the value does.</div>');
+      h += panel('Property equity', tbl(['Property', 'Value now', 'Loan owed', 'Equity now', 'Value after', 'Equity after'], pr) + '<div class="tx-note">A loan does not shrink when the property’s value falls, so equity moves by more than the value does.</div>', '', true);
     }
 
     if (R.goals.length) {
