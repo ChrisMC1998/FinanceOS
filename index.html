@@ -5523,6 +5523,7 @@ body.light-mode .tv-min-btn:hover { background:#e2e8f0; color:#0f172a; }
 .pins-main { font-size:.84rem; font-weight:700; color:var(--text-main); margin-top:3px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
 .pins-sub { font-family:'DM Mono',monospace; font-size:.7rem; font-weight:600; margin-top:2px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
 .pins-pl { display:flex; justify-content:space-between; gap:10px; padding:10px 12px; border-radius:12px; border:1px solid var(--glass-border); background:rgba(128,140,150,.06); }
+.pins-pl-metric { cursor:default; }
 .pins-pl-val { font-family:'DM Mono',monospace; font-size:1rem; font-weight:700; margin-top:2px; }
 body:not(.light-mode) .pins-tile, body:not(.light-mode) .pins-pl { background: var(--t-inset-bg); border-color: var(--t-border); }
 body:not(.light-mode) .pins-bar { background: rgba(180,220,218,.08); }
@@ -8978,7 +8979,7 @@ function passAppLockGate() {
                 <th></th>
               </tr>
             </thead>
-            <tbody id="port-table-body"></tbody>
+            <tbody id="port-table-body" data-no-count></tbody>
           </table>
         </div>
       </div>
@@ -8986,7 +8987,7 @@ function passAppLockGate() {
       <div class="glass-panel" id="port-summary-panel">
         <div class="panel-title">Summary by Asset Type</div>
         <div class="port-table-wrap">
-          <table class="port-table" id="port-summary-table">
+          <table class="port-table" id="port-summary-table" data-no-count>
             <thead>
               <tr>
                 <th>Asset Type</th>
@@ -18331,20 +18332,20 @@ function renderPortInsights(data, typeKeys, byTypeVal) {
     </div>`;
 
   el.innerHTML = `
-    <div class="pins-alloc">
+    <div class="pins-alloc" data-no-count>
       <div class="pins-cap" style="display:flex;justify-content:space-between"><span>Allocation by value</span><span>${parts.length} class${parts.length === 1 ? '' : 'es'}</span></div>
       <div class="pins-bar">${bar}</div>
       <div class="pins-legend">${legend}</div>
     </div>
-    <div class="pins-grid">
+    <div class="pins-grid" data-no-count>
       ${tile('Largest holding', top ? assetTypeLabel(top.k) : '—', top ? (top.v / partsTotal * 100).toFixed(1) + '% of portfolio' : '', top ? assetColor(top.k) : '')}
       ${tile('Best performer', label(best.e), pct(best.c.roi), col(best.c.roi))}
       ${tile('Weakest performer', label(worst.e), pct(worst.c.roi), col(worst.c.roi))}
       ${tile('Holdings', `${active.length} active`, `${sold.length} sold`)}
     </div>
     <div class="pins-pl">
-      <div><div class="pins-cap">Unrealized P/L</div><div class="pins-pl-val" style="color:${col(unreal)}">${money(unreal)}</div></div>
-      <div style="text-align:right"><div class="pins-cap">Realized P/L</div><div class="pins-pl-val" style="color:${col(real)}">${money(real)}</div></div>
+      <div class="pins-pl-metric"><div class="pins-cap">Unrealized P/L</div><div class="pins-pl-val" style="color:${col(unreal)}">${money(unreal)}</div></div>
+      <div style="text-align:right" data-no-count><div class="pins-cap">Realized P/L</div><div class="pins-pl-val" style="color:${col(real)}">${money(real)}</div></div>
     </div>`;
 }
 
@@ -37916,9 +37917,9 @@ body.light-mode .adm-toast{background:#e0f7fc;color:#06303c}body.light-mode .adm
     return { score: Math.round(parts.reduce((s, p) => s + p[1] * Math.max(0, p[2]) / 100, 0)), parts, risk, top, effN, liq, fgn };
   }
   function mk(id, cfg) { const c = $(id); if (!c) return; destroyChart(id); charts[id] = new Chart(c.getContext('2d'), cfg); }
-  const panel = (t, b, x) => `<div class="glass-panel" style="margin-bottom:1.1rem;${x || ''}"><div class="panel-title">${t}</div>${b}</div>`;
-  const kpi = (l, v, s) => `<div class="port-kpi-card"><div class="kpi-label">${l}</div><div class="port-kpi-val">${v}</div>${s ? `<div class="pi-sub">${s}</div>` : ''}</div>`;
-  const tbl = (h, r) => `<div class="pi-scroll"><table class="pi-t"><thead><tr>${h.map(x => `<th>${x}</th>`).join('')}</tr></thead><tbody>${r.map(x => `<tr>${x.map(c => `<td>${c}</td>`).join('')}</tr>`).join('')}</tbody></table></div>`;
+  const panel = (t, b, x, nc) => `<div class="glass-panel"${nc ? ' data-no-count' : ''} style="margin-bottom:1.1rem;${x || ''}"><div class="panel-title">${t}</div>${b}</div>`;
+  const kpi = (l, v, s, nc) => `<div class="port-kpi-card"><div class="kpi-label">${l}</div><div class="port-kpi-val">${v}</div>${s ? `<div class="pi-sub"${nc ? ' data-no-count' : ''}>${s}</div>` : ''}</div>`;
+  const tbl = (h, r, nc) => `<div class="pi-scroll"${nc ? ' data-no-count' : ''}><table class="pi-t"><thead><tr>${h.map(x => `<th>${x}</th>`).join('')}</tr></thead><tbody>${r.map(x => `<tr>${x.map(c => `<td>${c}</td>`).join('')}</tr>`).join('')}</tbody></table></div>`;
 
   // ── target allocation & rebalancing ──
   const TKEY = 'fos_port_targets_v1', tg = () => { try { return JSON.parse(localStorage.getItem(TKEY)) || {}; } catch (x) { return {}; } };
@@ -37946,7 +37947,7 @@ body.light-mode .adm-toast{background:#e0f7fc;color:#06303c}body.light-mode .adm
         <button class="pi-tab" onclick="piTgtNorm()">Normalize to 100%</button><button class="pi-tab" onclick="piTgtClear()">Clear</button></div>`
       + (has && Math.abs(sumT - 100) > 0.05 ? `<div class="pi-hint" style="color:#f59e0b">Targets add up to ${sumT.toFixed(1)}% — they should total 100%.</div>` : '')
       + (has ? '<div style="height:200px;margin:.6rem 0"><canvas id="pi-tgt"></canvas></div>' : '<div class="pi-sub">Set a target % per class (for example Stocks 50, Gold 20). Drift and the amounts to add or trim appear here.</div>')
-      + tbl(['Class', 'Current', 'Target %', 'Drift', 'To reach target', 'New-money plan'], rows)
+      + tbl(['Class', 'Current', 'Target %', 'Drift', 'To reach target', 'New-money plan'], rows, true)
       + '<div class="pi-sub">“To reach target” assumes you rebalance within the current total. “New-money plan” spreads the amount you enter across underweight classes without selling anything.</div>');
   }
   function mkTargets() {
@@ -37969,28 +37970,28 @@ body.light-mode .adm-toast{background:#e0f7fc;color:#06303c}body.light-mode .adm
     const inc = income(all), incT = Object.values(inc).reduce((s, x) => s + x, 0);
     const H = act.length ? health(act, tot) : null;
     const g = { class: r => assetTypeLabel(r.t), geography: geo, sector: sec, instrument: ins, risk: riskLbl }, G = grp(act, g[tab]);
-    let h = `<div class="pi-kpis">${kpi('Portfolio value', fmt(tot), 'Invested ' + fmt(inv))}${kpi('Absolute return', `<span class="${cls(val - inv)}">${pc(inv ? (val - inv) / inv * 100 : 0)}</span>`, fmt(val - inv) + (incAll ? ' incl. income' : ''))}${kpi('XIRR', X === null ? '—' : `<span class="${cls(X)}">${pc(X)}</span>`, 'money-weighted, annualised')}${kpi('CAGR', CG === null ? '—' : `<span class="${cls(CG)}">${pc(CG)}</span>`, 'cost-weighted holding period')}${kpi('Est. passive income', fmt(incT), 'per year · ' + fmt(incT / 12) + '/mo')}${H ? kpi('Health score', `<span style="color:${H.score >= 70 ? '#34d399' : H.score >= 45 ? '#f59e0b' : '#f43f5e'}">${H.score}/100</span>`, 'risk level ' + H.risk.toFixed(1) + '/5') : ''}</div>`;
+    let h = `<div class="pi-kpis">${kpi('Portfolio value', fmt(tot), 'Invested ' + fmt(inv), true)}${kpi('Absolute return', `<span class="${cls(val - inv)}">${pc(inv ? (val - inv) / inv * 100 : 0)}</span>`, fmt(val - inv) + (incAll ? ' incl. income' : ''), true)}${kpi('XIRR', X === null ? '—' : `<span class="${cls(X)}">${pc(X)}</span>`, 'money-weighted, annualised')}${kpi('CAGR', CG === null ? '—' : `<span class="${cls(CG)}">${pc(CG)}</span>`, 'cost-weighted holding period')}${kpi('Est. passive income', fmt(incT), 'per year · ' + fmt(incT / 12) + '/mo')}${H ? kpi('Health score', `<span style="color:${H.score >= 70 ? '#34d399' : H.score >= 45 ? '#f59e0b' : '#f43f5e'}">${H.score}/100</span>`, 'risk level ' + H.risk.toFixed(1) + '/5') : ''}</div>`;
     // allocation
     h += panel('Asset allocation', `<div class="pi-tabs">${['class','geography','sector','instrument','risk'].map(t => `<button class="pi-tab${t === tab ? ' on' : ''}" onclick="piTab('${t}')">${t[0].toUpperCase() + t.slice(1)}</button>`).join('')}</div>
-      <div class="pi-two"><div style="height:240px"><canvas id="pi-alloc"></canvas></div>${tbl(['Name','Value','Share','Return'], G.map(x => [_esc(x.k), fmt(x.v), (x.v / tot * 100).toFixed(1) + '%', `<span class="${cls(x.v - x.i)}">${pc(x.i ? (x.v - x.i) / x.i * 100 : 0)}</span>`]))}</div>${tab === 'sector' ? '<div class="pi-sub">Sector uses a holding’s sector / index-tracked field when present, else its sub-category.</div>' : ''}`);
+      <div class="pi-two"><div style="height:240px"><canvas id="pi-alloc"></canvas></div>${tbl(['Name','Value','Share','Return'], G.map(x => [_esc(x.k), fmt(x.v), (x.v / tot * 100).toFixed(1) + '%', `<span class="${cls(x.v - x.i)}">${pc(x.i ? (x.v - x.i) / x.i * 100 : 0)}</span>`]), true)}</div>${tab === 'sector' ? '<div class="pi-sub">Sector uses a holding’s sector / index-tracked field when present, else its sub-category.</div>' : ''}`);
     h += targetsPanel(act, tot);
     // concentration + health
     if (H) {
       const top5 = [...act].sort((a, b) => b.c.currentValue - a.c.currentValue).slice(0, 5), cl = grp(act, r => r.t), hhi = Math.round(cl.reduce((s, x) => s + Math.pow(x.v / tot * 100, 2), 0));
       const flags = []; if (H.top > 25) flags.push('One holding is ' + H.top.toFixed(0) + '% of the portfolio.'); if (cl[0].v / tot > .5) flags.push(cl[0].k + ' is ' + (cl[0].v / tot * 100).toFixed(0) + '% of the portfolio.'); if (H.liq < .15) flags.push('Under 15% is reachable within 30 days.'); if (H.fgn === 0) flags.push('No exposure outside the home market.'); if (!incT) flags.push('No income-generating holdings recorded (add yield / rate / rent fields).');
-      h += `<div class="pi-two">${panel('Diversification & concentration', top5.map(r => `<div class="pi-bar"><span>${_esc(r.e.subType || assetTypeLabel(r.t))}</span><i style="width:${Math.min(100, r.c.currentValue / tot * 100)}%"></i><b>${(r.c.currentValue / tot * 100).toFixed(1)}%</b></div>`).join('') + `<div class="pi-sub" style="margin-top:.6rem">Class-level HHI ${hhi} (below 2,500 is healthy) · ${H.effN.toFixed(1)} effective classes</div>` + (flags.length ? `<ul class="pi-fl">${flags.map(f => `<li>${f}</li>`).join('')}</ul>` : '<div class="pi-sub">No concentration flags.</div>'), 'margin-bottom:0')}
-        ${panel('Risk exposure & health score', H.parts.map(p => `<div class="pi-bar"><span>${p[0]} <small>(${p[1]}%)</small></span><i style="width:${Math.max(2, p[2])}%;background:${p[2] >= 70 ? '#34d399' : p[2] >= 45 ? '#f59e0b' : '#f43f5e'}"></i><b>${Math.round(p[2])}</b></div><div class="pi-sub pi-note">${p[3]}</div>`).join(''), 'margin-bottom:0')}</div><div style="height:1.1rem"></div>`;
+      h += `<div class="pi-two">${panel('Diversification & concentration', top5.map(r => `<div class="pi-bar"><span>${_esc(r.e.subType || assetTypeLabel(r.t))}</span><i style="width:${Math.min(100, r.c.currentValue / tot * 100)}%"></i><b>${(r.c.currentValue / tot * 100).toFixed(1)}%</b></div>`).join('') + `<div class="pi-sub" style="margin-top:.6rem">Class-level HHI ${hhi} (below 2,500 is healthy) · ${H.effN.toFixed(1)} effective classes</div>` + (flags.length ? `<ul class="pi-fl">${flags.map(f => `<li>${f}</li>`).join('')}</ul>` : '<div class="pi-sub">No concentration flags.</div>'), 'margin-bottom:0', true)}
+        ${panel('Risk exposure & health score', H.parts.map(p => `<div class="pi-bar"><span data-no-count>${p[0]} <small>(${p[1]}%)</small></span><i style="width:${Math.max(2, p[2])}%;background:${p[2] >= 70 ? '#34d399' : p[2] >= 45 ? '#f59e0b' : '#f43f5e'}"></i><b>${Math.round(p[2])}</b></div><div class="pi-sub pi-note" data-no-count>${p[3]}</div>`).join(''), 'margin-bottom:0')}</div><div style="height:1.1rem"></div>`;
     }
     // returns
     h += panel('Returns vs benchmark', `<div class="pi-bm">Benchmark return <input type="number" step="0.5" min="0" value="${b}" onchange="localStorage.setItem('fos_pi_bench',this.value);renderPortIntel()"> % p.a. (set your index’s long-run return)</div>` + (() => {
       const bmV = flows(all).filter(f => f.a < 0).reduce((s, f) => s + -f.a * Math.pow(1 + b / 100, yrs(f.d, today())), 0);
-      return tbl(['Measure','Portfolio','Benchmark','Difference'], [['XIRR', X === null ? '—' : pc(X), pc(b), X === null ? '—' : `<span class="${cls(X - b)}">${pc(X - b)}</span>`], ['Value on same cash flows', fmt(val), fmt(bmV), `<span class="${cls(val - bmV)}">${fmt(val - bmV)}</span>`]]);
+      return tbl(['Measure','Portfolio','Benchmark','Difference'], [['XIRR', X === null ? '—' : pc(X), pc(b), X === null ? '—' : `<span class="${cls(X - b)}">${pc(X - b)}</span>`], ['Value on same cash flows', fmt(val), fmt(bmV), `<span class="${cls(val - bmV)}">${fmt(val - bmV)}</span>`]], true);
     })());
     // realized vs unrealized
     const lt = (r) => yrs(new Date(r.e.date), r.sold && r.e.sellDate ? new Date(r.e.sellDate) : today()) >= 1, sum = (a, f) => a.reduce((s, r) => s + f(r), 0);
     h += panel('Realized vs unrealized', tbl(['','Holdings','Cost','Value','Profit / loss','Short-term (<1y)','Long-term (1y+)'], [
       ['Realized (sold)', sold.length, fmt(sum(sold, r => r.c.totalInvestment)), fmt(sum(sold, r => r.c.currentValue)), `<b class="${cls(rea)}">${fmt(rea)}</b>`, fmt(sum(sold.filter(r => !lt(r)), r => r.c.gainLoss)), fmt(sum(sold.filter(lt), r => r.c.gainLoss))],
-      ['Unrealized (held)', act.length, fmt(sum(act, r => r.c.totalInvestment)), fmt(tot), `<b class="${cls(unr)}">${fmt(unr)}</b>`, fmt(sum(act.filter(r => !lt(r)), r => r.c.gainLoss)), fmt(sum(act.filter(lt), r => r.c.gainLoss))]]) + '<div class="pi-sub">Holding-period split is informational; it is not tax advice.</div>');
+      ['Unrealized (held)', act.length, fmt(sum(act, r => r.c.totalInvestment)), fmt(tot), `<b class="${cls(unr)}">${fmt(unr)}</b>`, fmt(sum(act.filter(r => !lt(r)), r => r.c.gainLoss)), fmt(sum(act.filter(lt), r => r.c.gainLoss))]], true) + '<div class="pi-sub">Holding-period split is informational; it is not tax advice.</div>');
     // income
     const rc = receivedByKind(all), kinds = [...new Set(Object.keys(inc).concat(Object.keys(rc.y12), Object.keys(rc.all)))], tsum = o => Object.values(o).reduce((x, y) => x + y, 0);
     h += panel('Passive income — estimated vs received', `<div class="pi-two"><div style="height:200px"><canvas id="pi-inc"></canvas></div>${tbl(['Source','Estimated / yr','Received (12m)','Received (all)'], kinds.map(k => [k, fmt(inc[k] || 0), fmt(rc.y12[k] || 0), fmt(rc.all[k] || 0)]).concat(kinds.length ? [['<b>Total</b>', `<b>${fmt(incT)}</b>`, `<b>${fmt(tsum(rc.y12))}</b>`, `<b>${fmt(tsum(rc.all))}</b>`]] : []))}</div><div class="pi-sub">Estimates come from yield, rate and rent fields. “Received” is what you logged on each holding (open a holding → Income received) and is included in XIRR, CAGR and total return.</div>`);
@@ -38005,7 +38006,7 @@ body.light-mode .adm-toast{background:#e0f7fc;color:#06303c}body.light-mode .adm
         const t = localISO(new Date(Date.now() - d * DAY)), P = [...hs].reverse().find(x => x.D <= t);
         if (!P || !P.V) return [n, '—', '—']; const adj = (L.V - P.V - (L.I - P.I)) / P.V * 100; return [n, fmt(P.V), `<span class="${cls(adj)}">${pc(adj)}</span>`];
       });
-      return tbl(['Period back','Value then','Return since (net of new money)'], rowsH) + '<div class="pi-sub">Built from each holding’s valuation history; a holding with no earlier valuations is held at purchase value until its first update.</div>';
+      return tbl(['Period back','Value then','Return since (net of new money)'], rowsH, true) + '<div class="pi-sub">Built from each holding’s valuation history; a holding with no earlier valuations is held at purchase value until its first update.</div>';
     })());
     root.innerHTML = h;
     if (G.length) mk('pi-alloc', { type: 'doughnut', data: { labels: G.map(x => x.k), datasets: [{ data: G.map(x => x.v), backgroundColor: COL, borderWidth: 0 }] }, options: { maintainAspectRatio: false, cutout: '62%', plugins: { legend: { position: 'right', labels: { boxWidth: 10 } } } } });
