@@ -9328,7 +9328,7 @@ function passAppLockGate() {
         </div>
       </div>
       <div class="ins-table-wrap">
-        <table class="port-table ins-table" id="ins-portfolio-table">
+        <table class="port-table ins-table" id="ins-portfolio-table" data-no-count>
           <thead>
             <tr>
               <th onclick="sortInsurance('policy')">Policy <i class="sort-arrow">▾</i></th>
@@ -9400,7 +9400,7 @@ function passAppLockGate() {
       <div class="ins-section-title"><i class="fas fa-satellite-dish"></i> Renewal Radar</div>
       <div class="sub-bucket-row" id="sub-renewal-buckets"></div>
       <div class="ins-table-wrap">
-        <table class="port-table ins-table" id="sub-radar-table">
+        <table class="port-table ins-table" id="sub-radar-table" data-no-count>
           <thead><tr><th>Subscription</th><th>Amount</th><th>Billing Date</th><th>Payment Source</th><th>Auto-Renew</th></tr></thead>
           <tbody id="sub-radar-body"></tbody>
         </table>
@@ -9427,7 +9427,7 @@ function passAppLockGate() {
 
       <!-- Subscription list -->
       <div class="ins-section-title"><i class="fas fa-list"></i> All Subscriptions</div>
-      <div id="sub-card-grid" class="sub-card-grid"></div>
+      <div id="sub-card-grid" class="sub-card-grid" data-no-count></div>
 
       <div class="ins-empty" id="sub-empty" style="display:none">
         <i class="fas fa-sync-alt" style="font-size:2.2rem;opacity:0.2;display:block;margin-bottom:10px"></i>
@@ -25772,9 +25772,9 @@ function renderInsurance() {
         .sort((a,b) => daysUntil(a.endDate) - daysUntil(b.endDate));
       return `
         <div class="ins-expiry-card">
-          <div class="ins-kpi-label">Expiring within ${threshold} days</div>
+          <div class="ins-kpi-label" data-no-count>Expiring within ${threshold} days</div>
           <div class="ins-expiry-count" style="color:${items.length ? '#f59e0b' : 'inherit'}">${items.length}</div>
-          <div class="ins-expiry-list">${items.slice(0,5).map(p => `
+          <div class="ins-expiry-list" data-no-count>${items.slice(0,5).map(p => `
             <div class="ins-expiry-item" onclick="editInsuranceEntry(${p.id})">
               <b>${insLabelOf(p)}${p.vehicle && p.vehicle.regNumber ? ' · ' + p.vehicle.regNumber : ''}</b>
               <span>Expires ${p.endDate} · ${daysUntil(p.endDate)} day${daysUntil(p.endDate) === 1 ? '' : 's'} remaining</span>
