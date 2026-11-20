@@ -37555,7 +37555,7 @@ body.light-mode .adm-toast{background:#e0f7fc;color:#06303c}body.light-mode .adm
   var S = { tab: 'overview', filter: '', modOnly: false, gate: null, fails: 0, until: 0, last: Date.now(), ok: false, built: {}, pv: null, month: null, openG: {} };
   var TABS = [
     ['overview', 'Overview', 'fa-gauge-high', 1], ['lab', 'Calculation Lab', 'fa-flask', 1], ['formula', 'Formula Studio', 'fa-square-root-variable', 1], ['chart', 'Chart Studio', 'fa-chart-pie', 1],
-    ['rules', 'Insight & Alert Rules', 'fa-bell', 1], ['unlocks', 'Unlocks & Streaks', 'fa-unlock', 1], ['data', 'Data Manager', 'fa-table', 1], ['tax', 'Taxonomy', 'fa-tags', 0],
+    ['rules', 'Insight & Alert Rules', 'fa-bell', 1], ['unlocks', 'Unlocks & Streaks', 'fa-unlock', 1], ['data', 'Data Manager', 'fa-table', 1], ['tax', 'Taxonomy', 'fa-tags', 1],
     ['port', 'Portfolio & Credit', 'fa-briefcase', 0], ['theme', 'Layout & Theme', 'fa-palette', 0], ['flags', 'Feature Flags', 'fa-toggle-on', 0], ['integrity', 'Integrity Checker', 'fa-shield-halved', 0],
     ['backups', 'Backups & Versions', 'fa-clock-rotate-left', 1], ['audit', 'Audit Log', 'fa-list-check', 1], ['dev', 'Developer Tools', 'fa-terminal', 0]
   ];
@@ -37600,11 +37600,12 @@ body.light-mode .adm-toast{background:#e0f7fc;color:#06303c}body.light-mode .adm
   }
   function body() {
     var b = document.getElementById('adm-body'); if (!b) return; var t = S.tab;
-    try { b.innerHTML = t === 'overview' ? overview() : t === 'lab' ? lab() : t === 'backups' ? backups() : t === 'audit' ? auditTab() : (t === 'formula' && window.FOS_FORMULA_STUDIO) ? window.FOS_FORMULA_STUDIO.html() : (t === 'chart' && window.FOS_CHART_STUDIO) ? window.FOS_CHART_STUDIO.html() : (t === 'rules' && window.FOS_RULES) ? window.FOS_RULES.html() : (t === 'unlocks' && window.FOS_UNLOCKS) ? window.FOS_UNLOCKS.html() : (t === 'data' && window.FOS_DATA) ? window.FOS_DATA.html() : planned(t); } catch (e) { console.error('Admin tab failed:', e); b.innerHTML = '<div class="set-card"><b>This tab failed to load.</b><div class="adm-muted">' + E(e.message) + '</div></div>'; }
+    try { b.innerHTML = t === 'overview' ? overview() : t === 'lab' ? lab() : t === 'backups' ? backups() : t === 'audit' ? auditTab() : (t === 'formula' && window.FOS_FORMULA_STUDIO) ? window.FOS_FORMULA_STUDIO.html() : (t === 'chart' && window.FOS_CHART_STUDIO) ? window.FOS_CHART_STUDIO.html() : (t === 'rules' && window.FOS_RULES) ? window.FOS_RULES.html() : (t === 'unlocks' && window.FOS_UNLOCKS) ? window.FOS_UNLOCKS.html() : (t === 'data' && window.FOS_DATA) ? window.FOS_DATA.html() : (t === 'tax' && window.FOS_TAXONOMY) ? window.FOS_TAXONOMY.html() : planned(t); } catch (e) { console.error('Admin tab failed:', e); b.innerHTML = '<div class="set-card"><b>This tab failed to load.</b><div class="adm-muted">' + E(e.message) + '</div></div>'; }
     if (t === 'lab') labPreview();
     if (t === 'rules' && window.FOS_RULES) { try { window.FOS_RULES.after(); } catch (e) { console.error('Rules failed:', e); } }
     if (t === 'unlocks' && window.FOS_UNLOCKS) { try { window.FOS_UNLOCKS.after(); } catch (e) { console.error('Unlocks failed:', e); } }
     if (t === 'data' && window.FOS_DATA) { try { window.FOS_DATA.after(); } catch (e) { console.error('Data failed:', e); } }
+    if (t === 'tax' && window.FOS_TAXONOMY) { try { window.FOS_TAXONOMY.after(); } catch (e) { console.error('Taxonomy failed:', e); } }
     if (t === 'chart' && window.FOS_CHART_STUDIO) { try { window.FOS_CHART_STUDIO.after(); } catch (e) { console.error('Chart Studio failed:', e); } }
     if (t === 'formula' && window.FOS_FORMULA_STUDIO) { try { window.FOS_FORMULA_STUDIO.after(); } catch (e) { console.error('Formula Studio failed:', e); } }
   }
@@ -39629,6 +39630,348 @@ body.light-mode #adm-root{--fs-ok:#059669;--fs-bad:#dc2626;--fs-warn:#b45309}
   function after() { wire(); updCounts(); }
 
   window.FOS_DATA = { html: html, after: after, scan: scan, parseCsv: parseCsv, normDate: normDate, normAmt: normAmt, undo: doUndo };
+  wire();
+})();
+</script>
+<style id="fos-taxonomy-style">
+.tm-wrap{display:flex;flex-direction:column;gap:14px}
+.tm-note{min-height:1.2em;font-size:.8rem;color:var(--fs-ok,#34d399)}.tm-note.bad{color:var(--fs-bad,#f87171)}
+.tm-tiles{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:10px;margin-bottom:12px}
+.tm-tile{display:flex;flex-direction:column;gap:2px;padding:10px 12px;border:1px solid var(--adm-line);border-radius:12px}.tm-tile.warn{border-color:var(--fs-warn,#fbbf24)}
+.tm-tile span{font-size:.68rem;color:var(--text-muted);font-weight:700;text-transform:uppercase;letter-spacing:.04em}.tm-tile b{font-size:1.25rem}.tm-tile small{font-size:.68rem;color:var(--text-muted)}
+.tm-subs,.tm-seg{display:flex;gap:6px;flex-wrap:wrap;margin:6px 0 14px}
+.tm-subb,.tm-segb{border:1px solid var(--adm-line);background:none;color:inherit;border-radius:99px;padding:6px 14px;font-size:.8rem;font-weight:700;cursor:pointer}
+.tm-subb.on,.tm-segb.on{border-color:var(--adm-a);color:var(--adm-a)}.tm-segb span{opacity:.6;font-weight:600;margin-left:4px}
+.tm-bar{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:10px}.tm-bar>input{flex:1;min-width:180px}.tm-addw{display:flex;gap:6px;flex:1;min-width:240px}.tm-addw input{flex:1}
+.tm-cat{border:1px solid var(--adm-line);border-radius:12px;margin-bottom:8px}.tm-cat.off .tm-nm{opacity:.55}
+.tm-row{display:flex;gap:8px;align-items:center;flex-wrap:wrap;padding:8px 10px}
+.tm-caret{border:0;background:none;color:inherit;cursor:pointer;width:26px;height:26px;border-radius:8px}.tm-caret:hover{background:var(--adm-line)}
+.tm-nm{font-size:.9rem}.tm-m{font-size:.72rem;color:var(--text-muted);margin-left:auto}
+.tm-acts{display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end}
+.tm-tag{font-size:.6rem;font-weight:800;padding:1px 6px;border-radius:99px;border:1px solid var(--adm-line);color:var(--text-muted)}
+.tm-sub{border-top:1px solid var(--adm-line);padding:8px 10px 10px 44px;display:flex;flex-direction:column;gap:6px}
+.tm-srow{display:flex;gap:8px;align-items:center;flex-wrap:wrap}.tm-srow.off .tm-snm{opacity:.55}.tm-snm{font-size:.84rem}
+.tm-addsub{display:flex;gap:6px;align-items:center;max-width:420px}.tm-addsub input,.tm-addsub select{flex:1}
+.tm-edit{display:flex;gap:6px;align-items:center;flex:1;min-width:220px}.tm-edit input,.tm-edit select{flex:1}
+.tm-merge{display:flex;flex-direction:row;flex-wrap:wrap;align-items:center;gap:8px}
+.tm-kws{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:14px;margin-top:14px}
+.tm-kw{border:1px solid var(--adm-line);border-radius:12px;padding:10px 12px;display:flex;flex-direction:column;gap:8px}
+.tm-kwh{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.tm-chips{display:flex;gap:6px;flex-wrap:wrap;max-height:170px;overflow:auto}
+.tm-chip{display:inline-flex;gap:6px;align-items:center;border:1px solid var(--adm-line);border-radius:99px;padding:2px 4px 2px 10px;font-size:.76rem}
+.tm-chip button{border:0;background:none;color:var(--text-muted);cursor:pointer;border-radius:99px;width:20px;height:20px}.tm-chip button:hover{color:var(--fs-bad,#f87171)}
+.tm-ctbl td,.tm-ctbl th{text-align:left}
+@media(max-width:560px){.tm-m{margin-left:0;flex-basis:100%}.tm-sub{padding-left:14px}}
+</style>
+<script id="fos-taxonomy">
+/* ═══════════════════════════════════════════════════════════════════════
+   FOS ADMIN · TAXONOMY
+   How your money is labelled. Works on the app's own master lists (fos_master_v1),
+   tags (fos_custom_tags) and the FinAI essential/discretionary labels, so everything you
+   change here shows up in the entry form, reports and FinAI straight away.
+     · Categories & sub-categories: add, rename, switch off, merge, delete (when unused)
+     · Classification: essential / discretionary per category, plus the keyword lists
+     · Tags: usage, add/remove suggestions, rename, merge, remove from transactions
+     · Payments & types: payment-method clean-up, which transaction types count as
+       income / expense / EMI / investment
+     · Health: uncategorised entries, missing or empty categories, look-alike names,
+       taxonomy export / import
+   Changes that rewrite transactions keep one undo copy ('fos_admin_tax_undo_v1').
+   ═══════════════════════════════════════════════════════════════════════ */
+(function () {
+  'use strict';
+  if (window.FOS_TAXONOMY) return;
+  var C = window.FOS_CONFIG; if (!C) return;
+  var UNDO = 'fos_admin_tax_undo_v1', LOGK = 'fos_admin_tax_log_v1';
+  var TYPES = ['Expense', 'Income', 'Investment', 'Loan'];
+  var SUBS = [['cats', 'Categories'], ['class', 'Classification'], ['tags', 'Tags'], ['pay', 'Payments & types'], ['health', 'Health & backup']];
+  var ROLES = [['income', 'Income'], ['expense', 'Expense'], ['emi', 'EMI'], ['invest', 'Investment']];
+  var S = { sub: 'cats', type: 'Expense', open: {}, edit: null, q: '', msg: '', bad: false };
+
+  function E(s) { try { return _esc(s); } catch (e) { return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]; }); } }
+  function $(id) { return document.getElementById(id); }
+  function K(s) { return fosKey(s); }
+  function J(k, d) { try { var v = JSON.parse(localStorage.getItem(k)); return v == null ? d : v; } catch (e) { return d; } }
+  function M() { return fosM(); }
+  function rows() { try { return Array.isArray(db) ? db : []; } catch (e) { return []; } }
+  function catOf(r) { return fosClean(r.category || r.sub); }
+  function money(n) { try { return fmt(n); } catch (e) { return String(Math.round(n)); } }
+  function log(m) { var a = J(LOGK, []); if (!Array.isArray(a)) a = []; a.push({ ts: new Date().toISOString(), msg: m }); try { localStorage.setItem(LOGK, JSON.stringify(a.slice(-30))); } catch (e) { } }
+
+  /* ── undo ───────────────────────────────────────────────────────────── */
+  function labels() { try { if (!gameStats || typeof gameStats !== 'object') gameStats = {}; if (!gameStats.labels || typeof gameStats.labels !== 'object') gameStats.labels = {}; return gameStats.labels; } catch (e) { return {}; } }
+  function snap(label, withDb) {
+    var o = { ts: new Date().toISOString(), label: label, master: M(), budgets: (typeof budgets === 'object' ? budgets : {}), tags: (typeof customTagsList !== 'undefined' ? customTagsList : []), labels: labels(), db: withDb ? rows() : null };
+    try { localStorage.setItem(UNDO, JSON.stringify(o)); return true; } catch (e) { return false; }
+  }
+  function undoInfo() { var u = J(UNDO, null); return u && u.master ? u : null; }
+  function saveGs() { try { localStorage.setItem('fos_game_stats', JSON.stringify(gameStats)); } catch (e) { } }
+  function saveAll(dbToo) {
+    try { fosSave(); } catch (e) { }
+    try { localStorage.setItem('fos_budgets', JSON.stringify(budgets)); } catch (e) { }
+    try { localStorage.setItem('fos_custom_tags', JSON.stringify(customTagsList)); } catch (e) { }
+    saveGs(); if (dbToo) { try { localStorage.setItem('fos_db_v3', JSON.stringify(db)); } catch (e) { } }
+  }
+  function after(dbToo) {
+    saveAll(dbToo);
+    try { var f = window.FOS_FORMULA_STUDIO; if (f && f.clearCache) f.clearCache(); } catch (e) { }
+    try { TAG_SUGGESTIONS_LIST = Array.from(new Set(['essential', 'emi', 'festival', 'travel', 'medical', 'online', 'cash', 'recurring', 'one-time', 'family', 'work', 'gift', 'urgent', 'planned'].concat(customTagsList))); renderSettingsTags(); } catch (e) { }
+    try { scheduleSave(); } catch (e) { } try { _afterEntrySaved(); } catch (e) { }
+    try { if (typeof renderFinAI === 'function' && $('view-finai') && $('view-finai').offsetParent) renderFinAI(); } catch (e) { }
+  }
+  function doUndo() {
+    var u = undoInfo(); if (!u) return say('Nothing to undo.', true); if (!confirm('Undo "' + u.label + '"?')) return;
+    try {
+      fosMaster = u.master; if (u.db) { db = u.db; localStorage.setItem('fos_db_v3', JSON.stringify(db)); }
+      budgets = u.budgets || {}; customTagsList = u.tags || []; if (gameStats && typeof gameStats === 'object') gameStats.labels = u.labels || {};
+    } catch (e) { return say('Undo failed: ' + e.message, true); }
+    try { localStorage.removeItem(UNDO); } catch (e) { } after(!!u.db); log('Undid "' + u.label + '"'); S.edit = null; repaint(); say('Undone.');
+  }
+  function run(label, withDb, fn) {
+    if (!snap(label, withDb)) return say('Not enough browser storage to keep an undo copy. Export a backup from Data Manager first.', true);
+    var err = ''; try { err = fn() || ''; } catch (e) { err = e.message || String(e); }
+    if (err) { try { localStorage.removeItem(UNDO); } catch (x) { } repaint(); return say(err, true); }
+    after(withDb); log(label); S.edit = null; repaint(); say(label + '. You can undo this.');
+  }
+
+  /* ── numbers ────────────────────────────────────────────────────────── */
+  function stats() {
+    var cat = {}, sub = {}, tag = {}, pay = {}, unc = 0, ct = {};
+    rows().forEach(function (r) {
+      if (!r) return; var c = catOf(r), a = Number(r.amount) || 0, k = r.type + '|' + K(c);
+      if (c) { var e = cat[k] || (cat[k] = { n: 0, amt: 0 }); e.n++; e.amt += a; if (r.subcategory) { var sk = k + '|' + K(r.subcategory), s = sub[sk] || (sub[sk] = { n: 0, amt: 0 }); s.n++; s.amt += a; } } else if (TYPES.indexOf(r.type) >= 0) unc++;
+      (Array.isArray(r.tags) ? r.tags : []).forEach(function (t) { t = String(t).trim(); if (t) { var e2 = tag[t] || (tag[t] = { n: 0 }); e2.n++; } });
+      if (r.pay) { var p = String(r.pay), e3 = pay[p] || (pay[p] = { n: 0, amt: 0 }); e3.n++; e3.amt += a; }
+      ct[r.type] = (ct[r.type] || 0) + 1;
+    });
+    return { cat: cat, sub: sub, tag: tag, pay: pay, unc: unc, types: ct };
+  }
+  function effLabel(catName) {
+    var o = labels()['c:' + finaiNorm(catName)]; if (o === 'essential' || o === 'discretionary') return { v: o, src: 'you' };
+    var v = 'uncertain'; try { v = finaiClassifyExpense({ sub: catName, name: '' }); } catch (e) { } return { v: v, src: v === 'uncertain' ? '' : 'keywords' };
+  }
+
+  /* ── rendering helpers ──────────────────────────────────────────────── */
+  function say(m, bad) { S.msg = m || ''; S.bad = !!bad; var el = $('tm-note'); if (el) { el.textContent = S.msg; el.className = 'tm-note' + (bad ? ' bad' : ''); el.setAttribute('role', bad ? 'alert' : 'status'); } clearTimeout(say._t); if (m) say._t = setTimeout(function () { S.msg = ''; var e = $('tm-note'); if (e) e.textContent = ''; }, 9000); }
+  function btn(a, label, extra, cls) { return '<button type="button" class="adm-btn ghost sm ' + (cls || '') + '" data-tm="' + a + '"' + (extra || '') + '>' + label + '</button>'; }
+  function d(attrs) { return Object.keys(attrs).map(function (k) { return ' data-' + k + '="' + E(attrs[k]) + '"'; }).join(''); }
+  function editing(kind, id) { return S.edit && S.edit.kind === kind && S.edit.id === id; }
+  function editBox(kind, id, val, ph) { return '<input class="set-input tm-ein" id="tm-ein" value="' + E(val) + '" placeholder="' + E(ph || '') + '" maxlength="60" data-ek="' + kind + '" data-eid="' + E(id) + '" aria-label="New name"><button type="button" class="adm-btn sm" data-tm="esave">Save</button><button type="button" class="adm-btn ghost sm" data-tm="ecancel">Cancel</button>'; }
+
+  /* ── tab: categories ────────────────────────────────────────────────── */
+  function catsHtml() {
+    var st = stats(), q = K(S.q), list = M().cats.filter(function (c) { return c.type === S.type; }), h = '';
+    h += '<div class="tm-seg" role="tablist" aria-label="Category type">' + TYPES.map(function (t) { var n = M().cats.filter(function (c) { return c.type === t; }).length; return '<button type="button" role="tab" aria-selected="' + (S.type === t) + '" class="tm-segb' + (S.type === t ? ' on' : '') + '" data-tm="type" data-t="' + t + '">' + t + ' <span>' + n + '</span></button>'; }).join('') + '</div>';
+    h += '<div class="tm-bar"><input type="search" id="tm-q" class="set-input" placeholder="Search categories and sub-categories" value="' + E(S.q) + '" aria-label="Search categories"><span class="tm-addw"><input id="tm-newcat" class="set-input" maxlength="60" placeholder="New ' + S.type.toLowerCase() + ' category" aria-label="New category name"><button type="button" class="adm-btn sm" data-tm="addcat"><i class="fas fa-plus"></i> Add</button></span></div>';
+    list = list.slice().sort(function (a, b) { return (b.active - a.active) || ((st.cat[S.type + '|' + K(b.name)] || { n: 0 }).n - (st.cat[S.type + '|' + K(a.name)] || { n: 0 }).n) || a.name.localeCompare(b.name); });
+    var shown = 0;
+    list.forEach(function (c) {
+      var u = st.cat[S.type + '|' + K(c.name)] || { n: 0, amt: 0 }, subs = M().subs.filter(function (s) { return s.catId === c.id; }), hit = !q || K(c.name).indexOf(q) >= 0 || subs.some(function (s) { return K(s.name).indexOf(q) >= 0; });
+      if (!hit) return; shown++; var open = S.open[c.id] || (q && subs.some(function (s) { return K(s.name).indexOf(q) >= 0; }));
+      h += '<div class="tm-cat' + (c.active ? '' : ' off') + '"><div class="tm-row">' +
+        '<button type="button" class="tm-caret" data-tm="tog" data-id="' + c.id + '" aria-expanded="' + (!!open) + '" aria-label="Show sub-categories of ' + E(c.name) + '"><i class="fas fa-chevron-' + (open ? 'down' : 'right') + '"></i></button>' +
+        (editing('cat', c.id) ? '<span class="tm-edit">' + editBox('cat', c.id, c.name) + '</span>' : '<b class="tm-nm">' + E(c.name) + '</b>' + (c.custom ? ' <span class="tm-tag">custom</span>' : '') + (c.active ? '' : ' <span class="tm-tag">off</span>')) +
+        '<span class="tm-m">' + u.n + ' txn' + (u.n === 1 ? '' : 's') + (u.n ? ' · ' + money(u.amt) : '') + ' · ' + subs.length + ' sub</span><span class="tm-acts">' +
+        btn('rencat', 'Rename', d({ id: c.id })) + btn('togcat', c.active ? 'Turn off' : 'Turn on', d({ id: c.id })) + btn('mergecat', 'Merge into…', d({ id: c.id })) + btn('delcat', 'Delete', d({ id: c.id }), 'danger') + '</span></div>';
+      if (S.edit && S.edit.kind === 'merge' && S.edit.id === c.id) h += '<div class="tm-sub tm-merge"><label for="tm-mt">Move everything from <b>' + E(c.name) + '</b> into</label><select id="tm-mt" class="set-input">' + list.filter(function (x) { return x.id !== c.id; }).map(function (x) { return '<option value="' + x.id + '">' + E(x.name) + '</option>'; }).join('') + '</select><button type="button" class="adm-btn sm danger" data-tm="mergego" data-id="' + c.id + '">Merge</button><button type="button" class="adm-btn ghost sm" data-tm="ecancel">Cancel</button></div>';
+      if (open) {
+        h += '<div class="tm-sub">';
+        subs.forEach(function (s) { var su = st.sub[S.type + '|' + K(c.name) + '|' + K(s.name)] || { n: 0 }; h += '<div class="tm-srow' + (s.active ? '' : ' off') + '">' + (editing('sub', s.id) ? '<span class="tm-edit">' + editBox('sub', s.id, s.name) + '</span>' : '<span class="tm-snm">' + E(s.name) + (s.active ? '' : ' <span class="tm-tag">off</span>') + '</span>') + '<span class="tm-m">' + su.n + ' txn' + (su.n === 1 ? '' : 's') + '</span><span class="tm-acts">' + btn('rensub', 'Rename', d({ id: s.id })) + btn('togsub', s.active ? 'Turn off' : 'Turn on', d({ id: s.id })) + btn('delsub', 'Delete', d({ id: s.id }), 'danger') + '</span></div>'; });
+        h += '<div class="tm-addsub"><input class="set-input tm-ns" id="tm-ns-' + c.id + '" maxlength="60" placeholder="New sub-category" aria-label="New sub-category for ' + E(c.name) + '"><button type="button" class="adm-btn sm" data-tm="addsub" data-id="' + c.id + '">Add</button></div></div>';
+      }
+      h += '</div>';
+    });
+    if (!shown) h += '<div class="adm-muted" style="padding:10px 0">' + (q ? 'Nothing matches that search.' : 'No ' + S.type.toLowerCase() + ' categories yet.') + '</div>';
+    return h + '<div class="adm-muted" style="margin-top:10px">Turning a category off hides it from the entry form but keeps its history. Delete only works on categories with no transactions; use Merge to fold a used one into another.</div>';
+  }
+
+  /* ── tab: classification ────────────────────────────────────────────── */
+  function chips(path) {
+    var s = C.schemaOf(path), v = C.get(path).slice(), mod = C.isModified(path);
+    return '<div class="tm-kw"><div class="tm-kwh"><b>' + E(s.l) + '</b> <span class="adm-muted">' + v.length + ' keyword' + (v.length === 1 ? '' : 's') + '</span><span class="fs-spacer"></span>' + btn('kwreset', 'Reset to default', d({ p: path }) + (mod ? '' : ' disabled')) + '</div><div class="tm-chips">' +
+      v.map(function (k) { return '<span class="tm-chip">' + E(k) + '<button type="button" data-tm="kwdel" data-p="' + path + '" data-k="' + E(k) + '" aria-label="Remove ' + E(k) + '">✕</button></span>'; }).join('') + '</div>' +
+      '<div class="tm-addsub"><input class="set-input" id="tm-kw-' + path.split('.')[1] + '" maxlength="60" placeholder="Add a keyword, e.g. tuition" aria-label="Add keyword to ' + E(s.l) + '"><button type="button" class="adm-btn sm" data-tm="kwadd" data-p="' + path + '">Add</button></div><div class="adm-muted" style="font-size:.72rem">Matched against a category or payee name. ' + E(s.h || '') + '</div></div>';
+  }
+  function classHtml() {
+    var st = stats(), cats = M().cats.filter(function (c) { return c.type === 'Expense' && c.active; }), cnt = { essential: 0, discretionary: 0, uncertain: 0 }, amt = { essential: 0, discretionary: 0, uncertain: 0 };
+    var data = cats.map(function (c) { var e = effLabel(c.name), u = st.cat['Expense|' + K(c.name)] || { n: 0, amt: 0 }; cnt[e.v]++; amt[e.v] += u.amt; return { c: c, e: e, u: u }; }).sort(function (a, b) { return (a.e.v === 'uncertain' ? 0 : 1) - (b.e.v === 'uncertain' ? 0 : 1) || b.u.amt - a.u.amt; });
+    var tot = amt.essential + amt.discretionary + amt.uncertain || 1;
+    return (C.safe() ? '<div class="adm-banner" role="note">Safe mode is on, so the keyword lists below are not in effect (defaults are used).</div>' : '') +
+      '<div class="tm-tiles"><div class="tm-tile"><span>Essential</span><b>' + cnt.essential + '</b><small>' + Math.round(amt.essential / tot * 100) + '% of spend</small></div><div class="tm-tile"><span>Discretionary</span><b>' + cnt.discretionary + '</b><small>' + Math.round(amt.discretionary / tot * 100) + '% of spend</small></div><div class="tm-tile' + (cnt.uncertain ? ' warn' : '') + '"><span>Unclassified</span><b>' + cnt.uncertain + '</b><small>' + Math.round(amt.uncertain / tot * 100) + '% of spend</small></div></div>' +
+      '<div class="adm-muted" style="margin:8px 0">FinAI and the dashboard split spending into essential and discretionary. Your choice per category wins; otherwise the keyword lists decide. Unclassified spend is left out of both.</div>' +
+      '<table class="adm-tbl tm-ctbl"><thead><tr><th>Expense category</th><th>Spend</th><th>Now counted as</th><th>Your choice</th></tr></thead><tbody>' + data.map(function (x) {
+        var cur = labels()['c:' + finaiNorm(x.c.name)] || 'auto';
+        return '<tr><td><b>' + E(x.c.name) + '</b></td><td>' + (x.u.n ? money(x.u.amt) : '—') + '</td><td><span class="rl-st ' + (x.e.v === 'uncertain' ? 'fire' : 'quiet') + '">' + (x.e.v === 'uncertain' ? 'unclassified' : x.e.v) + '</span> <span class="adm-muted">' + (x.e.src === 'you' ? 'your choice' : x.e.src ? 'by keyword' : '') + '</span></td><td><select class="set-input tm-lab" data-cat="' + E(x.c.name) + '" aria-label="Classification for ' + E(x.c.name) + '"><option value="auto"' + (cur === 'auto' ? ' selected' : '') + '>Automatic</option><option value="essential"' + (cur === 'essential' ? ' selected' : '') + '>Essential</option><option value="discretionary"' + (cur === 'discretionary' ? ' selected' : '') + '>Discretionary</option></select></td></tr>';
+      }).join('') + '</tbody></table><div class="tm-kws">' + chips('classify.essential') + chips('classify.discretionary') + '</div>';
+  }
+
+  /* ── tab: tags ──────────────────────────────────────────────────────── */
+  function tagsHtml() {
+    var st = stats(), sug = [], own = {}; try { TAG_SUGGESTIONS_LIST.forEach(function (t) { sug.push(t); }); } catch (e) { } try { customTagsList.forEach(function (t) { own[t] = 1; }); } catch (e) { }
+    var all = {}; sug.forEach(function (t) { all[t] = 1; }); Object.keys(st.tag).forEach(function (t) { all[t] = 1; });
+    var list = Object.keys(all).sort(function (a, b) { return ((st.tag[b] || { n: 0 }).n - (st.tag[a] || { n: 0 }).n) || a.localeCompare(b); });
+    return '<div class="tm-bar"><span class="tm-addw"><input id="tm-newtag" class="set-input" maxlength="30" placeholder="New tag (letters, numbers, dashes)" aria-label="New tag"><button type="button" class="adm-btn sm" data-tm="addtag"><i class="fas fa-plus"></i> Add suggestion</button></span></div>' +
+      '<table class="adm-tbl"><thead><tr><th>Tag</th><th>Used on</th><th>In suggestions</th><th></th></tr></thead><tbody>' + (list.map(function (t) {
+        var n = (st.tag[t] || { n: 0 }).n, ins = sug.indexOf(t) >= 0, built = ins && !own[t];
+        var act = editing('tag', t) ? '<span class="tm-edit">' + editBox('tag', t, t, 'new name or an existing tag') + '</span>' : btn('rentag', 'Rename / merge', d({ t: t })) + (n ? btn('stripTag', 'Remove from txns', d({ t: t }), 'danger') : '') + (ins && !built ? btn('deltag', 'Remove suggestion', d({ t: t })) : '');
+        return '<tr><td><b>#' + E(t) + '</b></td><td>' + n + ' txn' + (n === 1 ? '' : 's') + '</td><td>' + (ins ? (built ? 'built-in' : 'yes') : 'no') + '</td><td class="tm-acts">' + act + '</td></tr>';
+      }).join('') || '<tr><td colspan="4" class="adm-muted">No tags yet.</td></tr>') + '</tbody></table><div class="adm-muted" style="margin-top:8px">Renaming to a tag that already exists merges the two. Built-in suggestions cannot be removed.</div>';
+  }
+  function cleanTag(v) { return String(v || '').trim().toLowerCase().replace(/^#/, '').replace(/[^a-z0-9-]/g, ''); }
+
+  /* ── tab: payments & types ──────────────────────────────────────────── */
+  function payHtml() {
+    var st = stats(), base = ['Cash', 'UPI', 'Debit Card', 'Credit Card', 'Bank Transfer', 'Net Banking', 'Digital Wallet', 'Auto Debit', 'Cheque', 'Other'], keys = Object.keys(st.pay).filter(function (p) { return !/^cc:/.test(p); }).sort(function (a, b) { return st.pay[b].n - st.pay[a].n; });
+    var h = '<div class="adm-muted" style="margin-bottom:8px">The entry form offers these methods: ' + base.map(E).join(', ') + ', plus your credit cards. Anything else already saved on transactions (for example "gpay" or "PhonePe") shows up below, and you can fold it into a standard method.</div>';
+    h += '<table class="adm-tbl"><thead><tr><th>Payment method on transactions</th><th>Used on</th><th>Total</th><th></th></tr></thead><tbody>' + (keys.map(function (p) {
+      var std = base.indexOf(p) >= 0;
+      return '<tr><td><b>' + E(p) + '</b> ' + (std ? '' : '<span class="tm-tag">non-standard</span>') + '</td><td>' + st.pay[p].n + '</td><td>' + money(st.pay[p].amt) + '</td><td class="tm-acts">' + (editing('pay', p) ? '<span class="tm-edit"><select class="set-input" id="tm-pt" aria-label="Change to">' + base.filter(function (b) { return b !== p; }).map(function (b) { return '<option>' + E(b) + '</option>'; }).join('') + '</select><button type="button" class="adm-btn sm" data-tm="paygo" data-p="' + E(p) + '">Change all</button><button type="button" class="adm-btn ghost sm" data-tm="ecancel">Cancel</button></span>' : btn('payedit', 'Change all to…', d({ p: p }))) + '</td></tr>';
+    }).join('') || '<tr><td colspan="4" class="adm-muted">No payment methods saved on transactions yet.</td></tr>') + '</tbody></table>';
+    h += '<div class="adm-h" style="margin-top:18px;font-size:.9rem">What each transaction type counts as</div><div class="adm-muted" style="margin-bottom:8px">Totals for income, expenses, EMIs and investments are built from these lists. A type can sit in one role only, so remove it from its current role before adding it to another. Each role needs at least one type.</div><div class="tm-kws">';
+    ROLES.forEach(function (r) {
+      var p = 'ledger.types.' + r[0], v = C.get(p).slice(), mod = C.isModified(p), extra = Object.keys(st.types).filter(function (t) { return ['income', 'expense', 'emi', 'invest'].every(function (x) { return C.get('ledger.types.' + x).indexOf(t) < 0; }); });
+      h += '<div class="tm-kw"><div class="tm-kwh"><b>Counted as ' + r[1].toLowerCase() + '</b><span class="fs-spacer"></span>' + btn('kwreset', 'Reset', d({ p: p }) + (mod ? '' : ' disabled')) + '</div><div class="tm-chips">' + v.map(function (k) { return '<span class="tm-chip">' + E(k) + '<span class="adm-muted"> ' + (st.types[k] || 0) + '</span><button type="button" data-tm="kwdel" data-p="' + p + '" data-k="' + E(k) + '" aria-label="Remove ' + E(k) + ' from ' + r[1] + '">✕</button></span>'; }).join('') + '</div>' +
+        '<div class="tm-addsub"><select class="set-input" id="tm-ty-' + r[0] + '" aria-label="Add a type to ' + r[1] + '">' + ['Income', 'Expense', 'Loan', 'Investment', 'Receivable'].filter(function (t) { return v.indexOf(t) < 0; }).map(function (t) { return '<option>' + t + '</option>'; }).join('') + '</select><button type="button" class="adm-btn sm" data-tm="tyadd" data-r="' + r[0] + '">Add</button></div></div>';
+    });
+    return h + '</div>';
+  }
+
+  /* ── tab: health & backup ───────────────────────────────────────────── */
+  function health() {
+    var st = stats(), known = {}, orphan = [], empty = [], dup = [], off = [];
+    M().cats.forEach(function (c) { known[c.type + '|' + K(c.name)] = c; });
+    Object.keys(st.cat).forEach(function (k) { if (!known[k]) { var p = k.split('|'); orphan.push({ type: p[0], name: p[1], n: st.cat[k].n }); } });
+    M().cats.forEach(function (c) { if (!(st.cat[c.type + '|' + K(c.name)] || { n: 0 }).n && c.custom) empty.push(c); if (!c.active && (st.cat[c.type + '|' + K(c.name)] || { n: 0 }).n) off.push(c); });
+    var seen = {}; M().cats.forEach(function (c) { var k = c.type + '|' + finaiNorm(c.name); if (seen[k]) dup.push([seen[k], c]); else seen[k] = c; });
+    return { orphan: orphan, empty: empty, dup: dup, off: off, unc: st.unc };
+  }
+  function healthHtml() {
+    var h = health(), u = undoInfo(), lg = J(LOGK, []).slice(-5).reverse();
+    function item(sev, title, hint, extra) { return '<div class="dm-is ' + sev + '"><div class="dm-is-h"><b>' + title + '</b><span class="fs-spacer"></span>' + (extra || '') + '</div><div class="adm-muted">' + hint + '</div></div>'; }
+    var out = '';
+    out += h.unc ? item('warn', h.unc + ' transaction' + (h.unc === 1 ? '' : 's') + ' with no category', 'These land in "Uncategorised" in reports. The payee clean-up can suggest a category from your history.', btn('cleanup', 'Open payee clean-up')) : item('info', 'Every transaction has a category', '');
+    out += h.orphan.length ? item('warn', h.orphan.length + ' categor' + (h.orphan.length === 1 ? 'y' : 'ies') + ' used in transactions but missing from your list', h.orphan.slice(0, 5).map(function (o) { return E(o.type + ': ' + o.name + ' (' + o.n + ')'); }).join(', ') + (h.orphan.length > 5 ? '…' : ''), btn('sync', 'Add to list')) : '';
+    out += h.dup.length ? item('warn', h.dup.length + ' look-alike categor' + (h.dup.length === 1 ? 'y' : 'ies'), h.dup.slice(0, 4).map(function (p) { return E(p[0].name + ' ≈ ' + p[1].name + ' (' + p[0].type + ')'); }).join(', ') + '. Merge them from the Categories tab.') : '';
+    out += h.off.length ? item('info', h.off.length + ' turned-off categor' + (h.off.length === 1 ? 'y' : 'ies') + ' still have history', h.off.slice(0, 5).map(function (c) { return E(c.name); }).join(', ') + '. History keeps showing; they just are not offered on the entry form.') : '';
+    out += h.empty.length ? item('info', h.empty.length + ' custom categor' + (h.empty.length === 1 ? 'y' : 'ies') + ' with no transactions', h.empty.slice(0, 6).map(function (c) { return E(c.name); }).join(', '), btn('rmempty', 'Delete unused', '', 'danger')) : '';
+    out += '<div class="adm-h" style="margin-top:18px;font-size:.9rem">Backup &amp; restore</div><div class="adm-muted" style="margin-bottom:8px">Saves your categories, sub-categories, payees, tag suggestions and essential/discretionary choices. Importing only adds; nothing is removed or overwritten.</div><div class="adm-actions">' + btn('export', '<i class="fas fa-file-export"></i> Export taxonomy') + btn('import', '<i class="fas fa-file-import"></i> Import taxonomy') + '<input type="file" id="tm-file" accept="application/json,.json" hidden></div>';
+    out += '<div class="adm-h" style="margin-top:18px;font-size:.9rem">Undo</div>' + (u ? '<div class="dm-undo"><div><b>Last change:</b> ' + E(u.label) + '<div class="adm-muted">' + E(new Date(u.ts).toLocaleString()) + (u.db ? ' · includes transactions' : '') + '</div></div>' + btn('undo', '<i class="fas fa-rotate-left"></i> Undo') + '</div>' : '<div class="adm-muted">Nothing to undo.</div>') + (lg.length ? '<div class="dm-log" style="margin-top:8px">' + lg.map(function (x) { return '<div class="adm-muted">' + E(new Date(x.ts).toLocaleString()) + ' · ' + E(x.msg) + '</div>'; }).join('') + '</div>' : '');
+    return out;
+  }
+
+  /* ── shell ──────────────────────────────────────────────────────────── */
+  function summary() {
+    var m = M(), st = stats(), act = m.cats.filter(function (c) { return c.active; }).length, subs = m.subs.filter(function (s) { return s.active; }).length, tags = Object.keys(st.tag).length;
+    function t(l, v, s) { return '<div class="tm-tile"><span>' + l + '</span><b>' + v + '</b><small>' + s + '</small></div>'; }
+    return '<div class="tm-tiles">' + t('Categories', act, 'of ' + m.cats.length + ' (' + (m.cats.length - act) + ' off)') + t('Sub-categories', subs, 'of ' + m.subs.length) + t('Payees', m.payees.length, 'saved') + t('Tags in use', tags, 'on transactions') + t('Uncategorised', st.unc, 'transactions') + '</div>';
+  }
+  function body() { return S.sub === 'cats' ? catsHtml() : S.sub === 'class' ? classHtml() : S.sub === 'tags' ? tagsHtml() : S.sub === 'pay' ? payHtml() : healthHtml(); }
+  function html() {
+    try { fosSyncFromDb(); } catch (e) { }
+    return '<div class="tm-wrap"><div class="tm-note" id="tm-note" role="status" aria-live="polite"></div><div class="set-card"><div class="adm-h">Taxonomy <small>how your money is labelled</small></div><div id="tm-sum">' + summary() + '</div>' +
+      '<div class="tm-subs" role="tablist" aria-label="Taxonomy sections">' + SUBS.map(function (s) { return '<button type="button" role="tab" aria-selected="' + (S.sub === s[0]) + '" class="tm-subb' + (S.sub === s[0] ? ' on' : '') + '" data-tm="sub" data-s="' + s[0] + '">' + s[1] + '</button>'; }).join('') + '</div><div id="tm-body">' + body() + '</div></div></div>';
+  }
+  function repaint() {
+    var b = $('tm-body'); if (!b) return; var y = b.closest('#adm-body') ? b.closest('#adm-body').scrollTop : 0;
+    b.innerHTML = body(); var s = $('tm-sum'); if (s) s.innerHTML = summary();
+    document.querySelectorAll('.tm-subb').forEach(function (x) { var on = x.getAttribute('data-s') === S.sub; x.classList.toggle('on', on); x.setAttribute('aria-selected', on); });
+    var n = $('tm-note'); if (n) { n.textContent = S.msg; n.className = 'tm-note' + (S.bad ? ' bad' : ''); }
+    var ei = $('tm-ein'); if (ei) { ei.focus(); ei.select(); }
+  }
+
+  /* ── actions ────────────────────────────────────────────────────────── */
+  function byId(arr, id) { return arr.filter(function (x) { return x.id === id; })[0]; }
+  function usedCat(c) { return rows().some(function (r) { return r.type === c.type && K(catOf(r)) === K(c.name); }); }
+  function mergeCats(srcId, dstId) {
+    var src = byId(M().cats, srcId), dst = byId(M().cats, dstId); if (!src || !dst || src.type !== dst.type) return 'Choose a category of the same type.';
+    rows().forEach(function (r) { if (r.type === src.type && K(catOf(r)) === K(src.name)) { r.sub = dst.name; if (r.category !== undefined) r.category = dst.name; } });
+    M().subs.filter(function (s) { return s.catId === src.id; }).forEach(function (s) { var ex = M().subs.filter(function (x) { return x.catId === dst.id && K(x.name) === K(s.name); })[0]; if (ex) { ex.active = ex.active || s.active; M().subs = M().subs.filter(function (x) { return x.id !== s.id; }); } else s.catId = dst.id; });
+    rows().forEach(function (r) { if (r.type === dst.type && K(catOf(r)) === K(dst.name) && r.subcategory) fosAddSub(dst.id, r.subcategory); });
+    try { if (budgets[src.name] !== undefined) { budgets[dst.name] = (Number(budgets[dst.name]) || 0) + (Number(budgets[src.name]) || 0); delete budgets[src.name]; } } catch (e) { }
+    var l = labels(); delete l['c:' + finaiNorm(src.name)];
+    M().cats = M().cats.filter(function (c) { return c.id !== src.id; }); return '';
+  }
+  function onAction(a, b) {
+    var id = b.getAttribute('data-id'), m = M();
+    if (a === 'sub') { S.sub = b.getAttribute('data-s'); S.edit = null; S.q = ''; return repaint(); }
+    if (a === 'type') { S.type = b.getAttribute('data-t'); S.edit = null; return repaint(); }
+    if (a === 'tog') { S.open[id] = !S.open[id]; return repaint(); }
+    if (a === 'ecancel') { S.edit = null; return repaint(); }
+    if (a === 'addcat') { var nm = fosClean($('tm-newcat').value); if (!nm) return say('Type a category name first.', true); if (fosFindCat(S.type, nm)) return say('That category already exists.', true); return run('Added category "' + nm + '"', false, function () { fosAddCat(S.type, nm, true); }); }
+    if (a === 'rencat') { S.edit = { kind: 'cat', id: id }; return repaint(); }
+    if (a === 'rensub') { S.edit = { kind: 'sub', id: id }; return repaint(); }
+    if (a === 'togcat') { var c = byId(m.cats, id); return run((c.active ? 'Turned off "' : 'Turned on "') + c.name + '"', false, function () { c.active = !c.active; }); }
+    if (a === 'togsub') { var s = byId(m.subs, id); return run((s.active ? 'Turned off "' : 'Turned on "') + s.name + '"', false, function () { s.active = !s.active; }); }
+    if (a === 'mergecat') { var others = m.cats.filter(function (x) { return x.type === byId(m.cats, id).type && x.id !== id; }); if (!others.length) return say('There is no other category of this type to merge into.', true); S.edit = { kind: 'merge', id: id }; return repaint(); }
+    if (a === 'mergego') { var src = byId(m.cats, id), dst = byId(m.cats, $('tm-mt').value); if (!confirm('Merge "' + src.name + '" into "' + dst.name + '"? Its transactions, sub-categories and budget move over, and "' + src.name + '" is removed.')) return; return run('Merged "' + src.name + '" into "' + dst.name + '"', true, function () { return mergeCats(src.id, dst.id); }); }
+    if (a === 'delcat') { var dc = byId(m.cats, id); if (usedCat(dc)) return say('"' + dc.name + '" has transactions. Merge it into another category instead.', true); if (!confirm('Delete the category "' + dc.name + '" and its sub-categories?')) return; return run('Deleted category "' + dc.name + '"', false, function () { m.subs = m.subs.filter(function (x) { return x.catId !== dc.id; }); m.cats = m.cats.filter(function (x) { return x.id !== dc.id; }); if (budgets[dc.name] !== undefined) delete budgets[dc.name]; delete labels()['c:' + finaiNorm(dc.name)]; }); }
+    if (a === 'addsub') { var inp = $('tm-ns-' + id), sn = fosClean(inp && inp.value); if (!sn) return say('Type a sub-category name first.', true); var cc = byId(m.cats, id); if (m.subs.some(function (x) { return x.catId === id && K(x.name) === K(sn); })) return say('That sub-category already exists.', true); S.open[id] = true; return run('Added "' + sn + '" under ' + cc.name, false, function () { fosAddSub(id, sn); }); }
+    if (a === 'delsub') { var ds = byId(m.subs, id), pc = byId(m.cats, ds.catId), used = rows().some(function (r) { return r.type === pc.type && K(catOf(r)) === K(pc.name) && K(r.subcategory) === K(ds.name); }); if (used) return say('"' + ds.name + '" has transactions. Turn it off instead, or rename it.', true); return run('Deleted sub-category "' + ds.name + '"', false, function () { m.subs = m.subs.filter(function (x) { return x.id !== id; }); }); }
+    if (a === 'esave') return saveEdit();
+    if (a === 'kwadd') { var p = b.getAttribute('data-p'), el = $('tm-kw-' + p.split('.')[1]), v = String(el && el.value || '').trim().toLowerCase(); if (!v) return say('Type a keyword first.', true); var cur = C.get(p).slice(); if (cur.indexOf(v) >= 0) return say('Already in the list.', true); cur.push(v); var r = C.set(p, cur); if (!r.ok) return say(r.msg, true); after(false); repaint(); return say('Keyword added.'); }
+    if (a === 'kwdel') { var p2 = b.getAttribute('data-p'), k = b.getAttribute('data-k'), cur2 = C.get(p2).filter(function (x) { return x !== k; }), r2 = C.set(p2, cur2); if (!r2.ok) return say(r2.msg, true); after(false); repaint(); return say('Removed.'); }
+    if (a === 'kwreset') { var p3 = b.getAttribute('data-p'); C.reset(p3); after(false); repaint(); return say('Back to the default list.'); }
+    if (a === 'tyadd') { var role = b.getAttribute('data-r'), sel = $('tm-ty-' + role), p4 = 'ledger.types.' + role; if (!sel || !sel.value) return say('Nothing left to add.', true); var c4 = C.get(p4).slice(); c4.push(sel.value); var r4 = C.set(p4, c4); if (!r4.ok) return say(r4.msg, true); after(false); repaint(); return say('Added.'); }
+    if (a === 'addtag') { var tv = cleanTag($('tm-newtag').value); if (!tv) return say('Use letters, numbers or dashes.', true); if (TAG_SUGGESTIONS_LIST.indexOf(tv) >= 0) return say('That tag is already a suggestion.', true); return run('Added tag #' + tv, false, function () { customTagsList.push(tv); }); }
+    if (a === 'deltag') { var dt = b.getAttribute('data-t'); return run('Removed suggestion #' + dt, false, function () { customTagsList = customTagsList.filter(function (x) { return x !== dt; }); }); }
+    if (a === 'rentag') { S.edit = { kind: 'tag', id: b.getAttribute('data-t') }; return repaint(); }
+    if (a === 'stripTag') { var st2 = b.getAttribute('data-t'); if (!confirm('Remove #' + st2 + ' from every transaction that has it?')) return; return run('Removed #' + st2 + ' from transactions', true, function () { rows().forEach(function (r) { if (Array.isArray(r.tags)) r.tags = r.tags.filter(function (t) { return t !== st2; }); }); customTagsList = customTagsList.filter(function (x) { return x !== st2; }); }); }
+    if (a === 'payedit') { S.edit = { kind: 'pay', id: b.getAttribute('data-p') }; return repaint(); }
+    if (a === 'paygo') { var from = b.getAttribute('data-p'), to = $('tm-pt').value, n = rows().filter(function (r) { return r.pay === from; }).length; if (!confirm('Change the payment method on ' + n + ' transaction' + (n === 1 ? '' : 's') + ' from "' + from + '" to "' + to + '"?')) return; return run('Changed payment method "' + from + '" to "' + to + '" (' + n + ')', true, function () { rows().forEach(function (r) { if (r.pay === from) r.pay = to; }); }); }
+    if (a === 'cleanup') { try { fosOpenManager('clean'); } catch (e) { say('The clean-up screen is not available.', true); } return; }
+    if (a === 'sync') return run('Added missing categories', false, function () { fosSyncFromDb(); });
+    if (a === 'rmempty') { var emp = health().empty; if (!emp.length || !confirm('Delete ' + emp.length + ' unused custom categor' + (emp.length === 1 ? 'y' : 'ies') + '?')) return; return run('Deleted ' + emp.length + ' unused categories', false, function () { var ids = {}; emp.forEach(function (c) { ids[c.id] = 1; }); m.subs = m.subs.filter(function (x) { return !ids[x.catId]; }); m.cats = m.cats.filter(function (x) { return !ids[x.id]; }); }); }
+    if (a === 'export') return doExport(); if (a === 'import') { var f = $('tm-file'); if (f) f.click(); return; } if (a === 'undo') return doUndo();
+  }
+  function saveEdit() {
+    var inp = $('tm-ein'); if (!inp) return; var kind = inp.getAttribute('data-ek'), id = inp.getAttribute('data-eid'), v = fosClean(inp.value); if (!v) return say('A name is required.', true);
+    if (kind === 'cat') { var c = byId(M().cats, id); if (v === c.name) { S.edit = null; return repaint(); } return run('Renamed category "' + c.name + '" to "' + v + '"', true, function () { return fosRenameCat(id, v); }); }
+    if (kind === 'sub') { var s = byId(M().subs, id); if (v === s.name) { S.edit = null; return repaint(); } return run('Renamed sub-category "' + s.name + '" to "' + v + '"', true, function () { return fosRenameSub(id, v); }); }
+    if (kind === 'tag') { var nv = cleanTag(v); if (!nv) return say('Use letters, numbers or dashes.', true); if (nv === id) { S.edit = null; return repaint(); } var merge = stats().tag[nv] || TAG_SUGGESTIONS_LIST.indexOf(nv) >= 0; if (merge && !confirm('"#' + nv + '" already exists. Merge #' + id + ' into it?')) return;
+      return run((merge ? 'Merged #' : 'Renamed #') + id + ' into #' + nv, true, function () { rows().forEach(function (r) { if (Array.isArray(r.tags) && r.tags.indexOf(id) >= 0) { var out = []; r.tags.forEach(function (t) { t = t === id ? nv : t; if (out.indexOf(t) < 0) out.push(t); }); r.tags = out; } }); var had = customTagsList.indexOf(id) >= 0 || TAG_SUGGESTIONS_LIST.indexOf(id) >= 0; customTagsList = customTagsList.filter(function (x) { return x !== id; }); if (had && customTagsList.indexOf(nv) < 0 && ['essential', 'emi', 'festival', 'travel', 'medical', 'online', 'cash', 'recurring', 'one-time', 'family', 'work', 'gift', 'urgent', 'planned'].indexOf(nv) < 0) customTagsList.push(nv); }); }
+  }
+  function setLabel(sel) {
+    var cat = sel.getAttribute('data-cat'), v = sel.value, l = labels(), k = 'c:' + finaiNorm(cat);
+    return run('Set "' + cat + '" to ' + (v === 'auto' ? 'automatic' : v), false, function () { if (v === 'auto') delete l[k]; else l[k] = v; });
+  }
+
+  /* ── export / import ────────────────────────────────────────────────── */
+  function doExport() {
+    var o = { app: 'FinanceOS', kind: 'taxonomy', version: 1, exportedAt: new Date().toISOString(), master: M(), customTags: customTagsList, labels: labels() };
+    try { var b = new Blob([JSON.stringify(o, null, 2)], { type: 'application/json' }), u = URL.createObjectURL(b), a = document.createElement('a'); a.href = u; a.download = 'financeos_taxonomy_' + localISO() + '.json'; document.body.appendChild(a); a.click(); a.remove(); setTimeout(function () { URL.revokeObjectURL(u); }, 4000); say('Taxonomy exported.'); log('Exported taxonomy'); } catch (e) { say('Export failed.', true); }
+  }
+  function doImport(file) {
+    if (file.size > 3 * 1048576) return say('That file is too large for a taxonomy export.', true);
+    var rd = new FileReader(); rd.onerror = function () { say('Could not read that file.', true); };
+    rd.onload = function () {
+      var o; try { o = JSON.parse(rd.result); } catch (e) { return say('That is not a valid JSON file.', true); }
+      if (!o || o.kind !== 'taxonomy' || !o.master || !Array.isArray(o.master.cats)) return say('That file is not a FinanceOS taxonomy export.', true);
+      var nC = o.master.cats.length; if (!confirm('Add categories, sub-categories, payees, tags and labels from this file (' + nC + ' categories)? Existing ones are kept.')) return;
+      run('Imported taxonomy', false, function () {
+        fosMergeMaster(o.master);
+        (Array.isArray(o.customTags) ? o.customTags : []).forEach(function (t) { t = cleanTag(t); if (t && customTagsList.indexOf(t) < 0 && TAG_SUGGESTIONS_LIST.indexOf(t) < 0) customTagsList.push(t); });
+        var l = labels(); Object.keys(o.labels || {}).forEach(function (k) { if (/^[cp]:/.test(k) && (o.labels[k] === 'essential' || o.labels[k] === 'discretionary') && l[k] === undefined) l[k] = o.labels[k]; });
+      });
+    };
+    rd.readAsText(file);
+  }
+
+  /* ── events ─────────────────────────────────────────────────────────── */
+  function inTab(t) { return t && t.closest && t.closest('.tm-wrap'); }
+  function onClick(e) { var t = e.target; if (!inTab(t)) return; var b = t.closest('[data-tm]'); if (!b || b.disabled) return; try { onAction(b.getAttribute('data-tm'), b); } catch (x) { console.error(x); say('Something went wrong: ' + x.message, true); } }
+  function onChange(e) { var t = e.target; if (!inTab(t)) return; if (t.classList.contains('tm-lab')) return setLabel(t); if (t.id === 'tm-file') { var f = t.files && t.files[0]; if (f) doImport(f); t.value = ''; } }
+  function onInput(e) { var t = e.target; if (t && t.id === 'tm-q' && inTab(t)) { S.q = t.value; var pos = t.selectionStart; var b = $('tm-body'); if (b) { b.innerHTML = body(); var q = $('tm-q'); if (q) { q.focus(); try { q.setSelectionRange(pos, pos); } catch (x) { } } } } }
+  function onKey(e) {
+    var t = e.target; if (!inTab(t) || e.key !== 'Enter') return;
+    if (t.id === 'tm-ein') { e.preventDefault(); e.stopPropagation(); return saveEdit(); } if (t.id === 'tm-newcat') { e.preventDefault(); return onAction('addcat', t); }
+    if (t.id === 'tm-newtag') { e.preventDefault(); return onAction('addtag', t); }
+    if (/^tm-ns-/.test(t.id)) { e.preventDefault(); var bb = document.querySelector('[data-tm="addsub"][data-id="' + t.id.slice(6) + '"]'); if (bb) onAction('addsub', bb); return; }
+    if (/^tm-kw-/.test(t.id)) { e.preventDefault(); var kb = t.parentNode.querySelector('[data-tm="kwadd"]'); if (kb) onAction('kwadd', kb); }
+  }
+  function wire() { var r = $('adm-root'); if (!r || r.__tm) return; r.__tm = 1; r.addEventListener('click', onClick); r.addEventListener('change', onChange); r.addEventListener('input', onInput); r.addEventListener('keydown', onKey, true); }
+  function afterRender() { wire(); }
+
+  window.FOS_TAXONOMY = { html: html, after: afterRender, stats: stats, effLabel: effLabel, mergeCats: mergeCats };
   wire();
 })();
 </script>
