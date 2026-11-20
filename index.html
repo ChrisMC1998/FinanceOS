@@ -120,6 +120,16 @@
   N('unlocks.lh.pulse.need', 4, 1, 52, 1, UN, 'Weekly Pulse: weeks in a row', '', ['Consistency journey'], '3–6', true);
   N('unlocks.lh.half.need', 6, 1, 24, 1, UN, 'Half-Year Report: months in a row', '', ['Consistency journey'], '4–6', true);
   N('unlocks.lh.year.need', 12, 1, 60, 1, UN, 'Year in Review: months in a row', '', ['Consistency journey'], '9–12', true);
+  N('streak.freezeStart', 1, 0, 5, 1, UN, 'Streak freezes you start with', 'Freezes forgive a missed stretch so a logging streak survives.', ['Logging streak'], '1–2', true);
+  N('streak.freezeMax', 3, 0, 10, 1, UN, 'Most freezes you can hold', 'New freezes stop being awarded once you hold this many.', ['Logging streak'], '2–4', true);
+  N('streak.freezeEvery', 30, 7, 365, 1, UN, 'Earn a freeze every (days of logging)', 'A freeze is awarded each time your logging streak reaches a multiple of this.', ['Logging streak'], '14–30', true);
+  N('streak.freezeMinStreak', 7, 1, 90, 1, UN, 'Freeze protects streaks of at least (days)', 'Shorter streaks reset instead of using a freeze.', ['Logging streak'], '5–10', true);
+  N('streak.freezeMaxGap', 7, 1, 30, 1, UN, 'Longest gap one freeze can forgive (days)', 'A longer break resets the streak even if you hold a freeze.', ['Logging streak'], '3–7', true);
+  N('badges.budget1.days', 7, 1, 365, 1, UN, 'Budget Warrior: days under budget', '', ['Achievements'], '5–10', true);
+  N('badges.budget2.days', 30, 2, 730, 1, UN, 'Budget Master: days under budget', '', ['Achievements'], '21–60', true);
+  N('badges.tracker.days', 30, 2, 730, 1, UN, 'Consistency King: days logged in a row', '', ['Achievements'], '21–60', true);
+  N('badges.nw1', 1000000, 10000, 1000000000, 10000, UN, 'First net-worth badge (amount)', 'Unlocks the first net-worth club badge.', ['Achievements'], '5L–25L');
+  N('badges.nw2', 5000000, 10000, 1000000000, 10000, UN, 'Second net-worth badge (amount)', 'Unlocks the second net-worth club badge.', ['Achievements'], '25L–1Cr');
   B('notify.quietEnabled', false, NT, 'Quiet hours: mute notification sound', 'Alerts still appear in the bell, but make no sound during quiet hours.', ['Notifications']);
   add({ p: 'notify.quietFrom', t: 'time', d: '22:00', g: NT, l: 'Quiet hours start', h: '', aff: ['Notifications'] });
   add({ p: 'notify.quietTo', t: 'time', d: '07:00', g: NT, l: 'Quiet hours end', h: '', aff: ['Notifications'] });
@@ -27794,14 +27804,16 @@ window.addEventListener('beforeinstallprompt', e => {
 });
 
 // ── GAMIFICATION SYSTEM ─────────────────────────────────────────────────────
+function fosBadgeAmt(n){ n = Number(n) || 0; return n >= 1e7 ? (+(n / 1e7).toFixed(2)) + 'Cr' : n >= 1e5 ? (+(n / 1e5).toFixed(2)) + 'L' : n.toLocaleString('en-IN'); }
+function fosBadgeLong(n){ n = Number(n) || 0; return n >= 1e7 ? '₹' + (+(n / 1e7).toFixed(2)) + ' Crore' : n >= 1e5 ? '₹' + (+(n / 1e5).toFixed(2)) + ' Lakh' : '₹' + n.toLocaleString('en-IN'); }
 const BADGES = [
   {id:'first-save',name:'First Steps',desc:'Added your first transaction',emoji:'🎯',condition:()=>db.length>0},
-  {id:'week-budget',name:'Budget Warrior',desc:'Stayed under budget for 7 days',emoji:'🛡️',condition:()=>gameStats.streak>=7},
-  {id:'month-budget',name:'Budget Master',desc:'Stayed under budget for 30 days',emoji:'👑',condition:()=>gameStats.streak>=30},
+  {id:'week-budget',name:'Budget Warrior',get desc(){return 'Stayed under budget for '+FOSC('badges.budget1.days')+' days'},emoji:'🛡️',condition:()=>gameStats.streak>=FOSC('badges.budget1.days')},
+  {id:'month-budget',name:'Budget Master',get desc(){return 'Stayed under budget for '+FOSC('badges.budget2.days')+' days'},emoji:'👑',condition:()=>gameStats.streak>=FOSC('badges.budget2.days')},
   {id:'first-invest',name:'Investor',desc:'Made your first investment',emoji:'💰',condition:()=>db.filter(r=>r.type==='Investment').length>0},
-  {id:'networth-10l',name:'10L Club',desc:'Reached ₹10 Lakh net worth',emoji:'💎',condition:()=>gameStats.networth>=1000000},
-  {id:'networth-50l',name:'50L Club',desc:'Reached ₹50 Lakh net worth',emoji:'🏆',condition:()=>gameStats.networth>=5000000},
-  {id:'tracker-30',name:'Consistency King',desc:'Logged data for 30 days straight',emoji:'📊',condition:()=>gameStats.trackingDays>=30},
+  {id:'networth-10l',get name(){return fosBadgeAmt(FOSC('badges.nw1'))+' Club'},get desc(){return 'Reached '+fosBadgeLong(FOSC('badges.nw1'))+' net worth'},emoji:'💎',condition:()=>gameStats.networth>=FOSC('badges.nw1')},
+  {id:'networth-50l',get name(){return fosBadgeAmt(FOSC('badges.nw2'))+' Club'},get desc(){return 'Reached '+fosBadgeLong(FOSC('badges.nw2'))+' net worth'},emoji:'🏆',condition:()=>gameStats.networth>=FOSC('badges.nw2')},
+  {id:'tracker-30',name:'Consistency King',get desc(){return 'Logged data for '+FOSC('badges.tracker.days')+' days straight'},emoji:'📊',condition:()=>gameStats.trackingDays>=FOSC('badges.tracker.days')},
   {id:'debt-free',name:'Debt Free',desc:'Zero outstanding loans',emoji:'🎉',condition:()=>creditDb.length>0 && creditDb.reduce((s,c)=>s+Number(c.outstandingBalance||0),0)===0},
 ];
 
@@ -27811,9 +27823,9 @@ let gameStats = JSON.parse(localStorage.getItem('fos_game_stats')) || {
 
 function fosFreezeOrReset(last, today) {
   // A missed stretch (up to 7 days) is forgiven once per freeze token, for streaks of 7+ days; otherwise it resets.
-  if (typeof gameStats.freezes !== 'number') gameStats.freezes = 1;
+  if (typeof gameStats.freezes !== 'number') gameStats.freezes = FOSC('streak.freezeStart');
   const gap = Math.round((new Date(today + 'T00:00:00') - new Date(last + 'T00:00:00')) / 86400000) - 1;
-  if (last && gameStats.trackingDays >= 7 && gap >= 1 && gap <= 7 && gameStats.freezes > 0) {
+  if (last && gameStats.trackingDays >= FOSC('streak.freezeMinStreak') && gap >= 1 && gap <= FOSC('streak.freezeMaxGap') && gameStats.freezes > 0) {
     gameStats.freezes--; gameStats.lastFreeze = today;
     const n = gameStats.trackingDays;
     setTimeout(() => { try { showSettingsToast('🧊 Freeze used: your ' + n + '-day streak survived ' + gap + ' missed day' + (gap > 1 ? 's' : '')); } catch (e) {} }, 900);
@@ -27829,7 +27841,7 @@ function updateGameStats() {
   // floored at 0) + the value of what's been invested, minus what's still owed on active loans/credit.
   const cashOnHand = totalInc - totalExp - totalInv - totalLoan;
   gameStats.networth = (typeof fosNW === 'function') ? fosNW().net : (cashOnHand>0 ? cashOnHand : 0) + totalInv - totalOutstandingDebt;
-  if (typeof gameStats.freezes !== 'number') gameStats.freezes = 1;
+  if (typeof gameStats.freezes !== 'number') gameStats.freezes = FOSC('streak.freezeStart');
 
   const today = localISO();
   if (gameStats.lastActivity !== today) {
@@ -27860,8 +27872,8 @@ function updateGameStats() {
   }
 
   // Earn a freeze token every 30 days of consistent tracking (max 3)
-  if (gameStats.trackingDays > 0 && gameStats.trackingDays % 30 === 0 && gameStats.freezeAwardAt !== gameStats.trackingDays) {
-    gameStats.freezes = Math.min(3, (gameStats.freezes || 0) + 1); gameStats.freezeAwardAt = gameStats.trackingDays;
+  if (gameStats.trackingDays > 0 && gameStats.trackingDays % FOSC('streak.freezeEvery') === 0 && gameStats.freezeAwardAt !== gameStats.trackingDays) {
+    gameStats.freezes = Math.min(FOSC('streak.freezeMax'), (gameStats.freezes || 0) + 1); gameStats.freezeAwardAt = gameStats.trackingDays;
   }
 
   // RE-VALIDATE ALL BADGES - Remove badges that no longer meet conditions
@@ -37543,7 +37555,7 @@ body.light-mode .adm-toast{background:#e0f7fc;color:#06303c}body.light-mode .adm
   var S = { tab: 'overview', filter: '', modOnly: false, gate: null, fails: 0, until: 0, last: Date.now(), ok: false, built: {}, pv: null, month: null, openG: {} };
   var TABS = [
     ['overview', 'Overview', 'fa-gauge-high', 1], ['lab', 'Calculation Lab', 'fa-flask', 1], ['formula', 'Formula Studio', 'fa-square-root-variable', 1], ['chart', 'Chart Studio', 'fa-chart-pie', 1],
-    ['rules', 'Insight & Alert Rules', 'fa-bell', 1], ['unlocks', 'Unlocks & Streaks', 'fa-unlock', 0], ['data', 'Data Manager', 'fa-table', 0], ['tax', 'Taxonomy', 'fa-tags', 0],
+    ['rules', 'Insight & Alert Rules', 'fa-bell', 1], ['unlocks', 'Unlocks & Streaks', 'fa-unlock', 1], ['data', 'Data Manager', 'fa-table', 1], ['tax', 'Taxonomy', 'fa-tags', 0],
     ['port', 'Portfolio & Credit', 'fa-briefcase', 0], ['theme', 'Layout & Theme', 'fa-palette', 0], ['flags', 'Feature Flags', 'fa-toggle-on', 0], ['integrity', 'Integrity Checker', 'fa-shield-halved', 0],
     ['backups', 'Backups & Versions', 'fa-clock-rotate-left', 1], ['audit', 'Audit Log', 'fa-list-check', 1], ['dev', 'Developer Tools', 'fa-terminal', 0]
   ];
@@ -37588,9 +37600,11 @@ body.light-mode .adm-toast{background:#e0f7fc;color:#06303c}body.light-mode .adm
   }
   function body() {
     var b = document.getElementById('adm-body'); if (!b) return; var t = S.tab;
-    try { b.innerHTML = t === 'overview' ? overview() : t === 'lab' ? lab() : t === 'backups' ? backups() : t === 'audit' ? auditTab() : (t === 'formula' && window.FOS_FORMULA_STUDIO) ? window.FOS_FORMULA_STUDIO.html() : (t === 'chart' && window.FOS_CHART_STUDIO) ? window.FOS_CHART_STUDIO.html() : (t === 'rules' && window.FOS_RULES) ? window.FOS_RULES.html() : planned(t); } catch (e) { console.error('Admin tab failed:', e); b.innerHTML = '<div class="set-card"><b>This tab failed to load.</b><div class="adm-muted">' + E(e.message) + '</div></div>'; }
+    try { b.innerHTML = t === 'overview' ? overview() : t === 'lab' ? lab() : t === 'backups' ? backups() : t === 'audit' ? auditTab() : (t === 'formula' && window.FOS_FORMULA_STUDIO) ? window.FOS_FORMULA_STUDIO.html() : (t === 'chart' && window.FOS_CHART_STUDIO) ? window.FOS_CHART_STUDIO.html() : (t === 'rules' && window.FOS_RULES) ? window.FOS_RULES.html() : (t === 'unlocks' && window.FOS_UNLOCKS) ? window.FOS_UNLOCKS.html() : (t === 'data' && window.FOS_DATA) ? window.FOS_DATA.html() : planned(t); } catch (e) { console.error('Admin tab failed:', e); b.innerHTML = '<div class="set-card"><b>This tab failed to load.</b><div class="adm-muted">' + E(e.message) + '</div></div>'; }
     if (t === 'lab') labPreview();
     if (t === 'rules' && window.FOS_RULES) { try { window.FOS_RULES.after(); } catch (e) { console.error('Rules failed:', e); } }
+    if (t === 'unlocks' && window.FOS_UNLOCKS) { try { window.FOS_UNLOCKS.after(); } catch (e) { console.error('Unlocks failed:', e); } }
+    if (t === 'data' && window.FOS_DATA) { try { window.FOS_DATA.after(); } catch (e) { console.error('Data failed:', e); } }
     if (t === 'chart' && window.FOS_CHART_STUDIO) { try { window.FOS_CHART_STUDIO.after(); } catch (e) { console.error('Chart Studio failed:', e); } }
     if (t === 'formula' && window.FOS_FORMULA_STUDIO) { try { window.FOS_FORMULA_STUDIO.after(); } catch (e) { console.error('Formula Studio failed:', e); } }
   }
@@ -39090,6 +39104,532 @@ body.light-mode #adm-root{--fs-ok:#059669;--fs-bad:#dc2626;--fs-warn:#b45309}
   hookAll(); wire();
   window.addEventListener('load', function () { hookAll(); setTimeout(function () { try { evaluate(); paintInsights(); } catch (e) { } }, 1500); });
   if (document.readyState === 'complete') setTimeout(function () { try { evaluate(); paintInsights(); } catch (e) { } }, 600);
+})();
+</script>
+<style id="fos-unlocks-style">
+.ul-wrap{display:flex;flex-direction:column;gap:14px}
+.ul-tiles{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:10px}
+.ul-tile{display:flex;flex-direction:column;gap:2px;padding:10px 12px;border:1px solid var(--adm-line);border-radius:12px}
+.ul-tile span{font-size:.68rem;color:var(--text-muted);font-weight:700;text-transform:uppercase;letter-spacing:.04em}
+.ul-tile b{font-size:1.25rem}.ul-tile small{font-size:.68rem;color:var(--text-muted)}
+.ul-cfgs{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:12px}
+.ul-cfg{border:1px solid var(--adm-line);border-radius:12px;padding:10px 12px;display:flex;flex-direction:column;gap:6px}
+.ul-cfg-t label{font-weight:700;font-size:.84rem}.ul-cfg-i{display:flex;gap:8px;align-items:center}.ul-cin{max-width:170px}.ul-def{font-size:.68rem}
+.ul-lh{padding:10px 0;border-bottom:1px solid var(--adm-line)}.ul-lh:last-of-type{margin-bottom:12px}
+.ul-lh-h{display:flex;justify-content:space-between;gap:8px;align-items:center;flex-wrap:wrap}
+.ul-bar{height:8px;border-radius:99px;background:var(--adm-line);overflow:hidden;margin-top:6px}.ul-bar i{display:block;height:100%;background:var(--adm-a);border-radius:99px}
+.ul-br{display:grid;grid-template-columns:40px 1fr auto auto;gap:10px;align-items:center;padding:8px 0;border-bottom:1px solid var(--adm-line)}
+.ul-br.lock .ul-em{filter:grayscale(1);opacity:.55}.ul-em{font-size:1.5rem;text-align:center}
+.ul-tag{font-size:.6rem;font-weight:800;padding:1px 6px;border-radius:99px;border:1px solid var(--adm-a);color:var(--adm-a)}
+.ul-embs{display:flex;gap:4px;flex-wrap:wrap;margin-top:6px}.ul-emb{border:1px solid var(--adm-line);background:none;border-radius:8px;padding:3px 6px;font-size:1.05rem;cursor:pointer}
+.ul-prev{display:flex;gap:10px;align-items:center}
+.ul-wrap .rl-bc.yes b{color:var(--fs-ok,#34d399)}.ul-wrap .rl-bc.no b{color:var(--text-muted)}
+@media(max-width:560px){.ul-br{grid-template-columns:34px 1fr auto}.ul-br>button{grid-column:2/4;justify-self:start}}
+</style>
+<script id="fos-unlocks">
+/* ═══════════════════════════════════════════════════════════════════════
+   FOS ADMIN · UNLOCKS & STREAKS
+   One place to run the app's streaks, freezes, achievement badges and consistency
+   unlocks:
+     · Streaks at a glance, with admin actions (add a freeze, reset, re-check badges)
+     · Streak & freeze rules and badge thresholds, saved through the Admin config layer
+       (so they are audited, snapshotted, resettable, and also appear in the Calculation Lab)
+     · Consistency unlock progress (Weekly Pulse, Half-Year Report, Year in Review)
+     · Custom badges: your own achievements, defined by a safe expression, that join the
+       app's real badge collection, "x/N badges" counter and unlock notifications.
+   Custom badges are saved in localStorage 'fos_admin_badges_v1'.
+   ═══════════════════════════════════════════════════════════════════════ */
+(function () {
+  'use strict';
+  if (window.FOS_UNLOCKS) return;
+  var X = window.FOS_EXPR, C = window.FOS_CONFIG;
+  if (!X || !C) return;
+  function FS() { return window.FOS_FORMULA_STUDIO || null; }
+
+  var KEY = 'fos_admin_badges_v1', MAXB = 20;
+  var STREAK_P = ['streak.freezeStart', 'streak.freezeMax', 'streak.freezeEvery', 'streak.freezeMinStreak', 'streak.freezeMaxGap'];
+  var BADGE_P = ['badges.budget1.days', 'badges.budget2.days', 'badges.tracker.days', 'badges.nw1', 'badges.nw2'];
+  var MODES = { now: 'This month meets the rule', months: 'Rule met in at least N months', inarow: 'Rule met N months in a row' };
+  var EMOJIS = ['🏅', '🔥', '💪', '🌱', '🚀', '⭐', '🧠', '🎯', '🛡️', '💎'];
+  var LH = [
+    { id: 'pulse', unit: 'week', name: 'Weekly Pulse', how: 'Log enough entries every week', p: 'unlocks.lh.pulse.need' },
+    { id: 'half', unit: 'month', name: 'Half-Year Report', how: 'Log income and expenses every month', p: 'unlocks.lh.half.need' },
+    { id: 'year', unit: 'month', name: 'Year in Review', how: 'Log income and expenses every month', p: 'unlocks.lh.year.need' }
+  ];
+  var TEMPLATES = [
+    { name: 'Super saver', emoji: '🌱', desc: 'Saved 30% or more of your income in 3 different months.', mode: 'months', n: 3, cond: 'income > 0 && savings / income >= 0.3' },
+    { name: 'Steady investor', emoji: '🚀', desc: 'Invested something every month for 6 months in a row.', mode: 'inarow', n: 6, cond: 'invest > 0' },
+    { name: 'In the green', emoji: '💪', desc: 'Ended 3 months in a row with cash left over.', mode: 'inarow', n: 3, cond: 'cashLeft > 0' },
+    { name: 'Frugal month', emoji: '🧠', desc: 'This month you are spending at least 10% below your usual.', mode: 'now', n: 1, cond: 'avg3 > 0 && expense < avg3 * 0.9' },
+    { name: 'Low EMI load', emoji: '🛡️', desc: 'EMIs stayed under 25% of income for 4 months.', mode: 'months', n: 4, cond: 'income > 0 && emi / income < 0.25' }
+  ];
+
+  /* ── helpers ───────────────────────────────────────────────────────── */
+  function E(s) { try { return _esc(s); } catch (e) { return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]; }); } }
+  function $(id) { return document.getElementById(id); }
+  function pad(n) { return (n < 10 ? '0' : '') + n; }
+  function uid() { return 'b' + Date.now().toString(36) + Math.random().toString(36).slice(2, 5); }
+  function nowIso() { return new Date().toISOString(); }
+  function curMonth() { try { return localMonthKey(new Date()); } catch (e) { var d = new Date(); return d.getFullYear() + '-' + pad(d.getMonth() + 1); } }
+  function addM(m, n) { var p = m.split('-'), d = new Date(+p[0], +p[1] - 1 + n, 1); return d.getFullYear() + '-' + pad(d.getMonth() + 1); }
+  function monthLabel(mk) { try { return new Date(+mk.slice(0, 4), +mk.slice(5, 7) - 1, 1).toLocaleString(undefined, { month: 'short', year: '2-digit' }); } catch (e) { return mk; } }
+  function allMonths() { var m = {}; try { (db || []).forEach(function (r) { var k = String(r && r.date || '').slice(0, 7); if (/^\d{4}-\d{2}$/.test(k)) m[k] = 1; }); } catch (e) { } m[curMonth()] = 1; return Object.keys(m).sort(); }
+  function evalExpr(expr, mk) { var f = FS(); if (f && f.evalExpr) return f.evalExpr(expr, mk); try { return X.run(expr, X.varsFor(mk)); } catch (e) { return { ok: false, msg: 'Could not evaluate' }; } }
+  function gs() { try { return gameStats; } catch (e) { return null; } }
+  function saveGs() { try { localStorage.setItem('fos_game_stats', JSON.stringify(gameStats)); } catch (e) { } }
+  function refreshApp() {
+    try { if (typeof updateGameStats === 'function') updateGameStats(); } catch (e) { console.warn(e); }
+    try { var sc = $('badge-showcase'); if (sc && sc.style.display !== 'none' && typeof renderBadgeCollection === 'function') renderBadgeCollection(); } catch (e) { }
+  }
+
+  /* ── custom badges: storage ────────────────────────────────────────── */
+  var store = null;
+  function clean(o) {
+    if (!o || typeof o !== 'object') return null; var mode = MODES[o.mode] ? o.mode : 'months', n = Math.max(1, Math.min(24, Math.floor(Number(o.n)) || 1)); if (mode === 'now') n = 1;
+    return { id: String(o.id || uid()), name: String(o.name || 'Badge').slice(0, 40), emoji: Array.from(String(o.emoji || '🏅')).slice(0, 2).join('') || '🏅', desc: String(o.desc || '').slice(0, 100), cond: String(o.cond || '').slice(0, 500), mode: mode, n: n, on: o.on !== false,
+      announced: String(o.announced || ''), created: String(o.created || nowIso()), updated: String(o.updated || nowIso()) };
+  }
+  function load() { var o = null; try { o = JSON.parse(localStorage.getItem(KEY)); } catch (e) { } var out = []; (o && Array.isArray(o.items) ? o.items : []).forEach(function (x) { var c = clean(x); if (c && out.length < MAXB) out.push(c); }); store = { version: 1, items: out }; }
+  function persist() { try { localStorage.setItem(KEY, JSON.stringify(store)); return true; } catch (e) { return false; } }
+  function items() { if (!store) load(); return store.items; }
+  function byId(id) { return items().filter(function (x) { return x.id === id; })[0]; }
+
+  /* ── custom badges: evaluation ─────────────────────────────────────── */
+  function monthOk(b, mk) { var r = evalExpr(b.cond, mk); return r.ok && r.value !== 0; }
+  function progress(b) {
+    var ms = allMonths(), oks = ms.map(function (mk) { return { mk: mk, ok: monthOk(b, mk) }; }), cur = 0;
+    if (b.mode === 'now') { var last = oks[oks.length - 1]; cur = last && last.ok ? 1 : 0; }
+    else if (b.mode === 'months') cur = oks.filter(function (x) { return x.ok; }).length;
+    else { var run = 0, prev = null; oks.forEach(function (x) { if (!x.ok) { run = 0; prev = null; return; } run = (prev && addM(prev, 1) === x.mk) ? run + 1 : 1; prev = x.mk; if (run > cur) cur = run; }); }
+    return { cur: cur, need: b.n, met: cur >= b.n, oks: oks };
+  }
+  function syncBadges() {
+    if (typeof BADGES === 'undefined') return; for (var i = BADGES.length - 1; i >= 0; i--) if (BADGES[i].custom) BADGES.splice(i, 1);
+    items().forEach(function (b) { if (!b.on) return; BADGES.push({ id: 'cb-' + b.id, custom: true, name: b.name, emoji: b.emoji, get desc() { return b.desc || b.name; }, condition: function () { if (C.safe()) return false; try { return progress(b).met; } catch (e) { return false; } } }); });
+  }
+  function hookUnlock() {
+    try {
+      var o = window.showBadgeUnlock;
+      if (typeof o === 'function' && !o.__ul) { var w = function (badge) { if (badge && badge.custom) { var b = byId(String(badge.id).slice(3)); if (b) { if (b.announced) return; b.announced = nowIso(); persist(); } } return o.apply(this, arguments); }; w.__ul = 1; window.showBadgeUnlock = w; }
+    } catch (e) { }
+  }
+
+  /* ── consistency (same rules as the app's long-haul unlocks) ───────── */
+  function weekKey(x) { var p = String(x).slice(0, 10).split('-'), d = new Date(+p[0], +p[1] - 1, +p[2]); d.setDate(d.getDate() - ((d.getDay() + 6) % 7)); return d.getFullYear() + '-' + pad(d.getMonth() + 1) + '-' + pad(d.getDate()); }
+  function prevWeek(k) { var p = k.split('-'), d = new Date(+p[0], +p[1] - 1, +p[2] - 7); return d.getFullYear() + '-' + pad(d.getMonth() + 1) + '-' + pad(d.getDate()); }
+  function consistency() {
+    var wk = {}, mo = {}, per = FOSC('unlocks.entriesPerWeek'); try {
+      dbNow().forEach(function (r) { if (!r || !r.date) return; var w = weekKey(r.date), m = String(r.date).slice(0, 7), o = mo[m] || (mo[m] = { i: 0, e: 0 }); wk[w] = (wk[w] || 0) + 1; if (r.type === 'Income') o.i++; else if (r.type === 'Expense') o.e++; });
+    } catch (e) { }
+    var okW = function (k) { return (wk[k] || 0) >= per; }, okM = function (k) { return !!(mo[k] && mo[k].i > 0 && mo[k].e > 0); };
+    var td = (function () { var d = new Date(); return d.getFullYear() + '-' + pad(d.getMonth() + 1) + '-' + pad(d.getDate()); })(), cw = weekKey(td), w = okW(cw) ? cw : prevWeek(cw), sw = 0; while (okW(w)) { sw++; w = prevWeek(w); }
+    var cm = curMonth(), m = okM(cm) ? cm : addM(cm, -1), sm = 0; while (okM(m)) { sm++; m = addM(m, -1); } return { week: sw, month: sm };
+  }
+
+  /* ── config rows ───────────────────────────────────────────────────── */
+  function pid(p) { return 'ul-c-' + p.replace(/[^a-z0-9]+/gi, '-'); }
+  function cfgRow(p) {
+    var s = C.schemaOf(p); if (!s) return ''; var v = C.get(p), mod = C.isModified(p);
+    return '<div class="ul-cfg"><div class="ul-cfg-t"><label for="' + pid(p) + '">' + E(s.l) + '</label><div class="adm-muted">' + E(s.h || '') + (s.rec ? (s.h ? ' ' : '') + 'Typical: ' + E(s.rec) + '.' : '') + '</div><div class="adm-err" id="' + pid(p) + '-e" role="alert"></div></div>' +
+      '<div class="ul-cfg-i"><input type="number" class="set-input ul-cin" id="' + pid(p) + '" data-p="' + E(p) + '" min="' + s.min + '" max="' + s.max + '" step="' + s.step + '" value="' + E(v) + '"><button type="button" class="adm-btn ghost sm" data-ul="creset" data-p="' + E(p) + '"' + (mod ? '' : ' disabled') + '>Reset</button></div><div class="adm-muted ul-def">' + (mod ? '<b>Changed</b> · ' : '') + 'default ' + E(String(C.def(p))) + '</div></div>';
+  }
+  function cfgBlock(ps) { return '<div class="ul-cfgs">' + ps.map(cfgRow).join('') + '</div>'; }
+
+  /* ── sections ──────────────────────────────────────────────────────── */
+  function tile(l, v, sub) { return '<div class="ul-tile"><span>' + E(l) + '</span><b>' + E(v) + '</b><small>' + E(sub || '') + '</small></div>'; }
+  function glanceHtml() {
+    var g = gs(); if (!g) return '<div class="adm-muted">Streak data is not available yet.</div>';
+    var fz = typeof g.freezes === 'number' ? g.freezes : C.get('streak.freezeStart'), every = C.get('streak.freezeEvery'), max = C.get('streak.freezeMax'), td = g.trackingDays || 0, hasB = false; try { hasB = Object.keys(budgets).length > 0; } catch (e) { }
+    var nextIn = fz >= max ? 'At the limit of ' + max : (every - (td % every)) + ' day' + ((every - (td % every)) === 1 ? '' : 's') + ' of logging to go';
+    return '<div class="ul-tiles">' + tile('Budget streak', (g.streak || 0) + (g.streak === 1 ? ' day' : ' days'), hasB ? 'under every budget' : 'set a budget to start') + tile('Logging streak', td + (td === 1 ? ' day' : ' days'), g.lastActivity ? 'last logged ' + g.lastActivity : 'nothing logged yet') +
+      tile('Freezes held', fz + ' of ' + max, g.lastFreeze ? 'last used ' + g.lastFreeze : 'none used yet') + tile('Next freeze', fz >= max ? '—' : 'in ' + (every - (td % every)) + 'd', nextIn) + tile('Badges', (g.badges || []).length + '/' + (typeof BADGES !== 'undefined' ? BADGES.length : '?'), 'unlocked') + '</div>' +
+      '<div class="adm-actions" style="margin-top:12px"><button type="button" class="adm-btn ghost sm" data-ul="addfreeze"><i class="fas fa-snowflake"></i> Add a freeze</button><button type="button" class="adm-btn ghost sm" data-ul="recheck"><i class="fas fa-rotate"></i> Re-check badges</button><button type="button" class="adm-btn danger sm" data-ul="resetbudget">Reset budget streak</button><button type="button" class="adm-btn danger sm" data-ul="resetlog">Reset logging streak</button></div><div id="ul-gnote" class="fs-note" role="status" aria-live="polite" style="margin-top:6px"></div>';
+  }
+  function lhHtml() {
+    var cs = consistency(), seen = {}; try { seen = JSON.parse(localStorage.getItem('fos_lh_unlocked') || '{}'); } catch (e) { }
+    return LH.map(function (x) {
+      var need = C.get(x.p), cur = x.unit === 'week' ? cs.week : cs.month, pct = Math.round(Math.min(1, cur / need) * 100), done = !!seen[x.id];
+      return '<div class="ul-lh"><div class="ul-lh-h"><b>' + E(x.name) + '</b><span class="rl-st ' + (done ? 'quiet' : '') + '">' + (done ? 'Unlocked ' + E(seen[x.id]) : (need - cur > 0 ? (need - cur) + ' ' + x.unit + (need - cur === 1 ? '' : 's') + ' to go' : 'Ready')) + '</span></div><div class="adm-muted">' + E(x.how) + '. Currently ' + cur + ' of ' + need + ' ' + x.unit + 's in a row.</div><div class="ul-bar" role="progressbar" aria-valuenow="' + pct + '" aria-valuemin="0" aria-valuemax="100" aria-label="' + E(x.name) + ' progress"><i style="width:' + pct + '%"></i></div></div>';
+    }).join('') + cfgBlock(['unlocks.entriesPerWeek'].concat(LH.map(function (x) { return x.p; })));
+  }
+  function badgeRows() {
+    var g = gs() || { badges: [] }, rows = '', list = typeof BADGES !== 'undefined' ? BADGES : [];
+    list.forEach(function (b) {
+      var un = g.badges.indexOf(b.id) >= 0, cb = b.custom ? byId(String(b.id).slice(3)) : null;
+      rows += '<div class="ul-br' + (un ? '' : ' lock') + '"><span class="ul-em">' + E(b.emoji) + '</span><div class="ul-bt"><b>' + E(b.name) + '</b>' + (b.custom ? ' <span class="ul-tag">custom</span>' : '') + '<div class="adm-muted">' + E(b.desc) + '</div></div><span class="rl-st ' + (un ? 'quiet' : '') + '">' + (un ? 'Unlocked' : 'Locked') + '</span>' + (cb ? '<button type="button" class="adm-btn ghost sm" data-ul="edit" data-id="' + E(cb.id) + '">Edit</button>' : '<span></span>') + '</div>';
+    });
+    items().filter(function (b) { return !b.on; }).forEach(function (b) { rows += '<div class="ul-br lock"><span class="ul-em">' + E(b.emoji) + '</span><div class="ul-bt"><b>' + E(b.name) + '</b> <span class="ul-tag">custom · off</span><div class="adm-muted">' + E(b.desc) + '</div></div><span class="rl-st">Paused</span><button type="button" class="adm-btn ghost sm" data-ul="edit" data-id="' + E(b.id) + '">Edit</button></div>'; });
+    return rows || '<div class="adm-muted">No badges found.</div>';
+  }
+  function htmlAll() {
+    var tpl = TEMPLATES.map(function (t, i) { return '<button type="button" class="fs-chip" data-ul="tpl" data-i="' + i + '" title="' + E(t.desc) + '"><b>' + E(t.emoji + ' ' + t.name) + '</b></button>'; }).join('');
+    return (C.safe() ? '<div class="adm-banner" role="note">Safe mode is on, so the rule values below are not in effect (defaults are used) and custom badges are paused.</div>' : '') + '<div class="ul-wrap">' +
+      '<div class="set-card"><div class="adm-h">Streaks at a glance <small>live from this device</small></div><div id="ul-glance">' + glanceHtml() + '</div></div>' +
+      '<div class="set-card"><div class="adm-h">Streak &amp; freeze rules</div><div class="adm-muted" style="margin-bottom:10px">A freeze forgives a missed stretch so your logging streak survives. Changes apply right away and are recorded in the Audit log.</div><div id="ul-streak">' + cfgBlock(STREAK_P) + '</div></div>' +
+      '<div class="set-card"><div class="adm-h">Badge thresholds</div><div id="ul-badge-cfg">' + cfgBlock(BADGE_P) + '</div></div>' +
+      '<div class="set-card"><div class="adm-h">Consistency unlocks</div><div id="ul-lh">' + lhHtml() + '</div></div>' +
+      '<div class="set-card"><div class="fs-head"><div class="adm-h" style="margin:0">Achievement badges</div><button type="button" class="adm-btn sm" data-ul="new"><i class="fas fa-plus"></i> New custom badge</button></div><div id="ul-badges">' + badgeRows() + '</div></div>' +
+      '<div class="set-card" id="ul-ed-c"' + (S.d ? '' : ' hidden') + '><div class="adm-h" id="ul-ed-t">Custom badge</div><div id="ul-ed">' + (S.d ? editorHtml() : '') + '</div></div>' +
+      '<div class="adm-muted" style="margin:4px 2px">Quick start: ' + tpl + '</div></div>';
+  }
+
+  /* ── custom badge editor ───────────────────────────────────────────── */
+  var S = { d: null, sel: null, sig: '', dirty: false, tm: null };
+  function sig(d) { return JSON.stringify([d.name, d.emoji, d.desc, d.cond, d.mode, d.n, d.on]); }
+  function openEditor(d, sel) { S.d = d; S.sel = sel; S.sig = sel === 'new' ? '' : sig(d); S.dirty = sel === 'new'; var c = $('ul-ed-c'); if (c) { c.hidden = false; $('ul-ed').innerHTML = editorHtml(); paintEditor(); c.scrollIntoView({ behavior: 'smooth', block: 'nearest' }); } }
+  function editorHtml() {
+    var d = S.d, mo = Object.keys(MODES).map(function (k) { return '<option value="' + k + '"' + (d.mode === k ? ' selected' : '') + '>' + MODES[k] + '</option>'; }).join('');
+    var ems = EMOJIS.map(function (e) { return '<button type="button" class="ul-emb" data-ul="emoji" data-e="' + E(e) + '" aria-label="Use ' + E(e) + '">' + E(e) + '</button>'; }).join('');
+    var chips = X.VARS.map(function (v) { return '<button type="button" class="fs-chip" data-ul="ins" data-t="' + v + '"><b>' + E(v) + '</b></button>'; }).join('');
+    return '<div class="fs-grid"><div class="fs-f"><label for="ul-bn">Name</label><input id="ul-bn" class="set-input" maxlength="40" value="' + E(d.name) + '" placeholder="e.g. Super saver" autocomplete="off"></div>' +
+      '<div class="fs-f"><label for="ul-be">Emoji</label><input id="ul-be" class="set-input" maxlength="4" value="' + E(d.emoji) + '" style="max-width:110px"><div class="ul-embs">' + ems + '</div></div>' +
+      '<div class="fs-f"><label for="ul-bm">Earned when</label><select id="ul-bm" class="set-input">' + mo + '</select></div>' +
+      '<div class="fs-f" id="ul-bnf"' + (d.mode === 'now' ? ' hidden' : '') + '><label for="ul-bnum">N (months)</label><input id="ul-bnum" type="number" min="1" max="24" step="1" class="set-input" value="' + d.n + '"></div></div>' +
+      '<div class="fs-f"><label for="ul-bd">Description <span class="adm-muted">(shown in the badge collection)</span></label><input id="ul-bd" class="set-input" maxlength="100" value="' + E(d.desc) + '"></div>' +
+      '<div class="fs-f"><label for="ul-bcond">Rule for a month <span class="adm-muted">(true = the month counts)</span></label><textarea id="ul-bcond" class="set-input adm-mono fs-expr" rows="2" spellcheck="false" autocomplete="off" placeholder="income > 0 && savings / income >= 0.3">' + E(d.cond) + '</textarea></div>' +
+      '<div id="ul-valid" class="fs-valid" aria-live="polite"></div><div class="fs-chips-l">Insert</div><div class="fs-chips">' + chips + '</div>' +
+      '<div class="cs-opts"><label class="adm-chk2"><input type="checkbox" id="ul-bon"' + (d.on ? ' checked' : '') + '> Badge is on</label></div>' +
+      '<div id="ul-prog" style="margin-top:12px"></div>' +
+      '<div class="fs-actions"><span class="fs-spacer"></span><span id="ul-dirty" class="fs-dirty" hidden>Unsaved changes</span><span id="ul-note" class="fs-note" role="status" aria-live="polite"></span><button type="button" class="adm-btn ghost sm" data-ul="close">Close</button><button type="button" class="adm-btn danger sm" data-ul="del"' + (S.sel === 'new' ? ' disabled' : '') + '>Delete</button><button type="button" class="adm-btn" data-ul="save" title="Ctrl+S"><i class="fas fa-floppy-disk"></i> Save badge</button></div>';
+  }
+  function paintEditor() {
+    var d = S.d; if (!d) return; var t = $('ul-ed-t'); if (t) t.textContent = S.sel === 'new' ? 'New custom badge' : 'Edit: ' + (d.name || 'badge');
+    var dirty = $('ul-dirty'); if (dirty) dirty.hidden = !S.dirty; var del = document.querySelector('[data-ul="del"]'); if (del) del.disabled = S.sel === 'new'; var nf = $('ul-bnf'); if (nf) nf.hidden = d.mode === 'now';
+    var v = $('ul-valid'), pg = $('ul-prog'); if (!v || !pg) return;
+    if (!String(d.cond).trim()) { v.innerHTML = '<span class="adm-muted">Write a rule using the values below. Example: <code>cashLeft &gt; 0</code></span>'; pg.innerHTML = ''; return; }
+    var probe = evalExpr(d.cond, curMonth());
+    if (!probe.ok && probe.parse) { var snip = probe.pos != null ? '<div class="fs-snip"><code>' + E(d.cond.slice(0, probe.pos)) + '<mark>' + E(d.cond.charAt(probe.pos) || '⏎') + '</mark>' + E(d.cond.slice(probe.pos + 1)) + '</code></div>' : ''; v.innerHTML = '<div class="adm-err" style="display:block"><i class="fas fa-circle-exclamation"></i> ' + E(probe.msg) + '</div>' + snip; pg.innerHTML = ''; return; }
+    v.innerHTML = '<span class="adm-ok"><i class="fas fa-circle-check"></i> Rule is valid.</span>';
+    var p = progress(d), pct = Math.round(Math.min(1, p.cur / p.need) * 100), last = p.oks.slice(-12);
+    pg.innerHTML = '<div class="ul-prev"><span class="ul-em">' + E(d.emoji) + '</span><div><b>' + E(d.name || 'Badge') + '</b> <span class="rl-st ' + (p.met ? 'quiet' : '') + '">' + (p.met ? 'Would be unlocked' : 'Not yet') + '</span><div class="adm-muted">' + E(d.desc || '') + '</div></div></div>' +
+      '<div class="adm-muted" style="margin:8px 0 4px">Progress: <b>' + p.cur + '</b> of ' + p.need + (d.mode === 'inarow' ? ' months in a row (best run so far)' : d.mode === 'months' ? ' qualifying months' : ' (this month)') + '</div><div class="ul-bar" role="progressbar" aria-valuenow="' + pct + '" aria-valuemin="0" aria-valuemax="100" aria-label="Badge progress"><i style="width:' + pct + '%"></i></div>' +
+      '<div class="rl-bts" style="margin-top:10px">' + last.map(function (x) { return '<div class="rl-bc ' + (x.ok ? 'yes' : 'no') + '" title="' + E(x.mk + (x.ok ? ': rule met' : ': not met')) + '"><span>' + E(monthLabel(x.mk)) + '</span><b>' + (x.ok ? '✓' : '·') + '</b></div>'; }).join('') + '</div>';
+  }
+  function markDirty() { S.dirty = sig(S.d) !== S.sig; var d = $('ul-dirty'); if (d) d.hidden = !S.dirty; }
+  function schedule() { clearTimeout(S.tm); S.tm = setTimeout(paintEditor, 90); }
+  function note(msg, bad, id) { var el = $(id || 'ul-note'); if (!el) return; el.textContent = msg || ''; el.className = 'fs-note' + (bad ? ' bad' : ''); clearTimeout(note['_' + (id || 'n')]); if (msg) note['_' + (id || 'n')] = setTimeout(function () { var e2 = $(id || 'ul-note'); if (e2) e2.textContent = ''; }, 6000); }
+  function refreshSections() { var g = $('ul-glance'), l = $('ul-lh'), b = $('ul-badges'); if (g) g.innerHTML = glanceHtml(); if (l) l.innerHTML = lhHtml(); if (b) b.innerHTML = badgeRows(); }
+
+  /* ── actions ───────────────────────────────────────────────────────── */
+  function doSave() {
+    var d = S.d; if (!d) return; if (!String(d.name).trim()) return note('Give the badge a name.', true); if (!String(d.cond).trim()) return note('Write a rule first.', true);
+    var pr = evalExpr(d.cond, curMonth()); if (!pr.ok && pr.parse) return note('Rule: ' + pr.msg, true); if (S.sel === 'new' && items().length >= MAXB) return note('You can keep up to ' + MAXB + ' custom badges.', true);
+    d.name = d.name.trim(); var b;
+    if (S.sel === 'new') { b = clean(Object.assign({}, d, { id: uid() })); items().push(b); }
+    else { b = byId(S.sel); var cond = b.cond !== d.cond || b.mode !== d.mode || b.n !== d.n, keep = { id: b.id, created: b.created, announced: cond ? '' : b.announced }, n = clean(Object.assign({}, d, keep)); Object.keys(n).forEach(function (k) { b[k] = n[k]; }); b.updated = nowIso(); }
+    if (!persist()) { if (S.sel === 'new') items().pop(); return note('Could not save (browser storage is full).', true); }
+    syncBadges(); refreshApp(); S.sel = b.id; S.d = JSON.parse(JSON.stringify(b)); S.sig = sig(S.d); S.dirty = false; refreshSections(); paintEditor(); var t = $('ul-ed-t'); if (t) t.textContent = 'Edit: ' + b.name; note('Saved. Badges re-checked.');
+  }
+  function doDelete() {
+    var b = byId(S.sel); if (!b || !confirm('Delete the badge "' + b.name + '"? It will be removed from your collection.')) return; store.items = items().filter(function (x) { return x.id !== b.id; }); persist(); syncBadges(); refreshApp(); S.d = null; S.sel = null; var c = $('ul-ed-c'); if (c) c.hidden = true; refreshSections();
+  }
+  function setCfg(inp) {
+    var p = inp.getAttribute('data-p'), err = $(pid(p) + '-e'), r = C.set(p, Number(inp.value)); if (!r.ok) { if (err) err.textContent = r.msg || 'Not allowed.'; inp.value = C.get(p); return; }
+    if (err) err.textContent = ''; var sec = inp.closest('#ul-streak') ? 'streak' : inp.closest('#ul-badge-cfg') ? 'badge' : 'lh'; syncBadges(); refreshApp(); setTimeout(function () { rerenderCfg(sec); refreshSections(); }, 0);
+  }
+  function rerenderCfg(sec) { if (sec === 'streak') { var a = $('ul-streak'); if (a) a.innerHTML = cfgBlock(STREAK_P); } else if (sec === 'badge') { var b = $('ul-badge-cfg'); if (b) b.innerHTML = cfgBlock(BADGE_P); } }
+  function gAct(a) {
+    var g = gs(); if (!g) return; var msg = '';
+    if (a === 'addfreeze') { var max = C.get('streak.freezeMax'); if ((g.freezes || 0) >= max) msg = 'Already at the limit of ' + max + '.'; else { g.freezes = (g.freezes || 0) + 1; msg = 'Freeze added.'; } }
+    else if (a === 'resetbudget') { if (!confirm('Reset the budget streak to 0? It will start counting again from the next check.')) return; g.streak = 0; g.lastCheck = null; msg = 'Budget streak reset.'; }
+    else if (a === 'resetlog') { if (!confirm('Reset the logging streak to 0? Your freezes are kept.')) return; g.trackingDays = 0; g.lastActivity = null; msg = 'Logging streak reset. It restarts at 1 when you next log or open the app.'; }
+    else if (a === 'recheck') { msg = 'Badges re-checked.'; }
+    saveGs(); try { if (typeof renderGameStats === 'function') renderGameStats(); } catch (e) { } if (a !== 'addfreeze') refreshApp(); var ge = $('ul-glance'); if (ge) ge.innerHTML = glanceHtml(); refreshSections(); note(msg, false, 'ul-gnote');
+  }
+  function insertTxt(t) { var ta = $('ul-bcond'); if (!ta) return; var s = ta.selectionStart == null ? ta.value.length : ta.selectionStart, e = ta.selectionEnd == null ? s : ta.selectionEnd, v = ta.value, pre = (s > 0 && /[A-Za-z0-9_)]$/.test(v.slice(0, s))) ? ' ' : ''; ta.value = v.slice(0, s) + pre + t + v.slice(e); var c = s + pre.length + t.length; try { ta.setSelectionRange(c, c); } catch (x) { } ta.focus(); S.d.cond = ta.value; markDirty(); paintEditor(); }
+
+  /* ── events ────────────────────────────────────────────────────────── */
+  function inTab(t) { return t && t.closest && t.closest('.ul-wrap'); }
+  function onClick(e) {
+    var t = e.target; if (!inTab(t)) return; var b = t.closest('[data-ul]'); if (!b) return; var a = b.getAttribute('data-ul');
+    if (a === 'creset') { var p = b.getAttribute('data-p'); var r = C.reset(p); if (r && r.ok === false) { note(r.msg, true, 'ul-gnote'); return; } var inp = $(pid(p)); if (inp) { rerenderCfg(inp.closest('#ul-streak') ? 'streak' : inp.closest('#ul-badge-cfg') ? 'badge' : 'lh'); } if ($('ul-lh') && /^unlocks\./.test(p)) $('ul-lh').innerHTML = lhHtml(); syncBadges(); refreshApp(); refreshSections(); return; }
+    if (['addfreeze', 'resetbudget', 'resetlog', 'recheck'].indexOf(a) >= 0) return gAct(a);
+    if (a === 'new') { if (S.d && S.dirty && !confirm('Discard unsaved changes to this badge?')) return; return openEditor(clean({ id: 'tmp', name: '', emoji: '🏅', desc: '', cond: '', mode: 'months', n: 3, on: true }), 'new'); }
+    if (a === 'tpl') { var tp = TEMPLATES[+b.getAttribute('data-i')]; if (!tp || (S.d && S.dirty && !confirm('Discard unsaved changes to this badge?'))) return; return openEditor(clean(Object.assign({ id: 'tmp', on: true }, tp)), 'new'); }
+    if (a === 'edit') { var cb = byId(b.getAttribute('data-id')); if (!cb || (S.d && S.dirty && !confirm('Discard unsaved changes to this badge?'))) return; return openEditor(JSON.parse(JSON.stringify(cb)), cb.id); }
+    if (a === 'close') { if (S.dirty && !confirm('Discard unsaved changes?')) return; S.d = null; $('ul-ed-c').hidden = true; return; }
+    if (a === 'save') return doSave(); if (a === 'del') return doDelete();
+    if (a === 'emoji') { var em = $('ul-be'); if (em && S.d) { em.value = b.getAttribute('data-e'); S.d.emoji = em.value; markDirty(); paintEditor(); } return; }
+    if (a === 'ins') return insertTxt(b.getAttribute('data-t'));
+  }
+  function onInput(e) {
+    var t = e.target, id = t.id || '', d = S.d; if (!d || id.indexOf('ul-b') !== 0) return;
+    if (id === 'ul-bn') d.name = t.value; else if (id === 'ul-be') d.emoji = Array.from(t.value).slice(0, 2).join('') || '🏅'; else if (id === 'ul-bd') d.desc = t.value; else if (id === 'ul-bcond') d.cond = t.value; else if (id === 'ul-bnum') d.n = Math.max(1, Math.min(24, Math.floor(Number(t.value)) || 1)); else return; markDirty(); schedule();
+  }
+  function onChange(e) {
+    var t = e.target, id = t.id || ''; if (t.classList && t.classList.contains('ul-cin') && inTab(t)) return setCfg(t); var d = S.d; if (!d) return;
+    if (id === 'ul-bm') { d.mode = t.value; if (d.mode === 'now') d.n = 1; else if (d.n < 2) d.n = 3; var nb = $('ul-bnum'); if (nb) nb.value = d.n; markDirty(); return paintEditor(); } if (id === 'ul-bon') { d.on = t.checked; markDirty(); }
+  }
+  function onKey(e) { var t = e.target; if (!inTab(t)) return; if ((e.ctrlKey || e.metaKey) && String(e.key).toLowerCase() === 's' && S.d) { e.preventDefault(); doSave(); } }
+  function wire() { var r = $('adm-root'); if (!r || r.__ul) return; r.__ul = 1; r.addEventListener('click', onClick); r.addEventListener('input', onInput); r.addEventListener('change', onChange); document.addEventListener('keydown', onKey, true); r.addEventListener('mousedown', function (e) { var c = e.target.closest && e.target.closest('.ul-wrap .fs-chip, .ul-emb'); if (c) e.preventDefault(); }); }
+  function html() { return htmlAll(); }
+  function after() { wire(); if (S.d) paintEditor(); }
+
+  window.FOS_UNLOCKS = { html: html, after: after, items: items, sync: syncBadges };
+  syncBadges(); hookUnlock(); wire();
+  window.addEventListener('load', function () { hookUnlock(); syncBadges(); setTimeout(function () { try { if (items().length) refreshApp(); } catch (e) { } }, 1200); });
+})();
+</script>
+<style id="fos-data-style">
+.dm-wrap{display:flex;flex-direction:column;gap:14px}
+.dm-use{font-size:.9rem;margin-bottom:6px}
+.dm-sum{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:10px}
+.dm-is{border:1px solid var(--adm-line);border-radius:12px;padding:10px 12px;margin-bottom:10px;border-left-width:4px}
+.dm-is.bad{border-left-color:var(--fs-bad,#f87171)}.dm-is.warn{border-left-color:var(--fs-warn,#fbbf24)}.dm-is.info{border-left-color:var(--adm-a)}
+.dm-is-h{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:2px}
+.dm-ex{font-size:.74rem;color:var(--text-muted);margin-top:6px;font-family:ui-monospace,monospace;line-height:1.5}
+.dm-dupr td{opacity:.5}
+.dm-undo{display:flex;justify-content:space-between;gap:12px;align-items:center;flex-wrap:wrap}.dm-log{margin-top:10px;display:flex;flex-direction:column;gap:2px}
+</style>
+<script id="fos-data">
+/* ═══════════════════════════════════════════════════════════════════════
+   FOS ADMIN · DATA MANAGER
+     · Data overview: every store (record count, size, export)
+     · Browser storage usage (how full is localStorage)
+     · Export: full backup, per-store JSON, transactions CSV (date/type filter)
+     · Health check on transactions (bad dates/amounts/types, duplicate ids, exact
+       duplicates, scheduled entries) with one-click fixes
+     · CSV import with column mapping, preview and duplicate skipping
+     · Bulk delete by date range / type, with preview
+     · Every change to transactions is undoable (one level, 'fos_admin_data_undo_v1')
+       and logged in 'fos_admin_data_log_v1'.
+   ═══════════════════════════════════════════════════════════════════════ */
+(function () {
+  'use strict';
+  if (window.FOS_DATA) return;
+  var UNDO = 'fos_admin_data_undo_v1', LOG = 'fos_admin_data_log_v1', QUOTA = 5 * 1024 * 1024;
+  var TYPES = ['Income', 'Expense', 'Loan', 'Investment', 'Receivable'];
+  var TYPE_SYN = { income: 'Income', salary: 'Income', credit: 'Income', cr: 'Income', deposit: 'Income', inflow: 'Income', expense: 'Expense', debit: 'Expense', dr: 'Expense', spend: 'Expense', spent: 'Expense', withdrawal: 'Expense', outflow: 'Expense', loan: 'Loan', emi: 'Loan', investment: 'Investment', invest: 'Investment', sip: 'Investment', receivable: 'Receivable' };
+  var FIELDS = [['date', 'Date', 1], ['amount', 'Amount', 1], ['name', 'Name / description', 1], ['type', 'Type', 0], ['category', 'Category', 0], ['subcategory', 'Sub-category', 0], ['payee', 'Payee', 0], ['notes', 'Notes', 0], ['pay', 'Payment method', 0], ['tags', 'Tags', 0]];
+  var GUESS = { date: /^(date|txn ?date|transaction ?date|posted|value ?date|day)$/i, amount: /^(amount|amt|value|total|sum|inr|rs|debit ?amount|price)$/i, name: /^(name|description|desc|details|narration|particulars|title|merchant|memo|remarks?)$/i, type: /^(type|kind|dr\/cr|debit ?\/ ?credit|credit ?\/ ?debit|txn ?type|transaction ?type)$/i, category: /^(category|cat|head|group)$/i, subcategory: /^(sub ?-?category|sub|subcat)$/i, payee: /^(payee|party|vendor|to|from|paid ?to)$/i, notes: /^(notes?|comment|comments)$/i, pay: /^(pay|payment|payment ?(method|mode)|mode|method|account)$/i, tags: /^(tags?|labels?)$/i };
+  var S = { rows: null, head: [], map: {}, defType: 'Expense', fname: '', scan: null, tm: null };
+
+  function E(s) { try { return _esc(s); } catch (e) { return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]; }); } }
+  function $(id) { return document.getElementById(id); }
+  function pad(n) { return (n < 10 ? '0' : '') + n; }
+  function today() { var d = new Date(); return d.getFullYear() + '-' + pad(d.getMonth() + 1) + '-' + pad(d.getDate()); }
+  function bytes(n) { return n < 1024 ? n + ' B' : n < 1048576 ? (n / 1024).toFixed(1) + ' KB' : (n / 1048576).toFixed(2) + ' MB'; }
+  function J(k, d) { try { var v = JSON.parse(localStorage.getItem(k)); return v == null ? d : v; } catch (e) { return d; } }
+
+  /* ── stores ─────────────────────────────────────────────────────────── */
+  function arr(f) { try { var v = f(); return v; } catch (e) { return null; } }
+  var STORES = [
+    { id: 'db', label: 'Transactions', key: 'fos_db_v3', get: function () { return db; } },
+    { id: 'portDb', label: 'Portfolio holdings', key: 'fos_port_v3', get: function () { return portDb; } },
+    { id: 'creditDb', label: 'Credit entries', key: 'fos_credit_v1', get: function () { return creditDb; } },
+    { id: 'insuranceDb', label: 'Insurance policies', key: 'fos_insurance_v1', get: function () { return insuranceDb; } },
+    { id: 'subscriptionsDb', label: 'Subscriptions', key: 'fos_subscriptions_v1', get: function () { return subscriptionsDb; } },
+    { id: 'notesDb', label: 'Notes', key: 'fos_notes_v1', get: function () { return notesDb; } },
+    { id: 'finaiGoals', label: 'Goals', key: 'fos_finai_goals_v1', get: function () { return finaiGoals; } },
+    { id: 'ccCards', label: 'Credit cards', key: 'financeOS_ccCards', get: function () { return ccCards; } },
+    { id: 'budgets', label: 'Budgets', key: 'fos_budgets', get: function () { return budgets; } }
+  ];
+  function count(v) { return Array.isArray(v) ? v.length : (v && typeof v === 'object' ? Object.keys(v).length : 0); }
+  function sizeOf(k) { try { var v = localStorage.getItem(k); return v ? (k.length + v.length) * 2 : 0; } catch (e) { return 0; } }
+  function txs() { var v = arr(function () { return db; }); return Array.isArray(v) ? v : []; }
+
+  /* ── logging / undo / commit ────────────────────────────────────────── */
+  function log(msg) { var a = J(LOG, []); if (!Array.isArray(a)) a = []; a.push({ ts: new Date().toISOString(), msg: msg }); try { localStorage.setItem(LOG, JSON.stringify(a.slice(-30))); } catch (e) { } }
+  function undoInfo() { var u = J(UNDO, null); return u && Array.isArray(u.db) ? u : null; }
+  function commit(next, label) {
+    var prev = txs();
+    try { localStorage.setItem(UNDO, JSON.stringify({ ts: new Date().toISOString(), label: label, db: prev })); }
+    catch (e) { return { ok: false, msg: 'Not enough browser storage to keep an undo copy. Download a CSV or backup first, then free some space.' }; }
+    try { setLocalArray('db', next); } catch (e) { try { localStorage.removeItem(UNDO); } catch (x) { } return { ok: false, msg: 'Could not save: ' + e.message }; }
+    afterChange(); log(label + ' (' + prev.length + ' → ' + next.length + ' transactions)'); return { ok: true };
+  }
+  function afterChange() {
+    try { var f = window.FOS_FORMULA_STUDIO; if (f && f.clearCache) f.clearCache(); } catch (e) { }
+    try { _afterEntrySaved(); } catch (e) { try { scheduleSave(); } catch (x) { } }
+  }
+  function doUndo() {
+    var u = undoInfo(); if (!u) return say('Nothing to undo.', true);
+    if (!confirm('Undo "' + u.label + '"? Your transactions go back to how they were then (' + u.db.length + ' entries).')) return;
+    var cur = txs(); try { setLocalArray('db', u.db); } catch (e) { return say('Undo failed: ' + e.message, true); }
+    try { localStorage.setItem(UNDO, JSON.stringify({ ts: new Date().toISOString(), label: 'Undo of "' + u.label + '"', db: cur })); } catch (e) { try { localStorage.removeItem(UNDO); } catch (x) { } }
+    afterChange(); log('Undid "' + u.label + '"'); repaint(); say('Undone. ' + u.db.length + ' transactions restored.');
+  }
+
+  /* ── downloads ──────────────────────────────────────────────────────── */
+  function download(name, text, mime) { try { var b = new Blob([text], { type: mime }), u = URL.createObjectURL(b), a = document.createElement('a'); a.href = u; a.download = name; document.body.appendChild(a); a.click(); a.remove(); setTimeout(function () { URL.revokeObjectURL(u); }, 4000); return true; } catch (e) { return false; } }
+  function csvCell(v) { var s = v == null ? '' : Array.isArray(v) ? v.join('; ') : String(v); s = s.replace(/^([=+\-@\t\r])/, "'$1"); return /[",\n\r]/.test(s) ? '"' + s.replace(/"/g, '""') + '"' : s; }
+  function toCsv(rows) {
+    var cols = ['date', 'type', 'name', 'amount', 'category', 'subcategory', 'sub', 'payee', 'pay', 'notes', 'tags', 'dueDate', 'id'];
+    return '﻿' + cols.join(',') + '\r\n' + rows.map(function (r) { return cols.map(function (c) { return csvCell(r[c]); }).join(','); }).join('\r\n');
+  }
+  function filterRows(from, to, type) { return txs().filter(function (r) { var d = String(r && r.date || '').slice(0, 10); return (!from || d >= from) && (!to || d <= to) && (!type || r.type === type); }); }
+
+  /* ── CSV parsing ────────────────────────────────────────────────────── */
+  function parseCsv(text) {
+    text = String(text).replace(/^﻿/, ''); var first = text.split(/\r?\n/, 1)[0] || '', delim = [',', ';', '\t'].map(function (d) { return [d, first.split(d).length]; }).sort(function (a, b) { return b[1] - a[1]; })[0][0];
+    var rows = [], row = [], cur = '', q = false;
+    for (var i = 0; i < text.length; i++) {
+      var c = text[i];
+      if (q) { if (c === '"') { if (text[i + 1] === '"') { cur += '"'; i++; } else q = false; } else cur += c; }
+      else if (c === '"') q = true; else if (c === delim) { row.push(cur); cur = ''; } else if (c === '\n' || c === '\r') { if (c === '\r' && text[i + 1] === '\n') i++; row.push(cur); cur = ''; if (row.some(function (x) { return x.trim() !== ''; })) rows.push(row); row = []; } else cur += c;
+    }
+    row.push(cur); if (row.some(function (x) { return x.trim() !== ''; })) rows.push(row); return rows;
+  }
+  function normDate(s) {
+    s = String(s == null ? '' : s).trim(); var m;
+    if ((m = s.match(/^(\d{4})[-\/.](\d{1,2})[-\/.](\d{1,2})/))) return ok(+m[1], +m[2], +m[3]);
+    if ((m = s.match(/^(\d{1,2})[-\/.](\d{1,2})[-\/.](\d{2,4})/))) { var a = +m[1], b = +m[2], y = +m[3]; if (y < 100) y += 2000; var pref = (function () { try { return localStorage.getItem('fos_date') || 'ddmmyyyy'; } catch (e) { return 'ddmmyyyy'; } })(); var mdy = /^mm/i.test(pref); if (a > 12) return ok(y, b, a); if (b > 12) return ok(y, a, b); return mdy ? ok(y, a, b) : ok(y, b, a); }
+    var t = Date.parse(s); if (!isNaN(t) && /[A-Za-z]/.test(s)) { var d = new Date(t); return ok(d.getFullYear(), d.getMonth() + 1, d.getDate()); } return null;
+    function ok(y, mo, da) { var d = new Date(y, mo - 1, da); return (d.getFullYear() === y && d.getMonth() === mo - 1 && d.getDate() === da) ? y + '-' + pad(mo) + '-' + pad(da) : null; }
+  }
+  function normAmt(s) { var t = String(s == null ? '' : s).trim(), neg = /^\(.*\)$/.test(t) || /^-/.test(t) || /\bdr\b/i.test(t); t = t.replace(/[^\d.,]/g, ''); if (/,\d{1,2}$/.test(t) && !/\./.test(t)) t = t.replace(',', '.'); t = t.replace(/,/g, ''); var n = parseFloat(t); return isFinite(n) ? { v: Math.abs(n), neg: neg } : null; }
+  function normType(s) { var k = String(s || '').trim().toLowerCase(); return TYPE_SYN[k] || (TYPES.filter(function (t) { return t.toLowerCase() === k; })[0]) || null; }
+  function dupKey(r) { return [String(r.date).slice(0, 10), r.type, String(r.name || '').trim().toLowerCase(), Math.round(Number(r.amount) * 100)].join('|'); }
+
+  function buildImport() {
+    var rows = S.rows, head = S.head, idx = {}, out = { good: [], bad: [], dup: 0 }, seen = {}, existing = {};
+    txs().forEach(function (r) { existing[dupKey(r)] = 1; });
+    Object.keys(S.map).forEach(function (f) { var i = head.indexOf(S.map[f]); if (i >= 0) idx[f] = i; });
+    var stamp = Date.now();
+    rows.forEach(function (r, n) {
+      var get = function (f) { return idx[f] == null ? '' : (r[idx[f]] == null ? '' : String(r[idx[f]]).trim()); }, why = null;
+      var date = normDate(get('date')); if (!date) why = 'date "' + get('date') + '" not understood';
+      var am = normAmt(get('amount')); if (!why && (!am || am.v === 0)) why = 'amount "' + get('amount') + '" is empty or zero';
+      var type = idx.type != null ? normType(get('type')) : null; if (!why && idx.type != null && !type) { type = S.defType; }
+      if (!type) type = (am && am.neg && idx.type == null) ? 'Expense' : S.defType;
+      var name = get('name') || get('category') || get('payee'); if (!why && !name) why = 'no name or description';
+      if (why) { out.bad.push({ line: n + 2, why: why }); return; }
+      var tags = get('tags') ? get('tags').split(/[;|,]/).map(function (x) { return x.trim(); }).filter(Boolean) : [];
+      var rec = { id: stamp + out.good.length + 1, name: name, amount: am.v, type: type, sub: get('subcategory') || get('category'), category: get('category'), subcategory: get('subcategory'), payee: get('payee'), date: date, notes: get('notes'), recurring: false, tags: tags, pay: get('pay') };
+      var k = dupKey(rec); if (existing[k] || seen[k]) { out.dup++; rec._dup = true; } seen[k] = 1; out.good.push(rec);
+    });
+    return out;
+  }
+
+  /* ── health scan ────────────────────────────────────────────────────── */
+  function scan() {
+    var rows = txs(), t = today(), res = { total: rows.length, issues: [] }, ids = {}, keys = {}, bad = { date: [], amount: [], type: [], name: [], idDup: [], dup: [], future: [], space: [] };
+    rows.forEach(function (r, i) {
+      if (!r || typeof r !== 'object') { bad.type.push(i); return; }
+      var d = String(r.date || '').slice(0, 10), validD = /^\d{4}-\d{2}-\d{2}$/.test(d) && !isNaN(Date.parse(d)); if (!validD) bad.date.push(i); else if (d > t) bad.future.push(i);
+      var a = Number(r.amount); if (!isFinite(a) || a <= 0 || r.amount === '' || r.amount == null) bad.amount.push(i);
+      if (TYPES.indexOf(r.type) < 0) bad.type.push(i); if (!String(r.name || r.sub || r.category || '').trim()) bad.name.push(i);
+      if (typeof r.name === 'string' && r.name !== r.name.trim()) bad.space.push(i);
+      if (r.id != null) { if (ids[r.id] != null) bad.idDup.push(i); else ids[r.id] = i; } else bad.idDup.push(i);
+      if (validD && isFinite(a)) { var k = dupKey(r); if (keys[k] != null) bad.dup.push(i); else keys[k] = i; }
+    });
+    var def = [['date', 'Missing or invalid date', 'bad', 'These entries are ignored by most totals. Remove them, or fix the date in Transactions.', 'rm'], ['amount', 'Zero, negative or non-numeric amount', 'bad', 'Amounts should be positive numbers.', 'rm'], ['type', 'Unknown type', 'bad', 'Type must be one of ' + TYPES.join(', ') + '.', 'rm'], ['name', 'No name, category or description', 'warn', 'Hard to recognise in lists and reports.', null], ['idDup', 'Missing or repeated id', 'warn', 'Editing or deleting one entry could affect another. Fix gives each a fresh id.', 'ids'], ['dup', 'Exact duplicates', 'warn', 'Same date, type, name and amount as an earlier entry. Fix keeps the first of each.', 'dedupe'], ['space', 'Names with extra spaces', 'info', 'Leading or trailing spaces can split one payee into two. Fix trims them.', 'trim'], ['future', 'Scheduled (future-dated)', 'info', 'Not an error. These are excluded from totals until their date arrives.', null]];
+    def.forEach(function (d) { if (bad[d[0]].length) res.issues.push({ id: d[0], label: d[1], sev: d[2], hint: d[3], fix: d[4], idx: bad[d[0]] }); });
+    return res;
+  }
+  function fixIssue(id) {
+    var s = scan(), is = s.issues.filter(function (x) { return x.id === id; })[0]; if (!is || !is.fix) return say('Nothing to fix.', true); var rows = txs().slice(), set = {}, label = ''; is.idx.forEach(function (i) { set[i] = 1; });
+    if (is.fix === 'rm') { if (!confirm('Remove ' + is.idx.length + ' entr' + (is.idx.length === 1 ? 'y' : 'ies') + ' with: ' + is.label.toLowerCase() + '?\nYou can undo this right after.')) return; rows = rows.filter(function (r, i) { return !set[i]; }); label = 'Removed ' + is.idx.length + ' (' + is.label.toLowerCase() + ')'; }
+    else if (is.fix === 'dedupe') { if (!confirm('Remove ' + is.idx.length + ' duplicate entr' + (is.idx.length === 1 ? 'y' : 'ies') + ', keeping the first of each?')) return; rows = rows.filter(function (r, i) { return !set[i]; }); label = 'Removed ' + is.idx.length + ' duplicates'; }
+    else if (is.fix === 'trim') { rows = rows.map(function (r, i) { if (set[i]) { r = Object.assign({}, r); r.name = r.name.trim(); } return r; }); label = 'Trimmed ' + is.idx.length + ' names'; }
+    else if (is.fix === 'ids') { var used = {}; rows.forEach(function (r) { if (r && r.id != null) used[r.id] = 1; }); var nx = Date.now(); rows = rows.map(function (r, i) { if (!set[i]) return r; r = Object.assign({}, r); do { nx++; } while (used[nx]); used[nx] = 1; r.id = nx; return r; }); label = 'Gave ' + is.idx.length + ' entries new ids'; }
+    var r = commit(rows, label); if (!r.ok) return say(r.msg, true); S.scan = scan(); repaint(); say(label + '. You can undo this.');
+  }
+
+  /* ── rendering ──────────────────────────────────────────────────────── */
+  function say(msg, bad) { var el = $('dm-note'); if (!el) return; el.textContent = msg || ''; el.className = 'fs-note' + (bad ? ' bad' : ''); el.setAttribute('role', bad ? 'alert' : 'status'); clearTimeout(say._t); if (msg) say._t = setTimeout(function () { var e2 = $('dm-note'); if (e2) e2.textContent = ''; }, 9000); }
+  function overviewHtml() {
+    var tot = 0, rows = STORES.map(function (s) { var v = arr(s.get), n = v == null ? '—' : count(v), sz = sizeOf(s.key); tot += sz; return '<tr><td><b>' + E(s.label) + '</b></td><td>' + n + '</td><td>' + bytes(sz) + '</td><td><button type="button" class="adm-btn ghost sm" data-dm="expjson" data-id="' + s.id + '"' + (v == null ? ' disabled' : '') + '>JSON</button></td></tr>'; }).join('');
+    return '<table class="adm-tbl"><thead><tr><th>Data</th><th>Records</th><th>Size</th><th>Export</th></tr></thead><tbody>' + rows + '</tbody></table><div class="adm-muted" style="margin-top:6px">Sizes are what each store takes in this browser\'s storage.</div>';
+  }
+  function storageHtml() {
+    var all = [], total = 0, mine = 0, i, k; try { for (i = 0; i < localStorage.length; i++) { k = localStorage.key(i); var s = sizeOf(k); total += s; if (/^(fos_|financeOS_)/.test(k)) mine += s; all.push([k, s]); } } catch (e) { }
+    all.sort(function (a, b) { return b[1] - a[1]; }); var pct = Math.min(100, Math.round(total / QUOTA * 100)), warn = pct >= 80;
+    return '<div class="dm-use"><b>' + bytes(total) + '</b> used of roughly ' + bytes(QUOTA) + ' <span class="rl-st ' + (warn ? 'fire' : 'quiet') + '">' + pct + '%</span></div><div class="ul-bar" role="progressbar" aria-valuenow="' + pct + '" aria-valuemin="0" aria-valuemax="100" aria-label="Browser storage used"><i style="width:' + pct + '%' + (warn ? ';background:var(--fs-warn,#fbbf24)' : '') + '"></i></div>' +
+      '<div class="adm-muted" style="margin:6px 0 8px">' + bytes(mine) + ' belongs to FinanceOS data and settings. The limit varies by browser, so treat the percentage as a guide.' + (warn ? ' <b>Storage is getting full. Download a backup and consider removing old attachments or logs.</b>' : '') + '</div>' +
+      '<table class="adm-tbl"><thead><tr><th>Largest keys</th><th>Size</th></tr></thead><tbody>' + all.slice(0, 6).map(function (x) { return '<tr><td><code>' + E(x[0]) + '</code></td><td>' + bytes(x[1]) + '</td></tr>'; }).join('') + '</tbody></table>';
+  }
+  function exportHtml() {
+    var t = txs(), ds = t.map(function (r) { return String(r && r.date || '').slice(0, 10); }).filter(Boolean).sort();
+    return '<div class="adm-actions"><button type="button" class="adm-btn" data-dm="fullbackup"><i class="fas fa-download"></i> Download full backup</button><span class="adm-muted">Everything in the app, in the same file the Settings backup uses.</span></div>' +
+      '<div class="adm-h" style="margin-top:16px;font-size:.85rem">Transactions as CSV</div><div class="fs-grid"><div class="fs-f"><label for="dm-from">From</label><input type="date" id="dm-from" class="set-input" value="' + E(ds[0] || '') + '"></div><div class="fs-f"><label for="dm-to">To</label><input type="date" id="dm-to" class="set-input" value="' + E(ds[ds.length - 1] || '') + '"></div><div class="fs-f"><label for="dm-type">Type</label><select id="dm-type" class="set-input"><option value="">All types</option>' + TYPES.map(function (x) { return '<option>' + x + '</option>'; }).join('') + '</select></div></div>' +
+      '<div class="adm-actions"><button type="button" class="adm-btn ghost" data-dm="expcsv"><i class="fas fa-file-csv"></i> Download CSV</button><span class="adm-muted" id="dm-expn"></span></div>';
+  }
+  function healthHtml() {
+    if (!S.scan) return '<div class="adm-muted">Checks every transaction for problems that quietly distort your totals.</div><div class="adm-actions"><button type="button" class="adm-btn" data-dm="scan"><i class="fas fa-stethoscope"></i> Run health check</button></div>';
+    var s = S.scan, hard = s.issues.filter(function (i) { return i.sev !== 'info'; });
+    return '<div class="dm-sum">' + (hard.length ? '<span class="rl-st fire">' + hard.length + ' kind' + (hard.length === 1 ? '' : 's') + ' of problem</span>' : '<span class="rl-st quiet">No problems found</span>') + ' <span class="adm-muted">' + s.total + ' transactions checked</span></div>' +
+      s.issues.map(function (is) {
+        var ex = is.idx.slice(0, 3).map(function (i) { var r = txs()[i] || {}; return E((r.date || 'no date') + ' · ' + (r.type || '?') + ' · ' + (r.name || r.sub || '—') + ' · ' + (r.amount == null ? '—' : r.amount)); }).join('<br>');
+        return '<div class="dm-is ' + is.sev + '"><div class="dm-is-h"><b>' + E(is.label) + '</b> <span class="rl-st ' + (is.sev === 'bad' ? 'bad' : is.sev === 'warn' ? 'fire' : '') + '">' + is.idx.length + '</span><span class="fs-spacer"></span>' + (is.fix ? '<button type="button" class="adm-btn sm' + (is.fix === 'rm' || is.fix === 'dedupe' ? ' danger' : '') + '" data-dm="fix" data-id="' + is.id + '">' + ({ rm: 'Remove these', dedupe: 'Remove duplicates', trim: 'Trim names', ids: 'Assign new ids' }[is.fix]) + '</button>' : '') + '</div><div class="adm-muted">' + E(is.hint) + '</div><div class="dm-ex">' + ex + (is.idx.length > 3 ? '<br>…and ' + (is.idx.length - 3) + ' more' : '') + '</div></div>';
+      }).join('') + '<div class="adm-actions"><button type="button" class="adm-btn ghost sm" data-dm="scan">Run again</button></div>';
+  }
+  function importHtml() {
+    var head = '<div class="adm-muted" style="margin-bottom:8px">Add transactions from a bank or spreadsheet CSV. You choose which column is which, see a preview, and nothing is saved until you confirm. Rows already in your data are skipped.</div><div class="adm-actions"><button type="button" class="adm-btn ghost" data-dm="pick"><i class="fas fa-file-import"></i> Choose CSV file</button><input type="file" id="dm-file" accept=".csv,text/csv,text/plain" hidden><span class="adm-muted">' + (S.fname ? E(S.fname) + ' · ' + S.rows.length + ' rows' : '') + '</span></div>';
+    if (!S.rows) return head;
+    var opts = function (sel) { return '<option value="">(none)</option>' + S.head.map(function (h) { return '<option' + (h === sel ? ' selected' : '') + '>' + E(h) + '</option>'; }).join(''); };
+    var map = FIELDS.map(function (f) { return '<div class="fs-f"><label for="dm-m-' + f[0] + '">' + f[1] + (f[2] ? ' *' : '') + '</label><select class="set-input dm-map" id="dm-m-' + f[0] + '" data-f="' + f[0] + '">' + opts(S.map[f[0]]) + '</select></div>'; }).join('');
+    var r = buildImport(), noType = !S.map.type;
+    var prev = r.good.slice(0, 8).map(function (x) { return '<tr' + (x._dup ? ' class="dm-dupr"' : '') + '><td>' + E(x.date) + '</td><td>' + E(x.type) + '</td><td>' + E(x.name) + '</td><td>' + E(x.amount) + '</td><td>' + (x._dup ? 'duplicate, skipped' : 'new') + '</td></tr>'; }).join('');
+    var addN = r.good.length - r.dup;
+    return head + '<div class="fs-grid" style="margin-top:12px">' + map + '</div>' + '<div class="fs-f"><label for="dm-deftype">' + (noType ? 'Type for every row' : 'Type when the column value is not recognised') + '</label><select id="dm-deftype" class="set-input" style="max-width:220px">' + TYPES.map(function (x) { return '<option' + (x === S.defType ? ' selected' : '') + '>' + x + '</option>'; }).join('') + '</select></div>' +
+      '<div class="dm-sum" style="margin-top:10px"><span class="rl-st quiet">' + addN + ' to add</span> <span class="rl-st">' + r.dup + ' duplicate' + (r.dup === 1 ? '' : 's') + ' skipped</span> <span class="rl-st ' + (r.bad.length ? 'bad' : '') + '">' + r.bad.length + ' unreadable</span></div>' +
+      (r.good.length ? '<table class="adm-tbl" style="margin-top:8px"><thead><tr><th>Date</th><th>Type</th><th>Name</th><th>Amount</th><th>Status</th></tr></thead><tbody>' + prev + '</tbody></table>' : '') +
+      (r.bad.length ? '<details style="margin-top:8px"><summary class="adm-muted">Why ' + r.bad.length + ' row' + (r.bad.length === 1 ? ' was' : 's were') + ' not read</summary><div class="dm-ex">' + r.bad.slice(0, 15).map(function (b) { return 'Line ' + b.line + ': ' + E(b.why); }).join('<br>') + (r.bad.length > 15 ? '<br>…and ' + (r.bad.length - 15) + ' more' : '') + '</div></details>' : '') +
+      '<div class="adm-actions" style="margin-top:12px"><button type="button" class="adm-btn ghost sm" data-dm="impclear">Cancel</button><button type="button" class="adm-btn" data-dm="impgo"' + (addN && S.map.date && S.map.amount ? '' : ' disabled') + '><i class="fas fa-check"></i> Import ' + addN + ' transaction' + (addN === 1 ? '' : 's') + '</button></div>';
+  }
+  function bulkHtml() {
+    var ds = txs().map(function (r) { return String(r && r.date || '').slice(0, 10); }).filter(Boolean).sort();
+    return '<div class="adm-muted" style="margin-bottom:8px">Delete a batch of transactions by date range and type. You see how many match first, and you can undo.</div><div class="fs-grid"><div class="fs-f"><label for="dm-bfrom">From</label><input type="date" id="dm-bfrom" class="set-input" value="' + E(ds[0] || '') + '"></div><div class="fs-f"><label for="dm-bto">To</label><input type="date" id="dm-bto" class="set-input" value="' + E(ds[0] || '') + '"></div><div class="fs-f"><label for="dm-btype">Type</label><select id="dm-btype" class="set-input"><option value="">All types</option>' + TYPES.map(function (x) { return '<option>' + x + '</option>'; }).join('') + '</select></div></div>' +
+      '<div class="adm-actions"><span class="adm-muted" id="dm-bn" aria-live="polite"></span><span class="fs-spacer"></span><button type="button" class="adm-btn danger" data-dm="bulkdel" id="dm-bgo" disabled>Delete matching</button></div>';
+  }
+  function undoHtml() {
+    var u = undoInfo(), lg = J(LOG, []).slice(-5).reverse();
+    return '<div class="dm-undo">' + (u ? '<div><b>Last change:</b> ' + E(u.label) + '<div class="adm-muted">' + E(new Date(u.ts).toLocaleString()) + ' · restores ' + u.db.length + ' transactions</div></div><button type="button" class="adm-btn ghost" data-dm="undo"><i class="fas fa-rotate-left"></i> Undo</button>' : '<div class="adm-muted">Nothing to undo. Changes made here can be reversed once.</div>') + '</div>' + (lg.length ? '<div class="dm-log">' + lg.map(function (x) { return '<div class="adm-muted">' + E(new Date(x.ts).toLocaleString()) + ' · ' + E(x.msg) + '</div>'; }).join('') + '</div>' : '');
+  }
+  function html() {
+    return '<div class="dm-wrap"><div class="adm-muted" id="dm-note" role="status" aria-live="polite" style="min-height:1.2em"></div>' +
+      '<div class="set-card"><div class="adm-h">Your data</div><div id="dm-ov">' + overviewHtml() + '</div></div>' +
+      '<div class="set-card"><div class="adm-h">Browser storage</div><div id="dm-st">' + storageHtml() + '</div></div>' +
+      '<div class="set-card"><div class="adm-h">Export &amp; backup</div><div id="dm-ex">' + exportHtml() + '</div></div>' +
+      '<div class="set-card"><div class="adm-h">Transaction health check</div><div id="dm-hc">' + healthHtml() + '</div></div>' +
+      '<div class="set-card"><div class="adm-h">Import transactions from CSV</div><div id="dm-im">' + importHtml() + '</div></div>' +
+      '<div class="set-card"><div class="adm-h">Bulk delete</div><div id="dm-bk">' + bulkHtml() + '</div></div>' +
+      '<div class="set-card"><div class="adm-h">Undo &amp; activity</div><div id="dm-un">' + undoHtml() + '</div></div></div>';
+  }
+  function repaint() { var m = { 'dm-ov': overviewHtml, 'dm-st': storageHtml, 'dm-hc': healthHtml, 'dm-im': importHtml, 'dm-un': undoHtml }; Object.keys(m).forEach(function (id) { var e = $(id); if (e) e.innerHTML = m[id](); }); updCounts(); }
+  function updCounts() {
+    var n = $('dm-expn'); if (n && $('dm-from')) n.textContent = filterRows($('dm-from').value, $('dm-to').value, $('dm-type').value).length + ' transactions match';
+    var b = $('dm-bn'); if (b && $('dm-bfrom')) { var from = $('dm-bfrom').value, to = $('dm-bto').value, m = filterRows(from, to, $('dm-btype').value).length, can = !!(from && to) && m > 0; b.textContent = (from && to) ? m + ' transaction' + (m === 1 ? '' : 's') + ' match' : 'Pick a date range'; $('dm-bgo').disabled = !can; }
+  }
+
+  /* ── events ─────────────────────────────────────────────────────────── */
+  function inTab(t) { return t && t.closest && t.closest('.dm-wrap'); }
+  function onClick(e) {
+    var t = e.target; if (!inTab(t)) return; var b = t.closest('[data-dm]'); if (!b || b.disabled) return; var a = b.getAttribute('data-dm');
+    if (a === 'fullbackup') { try { downloadBackup(); say('Backup downloaded.'); log('Downloaded full backup'); repaint(); } catch (x) { say('Backup failed: ' + x.message, true); } }
+    else if (a === 'expjson') { var st = STORES.filter(function (s) { return s.id === b.getAttribute('data-id'); })[0], v = st && arr(st.get); if (v == null) return say('Not available.', true); download('financeos_' + st.id + '_' + today() + '.json', JSON.stringify(v, null, 2), 'application/json') ? say(st.label + ' exported.') : say('Download failed.', true); }
+    else if (a === 'expcsv') { var rows = filterRows($('dm-from').value, $('dm-to').value, $('dm-type').value); if (!rows.length) return say('No transactions match those filters.', true); download('financeos_transactions_' + today() + '.csv', toCsv(rows), 'text/csv;charset=utf-8') ? say(rows.length + ' transactions exported.') : say('Download failed.', true); }
+    else if (a === 'scan') { S.scan = scan(); repaint(); }
+    else if (a === 'fix') fixIssue(b.getAttribute('data-id'));
+    else if (a === 'pick') { var f = $('dm-file'); if (f) f.click(); }
+    else if (a === 'impclear') { S.rows = null; S.fname = ''; repaint(); }
+    else if (a === 'impgo') doImport();
+    else if (a === 'bulkdel') doBulk();
+    else if (a === 'undo') doUndo();
+  }
+  function doImport() {
+    var r = buildImport(), add = r.good.filter(function (x) { return !x._dup; }).map(function (x) { var c = Object.assign({}, x); delete c._dup; return c; }); if (!add.length) return say('Nothing new to import.', true);
+    if (!confirm('Add ' + add.length + ' transaction' + (add.length === 1 ? '' : 's') + ' from "' + S.fname + '"? You can undo this right after.')) return;
+    var res = commit(txs().concat(add), 'Imported ' + add.length + ' from ' + S.fname); if (!res.ok) return say(res.msg, true); S.rows = null; S.fname = ''; S.scan = null; repaint(); say('Imported ' + add.length + ' transactions. You can undo this.');
+  }
+  function doBulk() {
+    var from = $('dm-bfrom').value, to = $('dm-bto').value, ty = $('dm-btype').value; if (!from || !to) return say('Pick a date range first.', true); var hit = filterRows(from, to, ty), set = new Set(hit); if (!hit.length) return say('Nothing matches.', true);
+    if (!confirm('Delete ' + hit.length + ' transaction' + (hit.length === 1 ? '' : 's') + ' from ' + from + ' to ' + to + (ty ? ' (' + ty + ' only)' : '') + '?\nYou can undo this right after.')) return;
+    var res = commit(txs().filter(function (r) { return !set.has(r); }), 'Bulk-deleted ' + hit.length + ' (' + from + ' to ' + to + (ty ? ', ' + ty : '') + ')'); if (!res.ok) return say(res.msg, true); S.scan = null; repaint(); say('Deleted ' + hit.length + ' transactions. You can undo this.');
+  }
+  function onChange(e) {
+    var t = e.target; if (!inTab(t)) return;
+    if (t.id === 'dm-file') { var f = t.files && t.files[0]; if (!f) return; if (f.size > 8 * 1048576) { say('That file is over 8 MB. Split it and try again.', true); t.value = ''; return; } var rd = new FileReader(); rd.onload = function () { try { var all = parseCsv(rd.result); if (all.length < 2) throw new Error('The file needs a header row and at least one data row.'); S.head = all[0].map(function (h) { return String(h).trim(); }); S.rows = all.slice(1).slice(0, 20000); S.fname = f.name; S.map = {}; FIELDS.forEach(function (fl) { var h = S.head.filter(function (x) { return GUESS[fl[0]].test(x); })[0]; if (h) S.map[fl[0]] = h; }); repaint(); say('Check the column mapping, then import.'); } catch (x) { say('Could not read that file: ' + x.message, true); } t.value = ''; }; rd.onerror = function () { say('Could not read that file.', true); }; rd.readAsText(f); return; }
+    if (t.classList.contains('dm-map')) { var fl = t.getAttribute('data-f'); if (t.value) S.map[fl] = t.value; else delete S.map[fl]; return repaint(); }
+    if (t.id === 'dm-deftype') { S.defType = t.value; return repaint(); }
+    if (/^dm-(from|to|type|bfrom|bto|btype)$/.test(t.id)) updCounts();
+  }
+  function wire() { var r = $('adm-root'); if (!r || r.__dm) return; r.__dm = 1; r.addEventListener('click', onClick); r.addEventListener('change', onChange); r.addEventListener('input', function (e) { if (inTab(e.target) && /^dm-(from|to|bfrom|bto)$/.test(e.target.id)) updCounts(); }); }
+  function after() { wire(); updCounts(); }
+
+  window.FOS_DATA = { html: html, after: after, scan: scan, parseCsv: parseCsv, normDate: normDate, normAmt: normAmt, undo: doUndo };
+  wire();
 })();
 </script>
 <script>
