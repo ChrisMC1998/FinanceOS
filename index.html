@@ -37734,9 +37734,10 @@ body.light-mode{--adm-a:#0891b2;--adm-b:#0369a1;--adm-g:linear-gradient(135deg,#
 .adm-btn{border:0;cursor:pointer;border-radius:10px;padding:8px 14px;font-weight:700;font-size:.78rem;background:var(--adm-g);color:#04202a;font-family:inherit}
 .adm-btn.sm{padding:5px 10px;font-size:.72rem}.adm-btn.ghost{background:transparent;color:var(--adm-a);border:1px solid var(--adm-line)}.adm-btn.danger{background:transparent;color:#f87171;border:1px solid rgba(248,113,113,.45)}.adm-btn.link{background:none;color:var(--adm-a);text-decoration:underline;padding-left:6px}
 .adm-btn:hover{filter:brightness(1.08)}.adm-btn:disabled{opacity:.5;cursor:not-allowed}
-.adm-tabs{display:flex;gap:6px;overflow-x:auto;padding:2px 0 10px;scrollbar-width:thin}
-.adm-tab{flex:none;border:1px solid var(--adm-line);background:transparent;color:var(--text-muted);border-radius:99px;padding:6px 12px;font-size:.74rem;font-weight:600;cursor:pointer;font-family:inherit;white-space:nowrap}
-.adm-tab.on{background:var(--adm-g);color:#04202a;border-color:transparent}.adm-tab.soon{opacity:.55}.adm-tab em{font-style:normal;font-size:.58rem;margin-left:5px;opacity:.8;text-transform:uppercase}
+.adm-tabs{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:8px;padding:2px 0 12px;overflow:visible}
+.adm-tab{display:flex;align-items:center;justify-content:center;gap:6px;text-align:center;line-height:1.2;min-height:34px;border:1px solid var(--adm-line);background:transparent;color:var(--text-muted);border-radius:99px;padding:6px 12px;font-size:.74rem;font-weight:600;cursor:pointer;font-family:inherit;transition:background .15s,border-color .15s,color .15s}
+.adm-tab:hover:not(.on){border-color:var(--adm-a);color:var(--text-main)}
+.adm-tab.on{background:var(--adm-g);color:#04202a;border-color:transparent;font-weight:800;box-shadow:0 0 0 2px rgba(255,255,255,.18),0 4px 14px rgba(0,0,0,.28)}.adm-tab.soon{opacity:.55}.adm-tab em{font-style:normal;font-size:.58rem;margin-left:5px;opacity:.8;text-transform:uppercase}
 .adm-tb{display:inline-block;margin-left:6px;min-width:17px;padding:0 5px;border-radius:99px;background:#fbbf24;color:#3b2a00;font-size:.64rem;font-weight:800;text-align:center}
 .adm-banner{padding:9px 12px;border-radius:10px;background:rgba(251,191,36,.14);border:1px solid rgba(251,191,36,.5);font-size:.78rem;margin-bottom:10px}
 .adm-gate{max-width:420px;margin:18px auto;text-align:center}.adm-gate p{font-size:.78rem;color:var(--text-muted)}.adm-gico{width:48px;height:48px;border-radius:14px;margin:0 auto 8px;background:var(--adm-g);color:#04202a;display:flex;align-items:center;justify-content:center;font-size:1.2rem}
@@ -37817,6 +37818,7 @@ body.light-mode .adm-toast{background:#e0f7fc;color:#06303c}body.light-mode .adm
     ['backups', 'Backups & Versions', 'fa-clock-rotate-left', 1], ['audit', 'Audit Log', 'fa-list-check', 1], ['dev', 'Developer Tools', 'fa-terminal', 0]
   ];
   function root() { return document.getElementById('adm-root'); }
+  function scrollParent(el) { for (var n = el && el.parentElement; n; n = n.parentElement) { var o = getComputedStyle(n).overflowY; if ((o === 'auto' || o === 'scroll') && n.scrollHeight > n.clientHeight) return n; } return null; }
   function pane() { return document.getElementById('set-tab-admin'); }
   function visible() { var p = pane(); return !!(p && p.classList.contains('active') && p.offsetParent !== null); }
   function $q(s, r) { return (r || root()).querySelector(s); }
@@ -38052,7 +38054,7 @@ body.light-mode .adm-toast{background:#e0f7fc;color:#06303c}body.light-mode .adm
   }
   function onClick(e) {
     var t = e.target; var rb = t.closest && t.closest('.adm-rst'); if (rb) { touch(); var row = rowOf(rb), p = row.getAttribute('data-p'); var r = C.reset(p); if (r.ok) { refreshRow(row); badgeUpdate(); toast('Reset: ' + C.schemaOf(p).l, true); labPreviewSoon(); } return; }
-    var tb = t.closest && t.closest('[data-tab]'); if (tb) { touch(); S.tab = tb.getAttribute('data-tab'); return render(); }
+    var tb = t.closest && t.closest('[data-tab]'); if (tb) { touch(); var sp = scrollParent(root()), sy = sp ? sp.scrollTop : 0; S.tab = tb.getAttribute('data-tab'); render(); if (sp) sp.scrollTop = sy; return; }
     var ab = t.closest && t.closest('[data-a]'); if (ab) { touch(); act(ab.getAttribute('data-a'), ab); }
   }
   function onKey(e) {
