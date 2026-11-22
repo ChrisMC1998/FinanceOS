@@ -2,13 +2,74 @@
 <!--
   FinanceOS & PortfolioOS
   © 2026 MC Enterprise. All rights reserved.
-  This source code, its design and its content are proprietary and confidential.
-  Copying, scraping, reproducing, reverse engineering or redistributing any part of it
-  without prior written permission is prohibited.
+  This source code, its design and its content are proprietary and confidential, and are shared
+  only under the Terms in LICENSE.md / terms.html.
+  Copying, scraping, reproducing, reverse engineering or redistributing any part of it without
+  prior written permission is unethical and is not something we allow. If you would like to use
+  or license any of it, please get in touch first.
 -->
 <html lang="en">
 <head>
 <meta charset="UTF-8">
+<meta name="fos-integrity" content="84dd3d1c606471b8eba981749046b331e647e1c4d51b312f063bc3a0f89b3711">
+<script id="fos-tamper-guard">
+/*! \u00a9 2026 MC Enterprise. Integrity check: detects a copy of this file that no longer matches the
+    official release and locks it with a notice. This checks the FILE as served, not live memory --
+    see AUDIT.md / the message in chat for exactly what it does and does not catch. */
+(function () {
+  var PLACEHOLDER = 'FOS-INTEGRITY-PLACEHOLDER';
+  function lock() {
+    try {
+      var o = document.createElement('div');
+      o.id = 'fos-tamper-lock';
+      o.style.cssText = 'position:fixed;inset:0;z-index:2147483647;background:rgba(5,7,8,.98);color:#e2e8f0;display:flex;align-items:center;justify-content:center;text-align:center;font-family:system-ui,-apple-system,Segoe UI,sans-serif;padding:24px';
+      o.innerHTML = '<div style="max-width:440px"><div style="font-size:1.35rem;font-weight:800;margin-bottom:10px">This copy of FinanceOS could not be verified</div><div style="opacity:.85;font-size:.95rem;line-height:1.65">The file running in this browser does not match the official release, so it has been locked rather than left to run.<br><br>Modifying, redistributing or running an altered copy of this app is unethical and is not something we allow. If this is your own deployment and you edited index.html, re-run <code>node tools/stamp.mjs index.html</code> and redeploy.<br><br>&copy; 2026 MC Enterprise. All rights reserved.</div></div>';
+      document.documentElement.style.overflow = 'hidden';
+      var add = function () { try { document.body.appendChild(o); } catch (e) { } };
+      if (document.body) add(); else document.addEventListener('DOMContentLoaded', add);
+    } catch (e) { }
+  }
+  async function verify() {
+    try {
+      if (location.protocol === 'file:' || !window.crypto || !crypto.subtle) return;
+      var res = await fetch(location.pathname + (location.search ? location.search + '&' : '?') + '_fosv=' + Date.now(), { cache: 'no-store' });
+      if (!res.ok) return;
+      var text = await res.text();
+      var m = text.match(/<meta name="fos-integrity" content="([0-9a-f]{64})">/);
+      if (!m) return;
+      var shipped = m[1];
+      var probe = text.replace(m[0], '<meta name="fos-integrity" content="' + PLACEHOLDER + '">');
+      var buf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(probe));
+      var hex = Array.from(new Uint8Array(buf)).map(function (b) { return ('0' + b.toString(16)).slice(-2); }).join('');
+      if (hex !== shipped) lock();
+    } catch (e) { }
+  }
+  verify();
+  setInterval(verify, 45000);
+})();
+</script>
+<script id="fos-watermark">
+/*! Per-user invisible mark on top of the Supabase session (see AUDIT.md). Holds no financial data. */
+(function () {
+  var RELEASE = '2026.11-r1', last = null;
+  function enc(hex) { var z = ['\u200b', '\u200c', '\u200d', '\u2060'], s = ''; for (var i = 0; i < hex.length; i++) { var v = parseInt(hex[i], 16); s += z[(v >> 2) & 3] + z[v & 3]; } return s; }
+  async function tag(uid) { var b = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(uid + ':' + RELEASE)); return Array.from(new Uint8Array(b)).slice(0, 6).map(function (x) { return ('0' + x.toString(16)).slice(-2); }).join(''); }
+  function uid() { try { return (typeof cloudSession !== 'undefined' && cloudSession && cloudSession.user && cloudSession.user.id) || null; } catch (e) { return null; } }
+  async function stamp() {
+    try {
+      var u = uid(); if (!u || u === last || !(window.crypto && crypto.subtle) || !document.body) return;
+      last = u; var t = await tag(u), z = enc(t);
+      var m = document.querySelector('meta[name="fos-wm"]') || document.head.appendChild(Object.assign(document.createElement('meta'), { name: 'fos-wm' }));
+      m.content = t;
+      var s = document.getElementById('fos-wm-node') || document.body.appendChild(Object.assign(document.createElement('span'), { id: 'fos-wm-node' }));
+      s.setAttribute('aria-hidden', 'true'); s.style.cssText = 'position:absolute;width:0;height:0;overflow:hidden;opacity:0;pointer-events:none';
+      s.textContent = z;
+      window.FosWM = { tag: t, zw: z, stamp: function (str) { return String(str) + z; } };
+    } catch (e) { }
+  }
+  setInterval(stamp, 2500); stamp();
+})();
+</script>
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="theme-color" content="#050708">
 <meta name="description" content="Personal finance dashboard - track income, expenses, investments, loans and portfolio">
