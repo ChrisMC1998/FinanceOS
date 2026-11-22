@@ -3708,7 +3708,8 @@ body.light-mode .settings-undo-btn:hover { color: white; }
   #modal .modal-box, #port-modal .modal-box { overflow-x:hidden; }
 }
 
-.fcb-box{max-height:220px;overflow:auto}
+.fcb-box{max-height:260px;overflow:auto}
+.fcb-caret{position:absolute;right:6px;top:0;height:100%;width:34px;border:0;background:none;color:var(--text-muted);cursor:pointer;font-size:.8rem;display:flex;align-items:center;justify-content:center}.fcb-caret:hover{color:var(--accent)}#inp-catname,#inp-sub{padding-right:36px}
 .fm-box{max-width:640px;width:94vw;max-height:88vh;overflow:auto}
 .fm-top{display:flex;justify-content:space-between;align-items:center;gap:10px;margin-bottom:10px}
 .fm-tabs{display:flex;gap:6px;margin-bottom:10px}
@@ -9721,7 +9722,8 @@ function passAppLockGate() {
     <div class="input-group">
       <label>Category <a onclick="fosOpenManager('cats')" style="float:right;color:var(--accent);cursor:pointer;font-weight:600;text-transform:none;letter-spacing:0">Manage</a></label>
       <div style="position:relative">
-        <input type="text" id="inp-catname" class="input-field" placeholder="Search or add a category" autocomplete="off" oninput="_cs.cat=false;fosHints();fcbRender('cat')" onfocus="fcbRender('cat',true)" onchange="fosOnCatChange()" onblur="setTimeout(function(){var b=document.getElementById('fcb-cat');if(b)b.style.display='none'},150)" onkeydown="fcbKey(event,'cat')">
+        <input type="text" id="inp-catname" class="input-field" placeholder="Pick from the list or type your own" autocomplete="off" oninput="_cs.cat=false;fosHints();fcbRender('cat')" onfocus="fcbRender('cat',true)" onchange="fosOnCatChange()" onblur="setTimeout(function(){var b=document.getElementById('fcb-cat');if(b)b.style.display='none'},150)" onkeydown="fcbKey(event,'cat')">
+        <button type="button" class="fcb-caret" tabindex="-1" aria-label="Show all categories" onmousedown="event.preventDefault();fcbToggle('cat')"><i class="fas fa-chevron-down"></i></button>
         <div class="tag-suggestions fcb-box" id="fcb-cat"></div>
       </div>
       <div class="qa-hint" id="cat-hint"></div>
@@ -9738,6 +9740,7 @@ function passAppLockGate() {
       <label>Subcategory</label>
       <div style="position:relative">
         <input type="text" id="inp-sub" class="input-field" placeholder="Search or add a subcategory" autocomplete="off" oninput="_cs.sub=false;_autoFill.sub=false;fosHints();fcbRender('sub');renderMoreSummary()" onfocus="fcbRender('sub',true)" onblur="setTimeout(function(){var b=document.getElementById('fcb-sub');if(b)b.style.display='none'},150)" onkeydown="fcbKey(event,'sub')">
+        <button type="button" class="fcb-caret" tabindex="-1" aria-label="Show all subcategories" onmousedown="event.preventDefault();fcbToggle('sub')"><i class="fas fa-chevron-down"></i></button>
         <div class="tag-suggestions fcb-box" id="fcb-sub"></div>
       </div>
       <div class="qa-hint" id="sub-hint"></div>
@@ -22604,11 +22607,18 @@ function entryUiSync(edit) {
 // category / payee / subcategory. Compat rule: name = payee||category, sub = category (what all
 // existing analytics bucket on); the NEW subcategory lives in r.subcategory.
 const FOS_MASTER_KEY = 'fos_master_v1';
+// Categories added in the expanded list. Existing users get them once via fosTopUpMaster; new users get them when the list is first seeded.
+const FOS_NEW_CATS = {
+  Expense: ['Automobile & Vehicle','Parking & Tolls','Home Repairs & Maintenance','Furniture & Decor','Domestic Help','Society & Maintenance Fees','Clothing & Apparel','Salon & Grooming','Gym & Fitness','Hobbies & Sports','Gadgets & Electronics','Books & Stationery','Kids & Childcare','Parents & Elder Care','Charity & Donations','Festivals & Celebrations','Weddings & Functions','Religious & Spiritual','Alcohol & Tobacco','Outings & Social','Cash Withdrawals','Late Fees & Penalties','Government Fees & Documents','Legal Services','Office & Work Expenses','Business Expenses','Courier & Postage','Laundry & Dry Cleaning','Repairs & Servicing','Dental & Eye Care'],
+  Income: ['Bonus & Incentives','Pension','Dividends','Commission','Reimbursements','Tax Refund','Sale of Assets','Allowance & Pocket Money','Scholarship & Grants'],
+  Investment: ['Provident Fund (PPF/EPF)','NPS','Crypto','Recurring Deposits','REITs','Foreign Stocks','Emergency Fund'],
+  Loan: ['Gold Loan','Business Loan','Loan Against Property','Buy Now Pay Later','Consumer Durable EMI','Borrowed from Family & Friends']
+};
 const FOS_DEF_CATS = {
-  Expense: ['Food & Dining','Groceries','Transportation','Fuel','Shopping','Household','Utilities & Bills','Health & Medical','Insurance','Personal Care','Entertainment','Subscriptions','Travel','Education','Family & Gifts','Pets','Banking & Financial Charges','Housing & Rent','Loans & EMIs','Taxes','Professional Services','Other'],
-  Income: ['Salary','Business Income','Freelance Income','Investment Returns','Interest Income','Rental Income','Cashback & Rewards','Refunds','Gifts Received','Other Income'],
-  Investment: ['Mutual Funds','Stocks','ETFs','Gold','Silver','Bonds','Fixed Deposits','Real Estate','Retirement Funds','Other Investments'],
-  Loan: ['Personal Loan','Home Loan','Vehicle Loan','Education Loan','Credit Card EMI','Other Loan']
+  Expense: ['Food & Dining','Groceries','Transportation','Fuel','Shopping','Household','Utilities & Bills','Health & Medical','Insurance','Personal Care','Entertainment','Subscriptions','Travel','Education','Family & Gifts','Pets','Banking & Financial Charges','Housing & Rent','Loans & EMIs','Taxes','Professional Services',...FOS_NEW_CATS.Expense,'Other'],
+  Income: ['Salary','Business Income','Freelance Income','Investment Returns','Interest Income','Rental Income','Cashback & Rewards','Refunds','Gifts Received',...FOS_NEW_CATS.Income,'Other Income'],
+  Investment: ['Mutual Funds','Stocks','ETFs','Gold','Silver','Bonds','Fixed Deposits','Real Estate','Retirement Funds',...FOS_NEW_CATS.Investment,'Other Investments'],
+  Loan: ['Personal Loan','Home Loan','Vehicle Loan','Education Loan','Credit Card EMI',...FOS_NEW_CATS.Loan,'Other Loan']
 };
 const FOS_DEF_SUBS = {
   'Food & Dining': ['Restaurants','Fast Food','Cafes','Takeaway','Food Delivery','Beverages','Snacks'],
@@ -22619,7 +22629,15 @@ const FOS_DEF_SUBS = {
   'Utilities & Bills': ['Electricity','Water','Internet','Mobile Recharge','Gas','Maintenance'],
   'Loans & EMIs': ['Personal Loan EMI','Home Loan EMI','Vehicle Loan EMI','Credit Card EMI','Interest Payment','Loan Repayment'],
   'Entertainment': ['Movies','Gaming','Events','Music','Streaming','Recreation'],
-  'Subscriptions': ['Streaming','Music','Software']
+  'Subscriptions': ['Streaming','Music','Software'],
+  'Automobile & Vehicle': ['Servicing','Tyres','Car Wash','Accessories','Insurance Renewal','Registration & Challan'],
+  'Home Repairs & Maintenance': ['Plumbing','Electrical','Painting','Carpentry','Pest Control','Cleaning'],
+  'Clothing & Apparel': ['Casual Wear','Formal Wear','Ethnic Wear','Footwear','Kids Wear'],
+  'Gym & Fitness': ['Membership','Trainer','Supplements','Equipment','Classes'],
+  'Kids & Childcare': ['School Fees','Tuition','Daycare','Toys','Uniform & Books'],
+  'Government Fees & Documents': ['Passport','Licence','Registration','Stamp Duty','Notary'],
+  'Cash Withdrawals': ['ATM'],
+  'Charity & Donations': ['Temple & Religious','NGO','Crowdfunding']
 };
 // Last-resort suggestions (only used when the payee has NO history). History always wins.
 const FOS_PAYEE_HINTS = {
@@ -22649,9 +22667,22 @@ function fosLoadMaster() {
   if (!m.seeded) { // seed defaults ONCE so renamed/disabled defaults never come back
     Object.keys(FOS_DEF_CATS).forEach(t => FOS_DEF_CATS[t].forEach(n => { if (!m.cats.some(c => c.type === t && fosKey(c.name) === fosKey(n))) m.cats.push({ id: _fid('c'), name: n, type: t, active: true, custom: false }); }));
     Object.keys(FOS_DEF_SUBS).forEach(cn => { const c = m.cats.find(x => x.type === 'Expense' && fosKey(x.name) === fosKey(cn)); if (c) FOS_DEF_SUBS[cn].forEach(s => { if (!m.subs.some(x => x.catId === c.id && fosKey(x.name) === fosKey(s))) m.subs.push({ id: _fid('s'), catId: c.id, name: s, active: true }); }); });
-    m.seeded = true; try { localStorage.setItem(FOS_MASTER_KEY, JSON.stringify(m)); } catch (e) {}
+    m.seeded = true; try { localStorage.setItem(FOS_MASTER_KEY, JSON.stringify(m)); localStorage.setItem('fos_master_topup_v2', '1'); } catch (e) {}
   }
+  fosTopUpMaster(m);
   return m;
+}
+// One-time: adds the newly expanded default categories (and their sub-categories) to an existing list.
+// Never renames, re-enables or re-adds anything older, and never runs twice (so a category you delete stays deleted).
+function fosTopUpMaster(m) {
+  let done = false; try { done = localStorage.getItem('fos_master_topup_v2') === '1'; } catch (e) {}
+  if (done) return;
+  Object.keys(FOS_NEW_CATS).forEach(t => FOS_NEW_CATS[t].forEach(n => {
+    let c = m.cats.find(x => x.type === t && fosKey(x.name) === fosKey(n)), fresh = false;
+    if (!c) { c = { id: _fid('c'), name: n, type: t, active: true, custom: false }; m.cats.push(c); fresh = true; }
+    if (fresh && t === 'Expense' && FOS_DEF_SUBS[n]) FOS_DEF_SUBS[n].forEach(sn => m.subs.push({ id: _fid('s'), catId: c.id, name: sn, active: true }));
+  }));
+  try { localStorage.setItem(FOS_MASTER_KEY, JSON.stringify(m)); localStorage.setItem('fos_master_topup_v2', '1'); } catch (e) {}
 }
 function fosFindCat(type, name) { const k = fosKey(name); return fosM().cats.find(c => c.type === type && fosKey(c.name) === k) || null; }
 function fosAddCat(type, name, custom) {
@@ -22791,15 +22822,29 @@ function fcbRender(kind, all) {
   _fcbSel[kind] = -1;
   if (kind === 'sub' && !catName) { _fcbList.sub = []; box.innerHTML = '<div class="tag-suggestion-item" style="opacity:.7">Choose a category first</div>'; box.style.display = 'block'; return; }
   const base = kind === 'cat' ? fosCatsFor(type).map(c => c.name) : fosSubsFor(catName, type);
-  const items = base.filter(n => all || !q || fosKey(n).indexOf(q) >= 0).sort((a, b) => (fosKey(b).indexOf(q) === 0 ? 1 : 0) - (fosKey(a).indexOf(q) === 0 ? 1 : 0)).slice(0, 40).map(v => ({ v }));
+  if (window._fcbQuiet && all) return;
+  const items = base.filter(n => !(kind === 'cat' && fosKey(n) === 'other')).filter(n => all || !q || fosKey(n).indexOf(q) >= 0).sort((a, b) => (fosKey(b).indexOf(q) === 0 ? 1 : 0) - (fosKey(a).indexOf(q) === 0 ? 1 : 0)).slice(0, 100).map(v => ({ v }));
   if (raw && !base.some(n => fosKey(n) === q)) items.push({ v: raw, add: true });
+  // "Other" always sits at the very top: pick it, then type your own category name
+  if (kind === 'cat' && (all || !q || 'other'.indexOf(q) === 0)) items.unshift({ v: 'Other', other: true });
   _fcbList[kind] = items;
-  box.innerHTML = items.length ? items.map((it, i) => `<div class="tag-suggestion-item" onmousedown="event.preventDefault();fcbPick('${kind}',${i})">${it.add ? '＋ Add “' + _esc(it.v) + '” as new ' + (kind === 'cat' ? 'category' : 'subcategory') : _esc(it.v)}</div>`).join('') : '<div class="tag-suggestion-item" style="opacity:.7">No subcategories yet — type to add one</div>';
+  box.innerHTML = items.length ? items.map((it, i) => `<div class="tag-suggestion-item" onmousedown="event.preventDefault();fcbPick('${kind}',${i})"${it.other ? ' style="font-weight:700;border-bottom:1px solid rgba(148,163,184,.25)"' : ''}>${it.other ? '✎ Other — type your own' : it.add ? '＋ Add “' + _esc(it.v) + '” as new ' + (kind === 'cat' ? 'category' : 'subcategory') : _esc(it.v)}</div>`).join('') : '<div class="tag-suggestion-item" style="opacity:.7">No subcategories yet — type to add one</div>';
   box.style.display = 'block';
+}
+function fcbToggle(kind) {
+  const box = document.getElementById('fcb-' + kind), inp = document.getElementById(_fcbId(kind)); if (!box || !inp) return;
+  if (box.style.display === 'block') { box.style.display = 'none'; return; }
+  window._fcbQuiet = true; inp.focus(); window._fcbQuiet = false; fcbRender(kind, true);
 }
 function fcbPick(kind, i) {
   const it = (_fcbList[kind] || [])[i]; if (!it) return;
   const inp = document.getElementById(_fcbId(kind)), type = _entryType();
+  if (it.other) {
+    inp.value = ''; _cs[kind] = false; document.getElementById('fcb-' + kind).style.display = 'none';
+    if (kind === 'cat') fosOnCatChange();
+    window._fcbQuiet = true; inp.focus(); setTimeout(() => { window._fcbQuiet = false; }, 300);
+    fosHint(kind, 'Type your own ' + (kind === 'cat' ? 'category' : 'subcategory') + ' name, then press Enter or Save'); renderMoreSummary(); return;
+  }
   if (it.add) {
     if (kind === 'cat') { const c = fosAddCat(type, it.v); if (!c) return; it.v = c.name; }
     else { const c = fosFindCat(type, document.getElementById('inp-catname').value); const s = c && fosAddSub(c.id, it.v); if (!s) return; it.v = s.name; }
@@ -37567,7 +37612,7 @@ body.light-mode .adm-toast{background:#e0f7fc;color:#06303c}body.light-mode .adm
   var TABS = [
     ['overview', 'Overview', 'fa-gauge-high', 1], ['lab', 'Calculation Lab', 'fa-flask', 1], ['formula', 'Formula Studio', 'fa-square-root-variable', 1], ['chart', 'Chart Studio', 'fa-chart-pie', 1],
     ['rules', 'Insight & Alert Rules', 'fa-bell', 1], ['unlocks', 'Unlocks & Streaks', 'fa-unlock', 1], ['data', 'Data Manager', 'fa-table', 1], ['tax', 'Taxonomy', 'fa-tags', 1],
-    ['port', 'Portfolio & Credit', 'fa-briefcase', 1], ['theme', 'Layout & Theme', 'fa-palette', 1], ['flags', 'Feature Flags', 'fa-toggle-on', 1], ['integrity', 'Integrity Checker', 'fa-shield-halved', 0],
+    ['port', 'Portfolio & Credit', 'fa-briefcase', 1], ['theme', 'Layout & Theme', 'fa-palette', 1], ['flags', 'Feature Flags', 'fa-toggle-on', 1], ['integrity', 'Integrity Checker', 'fa-shield-halved', 1],
     ['backups', 'Backups & Versions', 'fa-clock-rotate-left', 1], ['audit', 'Audit Log', 'fa-list-check', 1], ['dev', 'Developer Tools', 'fa-terminal', 0]
   ];
   function root() { return document.getElementById('adm-root'); }
@@ -37611,7 +37656,7 @@ body.light-mode .adm-toast{background:#e0f7fc;color:#06303c}body.light-mode .adm
   }
   function body() {
     var b = document.getElementById('adm-body'); if (!b) return; var t = S.tab;
-    try { b.innerHTML = t === 'overview' ? overview() : t === 'lab' ? lab() : t === 'backups' ? backups() : t === 'audit' ? auditTab() : (t === 'formula' && window.FOS_FORMULA_STUDIO) ? window.FOS_FORMULA_STUDIO.html() : (t === 'chart' && window.FOS_CHART_STUDIO) ? window.FOS_CHART_STUDIO.html() : (t === 'rules' && window.FOS_RULES) ? window.FOS_RULES.html() : (t === 'unlocks' && window.FOS_UNLOCKS) ? window.FOS_UNLOCKS.html() : (t === 'data' && window.FOS_DATA) ? window.FOS_DATA.html() : (t === 'tax' && window.FOS_TAXONOMY) ? window.FOS_TAXONOMY.html() : (t === 'port' && window.FOS_PORTCREDIT) ? window.FOS_PORTCREDIT.html() : (t === 'theme' && window.FOS_THEME) ? window.FOS_THEME.html() : (t === 'flags' && window.FOS_FLAGS) ? window.FOS_FLAGS.html() : planned(t); } catch (e) { console.error('Admin tab failed:', e); b.innerHTML = '<div class="set-card"><b>This tab failed to load.</b><div class="adm-muted">' + E(e.message) + '</div></div>'; }
+    try { b.innerHTML = t === 'overview' ? overview() : t === 'lab' ? lab() : t === 'backups' ? backups() : t === 'audit' ? auditTab() : (t === 'formula' && window.FOS_FORMULA_STUDIO) ? window.FOS_FORMULA_STUDIO.html() : (t === 'chart' && window.FOS_CHART_STUDIO) ? window.FOS_CHART_STUDIO.html() : (t === 'rules' && window.FOS_RULES) ? window.FOS_RULES.html() : (t === 'unlocks' && window.FOS_UNLOCKS) ? window.FOS_UNLOCKS.html() : (t === 'data' && window.FOS_DATA) ? window.FOS_DATA.html() : (t === 'tax' && window.FOS_TAXONOMY) ? window.FOS_TAXONOMY.html() : (t === 'port' && window.FOS_PORTCREDIT) ? window.FOS_PORTCREDIT.html() : (t === 'theme' && window.FOS_THEME) ? window.FOS_THEME.html() : (t === 'flags' && window.FOS_FLAGS) ? window.FOS_FLAGS.html() : (t === 'integrity' && window.FOS_INTEGRITY) ? window.FOS_INTEGRITY.html() : planned(t); } catch (e) { console.error('Admin tab failed:', e); b.innerHTML = '<div class="set-card"><b>This tab failed to load.</b><div class="adm-muted">' + E(e.message) + '</div></div>'; }
     if (t === 'lab') labPreview();
     if (t === 'rules' && window.FOS_RULES) { try { window.FOS_RULES.after(); } catch (e) { console.error('Rules failed:', e); } }
     if (t === 'unlocks' && window.FOS_UNLOCKS) { try { window.FOS_UNLOCKS.after(); } catch (e) { console.error('Unlocks failed:', e); } }
@@ -37620,6 +37665,7 @@ body.light-mode .adm-toast{background:#e0f7fc;color:#06303c}body.light-mode .adm
     if (t === 'port' && window.FOS_PORTCREDIT) { try { window.FOS_PORTCREDIT.after(); } catch (e) { console.error('Portfolio failed:', e); } }
     if (t === 'theme' && window.FOS_THEME) { try { window.FOS_THEME.after(); } catch (e) { console.error('Theme failed:', e); } }
     if (t === 'flags' && window.FOS_FLAGS) { try { window.FOS_FLAGS.after(); } catch (e) { console.error('Flags failed:', e); } }
+    if (t === 'integrity' && window.FOS_INTEGRITY) { try { window.FOS_INTEGRITY.after(); } catch (e) { console.error('Integrity failed:', e); } }
     if (t === 'chart' && window.FOS_CHART_STUDIO) { try { window.FOS_CHART_STUDIO.after(); } catch (e) { console.error('Chart Studio failed:', e); } }
     if (t === 'formula' && window.FOS_FORMULA_STUDIO) { try { window.FOS_FORMULA_STUDIO.after(); } catch (e) { console.error('Formula Studio failed:', e); } }
   }
@@ -40730,6 +40776,166 @@ body.light-mode #adm-root{--fs-ok:#059669;--fs-bad:#dc2626;--fs-warn:#b45309}
   hook();
   if (document.body) boot(); else document.addEventListener('DOMContentLoaded', boot);
   window.addEventListener('load', function () { applyAll(); hook(); });
+})();
+</script>
+<style id="fos-integrity-style">
+.ic-hero{display:flex;align-items:center;gap:14px;padding:14px 16px;border-radius:12px;border:1px solid var(--border,#334155);margin-bottom:12px}.ic-hero i{font-size:1.8rem}.ic-hero b{display:block;font-size:1.05rem}.ic-hero small{color:var(--text-muted,#94a3b8)}
+.ic-hero.ok i{color:var(--c-inc,#34d399)}.ic-hero.warn i{color:var(--warning,#f59e0b)}.ic-hero.bad i{color:var(--danger,#ef4444)}
+.ic-item{display:flex;align-items:flex-start;gap:10px;padding:9px 10px;border:1px solid var(--border,#334155);border-radius:10px;margin:6px 0}.ic-item>i{margin-top:3px;font-size:1rem;width:18px;text-align:center}
+.ic-item.ok>i{color:var(--c-inc,#34d399)}.ic-item.info>i{color:var(--c-loan,#60a5fa)}.ic-item.warn>i{color:var(--warning,#f59e0b)}.ic-item.bad>i{color:var(--danger,#ef4444)}
+.ic-tx{flex:1;min-width:0}.ic-tx small{display:block;color:var(--text-muted,#94a3b8);font-size:.74rem;margin-top:2px;overflow-wrap:anywhere}.ic-item .tm-acts{display:flex;gap:6px;flex-wrap:wrap}
+</style>
+<script id="fos-integrity">
+/* ═══════════════════════════════════════════════════════════════════════
+   FOS ADMIN · INTEGRITY CHECKER
+   One health check across the whole app. It reads, it never silently changes your data:
+     · Storage: unreadable saved data, wrong data types, how full browser storage is
+     · Transactions, portfolio holdings, loans and cards: re-uses the Data Manager and
+       Portfolio & Credit scanners and links you to where each problem is fixed
+     · Categories: transactions and budgets that use names missing from your category list
+     · Admin settings: invalid or unknown overrides, damaged studio data
+     · Backups: how recent your last backup is
+   The only things it can repair itself are admin settings (reset an invalid override,
+   remove unknown ones, quarantine a damaged admin store). Each repair is logged.
+   Run history is kept so you can see what is new since last time.
+   ═══════════════════════════════════════════════════════════════════════ */
+(function () {
+  'use strict';
+  if (window.FOS_INTEGRITY) return;
+  var C = window.FOS_CONFIG;
+  var LAST = 'fos_admin_integrity_last_v1', LOG = 'fos_admin_integrity_log_v1', QUAR = 'fos_admin_integrity_quar_v1', QUOTA = 5 * 1024 * 1024;
+  var GROUPS = ['Storage', 'Transactions', 'Portfolio & credit', 'Categories', 'Admin settings', 'Backups'];
+  var ADMIN_STORES = [['fos_admin_formulas_v1', 'Formula Studio', 'array'], ['fos_admin_charts_v1', 'Chart Studio', 'any'], ['fos_admin_rules_v1', 'Insight & alert rules', 'any'], ['fos_admin_badges_v1', 'Custom badges', 'any'], ['fos_admin_theme_v1', 'Layout & theme', 'object'], ['fos_admin_flags_v1', 'Feature flags', 'object'], ['fos_admin_config_v1', 'Settings overrides', 'object'], ['fos_admin_snapshots_v1', 'Settings snapshots', 'array'], ['fos_admin_audit_v1', 'Settings audit log', 'array']];
+  var NOFIX = ['fos_admin_pin_v1', 'fos_admin_sess', 'fos_admin_safe_v1', 'fos_admin_boot_v1'];
+  var S = { res: null, prev: null, msg: '', bad: false, filter: 'all', ran: null };
+
+  function E(s) { try { return _esc(s); } catch (e) { return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]; }); } }
+  function $(id) { return document.getElementById(id); }
+  function J(k, d) { try { var v = JSON.parse(localStorage.getItem(k)); return v == null ? d : v; } catch (e) { return d; } }
+  function raw(k) { try { return localStorage.getItem(k); } catch (e) { return null; } }
+  function bytes(n) { return n < 1024 ? n + ' B' : n < 1048576 ? (n / 1024).toFixed(1) + ' KB' : (n / 1048576).toFixed(2) + ' MB'; }
+  function safe(f, d) { try { var v = f(); return v === undefined ? d : v; } catch (e) { return d; } }
+  function log(m) { var l = J(LOG, []); if (!Array.isArray(l)) l = []; l.unshift({ t: new Date().toISOString(), m: String(m).slice(0, 180) }); try { localStorage.setItem(LOG, JSON.stringify(l.slice(0, 60))); } catch (e) { } }
+
+  /* ── the checks ─────────────────────────────────────────────────────── */
+  function badJson() {
+    var out = []; try { for (var i = 0; i < localStorage.length; i++) { var k = localStorage.key(i); if (!/^(fos_|financeOS_)/.test(k)) continue; var v = localStorage.getItem(k); if (v == null) continue; var t = v.trim(); if (t[0] !== '{' && t[0] !== '[') continue; try { JSON.parse(t); } catch (e) { out.push(k); } } } catch (e) { }
+    return out;
+  }
+  function checks() {
+    var R = [];
+    function add(c) { R.push(c); }
+    /* Storage */
+    var bj = badJson(), adm = bj.filter(function (k) { return /^fos_admin_/.test(k) && NOFIX.indexOf(k) < 0; }), dat = bj.filter(function (k) { return adm.indexOf(k) < 0; });
+    if (!bj.length) add({ id: 'json', group: 'Storage', title: 'All saved data is readable', sev: 'ok' });
+    if (dat.length) add({ id: 'json-data', group: 'Storage', title: dat.length + ' saved data item' + (dat.length === 1 ? ' is' : 's are') + ' unreadable', sev: 'bad', detail: dat.slice(0, 6).join(', ') + (dat.length > 6 ? '…' : '') + '. The app falls back to empty data for these. Restore from a backup (Backups tab) before making new entries.', goto: ['backups', 'Open Backups'] });
+    if (adm.length) add({ id: 'json-admin', group: 'Storage', title: adm.length + ' admin setting store' + (adm.length === 1 ? ' is' : 's are') + ' damaged', sev: 'warn', detail: adm.join(', ') + '. Repair keeps a copy of the damaged text, then resets just that store.', fix: ['quar', 'Save copy and reset'] });
+    var tot = 0; try { for (var i = 0; i < localStorage.length; i++) { var k = localStorage.key(i); tot += (k.length + (localStorage.getItem(k) || '').length) * 2; } } catch (e) { }
+    var pct = Math.round(tot / QUOTA * 100);
+    add({ id: 'quota', group: 'Storage', title: 'Browser storage ' + pct + '% used (' + bytes(tot) + ')', sev: pct >= 95 ? 'bad' : pct >= 80 ? 'warn' : 'ok', detail: pct >= 80 ? 'Saving may start failing soon. Download a backup and clear what you do not need in Data Manager.' : '', goto: pct >= 80 ? ['data', 'Open Data Manager'] : null });
+    var shape = []; [[function () { return db; }, 'Transactions'], [function () { return portDb; }, 'Holdings'], [function () { return creditDb; }, 'Credit entries'], [function () { return ccCards; }, 'Credit cards']].forEach(function (p) { var v = safe(p[0], undefined); if (v !== undefined && !Array.isArray(v)) shape.push(p[1]); });
+    if (shape.length) add({ id: 'shape', group: 'Storage', title: 'Wrong data type in memory: ' + shape.join(', '), sev: 'bad', detail: 'These should be lists. Reload the app, and restore a backup if it persists.', goto: ['backups', 'Open Backups'] });
+    /* Transactions */
+    var ds = window.FOS_DATA && safe(function () { return window.FOS_DATA.scan(); }, null), nTx = safe(function () { return db.length; }, 0);
+    if (ds) { if (!ds.issues.length) add({ id: 'tx', group: 'Transactions', title: 'All ' + ds.total + ' transactions look healthy', sev: 'ok' }); ds.issues.forEach(function (is) { add({ id: 'tx-' + is.id, group: 'Transactions', title: is.label + ' (' + is.idx.length + ')', sev: is.sev === 'bad' ? 'bad' : is.sev === 'warn' ? 'warn' : 'info', detail: is.hint, goto: ['data', 'Fix in Data Manager'] }); }); }
+    else add({ id: 'tx', group: 'Transactions', title: 'Transactions could not be scanned', sev: 'info', detail: nTx + ' entries in memory.' });
+    /* Portfolio & credit */
+    var PC = window.FOS_PORTCREDIT, ph = PC && safe(function () { return PC.scanHold(); }, null), pcr = PC && safe(function () { return PC.scanCredit(); }, null), any = 0;
+    function pcAdd(is, what) { any++; add({ id: 'pc-' + what + '-' + is.id, group: 'Portfolio & credit', title: what + ': ' + is.label + ' (' + is.idx.length + ')', sev: is.sev === 'bad' ? 'bad' : is.sev === 'warn' ? 'warn' : 'info', detail: is.hint, goto: ['port', 'Fix in Portfolio & Credit'] }); }
+    (ph || []).forEach(function (is) { pcAdd(is, 'Holdings'); }); if (pcr) { (pcr.cards || []).forEach(function (is) { pcAdd(is, 'Cards'); }); (pcr.loans || []).forEach(function (is) { pcAdd(is, 'Loans'); }); }
+    if (!any) add({ id: 'pc', group: 'Portfolio & credit', title: PC ? 'Holdings, loans and cards look healthy' : 'Portfolio checks unavailable', sev: PC ? 'ok' : 'info' });
+    /* Categories */
+    var names = safe(function () { var o = {}; fosM().cats.forEach(function (c) { o[fosKey(c.name)] = 1; }); return o; }, null);
+    if (names && Array.isArray(safe(function () { return db; }, null))) {
+      var un = {}; db.forEach(function (r) { if (!r || typeof r !== 'object') return; var n = fosClean(r.category || r.sub || ''); if (n && !names[fosKey(n)]) un[n] = (un[n] || 0) + 1; });
+      var uk = Object.keys(un); if (uk.length) add({ id: 'cat-unk', group: 'Categories', title: uk.length + ' categor' + (uk.length === 1 ? 'y' : 'ies') + ' used in transactions but missing from your list', sev: 'warn', detail: uk.slice(0, 6).map(function (n) { return n + ' (' + un[n] + ')'; }).join(', ') + (uk.length > 6 ? '…' : ''), goto: ['tax', 'Open Taxonomy'] });
+      var bud = safe(function () { return Object.keys(budgets || {}); }, []).filter(function (n) { return !names[fosKey(n)]; });
+      if (bud.length) add({ id: 'cat-bud', group: 'Categories', title: bud.length + ' budget' + (bud.length === 1 ? '' : 's') + ' for a category that does not exist', sev: 'info', detail: bud.slice(0, 6).join(', ') + (bud.length > 6 ? '…' : ''), goto: ['tax', 'Open Taxonomy'] });
+      if (!uk.length && !bud.length) add({ id: 'cat', group: 'Categories', title: 'Every category in use is on your list', sev: 'ok' });
+    } else add({ id: 'cat', group: 'Categories', title: 'Category check unavailable', sev: 'info' });
+    /* Admin settings */
+    var ov = C ? safe(function () { return C.overrides(); }, {}) : {}, inv = [];
+    Object.keys(ov).forEach(function (p) { var r = safe(function () { return C.validate(p, ov[p]); }, { ok: true }); if (!r.ok) inv.push(p); });
+    var rawCfg = J('fos_admin_config_v1', {}), unk = rawCfg && typeof rawCfg === 'object' && !Array.isArray(rawCfg) ? Object.keys(rawCfg).filter(function (p) { return !safe(function () { return C.schemaOf(p); }, null); }) : [];
+    if (inv.length) add({ id: 'cfg-inv', group: 'Admin settings', title: inv.length + ' setting override' + (inv.length === 1 ? ' has' : 's have') + ' an invalid value', sev: 'warn', detail: inv.slice(0, 6).join(', ') + (inv.length > 6 ? '…' : '') + '. Repair puts each one back to its default.', fix: ['cfgreset', 'Reset to defaults'], goto: ['lab', 'Open Calculation Lab'] });
+    if (unk.length) add({ id: 'cfg-unk', group: 'Admin settings', title: unk.length + ' saved override' + (unk.length === 1 ? '' : 's') + ' for settings that no longer exist', sev: 'info', detail: unk.slice(0, 6).join(', ') + (unk.length > 6 ? '…' : '') + '. They are ignored and harmless.', fix: ['cfgclean', 'Remove them'] });
+    if (!inv.length && !unk.length) add({ id: 'cfg', group: 'Admin settings', title: 'Settings overrides are all valid (' + Object.keys(ov).length + ' in use)', sev: 'ok' });
+    var dmg = []; ADMIN_STORES.forEach(function (a) { var v = raw(a[0]); if (v == null || bj.indexOf(a[0]) >= 0) return; var p = safe(function () { return JSON.parse(v); }, null); if (p == null) return; var ok = a[2] === 'array' ? Array.isArray(p) : a[2] === 'object' ? (typeof p === 'object' && !Array.isArray(p)) : true; if (!ok) dmg.push(a); });
+    if (dmg.length) add({ id: 'adm-type', group: 'Admin settings', title: dmg.length + ' admin store' + (dmg.length === 1 ? ' has' : 's have') + ' the wrong shape', sev: 'warn', detail: dmg.map(function (a) { return a[1]; }).join(', ') + '. Repair keeps a copy, then resets that store.', fix: ['shape', 'Save copy and reset'] });
+    else add({ id: 'adm', group: 'Admin settings', title: 'Studio data and admin stores are well formed', sev: 'ok' });
+    if (C && safe(function () { return C.safe(); }, false)) add({ id: 'safe', group: 'Admin settings', title: 'Safe mode is on', sev: 'info', detail: 'Admin overrides, theme and feature flags are being ignored. Turn it off in the Overview tab when ready.', goto: ['overview', 'Open Overview'] });
+    /* Backups */
+    var lb = Number(raw('financeOS_lastBackup')), days = lb ? Math.floor((Date.now() - lb) / 864e5) : null, hasData = nTx > 0 || safe(function () { return portDb.length; }, 0) > 0;
+    add(days == null ? { id: 'bk', group: 'Backups', title: 'No backup has been downloaded yet', sev: hasData ? 'warn' : 'info', detail: 'Download one from the Backups tab so your data can be restored.', goto: ['backups', 'Open Backups'] } : days > 30 ? { id: 'bk', group: 'Backups', title: 'Last backup was ' + days + ' days ago', sev: 'warn', detail: 'A fresh backup is a good idea.', goto: ['backups', 'Open Backups'] } : { id: 'bk', group: 'Backups', title: days === 0 ? 'Backed up today' : 'Last backup ' + days + ' day' + (days === 1 ? '' : 's') + ' ago', sev: 'ok' });
+    return R;
+  }
+
+  /* ── run / fixes ────────────────────────────────────────────────────── */
+  function run() {
+    var prev = J(LAST, null), res = checks(), problems = res.filter(function (c) { return c.sev === 'bad' || c.sev === 'warn'; });
+    S.prev = prev && Array.isArray(prev.ids) ? prev : null; S.res = res; S.ran = new Date();
+    var cur = { t: S.ran.toISOString(), bad: res.filter(function (c) { return c.sev === 'bad'; }).length, warn: res.filter(function (c) { return c.sev === 'warn'; }).length, ids: problems.map(function (c) { return c.id; }) };
+    try { localStorage.setItem(LAST, JSON.stringify(cur)); } catch (e) { }
+    return res;
+  }
+  function quarantine(k) {
+    var v = raw(k); if (v == null) return true; var q = J(QUAR, []); if (!Array.isArray(q)) q = [];
+    q.unshift({ key: k, t: new Date().toISOString(), value: v.slice(0, 200000) }); q = q.slice(0, 5);
+    try { localStorage.setItem(QUAR, JSON.stringify(q)); } catch (e) { return false; }
+    try { localStorage.removeItem(k); } catch (e) { return false; } return true;
+  }
+  function doFix(id) {
+    if (id === 'quar') { var ks = badJson().filter(function (k) { return /^fos_admin_/.test(k) && NOFIX.indexOf(k) < 0; }), n = 0; ks.forEach(function (k) { if (quarantine(k)) n++; }); log('Quarantined ' + n + ' damaged admin store(s): ' + ks.join(', ')); return n + ' damaged store' + (n === 1 ? '' : 's') + ' reset. A copy was kept.'; }
+    if (id === 'shape') { var n2 = 0, names = []; ADMIN_STORES.forEach(function (a) { var v = raw(a[0]); if (v == null) return; var p = safe(function () { return JSON.parse(v); }, null); if (p == null) return; var ok = a[2] === 'array' ? Array.isArray(p) : a[2] === 'object' ? (typeof p === 'object' && !Array.isArray(p)) : true; if (!ok && quarantine(a[0])) { n2++; names.push(a[1]); } }); log('Reset wrong-shape admin store(s): ' + names.join(', ')); return n2 + ' store' + (n2 === 1 ? '' : 's') + ' reset. A copy was kept.'; }
+    if (id === 'cfgreset') { var ov = C.overrides(), n3 = 0; Object.keys(ov).forEach(function (p) { var r = C.validate(p, ov[p]); if (!r.ok) { var x = C.reset(p); if (x && x.ok !== false) n3++; } }); log('Reset ' + n3 + ' invalid setting override(s)'); return n3 + ' invalid override' + (n3 === 1 ? '' : 's') + ' reset to default.'; }
+    if (id === 'cfgclean') { var o = J('fos_admin_config_v1', {}), n4 = 0; Object.keys(o).forEach(function (p) { if (!C.schemaOf(p)) { delete o[p]; n4++; } }); try { localStorage.setItem('fos_admin_config_v1', JSON.stringify(o)); } catch (e) { return 'Could not save (storage is full).'; } log('Removed ' + n4 + ' unknown override(s)'); return n4 + ' unknown override' + (n4 === 1 ? '' : 's') + ' removed.'; }
+    return 'Nothing to do.';
+  }
+  function say(m, bad) { S.msg = m || ''; S.bad = !!bad; var el = $('ic-note'); if (el) { el.textContent = S.msg; el.className = 'tm-note' + (bad ? ' bad' : ''); el.setAttribute('role', bad ? 'alert' : 'status'); } }
+
+  /* ── rendering ──────────────────────────────────────────────────────── */
+  var ICON = { ok: 'fa-circle-check', info: 'fa-circle-info', warn: 'fa-triangle-exclamation', bad: 'fa-circle-xmark' }, LBL = { ok: 'Healthy', info: 'Note', warn: 'Attention', bad: 'Problem' };
+  function summary(res) {
+    var c = { bad: 0, warn: 0, info: 0, ok: 0 }; res.forEach(function (x) { c[x.sev]++; });
+    var nw = S.prev ? res.filter(function (x) { return (x.sev === 'bad' || x.sev === 'warn') && S.prev.ids.indexOf(x.id) < 0; }).length : 0;
+    var head = c.bad ? 'Needs attention' : c.warn ? 'Mostly healthy' : 'All healthy';
+    return '<div class="ic-hero ' + (c.bad ? 'bad' : c.warn ? 'warn' : 'ok') + '"><i class="fas ' + (c.bad ? 'fa-circle-xmark' : c.warn ? 'fa-triangle-exclamation' : 'fa-circle-check') + '"></i><div><b>' + head + '</b><small>' + c.bad + ' problem' + (c.bad === 1 ? '' : 's') + ' · ' + c.warn + ' to review · ' + c.ok + ' healthy' + (S.prev && nw ? ' · <b>' + nw + ' new since last check</b>' : '') + (S.ran ? ' · checked ' + S.ran.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '') + '</small></div></div>';
+  }
+  function itemHtml(c) {
+    var isNew = S.prev && (c.sev === 'bad' || c.sev === 'warn') && S.prev.ids.indexOf(c.id) < 0;
+    return '<div class="ic-item ' + c.sev + '"><i class="fas ' + ICON[c.sev] + '" aria-hidden="true"></i><div class="ic-tx"><b>' + E(c.title) + '</b> <span class="rl-st ' + (c.sev === 'bad' ? 'bad' : c.sev === 'warn' ? 'fire' : 'quiet') + '">' + LBL[c.sev] + '</span>' + (isNew ? ' <span class="rl-st fire">New</span>' : '') + (c.detail ? '<small>' + E(c.detail) + '</small>' : '') + '</div><span class="tm-acts">' + (c.fix ? '<button type="button" class="adm-btn sm" data-ic="fix" data-f="' + c.fix[0] + '">' + E(c.fix[1]) + '</button>' : '') + (c.goto ? '<button type="button" class="adm-btn ghost sm" data-ic="go" data-t="' + c.goto[0] + '">' + E(c.goto[1]) + '</button>' : '') + '</span></div>';
+  }
+  function body() {
+    if (!S.res) return '<div class="adm-muted">Checking…</div>';
+    var res = S.res, show = res.filter(function (c) { return S.filter === 'all' || (S.filter === 'issues' ? (c.sev === 'bad' || c.sev === 'warn' || c.sev === 'info') : c.sev === S.filter); });
+    var fixes = []; res.forEach(function (c) { if (c.fix && fixes.indexOf(c.fix[0]) < 0) fixes.push(c.fix[0]); });
+    var h = summary(res) + '<div class="adm-actions"><button type="button" class="adm-btn" data-ic="run"><i class="fas fa-stethoscope"></i> Check again</button>' + (fixes.length ? '<button type="button" class="adm-btn ghost" data-ic="fixall">Repair admin settings (' + fixes.length + ')</button>' : '') + '<button type="button" class="adm-btn ghost" data-ic="report"><i class="fas fa-file-lines"></i> Download report</button><span class="fs-spacer"></span><label class="adm-chk2" for="ic-filter">Show</label><select id="ic-filter" class="set-input" style="width:auto" aria-label="Filter results"><option value="all"' + (S.filter === 'all' ? ' selected' : '') + '>Everything</option><option value="issues"' + (S.filter === 'issues' ? ' selected' : '') + '>Only things to look at</option></select></div>';
+    GROUPS.forEach(function (g) { var list = show.filter(function (c) { return c.group === g; }); if (!list.length) return; h += '<div class="adm-h" style="font-size:.9rem;margin-top:14px">' + E(g) + '</div>' + list.map(itemHtml).join(''); });
+    if (!show.length) h += '<div class="adm-muted" style="margin-top:10px">Nothing to show.</div>';
+    var q = J(QUAR, []), l = J(LOG, []); if (!Array.isArray(q)) q = []; if (!Array.isArray(l)) l = [];
+    if (q.length) h += '<div class="adm-h" style="font-size:.9rem;margin-top:18px">Kept copies of repaired stores</div><div class="adm-muted">' + q.length + ' kept (latest 5): ' + E(q.map(function (x) { return x.key; }).join(', ')) + '</div><div class="adm-actions"><button type="button" class="adm-btn ghost sm" data-ic="dlq"><i class="fas fa-download"></i> Download kept copies</button></div>';
+    if (l.length) h += '<details class="ic-log"><summary class="adm-muted" style="cursor:pointer;margin-top:14px">Repair log (' + l.length + ')</summary><div class="adm-scroll"><table class="adm-tbl"><thead><tr><th>When</th><th>What</th></tr></thead><tbody>' + l.slice(0, 25).map(function (r) { return '<tr><td>' + E(String(r.t).replace('T', ' ').slice(0, 16)) + '</td><td>' + E(r.m) + '</td></tr>'; }).join('') + '</tbody></table></div></details>';
+    return h;
+  }
+  function html() {
+    S.prev = J(LAST, null); S.res = run();
+    return '<div class="tm-wrap ic-wrap"><div class="tm-note" id="ic-note" role="status" aria-live="polite"></div><div class="set-card"><div class="adm-h">Integrity checker <small>is everything in good shape?</small></div><div class="adm-muted" style="margin-bottom:10px">Reads your saved data and settings and reports anything damaged, inconsistent or risky. It only repairs admin settings itself; for your financial data it points you to the right tab.</div><div id="ic-body">' + body() + '</div></div></div>';
+  }
+  function repaint() { var b = $('ic-body'); if (b) { var open = !!(b.querySelector('.ic-log') && b.querySelector('.ic-log').open); b.innerHTML = body(); if (open && b.querySelector('.ic-log')) b.querySelector('.ic-log').open = true; } var n = $('ic-note'); if (n) { n.textContent = S.msg; n.className = 'tm-note' + (S.bad ? ' bad' : ''); } }
+  function download(name, text, type) { try { var u = URL.createObjectURL(new Blob([text], { type: type || 'text/plain' })), a = document.createElement('a'); a.href = u; a.download = name; document.body.appendChild(a); a.click(); a.remove(); setTimeout(function () { URL.revokeObjectURL(u); }, 4000); return true; } catch (e) { return false; } }
+  function onAction(a, b) {
+    if (a === 'run') { S.prev = J(LAST, null); run(); say('Checked again.'); return repaint(); }
+    if (a === 'go') { var t = $('adm-t-' + b.getAttribute('data-t')); if (t) t.click(); return; }
+    if (a === 'fix') { var f = b.getAttribute('data-f'); if (!confirm('Repair this now? A copy is kept for damaged stores, and the repair is logged.')) return; var m = doFix(f); S.prev = J(LAST, null); run(); say(m); return repaint(); }
+    if (a === 'fixall') { var ids = []; (S.res || []).forEach(function (c) { if (c.fix && ids.indexOf(c.fix[0]) < 0) ids.push(c.fix[0]); }); if (!ids.length) return; if (!confirm('Repair ' + ids.length + ' admin settings problem' + (ids.length === 1 ? '' : 's') + '? Your transactions and holdings are not touched.')) return; var ms = ids.map(doFix); S.prev = J(LAST, null); run(); say(ms.join(' ')); return repaint(); }
+    if (a === 'report') { var L = ['FinanceOS integrity report', new Date().toString(), '']; GROUPS.forEach(function (g) { var l = (S.res || []).filter(function (c) { return c.group === g; }); if (l.length) { L.push(g.toUpperCase()); l.forEach(function (c) { L.push('  [' + LBL[c.sev] + '] ' + c.title + (c.detail ? ' — ' + c.detail : '')); }); L.push(''); } }); return say(download('financeos_integrity_report.txt', L.join('\n')) ? 'Report downloaded.' : 'Download failed.', false); }
+    if (a === 'dlq') { var q = J(QUAR, []); return say(download('financeos_kept_copies.json', JSON.stringify(q, null, 2), 'application/json') ? 'Downloaded.' : 'Download failed.'); }
+  }
+  function onClick(e) { var t = e.target; if (!t || !t.closest || !t.closest('.ic-wrap')) return; var b = t.closest('[data-ic]'); if (!b || b.disabled) return; try { onAction(b.getAttribute('data-ic'), b); } catch (x) { console.error(x); say('Something went wrong: ' + x.message, true); repaint(); } }
+  function onChange(e) { var t = e.target; if (t && t.id === 'ic-filter') { S.filter = t.value; repaint(); var s = $('ic-filter'); if (s) s.focus(); } }
+  function wire() { var r = $('adm-root'); if (!r || r.__ic) return; r.__ic = 1; r.addEventListener('click', onClick); r.addEventListener('change', onChange); }
+  window.FOS_INTEGRITY = { html: html, after: wire, run: run, checks: checks };
+  wire();
 })();
 </script>
 <script>
