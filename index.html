@@ -37567,7 +37567,7 @@ body.light-mode .adm-toast{background:#e0f7fc;color:#06303c}body.light-mode .adm
   var TABS = [
     ['overview', 'Overview', 'fa-gauge-high', 1], ['lab', 'Calculation Lab', 'fa-flask', 1], ['formula', 'Formula Studio', 'fa-square-root-variable', 1], ['chart', 'Chart Studio', 'fa-chart-pie', 1],
     ['rules', 'Insight & Alert Rules', 'fa-bell', 1], ['unlocks', 'Unlocks & Streaks', 'fa-unlock', 1], ['data', 'Data Manager', 'fa-table', 1], ['tax', 'Taxonomy', 'fa-tags', 1],
-    ['port', 'Portfolio & Credit', 'fa-briefcase', 1], ['theme', 'Layout & Theme', 'fa-palette', 0], ['flags', 'Feature Flags', 'fa-toggle-on', 0], ['integrity', 'Integrity Checker', 'fa-shield-halved', 0],
+    ['port', 'Portfolio & Credit', 'fa-briefcase', 1], ['theme', 'Layout & Theme', 'fa-palette', 1], ['flags', 'Feature Flags', 'fa-toggle-on', 0], ['integrity', 'Integrity Checker', 'fa-shield-halved', 0],
     ['backups', 'Backups & Versions', 'fa-clock-rotate-left', 1], ['audit', 'Audit Log', 'fa-list-check', 1], ['dev', 'Developer Tools', 'fa-terminal', 0]
   ];
   function root() { return document.getElementById('adm-root'); }
@@ -37611,13 +37611,14 @@ body.light-mode .adm-toast{background:#e0f7fc;color:#06303c}body.light-mode .adm
   }
   function body() {
     var b = document.getElementById('adm-body'); if (!b) return; var t = S.tab;
-    try { b.innerHTML = t === 'overview' ? overview() : t === 'lab' ? lab() : t === 'backups' ? backups() : t === 'audit' ? auditTab() : (t === 'formula' && window.FOS_FORMULA_STUDIO) ? window.FOS_FORMULA_STUDIO.html() : (t === 'chart' && window.FOS_CHART_STUDIO) ? window.FOS_CHART_STUDIO.html() : (t === 'rules' && window.FOS_RULES) ? window.FOS_RULES.html() : (t === 'unlocks' && window.FOS_UNLOCKS) ? window.FOS_UNLOCKS.html() : (t === 'data' && window.FOS_DATA) ? window.FOS_DATA.html() : (t === 'tax' && window.FOS_TAXONOMY) ? window.FOS_TAXONOMY.html() : (t === 'port' && window.FOS_PORTCREDIT) ? window.FOS_PORTCREDIT.html() : planned(t); } catch (e) { console.error('Admin tab failed:', e); b.innerHTML = '<div class="set-card"><b>This tab failed to load.</b><div class="adm-muted">' + E(e.message) + '</div></div>'; }
+    try { b.innerHTML = t === 'overview' ? overview() : t === 'lab' ? lab() : t === 'backups' ? backups() : t === 'audit' ? auditTab() : (t === 'formula' && window.FOS_FORMULA_STUDIO) ? window.FOS_FORMULA_STUDIO.html() : (t === 'chart' && window.FOS_CHART_STUDIO) ? window.FOS_CHART_STUDIO.html() : (t === 'rules' && window.FOS_RULES) ? window.FOS_RULES.html() : (t === 'unlocks' && window.FOS_UNLOCKS) ? window.FOS_UNLOCKS.html() : (t === 'data' && window.FOS_DATA) ? window.FOS_DATA.html() : (t === 'tax' && window.FOS_TAXONOMY) ? window.FOS_TAXONOMY.html() : (t === 'port' && window.FOS_PORTCREDIT) ? window.FOS_PORTCREDIT.html() : (t === 'theme' && window.FOS_THEME) ? window.FOS_THEME.html() : planned(t); } catch (e) { console.error('Admin tab failed:', e); b.innerHTML = '<div class="set-card"><b>This tab failed to load.</b><div class="adm-muted">' + E(e.message) + '</div></div>'; }
     if (t === 'lab') labPreview();
     if (t === 'rules' && window.FOS_RULES) { try { window.FOS_RULES.after(); } catch (e) { console.error('Rules failed:', e); } }
     if (t === 'unlocks' && window.FOS_UNLOCKS) { try { window.FOS_UNLOCKS.after(); } catch (e) { console.error('Unlocks failed:', e); } }
     if (t === 'data' && window.FOS_DATA) { try { window.FOS_DATA.after(); } catch (e) { console.error('Data failed:', e); } }
     if (t === 'tax' && window.FOS_TAXONOMY) { try { window.FOS_TAXONOMY.after(); } catch (e) { console.error('Taxonomy failed:', e); } }
     if (t === 'port' && window.FOS_PORTCREDIT) { try { window.FOS_PORTCREDIT.after(); } catch (e) { console.error('Portfolio failed:', e); } }
+    if (t === 'theme' && window.FOS_THEME) { try { window.FOS_THEME.after(); } catch (e) { console.error('Theme failed:', e); } }
     if (t === 'chart' && window.FOS_CHART_STUDIO) { try { window.FOS_CHART_STUDIO.after(); } catch (e) { console.error('Chart Studio failed:', e); } }
     if (t === 'formula' && window.FOS_FORMULA_STUDIO) { try { window.FOS_FORMULA_STUDIO.after(); } catch (e) { console.error('Formula Studio failed:', e); } }
   }
@@ -40265,6 +40266,279 @@ body.light-mode #adm-root{--fs-ok:#059669;--fs-bad:#dc2626;--fs-warn:#b45309}
 
   window.FOS_PORTCREDIT = { html: html, after: afterRender, scanHold: scanHold, scanCredit: scanCredit, totals: totals };
   wire();
+})();
+</script>
+<style id="fos-theme-style">
+.th-sws{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:10px}.th-swb{width:34px;height:34px;border-radius:50%;border:2px solid transparent;cursor:pointer;padding:0}.th-swb.on{outline:2px solid var(--text-main,#fff);outline-offset:2px}.th-swb:focus-visible{outline:2px solid var(--text-main,#fff);outline-offset:2px}
+.th-sw{display:inline-block;width:14px;height:14px;border-radius:4px;vertical-align:middle;margin:0 4px}
+.th-pick,.th-sem-r,.th-range{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin:6px 0}.th-pick .set-input,.th-hx{width:92px}.th-pick input[type=color],.th-sem-r input[type=color]{width:38px;height:30px;padding:0;border:none;background:none;cursor:pointer}
+.th-sem-r label{min-width:120px;font-size:.78rem}.th-sem{margin-bottom:8px}.th-range input[type=range]{flex:1;min-width:140px;max-width:320px}
+.th-prev{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin:8px 0}.th-btn,.th-pill,.th-sample{padding:6px 12px;border-radius:8px;font-size:.78rem;font-weight:600;border:1px solid transparent}.th-pill{background:transparent}
+.th-fontp{margin:8px 0;padding:10px 12px;border:1px dashed var(--border,#334155);border-radius:8px;font-size:.9rem}
+.th-dash{display:flex;flex-direction:column;gap:6px}.th-dr{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:6px 10px;border:1px solid var(--border,#334155);border-radius:8px}.th-dr.off span:not(.tm-acts){opacity:.5;text-decoration:line-through}
+.th-presets{display:grid;grid-template-columns:repeat(auto-fill,minmax(190px,1fr));gap:10px}.th-pre{border:1px solid var(--border,#334155);border-radius:10px;padding:10px;display:flex;flex-direction:column;gap:6px;align-items:flex-start}.th-pre-h{display:flex;align-items:center;gap:4px}
+.th-lbl{max-width:200px}.th-nav td{vertical-align:middle}
+</style>
+<script id="fos-theme">
+/* ═══════════════════════════════════════════════════════════════════════
+   FOS ADMIN · LAYOUT & THEME
+     · Colours: brand accent (with an automatic darker shade for light mode and contrast
+       checks) and the income / expense / investment / loan / net / warning / danger colours,
+       plus a colour-blind-friendly palette
+     · Typography & shape: text size, font, corner style, density, reduced motion,
+       follow-the-device light/dark
+     · Sidebar & navigation: width, hide or rename menu entries
+     · Dashboard: show/hide and reorder sections
+     · Presets, export / import, reset
+   Everything applies instantly and is stored locally in 'fos_admin_theme_v1'.
+   It is switched off in Safe mode, and Reset all always works.
+   Nothing here edits your financial data.
+   ═══════════════════════════════════════════════════════════════════════ */
+(function () {
+  'use strict';
+  if (window.FOS_THEME) return;
+  var C = window.FOS_CONFIG;
+  var KEY = 'fos_admin_theme_v1', UKEY = 'fos_admin_theme_undo_v1', STYLE = 'fos-theme-ovr';
+  var SUBS = [['colour', 'Colours'], ['type', 'Typography & shape'], ['nav', 'Sidebar & menu'], ['dash', 'Dashboard'], ['presets', 'Presets & backup']];
+  var DEFAULT_BRAND = '#20CDB5';
+  var ACCENTS = [['#20CDB5', 'Teal (default)'], ['#3B82F6', 'Blue'], ['#8B5CF6', 'Violet'], ['#EC4899', 'Pink'], ['#F97316', 'Orange'], ['#EAB308', 'Amber'], ['#22C55E', 'Green'], ['#EF4444', 'Red']];
+  var SEM = [['inc', '--c-inc', 'Income', '#34d399'], ['exp', '--c-exp', 'Expenses', '#f472b6'], ['inv', '--c-inv', 'Investments', '#fbbf24'], ['loan', '--c-loan', 'Loans & EMIs', '#60a5fa'], ['net', '--c-net', 'Net / balance', '#a78bfa'], ['warn', '--warning', 'Warning', '#f59e0b'], ['bad', '--danger', 'Danger', '#ef4444']];
+  var CB = { inc: '#009E73', exp: '#D55E00', inv: '#F0E442', loan: '#0072B2', net: '#CC79A7', warn: '#E69F00', bad: '#D55E00' };
+  var FONTS = { dm: ['App default (DM Sans)', ''], system: ['System font', 'system-ui,-apple-system,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif'], serif: ['Serif (Georgia)', 'Georgia,"Times New Roman",serif'], readable: ['Extra readable (Verdana)', 'Verdana,Tahoma,Geneva,sans-serif'], mono: ['Monospace', '"DM Mono",ui-monospace,Menlo,Consolas,monospace'] };
+  var RADIUS = { default: ['Default', null], sharp: ['Sharp', 4], soft: ['Soft', 12], round: ['Round', 28] };
+  var DENSITY = { comfortable: 'Comfortable (default)', compact: 'Compact', roomy: 'Roomy' };
+  var SECTIONS = [
+    ['kpi', 'Key figures (balance, income, spending)', function (c) { return c.classList.contains('kpi-grid'); }],
+    ['game', 'Streaks & achievements strip', function (c) { return c.classList.contains('gamification-strip'); }],
+    ['snap', 'Portfolio snapshot', function (c) { return c.classList.contains('mob-snap'); }],
+    ['market', 'Live market overview', function (c) { return /^\s*LIVE MARKET OVERVIEW/i.test(c.textContent || '') && c.id !== 'tv-panel'; }],
+    ['tv', 'TradingView live feed', function (c) { return c.id === 'tv-panel'; }],
+    ['emi', 'Upcoming EMI reminders', function (c) { return c.id === 'emi-reminder-strip'; }],
+    ['spark', 'Trend sparklines', function (c) { return c.classList.contains('sparkline-row'); }],
+    ['charts', 'Cash flow & spending mix', function (c) { return c.classList.contains('charts-row'); }],
+    ['fhs', 'Category breakdown & health', function (c) { return c.classList.contains('fhs-row'); }],
+    ['rem', 'Recurring payments not yet entered', function (c) { return c.id === 'dash-rem-panel'; }],
+    ['port3', 'Portfolio charts', function (c, k, all) { return c.classList.contains('charts-3col') && all.filter(function (x) { return x.classList.contains('charts-3col'); })[0] === c; }],
+    ['credit', 'Credit overview', function (c) { return /^\s*Credit Overview/i.test(c.textContent || '') && !c.classList.contains('charts-3col'); }],
+    ['credit3', 'Credit charts', function (c, k, all) { return c.classList.contains('charts-3col') && all.filter(function (x) { return x.classList.contains('charts-3col'); })[1] === c; }]
+  ];
+  var PRESETS = [
+    { id: 'default', name: 'FinanceOS default', note: 'Teal, standard text, comfortable spacing.', s: {} },
+    { id: 'ocean', name: 'Ocean', note: 'Calm blue with rounded cards.', s: { brand: '#3B82F6', radius: 'soft' } },
+    { id: 'violet', name: 'Violet', note: 'Violet accent, soft corners.', s: { brand: '#8B5CF6', radius: 'soft' } },
+    { id: 'sunset', name: 'Sunset', note: 'Warm orange accent.', s: { brand: '#F97316', radius: 'round' } },
+    { id: 'pro', name: 'Compact pro', note: 'Dense and sharp, more on screen.', s: { density: 'compact', radius: 'sharp', scale: 95 } },
+    { id: 'access', name: 'Easy reading', note: 'Larger text, readable font, roomy layout, no animation.', s: { scale: 115, font: 'readable', density: 'roomy', motion: true } },
+    { id: 'cb', name: 'Colour-blind friendly', note: 'Blue and orange based colours that stay distinct.', s: { brand: '#0072B2', colors: CB } }
+  ];
+
+  function E(s) { try { return _esc(s); } catch (e) { return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]; }); } }
+  function $(id) { return document.getElementById(id); }
+  function J(k, d) { try { var v = JSON.parse(localStorage.getItem(k)); return v == null ? d : v; } catch (e) { return d; } }
+  var S = { sub: 'colour', msg: '', bad: false };
+
+  /* ── state ──────────────────────────────────────────────────────────── */
+  function hex(v) { v = String(v || '').trim(); if (/^#[0-9a-f]{3}$/i.test(v)) v = '#' + v[1] + v[1] + v[2] + v[2] + v[3] + v[3]; return /^#[0-9a-f]{6}$/i.test(v) ? v.toUpperCase() : null; }
+  function blank() { return { version: 1, brand: null, colors: {}, scale: 100, font: 'dm', radius: 'default', density: 'comfortable', motion: false, follow: false, sidebarW: null, nav: { hidden: [], labels: {} }, dash: { hidden: [], order: [] } }; }
+  function clean(o) {
+    var b = blank(); if (!o || typeof o !== 'object') return b;
+    b.brand = hex(o.brand); if (o.colors && typeof o.colors === 'object') SEM.forEach(function (s) { var h = hex(o.colors[s[0]]); if (h) b.colors[s[0]] = h; });
+    var sc = Number(o.scale); b.scale = sc >= 85 && sc <= 130 ? Math.round(sc) : 100; b.font = FONTS[o.font] ? o.font : 'dm'; b.radius = RADIUS[o.radius] ? o.radius : 'default'; b.density = DENSITY[o.density] ? o.density : 'comfortable'; b.motion = !!o.motion; b.follow = !!o.follow;
+    var sw = Number(o.sidebarW); b.sidebarW = sw >= 180 && sw <= 320 ? Math.round(sw) : null;
+    if (o.nav) { b.nav.hidden = (Array.isArray(o.nav.hidden) ? o.nav.hidden : []).filter(function (x) { return /^fin-nav-[a-z0-9-]+$/.test(x) && PROTECT.indexOf(x) < 0; }); if (o.nav.labels && typeof o.nav.labels === 'object') Object.keys(o.nav.labels).forEach(function (k) { var t = String(o.nav.labels[k] || '').trim().slice(0, 28); if (/^fin-nav-[a-z0-9-]+$/.test(k) && t) b.nav.labels[k] = t; }); }
+    if (o.dash) { var ids = SECTIONS.map(function (s) { return s[0]; }); b.dash.hidden = (Array.isArray(o.dash.hidden) ? o.dash.hidden : []).filter(function (x) { return ids.indexOf(x) >= 0; }); b.dash.order = (Array.isArray(o.dash.order) ? o.dash.order : []).filter(function (x, i, a) { return ids.indexOf(x) >= 0 && a.indexOf(x) === i; }); }
+    return b;
+  }
+  var PROTECT = ['fin-nav-dashboard', 'fin-nav-transactions'];
+  var st = clean(J(KEY, null));
+  function persist() { try { localStorage.setItem(KEY, JSON.stringify(st)); return true; } catch (e) { return false; } }
+  function isDefault(o) { return JSON.stringify(clean(o)) === JSON.stringify(blank()); }
+
+  /* ── colour maths ───────────────────────────────────────────────────── */
+  function rgb(h) { return [parseInt(h.slice(1, 3), 16), parseInt(h.slice(3, 5), 16), parseInt(h.slice(5, 7), 16)]; }
+  function toHex(a) { return '#' + a.map(function (v) { v = Math.max(0, Math.min(255, Math.round(v))); return (v < 16 ? '0' : '') + v.toString(16); }).join('').toUpperCase(); }
+  function mix(h, t, p) { var a = rgb(h), b = rgb(t); return toHex([a[0] + (b[0] - a[0]) * p, a[1] + (b[1] - a[1]) * p, a[2] + (b[2] - a[2]) * p]); }
+  function lum(h) { var c = rgb(h).map(function (v) { v /= 255; return v <= 0.03928 ? v / 12.92 : Math.pow((v + 0.055) / 1.055, 2.4); }); return 0.2126 * c[0] + 0.7152 * c[1] + 0.0722 * c[2]; }
+  function ratio(a, b) { var x = lum(a), y = lum(b); return (Math.max(x, y) + 0.05) / (Math.min(x, y) + 0.05); }
+  function lightShade(h) { var o = h, i = 0; while (ratio(o, '#FFFFFF') < 4.5 && i < 30) { o = mix(o, '#000000', 0.06); i++; } return o; }
+  var DARK_BG = '#0B1120', LIGHT_BG = '#FFFFFF';
+
+  /* ── apply ──────────────────────────────────────────────────────────── */
+  function active() { try { return !(C && C.safe()); } catch (e) { return true; } }
+  function css() {
+    var s = st, out = [], dark = [], light = [];
+    if (s.brand) {
+      var b = s.brand, h = mix(b, '#FFFFFF', 0.22), d = mix(b, '#000000', 0.38), r = rgb(b), r2 = rgb(h);
+      dark.push('--brand:' + b, '--brand-rgb:' + r.join(','), '--brand-hover:' + h, '--brand-deep:' + d, '--brand-2:' + h, '--brand-2-rgb:' + r2.join(','), '--accent:' + b, '--accent-soft:rgba(' + r.join(',') + ',.15)');
+      var lb = lightShade(b), lh = mix(lb, '#000000', 0.12), ld = mix(lb, '#000000', 0.3), lr = rgb(lb);
+      light.push('--brand:' + lb, '--brand-rgb:' + lr.join(','), '--brand-hover:' + lh, '--brand-deep:' + ld, '--brand-2:' + lh, '--brand-2-rgb:' + rgb(lh).join(','), '--accent:' + lb, '--accent-soft:rgba(' + lr.join(',') + ',.14)');
+    }
+    SEM.forEach(function (x) { var c = s.colors[x[0]]; if (c) { dark.push(x[1] + ':' + c); light.push(x[1] + ':' + c); } });
+    if (dark.length) out.push('html body.fos-th{' + dark.join(';') + '}', 'html body.fos-th.light-mode{' + light.join(';') + '}');
+    if (s.scale !== 100) out.push('html{font-size:' + s.scale + '% !important}');
+    if (s.font !== 'dm') out.push('html body.fos-th-font *:not(i):not(.fas):not(.far):not(.fab):not(.fa):not([class*="fa-"]):not(code):not(pre):not(svg *){font-family:' + FONTS[s.font][1] + ' !important}');
+    var rad = RADIUS[s.radius][1]; if (rad != null) out.push('html body.fos-th .glass-panel,html body.fos-th .kpi-card,html body.fos-th .set-card,html body.fos-th .input-field,html body.fos-th .set-input{border-radius:' + rad + 'px !important}');
+    if (s.density === 'compact') out.push('html body.fos-th .glass-panel{padding:9px 12px !important}html body.fos-th .kpi-card{padding:10px 13px !important}html body.fos-th .kpi-grid{gap:9px !important}html body.fos-th .nav-item{padding-top:6px !important;padding-bottom:6px !important}html body.fos-th .glass-panel{margin-bottom:.9rem !important}');
+    if (s.density === 'roomy') out.push('html body.fos-th .glass-panel{padding:20px 22px !important}html body.fos-th .kpi-card{padding:22px 24px !important}html body.fos-th .kpi-grid{gap:20px !important}html body.fos-th .nav-item{padding-top:12px !important;padding-bottom:12px !important}');
+    if (s.motion) out.push('html body.fos-th *,html body.fos-th *::before,html body.fos-th *::after{animation-duration:.001ms !important;animation-iteration-count:1 !important;transition-duration:.001ms !important;scroll-behavior:auto !important}');
+    if (s.sidebarW && s.sidebarW !== 220) out.push('@media (min-width:1201px){:root{--sidebar-w:' + s.sidebarW + 'px !important}html body.fos-th .sidebar{width:' + s.sidebarW + 'px !important}}');
+    s.nav.hidden.forEach(function (id) { out.push('html body.fos-th #' + id + '{display:none !important}'); });
+    out.push('.fos-th-hide{display:none !important}');
+    return out.join('\n');
+  }
+  function styleEl() { var el = $(STYLE); if (!el) { el = document.createElement('style'); el.id = STYLE; document.head.appendChild(el); } return el; }
+  function dashKids() { var v = $('view-dashboard'); return v ? Array.prototype.slice.call(v.children) : []; }
+  function findSections() { var kids = dashKids(), map = {}; SECTIONS.forEach(function (sec) { for (var i = 0; i < kids.length; i++) { var k = kids[i]; if (k.tagName === 'SCRIPT') continue; try { if (sec[2](k, i, kids)) { map[sec[0]] = { el: k, i: i }; break; } } catch (e) { } } }); return map; }
+  function applyDash() {
+    var v = $('view-dashboard'); if (!v) return; var map = findSections(), on = active();
+    SECTIONS.forEach(function (sec) { var m = map[sec[0]]; if (m) m.el.classList.toggle('fos-th-hide', on && st.dash.hidden.indexOf(sec[0]) >= 0); });
+    var defOrder = SECTIONS.map(function (x) { return x[0]; }).filter(function (id) { return map[id]; }).sort(function (a, b) { return map[a].i - map[b].i; });
+    var want = on ? st.dash.order.filter(function (id) { return map[id]; }) : []; defOrder.forEach(function (id) { if (want.indexOf(id) < 0) want.push(id); });
+    var changed = want.join() !== defOrder.join(), kids = dashKids();
+    kids.forEach(function (k) { if (k.style && k.hasAttribute('data-fos-ord')) { k.style.removeProperty('order'); k.removeAttribute('data-fos-ord'); } });
+    v.classList.toggle('fos-th-reorder', changed);
+    if (changed) { v.style.setProperty('display', 'flex', 'important'); v.style.setProperty('flex-direction', 'column'); kids.forEach(function (k, i) { k.style.setProperty('order', String(i * 10)); k.setAttribute('data-fos-ord', '1'); }); var slots = defOrder.map(function (id) { return map[id].i; }); want.forEach(function (id, n) { map[id].el.style.setProperty('order', String(slots[n] * 10)); }); }
+    else { if (v.getAttribute('data-fos-flex')) { } v.style.removeProperty('flex-direction'); if (v.style.display === 'flex') v.style.removeProperty('display'); }
+  }
+  function applyNav() {
+    var on = active(); Array.prototype.forEach.call(document.querySelectorAll('.sidebar .nav-item[id^="fin-nav-"]'), function (it) { var lb = it.querySelector('.nav-label'); if (!lb) return; if (!lb.hasAttribute('data-orig')) lb.setAttribute('data-orig', lb.textContent); var t = on ? st.nav.labels[it.id] : null; lb.textContent = t || lb.getAttribute('data-orig'); });
+  }
+  var mq = null;
+  function applyFollow() {
+    try { if (!mq && window.matchMedia) { mq = window.matchMedia('(prefers-color-scheme: dark)'); var h = function () { if (st.follow && active()) { var dk = mq.matches; if (document.body.classList.contains('light-mode') === dk) { applyThemeMode(dk ? 'dark' : 'light', true); try { persistTheme(dk ? 'dark' : 'light'); } catch (e) { } try { updateChartsForTheme(); } catch (e) { } } } }; if (mq.addEventListener) mq.addEventListener('change', h); else if (mq.addListener) mq.addListener(h); mq.__h = h; } if (st.follow && active() && mq.__h) mq.__h(); } catch (e) { }
+  }
+  function applyAll() {
+    var b = document.body; if (!b) return; var on = active();
+    styleEl().textContent = on ? css() : '';
+    b.classList.toggle('fos-th', on && !isDefault(st)); b.classList.toggle('fos-th-font', on && st.font !== 'dm');
+    applyNav(); applyDash(); applyFollow();
+    try { if (typeof applyThemeColorMeta === 'function') applyThemeColorMeta(); } catch (e) { }
+  }
+  function repaintApp() { try { if (typeof updateChartsForTheme === 'function') updateChartsForTheme(); } catch (e) { } try { if (typeof activeView !== 'undefined' && activeView === 'dashboard' && typeof renderDashboard === 'function') renderDashboard(); } catch (e) { } }
+
+  /* ── change / undo ──────────────────────────────────────────────────── */
+  function change(fn, msg, colourChanged) {
+    var before = JSON.stringify(st); try { fn(st); } catch (e) { return say('Could not change that: ' + e.message, true); } st = clean(st);
+    if (JSON.stringify(st) === before) return;
+    try { localStorage.setItem(UKEY, before); } catch (e) { }
+    if (!persist()) { st = clean(JSON.parse(before)); return say('Could not save (browser storage is full).', true); }
+    applyAll(); if (colourChanged) repaintApp(); repaint(); say(msg || 'Applied.');
+  }
+  function doUndo() { var u = J(UKEY, null); if (!u) return say('Nothing to undo.', true); var cur = JSON.stringify(st); st = clean(u); persist(); try { localStorage.setItem(UKEY, cur); } catch (e) { } applyAll(); repaintApp(); repaint(); say('Undone. Press again to redo.'); }
+  function say(m, bad) { S.msg = m || ''; S.bad = !!bad; var el = $('th-note'); if (el) { el.textContent = S.msg; el.className = 'tm-note' + (bad ? ' bad' : ''); el.setAttribute('role', bad ? 'alert' : 'status'); } clearTimeout(say._t); if (m) say._t = setTimeout(function () { S.msg = ''; var e = $('th-note'); if (e) e.textContent = ''; }, 7000); }
+
+  /* ── tabs ───────────────────────────────────────────────────────────── */
+  function swatch(h, label) { return '<span class="th-sw" style="background:' + E(h) + '" title="' + E(label) + '"></span>'; }
+  function cr(h) { var d = ratio(h, DARK_BG), l = ratio(h, LIGHT_BG); return { d: d, l: l }; }
+  function colourHtml() {
+    var cur = st.brand || DEFAULT_BRAND, c = cr(cur), lb = lightShade(cur);
+    var accent = '<div class="th-sws" role="group" aria-label="Accent colours">' + ACCENTS.map(function (a) { var on = cur.toUpperCase() === a[0].toUpperCase() && (st.brand || a[0] === DEFAULT_BRAND); return '<button type="button" class="th-swb' + (on ? ' on' : '') + '" data-th="brand" data-v="' + a[0] + '" style="background:' + a[0] + '" aria-label="' + E(a[1]) + '" aria-pressed="' + on + '" title="' + E(a[1]) + '"></button>'; }).join('') + '</div>';
+    var h = '<div class="adm-h" style="font-size:.9rem">Accent colour</div><div class="adm-muted" style="margin-bottom:8px">Used for buttons, highlights, charts and links across the app.</div>' + accent +
+      '<div class="th-pick"><label for="th-bc">Custom</label><input type="color" id="th-bc" value="' + cur.toLowerCase() + '" data-th-color="brand" aria-label="Custom accent colour"><input type="text" id="th-bh" class="set-input" maxlength="7" value="' + cur + '" data-th-hex="brand" aria-label="Accent hex code"><button type="button" class="adm-btn ghost sm" data-th="brand-reset"' + (st.brand ? '' : ' disabled') + '>Reset</button></div>' +
+      '<div class="th-prev"><span class="th-btn" style="background:' + cur + ';color:' + (lum(cur) > 0.4 ? '#000' : '#fff') + '">Button</span><span class="th-pill" style="border-color:' + cur + ';color:' + cur + '">Highlight</span><span class="th-sample" style="background:rgba(' + rgb(cur).join(',') + ',.15);color:' + cur + '">Soft tint</span><span class="adm-muted">Light mode automatically uses the darker shade ' + swatch(lb, 'Light mode shade') + ' <code>' + lb + '</code> so text stays readable.</span></div>' +
+      '<div class="dm-sum"><span class="rl-st ' + (c.d >= 3 ? 'quiet' : 'fire') + '">Dark mode contrast ' + c.d.toFixed(1) + ':1</span><span class="rl-st ' + (ratio(lb, LIGHT_BG) >= 3 ? 'quiet' : 'fire') + '">Light mode contrast ' + ratio(lb, LIGHT_BG).toFixed(1) + ':1</span>' + (c.d < 3 ? '<span class="adm-muted">This colour may be hard to see on the dark background. Try a lighter one.</span>' : '') + '</div>';
+    h += '<div class="adm-h" style="font-size:.9rem;margin-top:20px">Meaning colours</div><div class="adm-muted" style="margin-bottom:8px">Colours for income, spending, investments and so on, wherever the app uses its shared colour settings. Some charts use fixed colours and keep them.</div><div class="th-sem">' +
+      SEM.map(function (x) { var v = st.colors[x[0]] || x[3]; return '<div class="th-sem-r"><label for="th-c-' + x[0] + '">' + x[2] + '</label><input type="color" id="th-c-' + x[0] + '" value="' + v.toLowerCase() + '" data-th-color="sem:' + x[0] + '" aria-label="' + x[2] + ' colour"><input type="text" class="set-input th-hx" maxlength="7" value="' + v.toUpperCase() + '" data-th-hex="sem:' + x[0] + '" aria-label="' + x[2] + ' hex code"><button type="button" class="adm-btn ghost sm" data-th="sem-reset" data-k="' + x[0] + '"' + (st.colors[x[0]] ? '' : ' disabled') + '>Reset</button></div>'; }).join('') + '</div>' +
+      '<div class="adm-actions"><button type="button" class="adm-btn ghost sm" data-th="cb">Use colour-blind friendly colours</button><button type="button" class="adm-btn ghost sm" data-th="sem-all"' + (Object.keys(st.colors).length ? '' : ' disabled') + '>Reset meaning colours</button></div>';
+    var bad = []; SEM.forEach(function (x) { var v = st.colors[x[0]]; if (v && ratio(v, DARK_BG) < 3) bad.push(x[2]); });
+    if (bad.length) h += '<div class="adm-banner" role="note" style="margin-top:8px">Low contrast on the dark background: ' + E(bad.join(', ')) + '.</div>';
+    h += '<div class="adm-h" style="font-size:.9rem;margin-top:20px">Light or dark</div><div class="adm-actions"><button type="button" class="adm-btn ghost sm" data-th="mode" data-m="dark">Switch to dark now</button><button type="button" class="adm-btn ghost sm" data-th="mode" data-m="light">Switch to light now</button><label class="adm-chk2"><input type="checkbox" id="th-follow"' + (st.follow ? ' checked' : '') + ' data-th-chk="follow"> Follow this device\'s light / dark setting</label></div>';
+    return h;
+  }
+  function seg(name, opts, cur) { return '<div class="tm-seg" role="radiogroup">' + Object.keys(opts).map(function (k) { var label = Array.isArray(opts[k]) ? opts[k][0] : opts[k]; return '<button type="button" role="radio" aria-checked="' + (cur === k) + '" class="tm-segb' + (cur === k ? ' on' : '') + '" data-th="' + name + '" data-v="' + k + '">' + E(label) + '</button>'; }).join('') + '</div>'; }
+  function typeHtml() {
+    return '<div class="adm-h" style="font-size:.9rem">Text size <small>' + st.scale + '%</small></div><div class="th-range"><span>Smaller</span><input type="range" min="85" max="130" step="5" value="' + st.scale + '" id="th-scale" data-th-range="scale" aria-label="Text size percent"><span>Larger</span><button type="button" class="adm-btn ghost sm" data-th="scale-reset"' + (st.scale !== 100 ? '' : ' disabled') + '>Reset</button></div><div class="adm-muted">Scales text and spacing that are set in relative units. A few fixed-size items stay the same.</div>' +
+      '<div class="adm-h" style="font-size:.9rem;margin-top:18px">Font</div>' + seg('font', FONTS, st.font) + '<div class="th-fontp" style="font-family:' + (FONTS[st.font][1] || 'inherit') + '">The quick brown fox jumps over the lazy dog. 0123456789 ₹1,24,500.00</div>' +
+      '<div class="adm-h" style="font-size:.9rem;margin-top:18px">Corners</div>' + seg('radius', RADIUS, st.radius) +
+      '<div class="adm-h" style="font-size:.9rem;margin-top:18px">Spacing</div>' + seg('density', DENSITY, st.density) +
+      '<div class="adm-h" style="font-size:.9rem;margin-top:18px">Motion</div><label class="adm-chk2"><input type="checkbox" id="th-motion"' + (st.motion ? ' checked' : '') + ' data-th-chk="motion"> Reduce animations and transitions</label>';
+  }
+  function navItems() { return Array.prototype.map.call(document.querySelectorAll('.sidebar .nav-item[id^="fin-nav-"]'), function (it) { var lb = it.querySelector('.nav-label'); return { id: it.id, orig: lb ? (lb.getAttribute('data-orig') || lb.textContent) : it.id }; }); }
+  function navHtml() {
+    var items = navItems(), w = st.sidebarW || 220;
+    var h = '<div class="adm-h" style="font-size:.9rem">Sidebar width <small>' + w + ' px</small></div><div class="th-range"><span>Narrow</span><input type="range" min="180" max="320" step="10" value="' + w + '" id="th-sw" data-th-range="sidebarW" aria-label="Sidebar width in pixels"><span>Wide</span><button type="button" class="adm-btn ghost sm" data-th="sw-reset"' + (st.sidebarW ? '' : ' disabled') + '>Reset</button></div><div class="adm-muted">Applies on wide screens. On tablets and phones the app keeps its own compact sidebar.</div>' +
+      '<div class="adm-h" style="font-size:.9rem;margin-top:18px">Menu entries</div><div class="adm-muted" style="margin-bottom:8px">Hide entries you do not use, or give them your own names. Hiding only removes the menu link; nothing is deleted. Dashboard and Transactions always stay.</div>';
+    if (!items.length) return h + '<div class="adm-muted">The sidebar is not on this screen right now.</div>';
+    h += '<div class="adm-scroll"><table class="adm-tbl th-nav"><thead><tr><th>Entry</th><th>Show</th><th>Your name for it</th></tr></thead><tbody>' + items.map(function (it) { var prot = PROTECT.indexOf(it.id) >= 0, hid = st.nav.hidden.indexOf(it.id) >= 0; return '<tr><td><b>' + E(it.orig) + '</b></td><td><input type="checkbox" data-th-nav="' + E(it.id) + '"' + (hid ? '' : ' checked') + (prot ? ' disabled' : '') + ' aria-label="Show ' + E(it.orig) + '"></td><td><input type="text" class="set-input th-lbl" maxlength="28" data-th-label="' + E(it.id) + '" value="' + E(st.nav.labels[it.id] || '') + '" placeholder="' + E(it.orig) + '" aria-label="Name for ' + E(it.orig) + '"></td></tr>'; }).join('') + '</tbody></table></div>';
+    return h + '<div class="adm-actions"><button type="button" class="adm-btn ghost sm" data-th="nav-reset"' + (st.nav.hidden.length || Object.keys(st.nav.labels).length ? '' : ' disabled') + '>Reset menu</button></div>';
+  }
+  function dashHtml() {
+    var map = findSections(), order = st.dash.order.filter(function (id) { return map[id]; }), def = SECTIONS.map(function (x) { return x[0]; }).filter(function (id) { return map[id]; }).sort(function (a, b) { return map[a].i - map[b].i; });
+    def.forEach(function (id) { if (order.indexOf(id) < 0) order.push(id); }); if (!Object.keys(map).length) return '<div class="adm-muted">Open the dashboard once, then come back here to arrange its sections.</div>';
+    var lab = {}; SECTIONS.forEach(function (x) { lab[x[0]] = x[1]; });
+    return '<div class="adm-muted" style="margin-bottom:10px">Choose which sections appear on the dashboard and in what order. Hidden sections keep working in the background.</div><div class="th-dash">' + order.map(function (id, i) {
+      var hid = st.dash.hidden.indexOf(id) >= 0; return '<div class="th-dr' + (hid ? ' off' : '') + '"><label class="adm-chk2"><input type="checkbox" data-th-dash="' + id + '"' + (hid ? '' : ' checked') + ' aria-label="Show ' + E(lab[id]) + '"> <span>' + E(lab[id]) + '</span></label><span class="tm-acts"><button type="button" class="adm-btn ghost sm" data-th="up" data-id="' + id + '"' + (i === 0 ? ' disabled' : '') + ' aria-label="Move ' + E(lab[id]) + ' up"><i class="fas fa-arrow-up"></i></button><button type="button" class="adm-btn ghost sm" data-th="down" data-id="' + id + '"' + (i === order.length - 1 ? ' disabled' : '') + ' aria-label="Move ' + E(lab[id]) + ' down"><i class="fas fa-arrow-down"></i></button></span></div>';
+    }).join('') + '</div><div class="adm-actions"><button type="button" class="adm-btn ghost sm" data-th="dash-reset"' + (st.dash.hidden.length || st.dash.order.length ? '' : ' disabled') + '>Reset dashboard layout</button></div><div class="adm-muted" style="margin-top:6px">Sections that are not in this list (for example items you pinned from the studios) keep their usual place.</div>';
+  }
+  function presetsHtml() {
+    var u = J(UKEY, null);
+    return '<div class="th-presets">' + PRESETS.map(function (p) { var b = p.s.brand || DEFAULT_BRAND; return '<div class="th-pre"><div class="th-pre-h">' + swatch(b, p.name) + '<b>' + E(p.name) + '</b></div><div class="adm-muted">' + E(p.note) + '</div><button type="button" class="adm-btn ghost sm" data-th="preset" data-id="' + p.id + '">Apply</button></div>'; }).join('') + '</div>' +
+      '<div class="adm-muted" style="margin-top:8px">A preset replaces colours, text, shape and spacing. Your menu and dashboard arrangement are kept.</div>' +
+      '<div class="adm-h" style="font-size:.9rem;margin-top:18px">Backup &amp; reset</div><div class="adm-actions"><button type="button" class="adm-btn ghost sm" data-th="export"><i class="fas fa-file-export"></i> Export theme</button><button type="button" class="adm-btn ghost sm" data-th="import"><i class="fas fa-file-import"></i> Import theme</button><input type="file" id="th-file" accept="application/json,.json" hidden><button type="button" class="adm-btn ghost sm" data-th="undo"' + (u ? '' : ' disabled') + '><i class="fas fa-rotate-left"></i> Undo last change</button><button type="button" class="adm-btn danger sm" data-th="reset-all"' + (isDefault(st) ? ' disabled' : '') + '>Reset everything</button></div>' +
+      '<div class="adm-muted" style="margin-top:6px">These settings are stored on this device only. If the app ever becomes hard to read, turn on Safe mode in the Overview tab to switch them all off, or press Reset everything here.</div>';
+  }
+  function body() { return S.sub === 'colour' ? colourHtml() : S.sub === 'type' ? typeHtml() : S.sub === 'nav' ? navHtml() : S.sub === 'dash' ? dashHtml() : presetsHtml(); }
+  function html() {
+    return '<div class="tm-wrap th-wrap"><div class="tm-note" id="th-note" role="status" aria-live="polite"></div><div class="set-card"><div class="adm-h">Layout &amp; theme <small>how the app looks and is arranged</small></div>' + (C && C.safe() ? '<div class="adm-banner" role="note">Safe mode is on, so your theme settings are switched off for now.</div>' : '') + '<div class="tm-subs" role="tablist" aria-label="Layout and theme sections">' + SUBS.map(function (s) { return '<button type="button" role="tab" aria-selected="' + (S.sub === s[0]) + '" class="tm-subb' + (S.sub === s[0] ? ' on' : '') + '" data-th="sub" data-s="' + s[0] + '">' + s[1] + '</button>'; }).join('') + '</div><div id="th-body">' + body() + '</div></div></div>';
+  }
+  function repaint() { var b = $('th-body'); if (!b) return; var f = document.activeElement && document.activeElement.id; b.innerHTML = body(); document.querySelectorAll('.th-wrap .tm-subb').forEach(function (x) { var on = x.getAttribute('data-s') === S.sub; x.classList.toggle('on', on); x.setAttribute('aria-selected', on); }); var n = $('th-note'); if (n) { n.textContent = S.msg; n.className = 'tm-note' + (S.bad ? ' bad' : ''); } }
+
+  /* ── actions ────────────────────────────────────────────────────────── */
+  function setBrand(v, msg) { var h = hex(v); if (!h) return say('Use a colour like #20CDB5.', true); change(function (s) { s.brand = h.toUpperCase() === DEFAULT_BRAND ? null : h; }, msg || 'Accent colour changed.', true); }
+  function setSem(k, v) { var h = hex(v); if (!h) return say('Use a colour like #34D399.', true); var d = SEM.filter(function (x) { return x[0] === k; })[0][3]; change(function (s) { if (h.toUpperCase() === d.toUpperCase()) delete s.colors[k]; else s.colors[k] = h; }, 'Colour changed.', true); }
+  function preset(id) { var p = PRESETS.filter(function (x) { return x.id === id; })[0]; if (!p) return; change(function (s) { var keep = { nav: s.nav, dash: s.dash, follow: s.follow }, b = blank(); Object.keys(b).forEach(function (k) { s[k] = b[k]; }); Object.keys(p.s).forEach(function (k) { s[k] = JSON.parse(JSON.stringify(p.s[k])); }); s.nav = keep.nav; s.dash = keep.dash; s.follow = keep.follow; }, 'Applied "' + p.name + '".', true); }
+  function onAction(a, b) {
+    var v = b.getAttribute('data-v'), id = b.getAttribute('data-id');
+    if (a === 'sub') { S.sub = b.getAttribute('data-s'); return repaint(); }
+    if (a === 'brand') return setBrand(v); if (a === 'brand-reset') return change(function (s) { s.brand = null; }, 'Accent colour reset.', true);
+    if (a === 'sem-reset') return change(function (s) { delete s.colors[b.getAttribute('data-k')]; }, 'Colour reset.', true);
+    if (a === 'sem-all') return change(function (s) { s.colors = {}; }, 'Meaning colours reset.', true);
+    if (a === 'cb') return change(function (s) { s.colors = JSON.parse(JSON.stringify(CB)); s.brand = '#0072B2'; }, 'Colour-blind friendly colours applied.', true);
+    if (a === 'mode') { v = b.getAttribute('data-m'); try { applyThemeMode(v, false); persistTheme(v); } catch (e) { return say('Could not switch.', true); } if (st.follow) change(function (s) { s.follow = false; }, 'Switched. "Follow device" turned off.'); else say('Switched to ' + v + ' mode.'); return repaint(); }
+    if (a === 'font') return change(function (s) { s.font = v; }, 'Font changed.');
+    if (a === 'radius') return change(function (s) { s.radius = v; }, 'Corners changed.');
+    if (a === 'density') return change(function (s) { s.density = v; }, 'Spacing changed.');
+    if (a === 'scale-reset') return change(function (s) { s.scale = 100; }, 'Text size reset.');
+    if (a === 'sw-reset') return change(function (s) { s.sidebarW = null; }, 'Sidebar width reset.');
+    if (a === 'nav-reset') return change(function (s) { s.nav = { hidden: [], labels: {} }; }, 'Menu reset.');
+    if (a === 'dash-reset') return change(function (s) { s.dash = { hidden: [], order: [] }; }, 'Dashboard layout reset.');
+    if (a === 'up' || a === 'down') { var map = findSections(), cur = st.dash.order.filter(function (x) { return map[x]; }); SECTIONS.map(function (x) { return x[0]; }).filter(function (x) { return map[x]; }).sort(function (x, y) { return map[x].i - map[y].i; }).forEach(function (x) { if (cur.indexOf(x) < 0) cur.push(x); }); var i = cur.indexOf(id), j = a === 'up' ? i - 1 : i + 1; if (i < 0 || j < 0 || j >= cur.length) return; var t = cur[i]; cur[i] = cur[j]; cur[j] = t; return change(function (s) { s.dash.order = cur; }, 'Moved.'); }
+    if (a === 'preset') return preset(id);
+    if (a === 'undo') return doUndo();
+    if (a === 'reset-all') { if (!confirm('Reset all theme and layout settings to the defaults?')) return; return change(function (s) { var b0 = blank(); Object.keys(b0).forEach(function (k) { s[k] = b0[k]; }); }, 'Everything is back to the defaults. You can undo this.', true); }
+    if (a === 'export') { try { var blob = new Blob([JSON.stringify({ app: 'FinanceOS', kind: 'theme', exportedAt: new Date().toISOString(), theme: st }, null, 2)], { type: 'application/json' }), u = URL.createObjectURL(blob), l = document.createElement('a'); l.href = u; l.download = 'financeos_theme.json'; document.body.appendChild(l); l.click(); l.remove(); setTimeout(function () { URL.revokeObjectURL(u); }, 4000); say('Theme exported.'); } catch (e) { say('Export failed.', true); } return; }
+    if (a === 'import') { var f = $('th-file'); if (f) f.click(); }
+  }
+  function onInput(e) {
+    var t = e.target; if (!t || !t.closest || !t.closest('.th-wrap')) return;
+    var cc = t.getAttribute('data-th-color'); if (cc) { var h = hex(t.value); if (h) { if (cc === 'brand') { var tx = $('th-bh'); if (tx) tx.value = h; } else { var hx = t.parentNode.querySelector('.th-hx'); if (hx) hx.value = h; } } return; }
+  }
+  function onChange(e) {
+    var t = e.target; if (!t || !t.closest || !t.closest('.th-wrap')) return;
+    var cc = t.getAttribute('data-th-color'), hc = t.getAttribute('data-th-hex'), k = cc || hc; if (k) { if (k === 'brand') return setBrand(t.value); return setSem(k.slice(4), t.value); }
+    var rg = t.getAttribute('data-th-range'); if (rg) { var n = Number(t.value); return change(function (s) { s[rg] = n; }, rg === 'scale' ? 'Text size set to ' + n + '%.' : 'Sidebar width set to ' + n + ' px.'); }
+    var ck = t.getAttribute('data-th-chk'); if (ck) { var on = t.checked; return change(function (s) { s[ck] = on; }, ck === 'follow' ? (on ? 'Now following the device setting.' : 'No longer following the device setting.') : (on ? 'Animations reduced.' : 'Animations restored.')); }
+    var nv = t.getAttribute('data-th-nav'); if (nv) { var show = t.checked; return change(function (s) { var i = s.nav.hidden.indexOf(nv); if (show && i >= 0) s.nav.hidden.splice(i, 1); else if (!show && i < 0) s.nav.hidden.push(nv); }, show ? 'Menu entry shown.' : 'Menu entry hidden.'); }
+    var lb = t.getAttribute('data-th-label'); if (lb) { var txt = String(t.value || '').trim(); return change(function (s) { if (txt) s.nav.labels[lb] = txt; else delete s.nav.labels[lb]; }, 'Menu name saved.'); }
+    var ds = t.getAttribute('data-th-dash'); if (ds) { var sh = t.checked; return change(function (s) { var i = s.dash.hidden.indexOf(ds); if (sh && i >= 0) s.dash.hidden.splice(i, 1); else if (!sh && i < 0) s.dash.hidden.push(ds); }, sh ? 'Section shown.' : 'Section hidden.'); }
+    if (t.id === 'th-file') { var f = t.files && t.files[0]; if (!f) return; if (f.size > 262144) { t.value = ''; return say('That file is too large for a theme.', true); } var rd = new FileReader(); rd.onload = function () { var o; try { o = JSON.parse(rd.result); } catch (x) { return say('That is not a valid JSON file.', true); } if (!o || o.kind !== 'theme' || !o.theme) return say('That is not a FinanceOS theme export.', true); change(function (s) { var n = clean(o.theme); Object.keys(n).forEach(function (kk) { s[kk] = n[kk]; }); }, 'Theme imported. You can undo this.', true); }; rd.readAsText(f); t.value = ''; }
+  }
+  function onKey(e) { var t = e.target; if (e.key === 'Enter' && t && t.getAttribute && (t.getAttribute('data-th-hex') || t.getAttribute('data-th-label'))) { e.preventDefault(); t.blur(); } }
+  function onClick(e) { var t = e.target; if (!t || !t.closest || !t.closest('.th-wrap')) return; var b = t.closest('[data-th]'); if (!b || b.disabled) return; try { onAction(b.getAttribute('data-th'), b); } catch (x) { console.error(x); say('Something went wrong: ' + x.message, true); } }
+  function wire() { var r = $('adm-root'); if (!r || r.__th) return; r.__th = 1; r.addEventListener('click', onClick); r.addEventListener('input', onInput); r.addEventListener('change', onChange); r.addEventListener('keydown', onKey, true); }
+  function afterRender() { wire(); }
+
+  /* ── hook into the dashboard so the arrangement survives re-renders ─── */
+  function hook() {
+    var o = window.renderDashboardImmediate; if (typeof o === 'function' && !o.__th) {
+      var w = function () { var r = o.apply(this, arguments); try { applyDash(); } catch (e) { } return r; }; Object.keys(o).forEach(function (k) { w[k] = o[k]; }); w.__th = 1; window.renderDashboardImmediate = w;
+    }
+    try { if (C) C.onChange(function () { applyAll(); }); } catch (e) { }
+  }
+  function boot() { applyAll(); hook(); wire(); setTimeout(function () { applyAll(); hook(); }, 1500); }
+  window.FOS_THEME = { html: html, after: afterRender, apply: applyAll, state: function () { return JSON.parse(JSON.stringify(st)); } };
+  if (document.body) boot(); else document.addEventListener('DOMContentLoaded', boot);
+  window.addEventListener('load', function () { applyAll(); hook(); });
 })();
 </script>
 <script>
