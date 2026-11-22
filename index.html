@@ -37567,7 +37567,7 @@ body.light-mode .adm-toast{background:#e0f7fc;color:#06303c}body.light-mode .adm
   var TABS = [
     ['overview', 'Overview', 'fa-gauge-high', 1], ['lab', 'Calculation Lab', 'fa-flask', 1], ['formula', 'Formula Studio', 'fa-square-root-variable', 1], ['chart', 'Chart Studio', 'fa-chart-pie', 1],
     ['rules', 'Insight & Alert Rules', 'fa-bell', 1], ['unlocks', 'Unlocks & Streaks', 'fa-unlock', 1], ['data', 'Data Manager', 'fa-table', 1], ['tax', 'Taxonomy', 'fa-tags', 1],
-    ['port', 'Portfolio & Credit', 'fa-briefcase', 1], ['theme', 'Layout & Theme', 'fa-palette', 1], ['flags', 'Feature Flags', 'fa-toggle-on', 0], ['integrity', 'Integrity Checker', 'fa-shield-halved', 0],
+    ['port', 'Portfolio & Credit', 'fa-briefcase', 1], ['theme', 'Layout & Theme', 'fa-palette', 1], ['flags', 'Feature Flags', 'fa-toggle-on', 1], ['integrity', 'Integrity Checker', 'fa-shield-halved', 0],
     ['backups', 'Backups & Versions', 'fa-clock-rotate-left', 1], ['audit', 'Audit Log', 'fa-list-check', 1], ['dev', 'Developer Tools', 'fa-terminal', 0]
   ];
   function root() { return document.getElementById('adm-root'); }
@@ -37611,7 +37611,7 @@ body.light-mode .adm-toast{background:#e0f7fc;color:#06303c}body.light-mode .adm
   }
   function body() {
     var b = document.getElementById('adm-body'); if (!b) return; var t = S.tab;
-    try { b.innerHTML = t === 'overview' ? overview() : t === 'lab' ? lab() : t === 'backups' ? backups() : t === 'audit' ? auditTab() : (t === 'formula' && window.FOS_FORMULA_STUDIO) ? window.FOS_FORMULA_STUDIO.html() : (t === 'chart' && window.FOS_CHART_STUDIO) ? window.FOS_CHART_STUDIO.html() : (t === 'rules' && window.FOS_RULES) ? window.FOS_RULES.html() : (t === 'unlocks' && window.FOS_UNLOCKS) ? window.FOS_UNLOCKS.html() : (t === 'data' && window.FOS_DATA) ? window.FOS_DATA.html() : (t === 'tax' && window.FOS_TAXONOMY) ? window.FOS_TAXONOMY.html() : (t === 'port' && window.FOS_PORTCREDIT) ? window.FOS_PORTCREDIT.html() : (t === 'theme' && window.FOS_THEME) ? window.FOS_THEME.html() : planned(t); } catch (e) { console.error('Admin tab failed:', e); b.innerHTML = '<div class="set-card"><b>This tab failed to load.</b><div class="adm-muted">' + E(e.message) + '</div></div>'; }
+    try { b.innerHTML = t === 'overview' ? overview() : t === 'lab' ? lab() : t === 'backups' ? backups() : t === 'audit' ? auditTab() : (t === 'formula' && window.FOS_FORMULA_STUDIO) ? window.FOS_FORMULA_STUDIO.html() : (t === 'chart' && window.FOS_CHART_STUDIO) ? window.FOS_CHART_STUDIO.html() : (t === 'rules' && window.FOS_RULES) ? window.FOS_RULES.html() : (t === 'unlocks' && window.FOS_UNLOCKS) ? window.FOS_UNLOCKS.html() : (t === 'data' && window.FOS_DATA) ? window.FOS_DATA.html() : (t === 'tax' && window.FOS_TAXONOMY) ? window.FOS_TAXONOMY.html() : (t === 'port' && window.FOS_PORTCREDIT) ? window.FOS_PORTCREDIT.html() : (t === 'theme' && window.FOS_THEME) ? window.FOS_THEME.html() : (t === 'flags' && window.FOS_FLAGS) ? window.FOS_FLAGS.html() : planned(t); } catch (e) { console.error('Admin tab failed:', e); b.innerHTML = '<div class="set-card"><b>This tab failed to load.</b><div class="adm-muted">' + E(e.message) + '</div></div>'; }
     if (t === 'lab') labPreview();
     if (t === 'rules' && window.FOS_RULES) { try { window.FOS_RULES.after(); } catch (e) { console.error('Rules failed:', e); } }
     if (t === 'unlocks' && window.FOS_UNLOCKS) { try { window.FOS_UNLOCKS.after(); } catch (e) { console.error('Unlocks failed:', e); } }
@@ -37619,6 +37619,7 @@ body.light-mode .adm-toast{background:#e0f7fc;color:#06303c}body.light-mode .adm
     if (t === 'tax' && window.FOS_TAXONOMY) { try { window.FOS_TAXONOMY.after(); } catch (e) { console.error('Taxonomy failed:', e); } }
     if (t === 'port' && window.FOS_PORTCREDIT) { try { window.FOS_PORTCREDIT.after(); } catch (e) { console.error('Portfolio failed:', e); } }
     if (t === 'theme' && window.FOS_THEME) { try { window.FOS_THEME.after(); } catch (e) { console.error('Theme failed:', e); } }
+    if (t === 'flags' && window.FOS_FLAGS) { try { window.FOS_FLAGS.after(); } catch (e) { console.error('Flags failed:', e); } }
     if (t === 'chart' && window.FOS_CHART_STUDIO) { try { window.FOS_CHART_STUDIO.after(); } catch (e) { console.error('Chart Studio failed:', e); } }
     if (t === 'formula' && window.FOS_FORMULA_STUDIO) { try { window.FOS_FORMULA_STUDIO.after(); } catch (e) { console.error('Formula Studio failed:', e); } }
   }
@@ -40537,6 +40538,196 @@ body.light-mode #adm-root{--fs-ok:#059669;--fs-bad:#dc2626;--fs-warn:#b45309}
   }
   function boot() { applyAll(); hook(); wire(); setTimeout(function () { applyAll(); hook(); }, 1500); }
   window.FOS_THEME = { html: html, after: afterRender, apply: applyAll, state: function () { return JSON.parse(JSON.stringify(st)); } };
+  if (document.body) boot(); else document.addEventListener('DOMContentLoaded', boot);
+  window.addEventListener('load', function () { applyAll(); hook(); });
+})();
+</script>
+<style id="fos-flags-style">
+.ff-grp .adm-h{display:flex;align-items:center;gap:8px;flex-wrap:wrap}.ff-grp .adm-h .tm-acts{margin-left:auto}
+.ff-row{display:flex;align-items:center;gap:12px;padding:9px 10px;border:1px solid var(--border,#334155);border-radius:10px;margin:6px 0;cursor:pointer}.ff-row.off .ff-tx b{opacity:.65}
+.ff-tx{display:flex;flex-direction:column;flex:1;min-width:0}.ff-tx small{color:var(--text-muted,#94a3b8);font-size:.72rem}
+.ff-sw{position:relative;width:40px;height:22px;flex-shrink:0}.ff-sw input{position:absolute;inset:0;opacity:0;margin:0;cursor:pointer;z-index:1;width:100%;height:100%}
+.ff-sw i{position:absolute;inset:0;border-radius:11px;background:rgba(148,163,184,.4);transition:background .2s}.ff-sw i::after{content:"";position:absolute;top:3px;left:3px;width:16px;height:16px;border-radius:50%;background:#fff;transition:transform .2s}
+.ff-sw input:checked+i{background:var(--brand,#20CDB5)}.ff-sw input:checked+i::after{transform:translateX(18px)}.ff-sw input:focus-visible+i{outline:2px solid var(--text-main,#fff);outline-offset:2px}
+.ff-crow{display:flex;gap:8px;align-items:center}.ff-crow .ff-row{flex:1}
+</style>
+<script id="fos-flags">
+/* ═══════════════════════════════════════════════════════════════════════
+   FOS ADMIN · FEATURE FLAGS
+     · Switch whole pages and tools on or off (menu links, mobile menu, and direct
+       navigation are all covered). Turning a feature off only hides it; no data is deleted.
+     · Your own custom flags: name a switch, then tag any element with data-ff="name"
+       (or read window.FOS_FLAGS.isOn('name')) to show or hide it.
+     · Undo, change log, export / import, reset. Switched off in Safe mode.
+   Stored locally in 'fos_admin_flags_v1'.
+   ═══════════════════════════════════════════════════════════════════════ */
+(function () {
+  'use strict';
+  if (window.FOS_FLAGS) return;
+  var C = window.FOS_CONFIG;
+  var KEY = 'fos_admin_flags_v1', UKEY = 'fos_admin_flags_undo_v1', LKEY = 'fos_admin_flags_log_v1', STYLE = 'fos-ff-ovr';
+  var SUBS = [['features', 'Features'], ['custom', 'Custom flags'], ['backup', 'Backup & log']];
+  function P(v, label, desc, group) { return { id: v, label: label, desc: desc, group: group, page: true, sel: ['#fin-nav-' + v, '#mob-' + v] }; }
+  function Q(v, label, desc) { var s = v.replace('port-', ''); return { id: v, label: label, desc: desc, group: 'Portfolio pages', page: true, sel: ['#port-nav-' + s, '#mob-' + v] }; }
+  var F = [
+    P('loans', 'Loans & EMI', 'The loans and EMI page.', 'Finance pages'),
+    P('investments', 'Investments (basic list)', 'The simple investments list.', 'Finance pages'),
+    P('credit', 'Credit tracker', 'Credit and debt tracking.', 'Finance pages'),
+    P('ccutil', 'Credit card utilisation', 'Card limits, usage and utilisation.', 'Finance pages'),
+    P('scenario', 'Investment scenarios', 'What-if investment planner.', 'Finance pages'),
+    P('analytics', 'Advanced analytics', 'Deeper charts and reports.', 'Finance pages'),
+    P('networth', 'Net worth tracker', 'Assets minus liabilities over time.', 'Finance pages'),
+    P('roughboard', 'Rough board', 'Scratch board for quick workings.', 'Playbook & My Zone'),
+    P('calculator', 'Calculator', 'The built-in calculators.', 'Playbook & My Zone'),
+    P('insurance', 'Insurance', 'Policies and renewals.', 'Playbook & My Zone'),
+    P('notes', 'Notes', 'Your notes page.', 'Playbook & My Zone'),
+    { id: 'finai', label: 'Fin AI', desc: 'The Fin AI page and the phone AI summary sheet.', group: 'Playbook & My Zone', page: true, sel: ['#fin-nav-finai', '#mob-finai'], fn: ['openMobileLiteAI'] },
+    Q('port-overview', 'Portfolio summary', 'Portfolio overview page.'),
+    Q('port-table', 'Holdings register', 'The table of all holdings.'),
+    Q('port-analytics', 'Portfolio analytics', 'Allocation and performance charts.'),
+    Q('port-intel', 'Portfolio intelligence', 'Concentration, returns and risk.'),
+    Q('port-tax', 'Portfolio tax', 'Capital gains and tax view.'),
+    Q('port-stress', 'Stress test', 'Market-fall simulations.'),
+    { id: 'assetcats', label: 'Asset category shortcuts', desc: 'The Gold, Stocks, Crypto and other quick filters in the portfolio menu.', group: 'Tools & panels', sel: ['.port-sidebar .port-nav-item[onclick^="filterPortAsset"]', '.drawer-cat'] },
+    { id: 'notifications', label: 'Notifications centre', desc: 'The bell entry and the notifications panel.', group: 'Tools & panels', sel: ['#fin-nav-notifications', '#mob-notifications'], fn: ['openNotificationsPanel'] },
+    { id: 'tv', label: 'Live market feed panel', desc: 'The TradingView panel on the dashboard.', group: 'Tools & panels', sel: ['#tv-panel'] }
+  ];
+  var GROUPS = ['Finance pages', 'Playbook & My Zone', 'Portfolio pages', 'Tools & panels'];
+  var BYID = {}; F.forEach(function (f) { BYID[f.id] = f; });
+
+  function E(s) { try { return _esc(s); } catch (e) { return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]; }); } }
+  function $(id) { return document.getElementById(id); }
+  function J(k, d) { try { var v = JSON.parse(localStorage.getItem(k)); return v == null ? d : v; } catch (e) { return d; } }
+  var S = { sub: 'features', msg: '', bad: false, q: '' };
+
+  /* ── state ─────────────────────────────────────────────────────────── */
+  function blank() { return { version: 1, off: [], custom: [] }; }
+  function clean(o) {
+    var b = blank(); if (!o || typeof o !== 'object') return b;
+    (Array.isArray(o.off) ? o.off : []).forEach(function (x) { if (BYID[x] && b.off.indexOf(x) < 0) b.off.push(x); });
+    var seen = {}; (Array.isArray(o.custom) ? o.custom : []).slice(0, 60).forEach(function (c) {
+      if (!c || typeof c !== 'object') return; var k = String(c.key || '').toLowerCase();
+      if (!/^[a-z][a-z0-9-]{1,30}$/.test(k) || seen[k]) return; seen[k] = 1;
+      b.custom.push({ key: k, label: String(c.label || k).trim().slice(0, 60) || k, on: c.on !== false, note: String(c.note || '').slice(0, 140) });
+    });
+    return b;
+  }
+  var st = clean(J(KEY, null));
+  function persist() { try { localStorage.setItem(KEY, JSON.stringify(st)); return true; } catch (e) { return false; } }
+  function active() { try { return !(C && C.safe()); } catch (e) { return true; } }
+  function isOn(id) {
+    if (!active()) return true;
+    if (BYID[id]) return st.off.indexOf(id) < 0;
+    for (var i = 0; i < st.custom.length; i++) if (st.custom[i].key === id || ('custom.' + st.custom[i].key) === id) return st.custom[i].on;
+    return true;
+  }
+
+  /* ── apply ─────────────────────────────────────────────────────────── */
+  function toast(m) { try { if (typeof window.fosToast === 'function') window.fosToast({ text: m, color: '#38bdf8', ms: 3500 }); else if (typeof showSettingsToast === 'function') showSettingsToast(m); } catch (e) { } }
+  function css() {
+    var out = []; if (!active()) return '';
+    F.forEach(function (f) { if (st.off.indexOf(f.id) >= 0) out.push(f.sel.map(function (s) { return 'html body ' + s; }).join(',') + '{display:none !important}'); });
+    st.custom.forEach(function (c) { if (!c.on) out.push('html body [data-ff="' + c.key + '"]:not(.ff-wrap [data-ff]){display:none !important}'); });
+    return out.join('\n');
+  }
+  function applyAll() {
+    var el = $(STYLE); if (!el) { el = document.createElement('style'); el.id = STYLE; document.head.appendChild(el); }
+    el.textContent = css();
+    var b = document.body; if (b) { Array.prototype.slice.call(b.classList).forEach(function (c) { if (c.indexOf('fos-ff-off-') === 0) b.classList.remove(c); }); if (active()) { st.off.forEach(function (id) { b.classList.add('fos-ff-off-' + id); }); st.custom.forEach(function (c) { if (!c.on) b.classList.add('fos-ff-off-custom-' + c.key); }); } }
+    try { if (typeof activeView === 'string' && !isOn(activeView) && BYID[activeView] && typeof switchView === 'function') { switchView('dashboard', $('fin-nav-dashboard'), 'finance'); } } catch (e) { }
+  }
+  function guard(name) {
+    var o = window[name]; if (typeof o !== 'function' || o.__ff) return;
+    var w = function () {
+      if (name === 'switchView') { var v = arguments[0]; if (BYID[v] && BYID[v].page && !isOn(v)) { toast(BYID[v].label + ' is switched off.'); if (v === 'dashboard') return; return o.call(this, 'dashboard', $('fin-nav-dashboard'), 'finance'); } return o.apply(this, arguments); }
+      var owner = F.filter(function (f) { return f.fn && f.fn.indexOf(name) >= 0; })[0]; if (owner && !isOn(owner.id)) { toast(owner.label + ' is switched off.'); return; }
+      return o.apply(this, arguments);
+    };
+    Object.keys(o).forEach(function (k) { w[k] = o[k]; }); w.__ff = 1; window[name] = w;
+  }
+  function hook() { guard('switchView'); guard('openNotificationsPanel'); guard('openMobileLiteAI'); }
+
+  /* ── change / undo / log ───────────────────────────────────────────── */
+  function say(m, bad) { S.msg = m || ''; S.bad = !!bad; var el = $('ff-note'); if (el) { el.textContent = S.msg; el.className = 'tm-note' + (bad ? ' bad' : ''); el.setAttribute('role', bad ? 'alert' : 'status'); } clearTimeout(say._t); if (m) say._t = setTimeout(function () { S.msg = ''; var e = $('ff-note'); if (e) e.textContent = ''; }, 7000); }
+  function log(m) { var l = J(LKEY, []); if (!Array.isArray(l)) l = []; l.unshift({ t: new Date().toISOString(), m: String(m).slice(0, 160) }); try { localStorage.setItem(LKEY, JSON.stringify(l.slice(0, 60))); } catch (e) { } }
+  function change(fn, msg, logmsg) {
+    var before = JSON.stringify(st); try { fn(st); } catch (e) { return say('Could not change that: ' + e.message, true); } st = clean(st);
+    if (JSON.stringify(st) === before) return;
+    try { localStorage.setItem(UKEY, before); } catch (e) { }
+    if (!persist()) { st = clean(JSON.parse(before)); return say('Could not save (browser storage is full).', true); }
+    log(logmsg || msg); applyAll(); repaint(); say(msg);
+  }
+  function doUndo() { var u = J(UKEY, null); if (!u) return say('Nothing to undo.', true); var cur = JSON.stringify(st); st = clean(u); persist(); try { localStorage.setItem(UKEY, cur); } catch (e) { } log('Undo'); applyAll(); repaint(); say('Undone. Press again to redo.'); }
+
+  /* ── views ─────────────────────────────────────────────────────────── */
+  function toggle(id, on, label, desc, extra, checkedAttr) {
+    return '<label class="ff-row' + (on ? '' : ' off') + '" data-ffrow="' + E((label + ' ' + desc).toLowerCase()) + '"><span class="ff-sw"><input type="checkbox" role="switch" ' + checkedAttr + ' aria-label="' + E(label) + '"' + extra + '><i></i></span><span class="ff-tx"><b>' + E(label) + '</b><small>' + E(desc) + '</small></span><span class="rl-st ' + (on ? 'quiet' : 'fire') + '">' + (on ? 'On' : 'Off') + '</span></label>';
+  }
+  function featuresHtml() {
+    var off = st.off.length;
+    var h = '<div class="dm-sum"><span class="rl-st ' + (off ? 'fire' : 'quiet') + '">' + off + ' of ' + F.length + ' switched off</span><span class="adm-muted">Turning a feature off hides its menu links and sends anyone who tries to open it back to the dashboard. Your data is never touched, and turning it on brings everything back.</span></div>' +
+      '<div class="adm-bar2"><input type="search" id="ff-q" class="set-input" placeholder="Filter features…" aria-label="Filter features" value="' + E(S.q) + '"></div>';
+    GROUPS.forEach(function (g) {
+      var list = F.filter(function (f) { return f.group === g; }), n = list.filter(function (f) { return st.off.indexOf(f.id) >= 0; }).length;
+      h += '<div class="ff-grp" data-ffgrp="' + E(g) + '"><div class="adm-h" style="font-size:.9rem;margin-top:14px">' + E(g) + ' <small>' + (list.length - n) + ' of ' + list.length + ' on</small><span class="tm-acts"><button type="button" class="adm-btn ghost sm" data-ff="grp" data-g="' + E(g) + '" data-on="1"' + (n ? '' : ' disabled') + '>All on</button><button type="button" class="adm-btn ghost sm" data-ff="grp" data-g="' + E(g) + '" data-on="0"' + (n === list.length ? ' disabled' : '') + '>All off</button></span></div>' +
+        list.map(function (f) { var on = st.off.indexOf(f.id) < 0; return toggle(f.id, on, f.label, f.desc, ' data-ff-tog="' + f.id + '"', on ? 'checked' : ''); }).join('') + '</div>';
+    });
+    return h + '<div class="adm-actions"><button type="button" class="adm-btn ghost sm" data-ff="allon"' + (off ? '' : ' disabled') + '>Turn everything on</button></div><div class="adm-muted" style="margin-top:6px">Dashboard and Transactions cannot be switched off. If you ever feel locked out, Safe mode in the Overview tab ignores every flag.</div>';
+  }
+  function customHtml() {
+    var h = '<div class="adm-muted" style="margin-bottom:10px">Create your own on/off switches. Add <code>data-ff="your-name"</code> to any element and it hides when the flag is off. Code can check <code>FOS_FLAGS.isOn(\'your-name\')</code>.</div>' +
+      '<div class="adm-bar2"><input type="text" id="ff-ck" class="set-input" maxlength="31" placeholder="key, e.g. beta-widget" aria-label="Flag key"><input type="text" id="ff-cl" class="set-input" maxlength="60" placeholder="Label (optional)" aria-label="Flag label"><button type="button" class="adm-btn sm" data-ff="cadd">Add flag</button></div><div class="adm-muted" id="ff-ce" role="alert" style="color:var(--danger,#ef4444)"></div>';
+    if (!st.custom.length) return h + '<div class="adm-muted" style="margin-top:8px">No custom flags yet.</div>';
+    return h + st.custom.map(function (c, i) { return '<div class="ff-crow">' + toggle(c.key, c.on, c.label, 'key: ' + c.key + (c.note ? ' · ' + c.note : ''), ' data-ff-ctog="' + E(c.key) + '"', c.on ? 'checked' : '') + '<button type="button" class="adm-btn danger sm" data-ff="cdel" data-k="' + E(c.key) + '" aria-label="Delete flag ' + E(c.key) + '"><i class="fas fa-trash"></i></button></div>'; }).join('');
+  }
+  function backupHtml() {
+    var l = J(LKEY, []), u = J(UKEY, null); if (!Array.isArray(l)) l = [];
+    return '<div class="adm-actions"><button type="button" class="adm-btn ghost sm" data-ff="export"><i class="fas fa-file-export"></i> Export flags</button><button type="button" class="adm-btn ghost sm" data-ff="import"><i class="fas fa-file-import"></i> Import flags</button><input type="file" id="ff-file" accept="application/json,.json" hidden><button type="button" class="adm-btn ghost sm" data-ff="undo"' + (u ? '' : ' disabled') + '><i class="fas fa-rotate-left"></i> Undo last change</button><button type="button" class="adm-btn danger sm" data-ff="reset"' + (st.off.length || st.custom.length ? '' : ' disabled') + '>Reset everything</button></div>' +
+      '<div class="adm-h" style="font-size:.9rem;margin-top:16px">Recent changes</div>' + (l.length ? '<div class="adm-scroll"><table class="adm-tbl"><thead><tr><th>When</th><th>What</th></tr></thead><tbody>' + l.slice(0, 30).map(function (r) { return '<tr><td>' + E(String(r.t).replace('T', ' ').slice(0, 16)) + '</td><td>' + E(r.m) + '</td></tr>'; }).join('') + '</tbody></table></div>' : '<div class="adm-muted">Nothing yet.</div>');
+  }
+  function body() { return S.sub === 'features' ? featuresHtml() : S.sub === 'custom' ? customHtml() : backupHtml(); }
+  function html() {
+    return '<div class="tm-wrap ff-wrap"><div class="tm-note" id="ff-note" role="status" aria-live="polite"></div><div class="set-card"><div class="adm-h">Feature flags <small>switch features on or off</small></div>' + (C && C.safe() ? '<div class="adm-banner" role="note">Safe mode is on, so every feature is shown regardless of these switches.</div>' : '') + '<div class="tm-subs" role="tablist" aria-label="Feature flag sections">' + SUBS.map(function (s) { return '<button type="button" role="tab" aria-selected="' + (S.sub === s[0]) + '" class="tm-subb' + (S.sub === s[0] ? ' on' : '') + '" data-ff="sub" data-s="' + s[0] + '">' + s[1] + '</button>'; }).join('') + '</div><div id="ff-body">' + body() + '</div></div></div>';
+  }
+  function filterRows() { var q = (S.q || '').toLowerCase().trim(); Array.prototype.forEach.call(document.querySelectorAll('.ff-wrap [data-ffrow]'), function (r) { r.style.display = !q || r.getAttribute('data-ffrow').indexOf(q) >= 0 ? '' : 'none'; }); }
+  function repaint() { var b = $('ff-body'); if (!b) return; b.innerHTML = body(); Array.prototype.forEach.call(document.querySelectorAll('.ff-wrap .tm-subb'), function (x) { var on = x.getAttribute('data-s') === S.sub; x.classList.toggle('on', on); x.setAttribute('aria-selected', on); }); filterRows(); var n = $('ff-note'); if (n) { n.textContent = S.msg; n.className = 'tm-note' + (S.bad ? ' bad' : ''); } }
+
+  /* ── actions ───────────────────────────────────────────────────────── */
+  function setOff(id, off) { change(function (s) { var i = s.off.indexOf(id); if (off && i < 0) s.off.push(id); else if (!off && i >= 0) s.off.splice(i, 1); }, BYID[id].label + (off ? ' switched off.' : ' switched on.'), BYID[id].label + (off ? ' → off' : ' → on')); }
+  function onAction(a, b) {
+    if (a === 'sub') { S.sub = b.getAttribute('data-s'); return repaint(); }
+    if (a === 'grp') { var g = b.getAttribute('data-g'), on = b.getAttribute('data-on') === '1', ids = F.filter(function (f) { return f.group === g; }).map(function (f) { return f.id; }); return change(function (s) { ids.forEach(function (id) { var i = s.off.indexOf(id); if (on && i >= 0) s.off.splice(i, 1); else if (!on && i < 0) s.off.push(id); }); }, g + (on ? ': all on.' : ': all off.'), g + (on ? ' → all on' : ' → all off')); }
+    if (a === 'allon') return change(function (s) { s.off = []; }, 'Everything is on.', 'All features on');
+    if (a === 'cadd') {
+      var k = String(($('ff-ck') || {}).value || '').trim().toLowerCase(), l = String(($('ff-cl') || {}).value || '').trim(), er = $('ff-ce');
+      if (!/^[a-z][a-z0-9-]{1,30}$/.test(k)) { if (er) er.textContent = 'Use 2–31 letters, numbers or dashes, starting with a letter.'; return; }
+      if (st.custom.some(function (c) { return c.key === k; })) { if (er) er.textContent = 'That key already exists.'; return; }
+      return change(function (s) { s.custom.push({ key: k, label: l || k, on: true }); }, 'Flag "' + k + '" added.', 'Added custom flag ' + k);
+    }
+    if (a === 'cdel') { var dk = b.getAttribute('data-k'); if (!confirm('Delete the flag "' + dk + '"? Elements tagged with it will always show.')) return; return change(function (s) { s.custom = s.custom.filter(function (c) { return c.key !== dk; }); }, 'Flag deleted.', 'Deleted custom flag ' + dk); }
+    if (a === 'undo') return doUndo();
+    if (a === 'reset') { if (!confirm('Switch every feature back on and delete all custom flags?')) return; return change(function (s) { s.off = []; s.custom = []; }, 'Everything reset. You can undo this.', 'Reset all'); }
+    if (a === 'export') { try { var blob = new Blob([JSON.stringify({ app: 'FinanceOS', kind: 'flags', exportedAt: new Date().toISOString(), flags: st }, null, 2)], { type: 'application/json' }), u = URL.createObjectURL(blob), l2 = document.createElement('a'); l2.href = u; l2.download = 'financeos_flags.json'; document.body.appendChild(l2); l2.click(); l2.remove(); setTimeout(function () { URL.revokeObjectURL(u); }, 4000); say('Flags exported.'); } catch (e) { say('Export failed.', true); } return; }
+    if (a === 'import') { var f = $('ff-file'); if (f) f.click(); }
+  }
+  function onChange(e) {
+    var t = e.target; if (!t || !t.closest || !t.closest('.ff-wrap')) return;
+    var tg = t.getAttribute('data-ff-tog'); if (tg) return setOff(tg, !t.checked);
+    var ct = t.getAttribute('data-ff-ctog'); if (ct) { var on = t.checked; return change(function (s) { s.custom.forEach(function (c) { if (c.key === ct) c.on = on; }); }, 'Flag "' + ct + '" ' + (on ? 'on.' : 'off.'), 'Custom flag ' + ct + (on ? ' → on' : ' → off')); }
+    if (t.id === 'ff-file') {
+      var f = t.files && t.files[0]; if (!f) return; if (f.size > 262144) { t.value = ''; return say('That file is too large.', true); }
+      var rd = new FileReader(); rd.onload = function () { var o; try { o = JSON.parse(rd.result); } catch (x) { return say('That is not a valid JSON file.', true); } if (!o || o.kind !== 'flags' || !o.flags) return say('That is not a FinanceOS flags export.', true); change(function (s) { var n = clean(o.flags); s.off = n.off; s.custom = n.custom; }, 'Flags imported. You can undo this.', 'Imported flags'); }; rd.readAsText(f); t.value = '';
+    }
+  }
+  function onInput(e) { var t = e.target; if (t && t.id === 'ff-q') { S.q = t.value; filterRows(); } }
+  function onKey(e) { var t = e.target; if (e.key === 'Enter' && t && (t.id === 'ff-ck' || t.id === 'ff-cl')) { e.preventDefault(); var b = document.querySelector('[data-ff="cadd"]'); if (b) b.click(); } }
+  function onClick(e) { var t = e.target; if (!t || !t.closest || !t.closest('.ff-wrap')) return; var b = t.closest('[data-ff]'); if (!b || b.disabled) return; try { onAction(b.getAttribute('data-ff'), b); } catch (x) { console.error(x); say('Something went wrong: ' + x.message, true); } }
+  function wire() { var r = $('adm-root'); if (!r || r.__ff) return; r.__ff = 1; r.addEventListener('click', onClick); r.addEventListener('change', onChange); r.addEventListener('input', onInput); r.addEventListener('keydown', onKey, true); }
+  function afterRender() { wire(); }
+
+  function boot() { applyAll(); hook(); wire(); try { if (C) C.onChange(function () { applyAll(); }); } catch (e) { } setTimeout(function () { applyAll(); hook(); }, 1500); }
+  window.FOS_FLAGS = { html: html, after: afterRender, apply: applyAll, isOn: isOn, list: function () { return F.map(function (f) { return { id: f.id, label: f.label, on: isOn(f.id) }; }); } };
+  hook();
   if (document.body) boot(); else document.addEventListener('DOMContentLoaded', boot);
   window.addEventListener('load', function () { applyAll(); hook(); });
 })();
