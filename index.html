@@ -130,6 +130,17 @@
   N('badges.tracker.days', 30, 2, 730, 1, UN, 'Consistency King: days logged in a row', '', ['Achievements'], '21–60', true);
   N('badges.nw1', 1000000, 10000, 1000000000, 10000, UN, 'First net-worth badge (amount)', 'Unlocks the first net-worth club badge.', ['Achievements'], '5L–25L');
   N('badges.nw2', 5000000, 10000, 1000000000, 10000, UN, 'Second net-worth badge (amount)', 'Unlocks the second net-worth club badge.', ['Achievements'], '25L–1Cr');
+  var CRG = 'Credit & debt', PFG = 'Portfolio', CRA = ['FinAI chat', 'FinAI score', 'Dashboard'], PFA = ['Portfolio', 'FinAI score', 'Dashboard'];
+  N('credit.alertUtil', 50, 0, 100, 1, CRG, 'Flag a card as high-use from (% of limit)', 'Cards at or above this show in the high-utilisation insights.', CRA, '40–60', true);
+  N('credit.card.caution', 30, 0, 100, 1, CRG, 'Purchase check: card use "caution" above (%)', 'Used when FinAI judges whether a purchase is safe.', CRA, '30', true);
+  N('credit.card.severe', 50, 0, 100, 1, CRG, 'Purchase check: card use "severe" above (%)', 'Must be higher than the caution level.', CRA, '50', true);
+  N('credit.dti.caution', 40, 0, 100, 1, CRG, 'Purchase check: EMI load "caution" above (% of income)', 'EMIs as a share of monthly income.', CRA, '35–40', true);
+  N('credit.dti.severe', 50, 0, 100, 1, CRG, 'Purchase check: EMI load "severe" above (% of income)', 'Must be higher than the caution level.', CRA, '45–50', true);
+  N('credit.hiRate', 15, 0, 60, 0.5, CRG, 'Treat a loan as high-interest from (% a year)', 'High-interest loans are suggested for repayment first.', CRA, '12–18');
+  N('portfolio.benchmark', 12, 0, 100, 0.5, PFG, 'Default benchmark return (% a year)', 'Used in Portfolio Intelligence until you type your own benchmark there.', PFA, '10–12');
+  N('portfolio.targetBand', 5, 0, 50, 0.5, PFG, 'Default allocation tolerance (± percentage points)', 'How far a class can drift from its target before it needs action.', PFA, '5');
+  N('portfolio.concWarn', 70, 10, 100, 1, PFG, 'Warn when one asset class is above (% of portfolio)', 'Shows the "portfolio concentrated" insight.', PFA, '60–70', true);
+  N('portfolio.emergencyMonths', 6, 1, 36, 1, PFG, 'Emergency fund target (months of expenses)', 'Used in the emergency-fund checks, goal suggestion and health score.', ['Dashboard', 'FinAI chat', 'FinAI score'], '3–6', true);
   B('notify.quietEnabled', false, NT, 'Quiet hours: mute notification sound', 'Alerts still appear in the bell, but make no sound during quiet hours.', ['Notifications']);
   add({ p: 'notify.quietFrom', t: 'time', d: '22:00', g: NT, l: 'Quiet hours start', h: '', aff: ['Notifications'] });
   add({ p: 'notify.quietTo', t: 'time', d: '07:00', g: NT, l: 'Quiet hours end', h: '', aff: ['Notifications'] });
@@ -13273,7 +13284,7 @@ function finaiBuildAnalysis() {
   const totalCCLimit = ccAnalysis.reduce((s, c) => s + c.limit, 0);
   const totalCCUsed = ccAnalysis.reduce((s, c) => s + c.used, 0);
   const overallCCUtilPct = totalCCLimit > 0 ? (totalCCUsed / totalCCLimit) * 100 : null;
-  const highUtilCards = ccAnalysis.filter(c => c.pct >= 50).sort((a, b) => b.pct - a.pct);
+  const highUtilCards = ccAnalysis.filter(c => c.pct >= FOSC('credit.alertUtil')).sort((a, b) => b.pct - a.pct);
 
   // ── Insurance coverage gap check (real, live from insuranceDb) ────────
   const activePolicies = (insuranceDb || []).filter(p => p.status !== 'Expired' && p.status !== 'Lapsed');
@@ -13560,16 +13571,16 @@ function finaiBuildInsights(a) {
 
   if (a.avgMonthlyExpense > 0) {
     push('fa-umbrella', '#38bdf8', 'info', 'Emergency fund check',
-      `Your average monthly expense is ${fmt(Math.round(a.avgMonthlyExpense))}. A safe emergency fund is 6× this amount, i.e. roughly ${fmt(Math.round(a.avgMonthlyExpense * 6))}.`,
+      `Your average monthly expense is ${fmt(Math.round(a.avgMonthlyExpense))}. A safe emergency fund is ${FOSC('portfolio.emergencyMonths')}× this amount, i.e. roughly ${fmt(Math.round(a.avgMonthlyExpense * FOSC('portfolio.emergencyMonths')))}.`,
       'If your liquid savings are below this, prioritize building it before aggressive investing.');
   }
 
   a.highUtilCards.slice(0, 3).forEach(c => {
-    const sev = c.pct >= 75 ? 'bad' : 'warn';
-    const color = c.pct >= 75 ? '#ef4444' : '#f59e0b';
+    const sev = c.pct >= FOSC('score.cc.crit') ? 'bad' : 'warn';
+    const color = c.pct >= FOSC('score.cc.crit') ? '#ef4444' : '#f59e0b';
     push('fa-credit-card', color, sev, `Credit card utilization high: ${c.nickname || c.bankName}`,
       `${c.nickname || c.bankName} is at ${c.pct.toFixed(0)}% utilization (${fmt(c.used)} of ${fmt(c.limit)} limit).`,
-      c.pct >= 75 ? 'Pay this down immediately — utilization above 75% significantly hurts your credit score.' : 'Try to keep utilization under 30% for a healthier credit score.');
+      c.pct >= FOSC('score.cc.crit') ? `Pay this down immediately — utilization above ${FOSC('score.cc.crit')}% significantly hurts your credit score.` : `Try to keep utilization under ${FOSC('score.cc.high')}% for a healthier credit score.`);
   });
 
   if (a.hasPolicies || a.totalIncome > 0) {
@@ -13602,7 +13613,7 @@ function finaiBuildInsights(a) {
       'Review these for subscriptions you no longer use.');
   }
 
-  if (a.topConcentration && a.topConcentration.pct >= 70) {
+  if (a.topConcentration && a.topConcentration.pct >= FOSC('portfolio.concWarn')) {
     push('fa-layer-group', '#f59e0b', 'warn', `Portfolio concentrated in ${a.topConcentration.type}`,
       `${a.topConcentration.pct.toFixed(0)}% of your active portfolio value is in ${a.topConcentration.type}.`,
       'Diversifying across asset types reduces risk if this one segment underperforms.');
@@ -14299,7 +14310,7 @@ function finaiGoalAddSavings(id) {
 function finaiGoalQuick() {
   const st = finaiStateCache || finaiBuildState();
   finaiGoalEditId = null;
-  finaiGoalFillForm({ name: 'Emergency fund', target: Math.round((st.spending.avgMonthly * 6) / 1000) * 1000 || '' });
+  finaiGoalFillForm({ name: 'Emergency fund', target: Math.round((st.spending.avgMonthly * FOSC('portfolio.emergencyMonths')) / 1000) * 1000 || '' });
 }
 
 // ── Insights: spikes, trend, cash outlook, cards, subscriptions, debt, goals ─
@@ -14340,11 +14351,11 @@ function finaiIntelInsights(a) {
   const cards = a.ccAnalysis || [];
   cards.filter(c => c.pct >= 30).sort((x, y) => y.pct - x.pct).slice(0, 4).forEach(c => {
     const to30 = Math.ceil(c.used - c.limit * 0.3), to50 = Math.ceil(c.used - c.limit * 0.5), avail = c.limit - c.used;
-    const sev = c.pct >= 75 ? 'bad' : c.pct >= 50 ? 'warn' : 'info';
+    const sev = c.pct >= FOSC('score.cc.crit') ? 'bad' : c.pct >= FOSC('credit.alertUtil') ? 'warn' : 'info';
     const name = finaiEscapeHtml(c.nickname || c.bankName || 'Card');
     push('fa-credit-card', sev === 'bad' ? '#ef4444' : sev === 'warn' ? '#f59e0b' : '#38bdf8', sev, `Card utilization ${c.pct.toFixed(0)}%: ${c.nickname || c.bankName || 'Card'}`,
       `${name} has ${fmt(c.used)} used of ${fmt(c.limit)} — ${fmt(avail)} still available.${to50 > 0 ? ` Paying ${fmt(to50)} brings it under 50%` : ''}${to30 > 0 ? `${to50 > 0 ? ', and ' : ' Paying '}${fmt(to30)} gets it under 30%` : ''}.`,
-      c.pct >= 75 ? 'Pay this down before the statement date — utilization above 75% hurts your credit score.' : 'Keeping each card under 30% protects your credit score.', 0, '', c.used);
+      c.pct >= FOSC('score.cc.crit') ? `Pay this down before the statement date — utilization above ${FOSC('score.cc.crit')}% hurts your credit score.` : `Keeping each card under ${FOSC('score.cc.high')}% protects your credit score.`, 0, '', c.used);
   });
   if (cards.length >= 2 && a.totalCCLimit > 0) {
     push('fa-layer-group', '#38bdf8', 'info', `Cards combined: ${a.overallCCUtilPct.toFixed(0)}% utilization`,
@@ -14935,7 +14946,7 @@ function finaiRunIntent(it, q) {
 // dashboard uses). Nothing here writes to db/creditDb/goals, and nothing is
 // sent anywhere. No AI model is called: this app has no AI backend.
 // ══════════════════════════════════════════════════════════════════════════
-const FINAI_PV = { STALE_DAYS: 45, BUFFER_PCT: 0.10, DTI_CAUTION: 40, DTI_SEVERE: 50, CARD_CAUTION: 30, CARD_SEVERE: 50, HI_RATE: 15, WAIT_MAX: 6, FOLLOW_TURNS: 4 };
+const FINAI_PV = { STALE_DAYS: 45, BUFFER_PCT: 0.10, get DTI_CAUTION() { return FOSC('credit.dti.caution'); }, get DTI_SEVERE() { return FOSC('credit.dti.severe'); }, get CARD_CAUTION() { return FOSC('credit.card.caution'); }, get CARD_SEVERE() { return FOSC('credit.card.severe'); }, get HI_RATE() { return FOSC('credit.hiRate'); }, WAIT_MAX: 6, FOLLOW_TURNS: 4 };
 let finaiPurchaseCtx = null;   // { p, sig, turn }
 let finaiQSeq = 0;
 
@@ -21079,7 +21090,7 @@ function analyticsGenerateInsights(data) {
   // ── EMERGENCY FUND CHECK ──────────────────────────────────────────────
   if (totalInc > 0 && totalExp > 0) {
     const monthlyExpNeed = totalExp / Math.max(1, last6Months.filter(mo => monthlyExp[last6Months.indexOf(mo)] > 0).length || 1);
-    const emergencyTarget = monthlyExpNeed * 6;
+    const emergencyTarget = monthlyExpNeed * FOSC('portfolio.emergencyMonths');
     const liquidAssets = dbNow().filter(r=>r.type==='Income').reduce((a,b)=>a+b.amount,0) - totalOut;
     if (liquidAssets < emergencyTarget && liquidAssets >= 0) {
       insights.push({ p:17, icon:'🛡️', color:'#60a5fa', title:`Emergency Fund Gap: Need ₹${fmt(emergencyTarget - liquidAssets)} More`,
@@ -27743,7 +27754,7 @@ function renderHealthRadar() {
   const savingsRate = totalInc > 0 ? Math.max(0, Math.min(((totalInc - totalExp - totalLoan) / totalInc) * 100, 100)) : 0;
   const debtToIncome = totalInc > 0 ? Math.max(100 - (totalLoan / totalInc) * 100, 0) : 0;
   const _spanM = Math.max(1, new Set(dbNow().map(r => String(r.date || '').slice(0, 7)).filter(Boolean)).size), _monthlyOut = (totalExp + totalLoan) / _spanM;
-  const emergencyFund = _monthlyOut > 0 ? Math.min((totalInv / (_monthlyOut * 6)) * 100, 100) : (totalInv > 0 ? 100 : 0); // invested corpus vs 6 months of spending + EMIs
+  const emergencyFund = _monthlyOut > 0 ? Math.min((totalInv / (_monthlyOut * FOSC('portfolio.emergencyMonths'))) * 100, 100) : (totalInv > 0 ? 100 : 0); // invested corpus vs 6 months of spending + EMIs
   const investmentDiversity = portDb.length > 0 ? Math.min((new Set(portDb.map(p => normalizeAssetType(p.assetType))).size / 5) * 100, 100) : 0;
   
   // Budget adherence
@@ -37556,7 +37567,7 @@ body.light-mode .adm-toast{background:#e0f7fc;color:#06303c}body.light-mode .adm
   var TABS = [
     ['overview', 'Overview', 'fa-gauge-high', 1], ['lab', 'Calculation Lab', 'fa-flask', 1], ['formula', 'Formula Studio', 'fa-square-root-variable', 1], ['chart', 'Chart Studio', 'fa-chart-pie', 1],
     ['rules', 'Insight & Alert Rules', 'fa-bell', 1], ['unlocks', 'Unlocks & Streaks', 'fa-unlock', 1], ['data', 'Data Manager', 'fa-table', 1], ['tax', 'Taxonomy', 'fa-tags', 1],
-    ['port', 'Portfolio & Credit', 'fa-briefcase', 0], ['theme', 'Layout & Theme', 'fa-palette', 0], ['flags', 'Feature Flags', 'fa-toggle-on', 0], ['integrity', 'Integrity Checker', 'fa-shield-halved', 0],
+    ['port', 'Portfolio & Credit', 'fa-briefcase', 1], ['theme', 'Layout & Theme', 'fa-palette', 0], ['flags', 'Feature Flags', 'fa-toggle-on', 0], ['integrity', 'Integrity Checker', 'fa-shield-halved', 0],
     ['backups', 'Backups & Versions', 'fa-clock-rotate-left', 1], ['audit', 'Audit Log', 'fa-list-check', 1], ['dev', 'Developer Tools', 'fa-terminal', 0]
   ];
   function root() { return document.getElementById('adm-root'); }
@@ -37600,12 +37611,13 @@ body.light-mode .adm-toast{background:#e0f7fc;color:#06303c}body.light-mode .adm
   }
   function body() {
     var b = document.getElementById('adm-body'); if (!b) return; var t = S.tab;
-    try { b.innerHTML = t === 'overview' ? overview() : t === 'lab' ? lab() : t === 'backups' ? backups() : t === 'audit' ? auditTab() : (t === 'formula' && window.FOS_FORMULA_STUDIO) ? window.FOS_FORMULA_STUDIO.html() : (t === 'chart' && window.FOS_CHART_STUDIO) ? window.FOS_CHART_STUDIO.html() : (t === 'rules' && window.FOS_RULES) ? window.FOS_RULES.html() : (t === 'unlocks' && window.FOS_UNLOCKS) ? window.FOS_UNLOCKS.html() : (t === 'data' && window.FOS_DATA) ? window.FOS_DATA.html() : (t === 'tax' && window.FOS_TAXONOMY) ? window.FOS_TAXONOMY.html() : planned(t); } catch (e) { console.error('Admin tab failed:', e); b.innerHTML = '<div class="set-card"><b>This tab failed to load.</b><div class="adm-muted">' + E(e.message) + '</div></div>'; }
+    try { b.innerHTML = t === 'overview' ? overview() : t === 'lab' ? lab() : t === 'backups' ? backups() : t === 'audit' ? auditTab() : (t === 'formula' && window.FOS_FORMULA_STUDIO) ? window.FOS_FORMULA_STUDIO.html() : (t === 'chart' && window.FOS_CHART_STUDIO) ? window.FOS_CHART_STUDIO.html() : (t === 'rules' && window.FOS_RULES) ? window.FOS_RULES.html() : (t === 'unlocks' && window.FOS_UNLOCKS) ? window.FOS_UNLOCKS.html() : (t === 'data' && window.FOS_DATA) ? window.FOS_DATA.html() : (t === 'tax' && window.FOS_TAXONOMY) ? window.FOS_TAXONOMY.html() : (t === 'port' && window.FOS_PORTCREDIT) ? window.FOS_PORTCREDIT.html() : planned(t); } catch (e) { console.error('Admin tab failed:', e); b.innerHTML = '<div class="set-card"><b>This tab failed to load.</b><div class="adm-muted">' + E(e.message) + '</div></div>'; }
     if (t === 'lab') labPreview();
     if (t === 'rules' && window.FOS_RULES) { try { window.FOS_RULES.after(); } catch (e) { console.error('Rules failed:', e); } }
     if (t === 'unlocks' && window.FOS_UNLOCKS) { try { window.FOS_UNLOCKS.after(); } catch (e) { console.error('Unlocks failed:', e); } }
     if (t === 'data' && window.FOS_DATA) { try { window.FOS_DATA.after(); } catch (e) { console.error('Data failed:', e); } }
     if (t === 'tax' && window.FOS_TAXONOMY) { try { window.FOS_TAXONOMY.after(); } catch (e) { console.error('Taxonomy failed:', e); } }
+    if (t === 'port' && window.FOS_PORTCREDIT) { try { window.FOS_PORTCREDIT.after(); } catch (e) { console.error('Portfolio failed:', e); } }
     if (t === 'chart' && window.FOS_CHART_STUDIO) { try { window.FOS_CHART_STUDIO.after(); } catch (e) { console.error('Chart Studio failed:', e); } }
     if (t === 'formula' && window.FOS_FORMULA_STUDIO) { try { window.FOS_FORMULA_STUDIO.after(); } catch (e) { console.error('Formula Studio failed:', e); } }
   }
@@ -39599,7 +39611,7 @@ body.light-mode #adm-root{--fs-ok:#059669;--fs-bad:#dc2626;--fs-warn:#b45309}
   function onClick(e) {
     var t = e.target; if (!inTab(t)) return; var b = t.closest('[data-dm]'); if (!b || b.disabled) return; var a = b.getAttribute('data-dm');
     if (a === 'fullbackup') { try { downloadBackup(); say('Backup downloaded.'); log('Downloaded full backup'); repaint(); } catch (x) { say('Backup failed: ' + x.message, true); } }
-    else if (a === 'expjson') { var st = STORES.filter(function (s) { return s.id === b.getAttribute('data-id'); })[0], v = st && arr(st.get); if (v == null) return say('Not available.', true); download('financeos_' + st.id + '_' + today() + '.json', JSON.stringify(v, null, 2), 'application/json') ? say(st.label + ' exported.') : say('Download failed.', true); }
+    else if (a === 'expjson') { var st = STORES.filter(function (s) { return s.id === b.getAttribute('data-id'); })[0], v = st && arr(st.get); if (v == null) return say('Not available.', true); if (st.id === 'ccCards') v = v.map(function (c) { var o = Object.assign({}, c), d = String(c.number || '').replace(/\D/g, ''); o.number = d.length >= 4 ? '•••• •••• •••• ' + d.slice(-4) : '••••'; delete o.cvv; return o; }); download('financeos_' + st.id + '_' + today() + '.json', JSON.stringify(v, null, 2), 'application/json') ? say(st.label + ' exported.') : say('Download failed.', true); }
     else if (a === 'expcsv') { var rows = filterRows($('dm-from').value, $('dm-to').value, $('dm-type').value); if (!rows.length) return say('No transactions match those filters.', true); download('financeos_transactions_' + today() + '.csv', toCsv(rows), 'text/csv;charset=utf-8') ? say(rows.length + ' transactions exported.') : say('Download failed.', true); }
     else if (a === 'scan') { S.scan = scan(); repaint(); }
     else if (a === 'fix') fixIssue(b.getAttribute('data-id'));
@@ -39975,6 +39987,286 @@ body.light-mode #adm-root{--fs-ok:#059669;--fs-bad:#dc2626;--fs-warn:#b45309}
   wire();
 })();
 </script>
+<style id="fos-portcredit-style">
+.pc-n{max-width:120px}.pc-ed td,.pc-tax td{vertical-align:middle}.pc-ed td:first-child{min-width:150px}
+.pc-tax .pc-n{max-width:90px}.pc-wrap details>summary{list-style:revert}
+</style>
+<script id="fos-portcredit">
+/* ═══════════════════════════════════════════════════════════════════════
+   FOS ADMIN · PORTFOLIO & CREDIT
+     · Overview: holdings, loans and cards at a glance
+     · Rules: the thresholds behind credit, debt and portfolio alerts and the FinAI score
+       (saved through the Admin config layer: audited, resettable, shown in the Lab)
+       plus the India capital-gains tax rules
+     · Allocation: target mix, tolerance, new-money amount, benchmark, custom sub-categories
+     · Currencies: exchange rates for foreign holdings
+     · Holdings: per-class summary and data check
+     · Credit: cards (numbers never shown, last 4 only) and loans, edited in place, with a data check
+   Edits to holdings, loans and cards keep one undo copy ('fos_admin_pc_undo_v1').
+   ═══════════════════════════════════════════════════════════════════════ */
+(function () {
+  'use strict';
+  if (window.FOS_PORTCREDIT) return;
+  var C = window.FOS_CONFIG; if (!C) return;
+  var UNDO = 'fos_admin_pc_undo_v1', LOGK = 'fos_admin_pc_log_v1';
+  var SUBS = [['over', 'Overview'], ['rules', 'Rules'], ['alloc', 'Allocation'], ['fx', 'Currencies'], ['hold', 'Holdings'], ['credit', 'Credit']];
+  var TAXC = [['eq', 'Listed equity & equity funds'], ['lst', 'Other listed securities'], ['oth', 'Physical gold/silver, unlisted & other'], ['prop', 'Property & land'], ['debt', 'Specified debt funds']];
+  var PAIRS = { 'credit.card.caution': ['credit.card.severe', 'lt'], 'credit.card.severe': ['credit.card.caution', 'gt'], 'credit.dti.caution': ['credit.dti.severe', 'lt'], 'credit.dti.severe': ['credit.dti.caution', 'gt'], 'score.cc.high': ['score.cc.crit', 'lt'], 'score.cc.crit': ['score.cc.high', 'gt'] };
+  var S = { sub: 'over', msg: '', bad: false, scan: null };
+
+  function E(s) { try { return _esc(s); } catch (e) { return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]; }); } }
+  function $(id) { return document.getElementById(id); }
+  function J(k, d) { try { var v = JSON.parse(localStorage.getItem(k)); return v == null ? d : v; } catch (e) { return d; } }
+  function money(n) { try { return fmt(n); } catch (e) { return String(Math.round(n)); } }
+  function pct(n, d) { return (isFinite(n) ? n : 0).toFixed(d == null ? 1 : d) + '%'; }
+  function arrOf(f) { try { var v = f(); return Array.isArray(v) ? v : []; } catch (e) { return []; } }
+  function holdings() { return arrOf(function () { return portDb; }); }
+  function loans() { return arrOf(function () { return creditDb; }); }
+  function cards() { return arrOf(function () { return ccCards; }); }
+  function log(m) { var a = J(LOGK, []); if (!Array.isArray(a)) a = []; a.push({ ts: new Date().toISOString(), msg: m }); try { localStorage.setItem(LOGK, JSON.stringify(a.slice(-30))); } catch (e) { } }
+  function last4(c) { var d = String(c && c.number || '').replace(/\D/g, ''); return d.length >= 4 ? d.slice(-4) : '••••'; }
+  function calc(e) { try { return portCalc(e); } catch (x) { return { totalInvestment: 0, currentValue: 0, gainLoss: 0, roi: 0 }; } }
+  function say(m, bad) { S.msg = m || ''; S.bad = !!bad; var el = $('pc-note'); if (el) { el.textContent = S.msg; el.className = 'tm-note' + (bad ? ' bad' : ''); el.setAttribute('role', bad ? 'alert' : 'status'); } clearTimeout(say._t); if (m) say._t = setTimeout(function () { S.msg = ''; var e = $('pc-note'); if (e) e.textContent = ''; }, 9000); }
+
+  /* ── undo / commit ──────────────────────────────────────────────────── */
+  function snap(label) {
+    var o = { ts: new Date().toISOString(), label: label, port: holdings(), credit: loans(), cards: cards(), targets: J('fos_port_targets_v1', {}), subs: J('fos_port_customsubs_v1', {}), band: localStorage.getItem('fos_port_tgtband'), nm: localStorage.getItem('fos_port_tgtnew'), bench: localStorage.getItem('fos_pi_bench'), fx: J('fos_fx_v1', {}) };
+    try { localStorage.setItem(UNDO, JSON.stringify(o)); return true; } catch (e) { return false; }
+  }
+  function undoInfo() { var u = J(UNDO, null); return u && Array.isArray(u.port) ? u : null; }
+  function refreshApp() {
+    try { var f = window.FOS_FORMULA_STUDIO; if (f && f.clearCache) f.clearCache(); } catch (e) { }
+    try { scheduleSave(); } catch (e) { }
+    ['buildPortDropdowns', 'renderCreditTable', 'renderCCCards'].forEach(function (n) { try { if (typeof window[n] === 'function') window[n](); } catch (e) { } });
+    try { var v = activeView; if (v === 'port-overview') renderPortOverview(); else if (v === 'port-table') renderPortTable(); else if (v === 'port-analytics') renderPortAnalytics(); else if (v === 'dashboard') renderDashboard(); } catch (e) { }
+  }
+  function setLs(k, v) { try { if (v == null || v === '') localStorage.removeItem(k); else localStorage.setItem(k, typeof v === 'string' ? v : JSON.stringify(v)); } catch (e) { } }
+  function doUndo() {
+    var u = undoInfo(); if (!u) return say('Nothing to undo.', true); if (!confirm('Undo "' + u.label + '"?')) return;
+    try { setLocalArray('portDb', u.port); setLocalArray('creditDb', u.credit); setLocalArray('ccCards', u.cards); } catch (e) { return say('Undo failed: ' + e.message, true); }
+    setLs('fos_port_targets_v1', u.targets && Object.keys(u.targets).length ? u.targets : null); setLs('fos_port_customsubs_v1', u.subs && Object.keys(u.subs).length ? u.subs : null);
+    setLs('fos_port_tgtband', u.band); setLs('fos_port_tgtnew', u.nm); setLs('fos_pi_bench', u.bench); setLs('fos_fx_v1', u.fx && Object.keys(u.fx).length ? u.fx : null);
+    try { localStorage.removeItem(UNDO); } catch (e) { } refreshApp(); log('Undid "' + u.label + '"'); rescan(); repaint(); say('Undone.');
+  }
+  function rescan() { if (S.holdScan) S.holdScan = scanHold(); if (S.cardScan || S.loanScan) { var r = scanCredit(); S.cardScan = r.cards; S.loanScan = r.loans; } }
+  function run(label, fn) {
+    if (!snap(label)) return say('Not enough browser storage to keep an undo copy. Export a backup from Data Manager first.', true);
+    var err = ''; try { err = fn() || ''; } catch (e) { err = e.message || String(e); }
+    if (err) { try { localStorage.removeItem(UNDO); } catch (x) { } repaint(); return say(err, true); }
+    refreshApp(); log(label); rescan(); repaint(); say(label + '. You can undo this.');
+  }
+
+  /* ── config rows ────────────────────────────────────────────────────── */
+  function pid(p) { return 'pc-c-' + p.replace(/[^a-z0-9]+/gi, '-'); }
+  function cfgRow(p) {
+    var s = C.schemaOf(p); if (!s) return ''; var v = C.get(p), mod = C.isModified(p), isB = typeof v === 'boolean';
+    var input = isB ? '<label class="adm-chk2"><input type="checkbox" class="pc-cin" id="' + pid(p) + '" data-p="' + E(p) + '"' + (v ? ' checked' : '') + '> On</label>' : '<input type="number" class="set-input pc-cin" id="' + pid(p) + '" data-p="' + E(p) + '" min="' + s.min + '" max="' + s.max + '" step="' + s.step + '" value="' + E(v) + '">';
+    return '<div class="ul-cfg"><div class="ul-cfg-t"><label for="' + pid(p) + '">' + E(s.l) + '</label><div class="adm-muted">' + E(s.h || '') + (s.rec ? (s.h ? ' ' : '') + 'Typical: ' + E(s.rec) + '.' : '') + '</div><div class="adm-err" id="' + pid(p) + '-e" role="alert"></div></div><div class="ul-cfg-i">' + input + '<button type="button" class="adm-btn ghost sm" data-pc="creset" data-p="' + E(p) + '"' + (mod ? '' : ' disabled') + '>Reset</button></div><div class="adm-muted ul-def">' + (mod ? '<b>Changed</b> · ' : '') + 'default ' + E(String(C.def(p))) + '</div></div>';
+  }
+  function cfgBlock(ps) { return '<div class="ul-cfgs">' + ps.map(cfgRow).join('') + '</div>'; }
+  function setCfg(inp) {
+    var p = inp.getAttribute('data-p'), err = $(pid(p) + '-e'), v = inp.type === 'checkbox' ? inp.checked : Number(inp.value);
+    if (inp.type !== 'checkbox' && inp.value === '') { if (err) err.textContent = 'Enter a number.'; inp.value = C.get(p); return; }
+    var pr = PAIRS[p]; if (pr) { var other = C.get(pr[0]); if ((pr[1] === 'lt' && !(v < other)) || (pr[1] === 'gt' && !(v > other))) { if (err) err.textContent = 'This must be ' + (pr[1] === 'lt' ? 'lower' : 'higher') + ' than "' + C.schemaOf(pr[0]).l + '" (' + other + ').'; inp.value = C.get(p); return; } }
+    var r = C.set(p, v); if (!r.ok) { if (err) err.textContent = r.msg || 'Not allowed.'; inp.value = C.get(p); return; }
+    log('Changed ' + p + ' to ' + v); refreshApp(); setTimeout(function () { repaint(); say('Saved. Applied right away.'); }, 0);
+  }
+
+  /* ── overview ───────────────────────────────────────────────────────── */
+  function tile(l, v, s, warn) { return '<div class="tm-tile' + (warn ? ' warn' : '') + '"><span>' + E(l) + '</span><b>' + E(v) + '</b><small>' + E(s || '') + '</small></div>'; }
+  function totals() {
+    var act = holdings().filter(function (e) { return e.status !== 'sold'; }), sold = holdings().length - act.length, inv = 0, cur = 0;
+    act.forEach(function (e) { var c = calc(e); inv += c.totalInvestment; cur += c.currentValue; });
+    var ln = loans(), al = ln.filter(function (l) { return l.status !== 'Closed'; }), out = al.reduce(function (s, l) { return s + (Number(l.outstandingBalance) || 0); }, 0), emi = al.reduce(function (s, l) { return s + (Number(l.monthlyEmi) || 0); }, 0);
+    var cd = cards(), lim = cd.reduce(function (s, c) { return s + (Number(c.limit) || 0); }, 0), used = cd.reduce(function (s, c) { return s + (Number(c.used) || 0); }, 0);
+    return { act: act.length, sold: sold, inv: inv, cur: cur, loans: al.length, out: out, emi: emi, cards: cd.length, lim: lim, used: used, util: lim > 0 ? used / lim * 100 : 0 };
+  }
+  function overHtml() {
+    var t = totals(), cc = C.get('score.cc.crit'), ch = C.get('score.cc.high'), uw = t.util >= ch;
+    return '<div class="adm-h" style="font-size:.9rem">Portfolio</div><div class="tm-tiles">' + tile('Active holdings', t.act, t.sold + ' sold') + tile('Invested', money(t.inv), 'cost basis') + tile('Current value', money(t.cur), t.inv > 0 ? ((t.cur - t.inv) / t.inv * 100 >= 0 ? '+' : '') + ((t.cur - t.inv) / t.inv * 100).toFixed(1) + '% overall' : '') + tile('Gain / loss', money(t.cur - t.inv), 'unrealised') + '</div>' +
+      '<div class="adm-h" style="font-size:.9rem;margin-top:14px">Credit &amp; debt</div><div class="tm-tiles">' + tile('Active loans', t.loans, money(t.emi) + ' a month in EMIs') + tile('Outstanding', money(t.out), 'across active loans') + tile('Cards', t.cards, money(t.lim) + ' total limit') + tile('Card utilisation', t.cards ? pct(t.util, 0) : '—', t.cards ? (t.util >= cc ? 'above the critical level (' + cc + '%)' : uw ? 'above the high level (' + ch + '%)' : 'healthy') : 'no cards', t.cards && uw) + '</div>' +
+      '<div class="adm-muted" style="margin-top:10px">Use <b>Rules</b> to tune the thresholds behind alerts and the FinAI score, <b>Allocation</b> and <b>Currencies</b> to manage targets and exchange rates, and <b>Holdings</b> or <b>Credit</b> to check and fix your records.</div>' + undoHtml();
+  }
+  function undoHtml() {
+    var u = undoInfo(), lg = J(LOGK, []).slice(-5).reverse();
+    return '<div class="adm-h" style="font-size:.9rem;margin-top:18px">Undo &amp; activity</div>' + (u ? '<div class="dm-undo"><div><b>Last change:</b> ' + E(u.label) + '<div class="adm-muted">' + E(new Date(u.ts).toLocaleString()) + '</div></div><button type="button" class="adm-btn ghost" data-pc="undo"><i class="fas fa-rotate-left"></i> Undo</button></div>' : '<div class="adm-muted">Nothing to undo.</div>') + (lg.length ? '<div class="dm-log" style="margin-top:8px">' + lg.map(function (x) { return '<div class="adm-muted">' + E(new Date(x.ts).toLocaleString()) + ' · ' + E(x.msg) + '</div>'; }).join('') + '</div>' : '');
+  }
+
+  /* ── rules ──────────────────────────────────────────────────────────── */
+  function taxTable() {
+    var rows = TAXC.map(function (c) {
+      var k = c[0], cell = function (p, t) { var s = C.schemaOf(p); if (!s) return '<td></td>'; var v = C.get(p); return '<td>' + (t === 'b' ? '<input type="checkbox" class="pc-cin" data-p="' + p + '" id="' + pid(p) + '"' + (v ? ' checked' : '') + ' aria-label="' + E(s.l) + '">' : '<input type="number" class="set-input pc-cin pc-n" data-p="' + p + '" id="' + pid(p) + '" min="' + s.min + '" max="' + s.max + '" step="' + s.step + '" value="' + E(v) + '" aria-label="' + E(s.l) + '">') + '</td>'; };
+      return '<tr><td><b>' + E(c[1]) + '</b></td>' + cell('tax.' + k + '.ltMonths') + cell('tax.' + k + '.stSlab', 'b') + cell('tax.' + k + '.stRate') + cell('tax.' + k + '.ltRate') + '</tr>';
+    }).join('');
+    return '<div class="adm-scroll"><table class="adm-tbl pc-tax"><thead><tr><th>Asset class</th><th>Long-term after (months)</th><th>Short-term at slab</th><th>Short-term rate %</th><th>Long-term rate %</th></tr></thead><tbody>' + rows + '</tbody></table></div><div class="adm-err" id="pc-tax-e" role="alert"></div>' +
+      cfgBlock(['tax.eq.exempt', 'tax.vda.stRate', 'tax.vda.noSetoff', 'tax.cess']) + '<div class="adm-actions" style="margin-top:8px"><button type="button" class="adm-btn ghost sm" data-pc="taxreset">Reset all tax rules to defaults</button></div>';
+  }
+  function rulesHtml() {
+    return (C.safe() ? '<div class="adm-banner" role="note">Safe mode is on, so these values are not in effect (defaults are used).</div>' : '') +
+      '<div class="adm-h" style="font-size:.9rem">Credit &amp; debt</div>' + cfgBlock(['score.cc.high', 'score.cc.crit', 'credit.alertUtil', 'credit.card.caution', 'credit.card.severe', 'credit.dti.caution', 'credit.dti.severe', 'credit.hiRate']) +
+      '<div class="adm-h" style="font-size:.9rem;margin-top:16px">Portfolio &amp; savings</div>' + cfgBlock(['portfolio.concWarn', 'score.conc.pct', 'portfolio.emergencyMonths', 'portfolio.benchmark', 'portfolio.targetBand']) +
+      '<details style="margin-top:14px"><summary class="adm-h" style="font-size:.9rem;cursor:pointer">FinAI score points for these</summary><div style="margin-top:8px">' + cfgBlock(['score.cc.critPts', 'score.cc.highPts', 'score.cc.okPts', 'score.conc.pts']) + '</div></details>' +
+      '<details style="margin-top:14px"><summary class="adm-h" style="font-size:.9rem;cursor:pointer">Capital-gains tax rules (India)</summary><div style="margin-top:8px">' + taxTable() + '</div></details>';
+  }
+
+  /* ── allocation ─────────────────────────────────────────────────────── */
+  function classKeys() { try { return Object.keys(ASSET_CATALOG); } catch (e) { return []; } }
+  function curMix() {
+    var cur = {}, tot = 0; holdings().forEach(function (e) { if (e.status === 'sold') return; var k = normalizeAssetType(e.assetType), v = calc(e).currentValue; cur[k] = (cur[k] || 0) + v; tot += v; }); return { cur: cur, tot: tot };
+  }
+  function allocHtml() {
+    var T = J('fos_port_targets_v1', {}), mix = curMix(), keys = classKeys().filter(function (k) { return mix.cur[k] || T[k] != null; }).sort(function (a, b) { return (mix.cur[b] || 0) - (mix.cur[a] || 0); });
+    var extra = classKeys().filter(function (k) { return keys.indexOf(k) < 0; }), sum = Object.keys(T).reduce(function (s, k) { return s + (Number(T[k]) || 0); }, 0), band = localStorage.getItem('fos_port_tgtband'), nm = localStorage.getItem('fos_port_tgtnew'), bench = localStorage.getItem('fos_pi_bench');
+    var rows = keys.map(function (k) { var c = mix.tot > 0 ? (mix.cur[k] || 0) / mix.tot * 100 : 0; return '<tr><td><b>' + E(assetTypeLabel(k)) + '</b></td><td>' + pct(c) + '</td><td>' + (mix.cur[k] ? money(mix.cur[k]) : '—') + '</td><td><input type="number" class="set-input pc-tg pc-n" min="0" max="100" step="0.5" data-k="' + E(k) + '" value="' + (T[k] != null ? E(T[k]) : '') + '" placeholder="–" aria-label="Target for ' + E(assetTypeLabel(k)) + '"></td></tr>'; }).join('');
+    return '<div class="adm-muted" style="margin-bottom:10px">Targets feed the rebalancing panel in Portfolio Intelligence. Leave a class blank to have no target for it.</div>' +
+      '<table class="adm-tbl"><thead><tr><th>Asset class</th><th>Now</th><th>Value</th><th>Target %</th></tr></thead><tbody>' + (rows || '<tr><td colspan="4" class="adm-muted">Add holdings first, or add a class below.</td></tr>') + '</tbody></table>' +
+      '<div class="tm-bar" style="margin-top:10px"><span class="tm-addw"><select id="pc-addcls" class="set-input" aria-label="Add a class">' + extra.map(function (k) { return '<option value="' + E(k) + '">' + E(assetTypeLabel(k)) + '</option>'; }).join('') + '</select><button type="button" class="adm-btn sm" data-pc="addcls"' + (extra.length ? '' : ' disabled') + '>Add class</button></span></div>' +
+      '<div class="dm-sum" style="margin-top:6px"><span class="rl-st ' + (Math.abs(sum - 100) < 0.01 ? 'quiet' : sum > 0 ? 'fire' : '') + '">Targets add up to ' + (Math.round(sum * 10) / 10) + '%</span>' + (sum > 0 && Math.abs(sum - 100) >= 0.01 ? '<span class="adm-muted">Aim for 100%.</span>' : '') + '</div>' +
+      '<div class="adm-actions"><button type="button" class="adm-btn ghost sm" data-pc="tgmatch">Match current mix</button><button type="button" class="adm-btn ghost sm" data-pc="tgnorm"' + (sum > 0 ? '' : ' disabled') + '>Scale to 100%</button><button type="button" class="adm-btn danger sm" data-pc="tgclear"' + (sum > 0 ? '' : ' disabled') + '>Clear targets</button></div>' +
+      '<div class="adm-h" style="font-size:.9rem;margin-top:18px">Rebalancing &amp; benchmark inputs</div><div class="fs-grid"><div class="fs-f"><label for="pc-band">Tolerance (± points)</label><input id="pc-band" type="number" min="0" max="50" step="0.5" class="set-input pc-pref" data-k="fos_port_tgtband" value="' + E(band == null ? '' : band) + '" placeholder="default ' + C.get('portfolio.targetBand') + '"></div><div class="fs-f"><label for="pc-nm">New money to invest</label><input id="pc-nm" type="number" min="0" step="1000" class="set-input pc-pref" data-k="fos_port_tgtnew" value="' + E(nm == null ? '' : nm) + '" placeholder="0"></div><div class="fs-f"><label for="pc-bench">Benchmark return (% a year)</label><input id="pc-bench" type="number" min="0" max="100" step="0.5" class="set-input pc-pref" data-k="fos_pi_bench" value="' + E(bench == null ? '' : bench) + '" placeholder="default ' + C.get('portfolio.benchmark') + '"></div></div><div class="adm-muted">Blank means use the default from Rules.</div>' + customSubsHtml();
+  }
+  function customSubsHtml() {
+    var st = J('fos_port_customsubs_v1', {}), cls = classKeys(), h = '<div class="adm-h" style="font-size:.9rem;margin-top:18px">Custom sub-categories</div><div class="adm-muted" style="margin-bottom:8px">Extra sub-categories you add to an asset class appear in the holding form. Archive hides one from the picker but keeps existing holdings labelled.</div>';
+    var used = {}; holdings().forEach(function (e) { var k = normalizeAssetType(e.assetType); if (e.subCategory) used[k + '|' + String(e.subCategory).toLowerCase()] = (used[k + '|' + String(e.subCategory).toLowerCase()] || 0) + 1; });
+    var any = false;
+    Object.keys(st).forEach(function (k) { (st[k] || []).forEach(function (x) { any = true; var n = used[k + '|' + String(x.name).toLowerCase()] || 0; h += '<div class="tm-srow' + (x.archived ? ' off' : '') + '" style="padding:4px 0"><span class="tm-snm"><b>' + E(assetTypeLabel(k)) + '</b> · ' + E(x.name) + (x.archived ? ' <span class="tm-tag">archived</span>' : '') + '</span><span class="tm-m">' + n + ' holding' + (n === 1 ? '' : 's') + '</span><span class="tm-acts"><button type="button" class="adm-btn ghost sm" data-pc="csarc" data-k="' + E(k) + '" data-id="' + E(x.id) + '">' + (x.archived ? 'Restore' : 'Archive') + '</button><button type="button" class="adm-btn ghost sm danger" data-pc="csdel" data-k="' + E(k) + '" data-id="' + E(x.id) + '">Delete</button></span></div>'; }); });
+    if (!any) h += '<div class="adm-muted">None yet.</div>';
+    return h + '<div class="tm-addsub" style="margin-top:10px;max-width:560px"><select id="pc-cscls" class="set-input" aria-label="Asset class">' + cls.map(function (k) { return '<option value="' + E(k) + '">' + E(assetTypeLabel(k)) + '</option>'; }).join('') + '</select><input id="pc-csname" class="set-input" maxlength="50" placeholder="New sub-category" aria-label="New sub-category name"><button type="button" class="adm-btn sm" data-pc="csadd">Add</button></div>';
+  }
+
+  /* ── currencies ─────────────────────────────────────────────────────── */
+  function fxHtml() {
+    var base = 'INR'; try { base = portBaseCode(); } catch (e) { } var T = J('fos_fx_v1', {}), codes = Object.keys(FX_CURRENCIES).filter(function (c) { return c !== base; });
+    var use = {}; holdings().forEach(function (e) { var c = String(e.currency || '').toUpperCase(); if (c) use[c] = (use[c] || 0) + 1; });
+    return '<div class="adm-muted" style="margin-bottom:10px">Your base currency is <b>' + E(base) + '</b> (change it in General settings). A rate means how many ' + E(base) + ' one unit of the foreign currency is worth. Saving a rate updates every holding in that currency.' + (T._updated ? ' Last updated ' + E(T._updated) + '.' : '') + '</div>' +
+      '<table class="adm-tbl"><thead><tr><th>Currency</th><th>Holdings</th><th>Rate (' + E(base) + ' per 1)</th><th></th></tr></thead><tbody>' + codes.map(function (c) { var n = use[c] || 0, miss = n && !(Number(T[c]) > 0); return '<tr><td><b>' + c + '</b> <span class="adm-muted">' + E(FX_CURRENCIES[c].name) + '</span></td><td>' + n + (miss ? ' <span class="rl-st fire">no rate</span>' : '') + '</td><td><input type="number" class="set-input pc-n pc-fx" min="0" step="0.0001" data-c="' + c + '" value="' + (Number(T[c]) > 0 ? E(T[c]) : '') + '" placeholder="not set" aria-label="Rate for ' + c + '"></td><td><button type="button" class="adm-btn sm" data-pc="fxset" data-c="' + c + '">Save</button> <button type="button" class="adm-btn ghost sm" data-pc="fxclear" data-c="' + c + '"' + (Number(T[c]) > 0 ? '' : ' disabled') + '>Clear</button></td></tr>'; }).join('') + '</tbody></table>';
+  }
+
+  /* ── holdings ───────────────────────────────────────────────────────── */
+  function scanHold() {
+    var rows = holdings(), res = [], ids = {}, bad = { type: [], nonstd: [], price: [], qty: [], date: [], sold: [], idDup: [], fx: [] }, T = J('fos_fx_v1', {}), base = 'INR'; try { base = portBaseCode(); } catch (e) { }
+    rows.forEach(function (e, i) {
+      var k = normalizeAssetType(e.assetType); if (!k || !ASSET_CATALOG[k]) bad.type.push(i); if (e.assetType !== k && ASSET_CATALOG[k]) bad.nonstd.push(i);
+      if (e.status !== 'sold' && !(Number(e.currentPrice) > 0) && !(Number(e.purchasePrice) > 0)) bad.price.push(i); else if (Number(e.currentPrice) < 0 || Number(e.purchasePrice) < 0) bad.price.push(i);
+      var q = Number(e.quantity); if (isQtyBased(k) && !(q > 0)) bad.qty.push(i);
+      if (!/^\d{4}-\d{2}-\d{2}$/.test(String(e.date || '')) || isNaN(Date.parse(e.date))) bad.date.push(i);
+      if (e.status === 'sold' && (!e.sellDate || !(Number(e.sellPrice) > 0))) bad.sold.push(i);
+      if (e.id == null || ids[e.id] != null) bad.idDup.push(i); else ids[e.id] = i;
+      var c = String(e.currency || '').toUpperCase(); if (c && c !== base && !(Number(T[c]) > 0) && !(Number(e.fxNow) > 0)) bad.fx.push(i);
+    });
+    [['type', 'Unrecognised asset class', 'bad', 'These holdings do not belong to any asset class, so they are left out of class totals.', null], ['nonstd', 'Asset class saved under an old or odd spelling', 'warn', 'Fix rewrites it to the standard class name.', 'norm'], ['price', 'No usable price', 'bad', 'Value is zero or negative. Edit the holding to add a price.', null], ['qty', 'Quantity missing on a unit-based holding', 'bad', 'Value is zero without a quantity. Edit the holding.', null], ['date', 'Missing or invalid purchase date', 'warn', 'Dates are needed for gains, tax and charts.', null], ['sold', 'Sold without a sell date or price', 'warn', 'Realised gains and tax cannot be worked out.', null], ['idDup', 'Missing or repeated id', 'warn', 'Editing one could change another. Fix gives each a fresh id.', 'ids'], ['fx', 'Foreign holding with no exchange rate', 'warn', 'Valued at its purchase rate until you set one in Currencies.', null]].forEach(function (d) { if (bad[d[0]].length) res.push({ id: d[0], label: d[1], sev: d[2], hint: d[3], fix: d[4], idx: bad[d[0]] }); });
+    return res;
+  }
+  function holdHtml() {
+    var by = {}, rows = holdings(); rows.forEach(function (e) { var k = normalizeAssetType(e.assetType) || 'Other', o = by[k] || (by[k] = { n: 0, sold: 0, inv: 0, cur: 0 }); if (e.status === 'sold') { o.sold++; return; } var c = calc(e); o.n++; o.inv += c.totalInvestment; o.cur += c.currentValue; });
+    var tot = Object.keys(by).reduce(function (s, k) { return s + by[k].cur; }, 0), keys = Object.keys(by).sort(function (a, b) { return by[b].cur - by[a].cur; });
+    var h = '<table class="adm-tbl"><thead><tr><th>Asset class</th><th>Active</th><th>Sold</th><th>Invested</th><th>Value</th><th>Return</th><th>Weight</th></tr></thead><tbody>' + (keys.map(function (k) { var o = by[k]; return '<tr><td><b>' + E(assetTypeLabel(k)) + '</b></td><td>' + o.n + '</td><td>' + o.sold + '</td><td>' + money(o.inv) + '</td><td>' + money(o.cur) + '</td><td>' + (o.inv > 0 ? ((o.cur - o.inv) / o.inv * 100).toFixed(1) + '%' : '—') + '</td><td>' + (tot > 0 ? pct(o.cur / tot * 100) : '—') + '</td></tr>'; }).join('') || '<tr><td colspan="7" class="adm-muted">No holdings yet.</td></tr>') + '</tbody></table>';
+    h += '<div class="adm-h" style="font-size:.9rem;margin-top:18px">Data check</div>' + scanHtml('hold');
+    return h;
+  }
+  function scanHtml(kind) {
+    var key = kind + 'Scan', res = S[key];
+    if (!res) return '<div class="adm-muted">Looks for records that quietly distort totals.</div><div class="adm-actions"><button type="button" class="adm-btn" data-pc="scan" data-kind="' + kind + '"><i class="fas fa-stethoscope"></i> Run check</button></div>';
+    var recs = kind === 'hold' ? holdings() : kind === 'loan' ? loans() : cards(), hard = res.filter(function (x) { return x.sev !== 'info'; });
+    return '<div class="dm-sum">' + (hard.length ? '<span class="rl-st fire">' + hard.length + ' kind' + (hard.length === 1 ? '' : 's') + ' of problem</span>' : '<span class="rl-st quiet">No problems found</span>') + ' <span class="adm-muted">' + recs.length + ' records checked</span></div>' +
+      res.map(function (is) {
+        var ex = is.idx.slice(0, 3).map(function (i) { var r = recs[i] || {}; return E(kind === 'hold' ? ((r.subType || r.subCategory || 'unnamed') + ' · ' + (assetTypeLabel(r.assetType) || '?') + ' · ' + (r.date || 'no date')) : kind === 'loan' ? ((r.lenderName || 'no name') + ' · ' + (r.type || '?') + ' · ' + money(Number(r.outstandingBalance) || 0)) : ((r.nickname || r.bankName || 'card') + ' ••••' + last4(r))); }).join('<br>');
+        return '<div class="dm-is ' + is.sev + '"><div class="dm-is-h"><b>' + E(is.label) + '</b> <span class="rl-st ' + (is.sev === 'bad' ? 'bad' : is.sev === 'warn' ? 'fire' : '') + '">' + is.idx.length + '</span><span class="fs-spacer"></span>' + (is.fix ? '<button type="button" class="adm-btn sm" data-pc="fix" data-kind="' + kind + '" data-id="' + is.id + '">' + ({ norm: 'Standardise', ids: 'Assign new ids', close: 'Mark closed', cap: 'Set used to limit', rmdup: 'Remove duplicates' }[is.fix] || 'Fix') + '</button>' : '') + '</div><div class="adm-muted">' + E(is.hint) + '</div><div class="dm-ex">' + ex + (is.idx.length > 3 ? '<br>…and ' + (is.idx.length - 3) + ' more' : '') + '</div></div>';
+      }).join('') + '<div class="adm-actions"><button type="button" class="adm-btn ghost sm" data-pc="scan" data-kind="' + kind + '">Run again</button></div>';
+  }
+
+  /* ── credit ─────────────────────────────────────────────────────────── */
+  function expired(c) { var m = String(c.expiry || '').match(/^(\d{1,2})\s*\/\s*(\d{2,4})$/); if (!m) return false; var y = +m[2]; if (y < 100) y += 2000; var end = new Date(y, +m[1], 0, 23, 59, 59); return end < new Date(); }
+  function scanCredit() {
+    var cd = cards(), ln = loans(), td = (function () { try { return localISO(); } catch (e) { return new Date().toISOString().slice(0, 10); } })(), cb = { over: [], nolimit: [], dup: [], exp: [] }, lb = { ended: [], zero: [], emi: [], prin: [], rate: [], name: [], dupl: [] }, seen = {}, seenL = {};
+    cd.forEach(function (c, i) { var l = Number(c.limit) || 0, u = Number(c.used) || 0; if (!(l > 0)) cb.nolimit.push(i); else if (u > l) cb.over.push(i); if (u < 0) cb.over.push(i); var k = (c.bankId || c.bankName) + '|' + last4(c); if (seen[k] != null && last4(c) !== '••••') cb.dup.push(i); else seen[k] = i; if (expired(c)) cb.exp.push(i); });
+    ln.forEach(function (l, i) { var act = l.status !== 'Closed', o = Number(l.outstandingBalance) || 0; if (!String(l.lenderName || '').trim()) lb.name.push(i); if (act && l.endDate && l.endDate < td) lb.ended.push(i); if (act && !(o > 0)) lb.zero.push(i); if (act && !(Number(l.monthlyEmi) > 0) && /loan|emi/i.test(l.type || '')) lb.emi.push(i); if (Number(l.principalAmount) > 0 && o > Number(l.principalAmount) * 1.0001) lb.prin.push(i); var r = Number(l.interestRate); if (act && (r < 0 || r > 60)) lb.rate.push(i); var k = [String(l.lenderName || '').trim().toLowerCase(), l.type, Number(l.principalAmount) || 0, l.startDate].join('|'); if (seenL[k] != null) lb.dupl.push(i); else seenL[k] = i; });
+    var c1 = [['nolimit', 'Card with no credit limit', 'bad', 'Utilisation cannot be worked out. Set the limit below.', null], ['over', 'Card used amount above its limit (or negative)', 'warn', 'Check the used amount below. Fix sets used to the limit.', 'cap'], ['dup', 'Same card added twice', 'warn', 'Same bank and last four digits. Fix keeps the first.', 'rmdup'], ['exp', 'Card past its expiry date', 'info', 'Not an error. Remove it if the card is closed.', null]].map(function (d) { return cb[d[0]].length ? { id: d[0], label: d[1], sev: d[2], hint: d[3], fix: d[4], idx: cb[d[0]] } : null; }).filter(Boolean);
+    var l1 = [['name', 'Loan with no lender name', 'warn', 'Hard to recognise in lists.', null], ['ended', 'Active loan whose end date has passed', 'warn', 'It is probably finished. Fix marks it Closed.', 'close'], ['zero', 'Active loan with nothing outstanding', 'warn', 'Fix marks it Closed.', 'close'], ['emi', 'Active loan with no monthly EMI', 'info', 'EMI load will be understated.', null], ['prin', 'Outstanding above the original amount', 'warn', 'Interest may be included, otherwise check the figures.', null], ['rate', 'Interest rate outside 0–60%', 'warn', 'Probably a typing slip.', null], ['dupl', 'Same loan added twice', 'warn', 'Same lender, type, amount and start date. Fix keeps the first.', 'rmdup']].map(function (d) { return lb[d[0]].length ? { id: d[0], label: d[1], sev: d[2], hint: d[3], fix: d[4], idx: lb[d[0]] } : null; }).filter(Boolean);
+    return { cards: c1, loans: l1 };
+  }
+  function creditHtml() {
+    var cd = cards(), ln = loans(), caut = C.get('score.cc.high'), crit = C.get('score.cc.crit');
+    var ch = '<div class="adm-h" style="font-size:.9rem">Credit cards</div><div class="adm-muted" style="margin-bottom:6px">Card numbers are never shown here, only the last four digits.</div><div class="adm-scroll"><table class="adm-tbl pc-ed"><thead><tr><th>Card</th><th>Limit</th><th>Used</th><th>Utilisation</th><th></th></tr></thead><tbody>' + (cd.map(function (c, i) {
+      var l = Number(c.limit) || 0, u = Number(c.used) || 0, p = l > 0 ? u / l * 100 : 0;
+      return '<tr><td><b>' + E(c.nickname || c.bankName || 'Card') + '</b><div class="adm-muted">' + E(c.bankName || '') + ' ••••' + E(last4(c)) + '</div></td><td><input type="number" class="set-input pc-n" min="0" step="1000" id="pc-cl-' + i + '" value="' + E(l) + '" aria-label="Limit"></td><td><input type="number" class="set-input pc-n" min="0" step="100" id="pc-cu-' + i + '" value="' + E(u) + '" aria-label="Used"></td><td><span class="rl-st ' + (p >= crit ? 'bad' : p >= caut ? 'fire' : 'quiet') + '">' + (l > 0 ? p.toFixed(0) + '%' : '—') + '</span></td><td class="tm-acts"><button type="button" class="adm-btn sm" data-pc="cardsave" data-i="' + i + '">Save</button><button type="button" class="adm-btn ghost sm danger" data-pc="carddel" data-i="' + i + '">Remove</button></td></tr>';
+    }).join('') || '<tr><td colspan="5" class="adm-muted">No cards added.</td></tr>') + '</tbody></table></div>' + scanHtml('card');
+    var lh = '<div class="adm-h" style="font-size:.9rem;margin-top:20px">Loans &amp; EMIs</div><div class="adm-scroll"><table class="adm-tbl pc-ed"><thead><tr><th>Loan</th><th>Outstanding</th><th>Rate %</th><th>EMI</th><th>Status</th><th></th></tr></thead><tbody>' + (ln.map(function (l, i) {
+      return '<tr><td><b>' + E(l.lenderName || 'Unnamed') + '</b><div class="adm-muted">' + E(l.type === 'Laon' ? 'Loan' : l.type || '') + (l.endDate ? ' · ends ' + E(l.endDate) : '') + '</div></td><td><input type="number" class="set-input pc-n" min="0" step="1000" id="pc-lo-' + i + '" value="' + E(Number(l.outstandingBalance) || 0) + '" aria-label="Outstanding"></td><td><input type="number" class="set-input pc-n" min="0" max="60" step="0.1" id="pc-lr-' + i + '" value="' + E(Number(l.interestRate) || 0) + '" aria-label="Rate"></td><td><input type="number" class="set-input pc-n" min="0" step="100" id="pc-le-' + i + '" value="' + E(Number(l.monthlyEmi) || 0) + '" aria-label="EMI"></td><td><select class="set-input" id="pc-ls-' + i + '" aria-label="Status"><option' + (l.status !== 'Closed' ? ' selected' : '') + '>Active</option><option' + (l.status === 'Closed' ? ' selected' : '') + '>Closed</option></select></td><td class="tm-acts"><button type="button" class="adm-btn sm" data-pc="loansave" data-i="' + i + '">Save</button><button type="button" class="adm-btn ghost sm danger" data-pc="loandel" data-i="' + i + '">Remove</button></td></tr>';
+    }).join('') || '<tr><td colspan="6" class="adm-muted">No loans added.</td></tr>') + '</tbody></table></div>' + scanHtml('loan');
+    return ch + lh;
+  }
+
+  /* ── shell ──────────────────────────────────────────────────────────── */
+  function body() { return S.sub === 'over' ? overHtml() : S.sub === 'rules' ? rulesHtml() : S.sub === 'alloc' ? allocHtml() : S.sub === 'fx' ? fxHtml() : S.sub === 'hold' ? holdHtml() : creditHtml(); }
+  function html() {
+    return '<div class="tm-wrap pc-wrap"><div class="tm-note" id="pc-note" role="status" aria-live="polite"></div><div class="set-card"><div class="adm-h">Portfolio &amp; credit <small>holdings, loans, cards and the rules around them</small></div><div class="tm-subs" role="tablist" aria-label="Portfolio and credit sections">' + SUBS.map(function (s) { return '<button type="button" role="tab" aria-selected="' + (S.sub === s[0]) + '" class="tm-subb' + (S.sub === s[0] ? ' on' : '') + '" data-pc="sub" data-s="' + s[0] + '">' + s[1] + '</button>'; }).join('') + '</div><div id="pc-body">' + body() + '</div></div></div>';
+  }
+  function repaint() { var b = $('pc-body'); if (!b) return; var op = Array.prototype.map.call(b.querySelectorAll('details'), function (d) { return d.open; }); b.innerHTML = body(); Array.prototype.forEach.call(b.querySelectorAll('details'), function (d, i) { if (op[i]) d.open = true; }); document.querySelectorAll('.pc-wrap .tm-subb').forEach(function (x) { var on = x.getAttribute('data-s') === S.sub; x.classList.toggle('on', on); x.setAttribute('aria-selected', on); }); var n = $('pc-note'); if (n) { n.textContent = S.msg; n.className = 'tm-note' + (S.bad ? ' bad' : ''); } }
+
+  /* ── actions ────────────────────────────────────────────────────────── */
+  function num(id) { var el = $(id); return el ? Number(el.value) : NaN; }
+  function readTargets() { var T = {}; document.querySelectorAll('.pc-tg').forEach(function (i) { var v = i.value.trim(); if (v !== '') T[i.getAttribute('data-k')] = Number(v); }); return T; }
+  function saveTargets(T, label) { run(label, function () { var bad = Object.keys(T).filter(function (k) { return !(T[k] >= 0 && T[k] <= 100); }); if (bad.length) return 'Targets must be between 0 and 100.'; setLs('fos_port_targets_v1', Object.keys(T).length ? T : null); }); }
+  function fixIssues(kind, id) {
+    var res = kind === 'hold' ? S.holdScan : S[kind + 'Scan'], is = (res || []).filter(function (x) { return x.id === id; })[0]; if (!is || !is.fix) return; var set = {}; is.idx.forEach(function (i) { set[i] = 1; });
+    if (kind === 'hold') {
+      if (is.fix === 'norm') return run('Standardised ' + is.idx.length + ' asset classes', function () { var out = holdings().map(function (e, i) { return set[i] ? Object.assign({}, e, { assetType: normalizeAssetType(e.assetType) }) : e; }); setLocalArray('portDb', out); });
+      if (is.fix === 'ids') return run('Gave ' + is.idx.length + ' holdings new ids', function () { var used = {}; holdings().forEach(function (e) { if (e.id != null) used[e.id] = 1; }); var nx = Date.now(); setLocalArray('portDb', holdings().map(function (e, i) { if (!set[i]) return e; var c = Object.assign({}, e); do { nx++; } while (used[nx]); used[nx] = 1; c.id = nx; return c; })); });
+    } else if (kind === 'loan') {
+      if (is.fix === 'close') { if (!confirm('Mark ' + is.idx.length + ' loan' + (is.idx.length === 1 ? '' : 's') + ' as Closed?')) return; return run('Marked ' + is.idx.length + ' loans closed', function () { setLocalArray('creditDb', loans().map(function (l, i) { return set[i] ? Object.assign({}, l, { status: 'Closed' }) : l; })); }); }
+      if (is.fix === 'rmdup') { if (!confirm('Remove ' + is.idx.length + ' duplicate loan' + (is.idx.length === 1 ? '' : 's') + ', keeping the first of each?')) return; return run('Removed ' + is.idx.length + ' duplicate loans', function () { setLocalArray('creditDb', loans().filter(function (l, i) { return !set[i]; })); }); }
+    } else if (kind === 'card') {
+      if (is.fix === 'cap') return run('Capped ' + is.idx.length + ' card balances at their limit', function () { setLocalArray('ccCards', cards().map(function (c, i) { if (!set[i]) return c; var l = Number(c.limit) || 0, u = Number(c.used) || 0; return Object.assign({}, c, { used: u < 0 ? 0 : Math.min(u, l) }); })); });
+      if (is.fix === 'rmdup') { if (!confirm('Remove ' + is.idx.length + ' duplicate card' + (is.idx.length === 1 ? '' : 's') + ', keeping the first of each?')) return; return run('Removed ' + is.idx.length + ' duplicate cards', function () { setLocalArray('ccCards', cards().filter(function (c, i) { return !set[i]; })); }); }
+    }
+  }
+  function onAction(a, b) {
+    var k = b.getAttribute('data-kind');
+    if (a === 'sub') { S.sub = b.getAttribute('data-s'); return repaint(); }
+    if (a === 'undo') return doUndo();
+    if (a === 'creset') { C.reset(b.getAttribute('data-p')); refreshApp(); repaint(); return say('Back to the default.'); }
+    if (a === 'taxreset') { if (!confirm('Reset every capital-gains tax rule to its default?')) return; var n = 0; C.SCHEMA().forEach(function (s) { if (/^tax\./.test(s.p) && C.isModified(s.p)) { C.reset(s.p); n++; } }); log('Reset tax rules (' + n + ')'); refreshApp(); repaint(); return say(n ? 'Tax rules reset.' : 'Already at defaults.'); }
+    if (a === 'scan') { if (k === 'hold') S.holdScan = scanHold(); else { var r = scanCredit(); S.cardScan = r.cards; S.loanScan = r.loans; } return repaint(); }
+    if (a === 'fix') return fixIssues(k, b.getAttribute('data-id'));
+    if (a === 'addcls') { var sel = $('pc-addcls'); if (!sel || !sel.value) return; var T = readTargets(); T[sel.value] = 0; return saveTargets(T, 'Added ' + assetTypeLabel(sel.value) + ' to targets'); }
+    if (a === 'tgmatch') { var mix = curMix(); if (!(mix.tot > 0)) return say('No active holdings to match.', true); var T2 = {}, run0 = 0, keys = Object.keys(mix.cur).sort(function (x, y) { return mix.cur[y] - mix.cur[x]; }); keys.forEach(function (x, i) { var v = i === keys.length - 1 ? 100 - run0 : Math.round(mix.cur[x] / mix.tot * 100); run0 += v; T2[x] = Math.max(0, v); }); return saveTargets(T2, 'Set targets to the current mix'); }
+    if (a === 'tgnorm') { var T3 = readTargets(), sum = Object.keys(T3).reduce(function (s, x) { return s + T3[x]; }, 0); if (!(sum > 0)) return say('Enter some targets first.', true); var ks = Object.keys(T3), acc = 0; ks.forEach(function (x, i) { var v = i === ks.length - 1 ? Math.round((100 - acc) * 10) / 10 : Math.round(T3[x] / sum * 1000) / 10; acc += v; T3[x] = v; }); return saveTargets(T3, 'Scaled targets to 100%'); }
+    if (a === 'tgclear') { if (!confirm('Clear every allocation target?')) return; return saveTargets({}, 'Cleared allocation targets'); }
+    if (a === 'csadd') { var cls = $('pc-cscls').value, nm = String($('pc-csname').value || '').trim(); if (!nm) return say('Type a name first.', true); return run('Added sub-category "' + nm + '"', function () { var st = J('fos_port_customsubs_v1', {}), arr = st[cls] || (st[cls] = []), hit = arr.filter(function (x) { return x.name.toLowerCase() === nm.toLowerCase(); })[0]; if (hit) { if (!hit.archived) return 'That sub-category already exists.'; hit.archived = false; } else if (ASSET_CATALOG[cls].subs.some(function (x) { return x.toLowerCase() === nm.toLowerCase(); })) return 'That is already a built-in sub-category.'; else arr.push({ id: Math.random().toString(36).slice(2, 9), name: nm, archived: false, prev: [] }); setLs('fos_port_customsubs_v1', st); }); }
+    if (a === 'csarc' || a === 'csdel') { var ck = b.getAttribute('data-k'), cid = b.getAttribute('data-id'), st = J('fos_port_customsubs_v1', {}), x = (st[ck] || []).filter(function (y) { return y.id === cid; })[0]; if (!x) return;
+      if (a === 'csarc') return run((x.archived ? 'Restored "' : 'Archived "') + x.name + '"', function () { x.archived = !x.archived; setLs('fos_port_customsubs_v1', st); });
+      var inUse = holdings().some(function (e) { return normalizeAssetType(e.assetType) === ck && String(e.subCategory || '').toLowerCase() === x.name.toLowerCase(); }); if (inUse) return say('"' + x.name + '" is used by holdings. Archive it instead.', true);
+      return run('Deleted sub-category "' + x.name + '"', function () { st[ck] = st[ck].filter(function (y) { return y.id !== cid; }); if (!st[ck].length) delete st[ck]; setLs('fos_port_customsubs_v1', st); }); }
+    if (a === 'fxset' || a === 'fxclear') { var code = b.getAttribute('data-c'); if (a === 'fxclear') return run('Cleared the ' + code + ' rate', function () { var t = J('fos_fx_v1', {}); delete t[code]; setLs('fos_fx_v1', t); holdings().forEach(function (e) { if (String(e.currency || '').toUpperCase() === code) delete e.fxNow; }); setLocalArray('portDb', holdings()); });
+      var inp = document.querySelector('.pc-fx[data-c="' + code + '"]'), rate = Number(inp && inp.value); if (!(rate > 0) || !isFinite(rate)) return say('Enter a rate above zero.', true); return run('Set ' + code + ' rate to ' + rate, function () { portSetFxRate(code, rate, true); setLocalArray('portDb', holdings()); }); }
+    if (a === 'cardsave') { var i = +b.getAttribute('data-i'), l = num('pc-cl-' + i), u = num('pc-cu-' + i); if (!(l > 0)) return say('Enter a credit limit above zero.', true); if (!(u >= 0)) return say('Used cannot be negative.', true); var warn = u > l ? ' The used amount is above the limit.' : ''; return run('Updated card ' + (cards()[i].nickname || cards()[i].bankName || '') + ' (limit ' + l + ', used ' + u + ')', function () { var out = cards().slice(); out[i] = Object.assign({}, out[i], { limit: l, used: u }); setLocalArray('ccCards', out); }); }
+    if (a === 'carddel') { var ci = +b.getAttribute('data-i'), cc = cards()[ci]; if (!cc || !confirm('Remove the card "' + (cc.nickname || cc.bankName) + '" ending ' + last4(cc) + '? You can undo this right after.')) return; return run('Removed card ' + (cc.nickname || cc.bankName), function () { setLocalArray('ccCards', cards().filter(function (_, j) { return j !== ci; })); }); }
+    if (a === 'loansave') { var li = +b.getAttribute('data-i'), o = num('pc-lo-' + li), r2 = num('pc-lr-' + li), em = num('pc-le-' + li), stt = $('pc-ls-' + li).value; if (!(o >= 0) || !(em >= 0)) return say('Amounts cannot be negative.', true); if (!(r2 >= 0 && r2 <= 60)) return say('Interest rate must be between 0 and 60.', true); return run('Updated loan ' + (loans()[li].lenderName || ''), function () { var out = loans().slice(), old = out[li], n = Object.assign({}, old, { outstandingBalance: o, interestRate: r2, monthlyEmi: em, status: stt }); if (Number(old.outstandingBalance) !== o) n.balanceAsOf = (function () { try { return localISO(); } catch (e) { return new Date().toISOString().slice(0, 10); } })(); out[li] = n; setLocalArray('creditDb', out); }); }
+    if (a === 'loandel') { var di = +b.getAttribute('data-i'), ld = loans()[di]; if (!ld || !confirm('Remove the loan "' + (ld.lenderName || 'Unnamed') + '"? You can undo this right after.')) return; return run('Removed loan ' + (ld.lenderName || ''), function () { setLocalArray('creditDb', loans().filter(function (_, j) { return j !== di; })); }); }
+  }
+  function onPref(inp) {
+    var k = inp.getAttribute('data-k'), v = inp.value.trim(); if (v !== '' && !(Number(v) >= 0)) { say('Enter zero or a positive number.', true); return; }
+    run((v === '' ? 'Cleared ' : 'Set ') + ({ fos_port_tgtband: 'tolerance', fos_port_tgtnew: 'new money', fos_pi_bench: 'benchmark' }[k]) + (v === '' ? '' : ' to ' + v), function () { setLs(k, v === '' ? null : v); });
+  }
+
+  /* ── events ─────────────────────────────────────────────────────────── */
+  function inTab(t) { return t && t.closest && t.closest('.pc-wrap'); }
+  function onClick(e) { var t = e.target; if (!inTab(t)) return; var b = t.closest('[data-pc]'); if (!b || b.disabled) return; try { onAction(b.getAttribute('data-pc'), b); } catch (x) { console.error(x); say('Something went wrong: ' + x.message, true); } }
+  function onChange(e) {
+    var t = e.target; if (!inTab(t)) return;
+    if (t.classList.contains('pc-cin')) { if (/^tax\./.test(t.getAttribute('data-p')) && t.type !== 'checkbox' && t.closest('.pc-tax')) { var te = $('pc-tax-e'); if (te) te.textContent = ''; var p = t.getAttribute('data-p'), v = Number(t.value), r = t.value === '' ? { ok: false, msg: 'Enter a number.' } : C.set(p, v); if (!r.ok) { if (te) te.textContent = (C.schemaOf(p).l) + ': ' + (r.msg || 'not allowed'); t.value = C.get(p); return; } log('Changed ' + p + ' to ' + v); refreshApp(); return say('Saved. Applied right away.'); } return setCfg(t); }
+    if (t.classList.contains('pc-tg')) { return saveTargets(readTargets(), 'Updated allocation targets'); }
+    if (t.classList.contains('pc-pref')) return onPref(t);
+  }
+  function onKey(e) { var t = e.target; if (!inTab(t) || e.key !== 'Enter') return; if (t.id === 'pc-csname') { e.preventDefault(); var b = document.querySelector('[data-pc="csadd"]'); if (b) onAction('csadd', b); } else if (t.classList.contains('pc-fx')) { e.preventDefault(); var fb = document.querySelector('[data-pc="fxset"][data-c="' + t.getAttribute('data-c') + '"]'); if (fb) onAction('fxset', fb); } }
+  function wire() { var r = $('adm-root'); if (!r || r.__pc) return; r.__pc = 1; r.addEventListener('click', onClick); r.addEventListener('change', onChange); r.addEventListener('keydown', onKey, true); }
+  function afterRender() { wire(); }
+
+  window.FOS_PORTCREDIT = { html: html, after: afterRender, scanHold: scanHold, scanCredit: scanCredit, totals: totals };
+  wire();
+})();
+</script>
 <script>
 /* ═══ PORTFOLIO INTELLIGENCE — allocation, concentration, XIRR/CAGR, realized vs unrealized, income, liquidity, risk score, history ═══ */
 (function () {
@@ -39984,7 +40276,7 @@ body.light-mode #adm-root{--fs-ok:#059669;--fs-bad:#dc2626;--fs-warn:#b45309}
   const LIQ = {Cash:1,Crypto:1,Stocks:3,ETFs:3,MutualFund:3,Gold:3,Silver:3,International:5,Bonds:7,FixedDeposit:30,RecurringDeposit:30,RealEstate:180,Retirement:365};
   const TIERS = [['Instant (≤3 days)',3,'#34d399'],['Short (≤30 days)',30,'#2dd4bf'],['Medium (≤6 months)',180,'#f59e0b'],['Locked (>6 months)',1e9,'#f43f5e']];
   let tab = 'class';
-  const bm = () => { const v = parseFloat(localStorage.getItem('fos_pi_bench')); return v >= 0 ? v : 12; };
+  const bm = () => { const v = parseFloat(localStorage.getItem('fos_pi_bench')); return v >= 0 ? v : FOSC('portfolio.benchmark'); };
   const pc = (n, d = 1) => (isFinite(n) ? (n >= 0 ? '+' : '') + n.toFixed(d) + '%' : '—');
   const cls = n => n >= 0 ? 'pi-up' : 'pi-dn';
   const num = (e, k) => Number(e.meta && e.meta[k]) || 0;
@@ -40087,7 +40379,7 @@ body.light-mode #adm-root{--fs-ok:#059669;--fs-bad:#dc2626;--fs-warn:#b45309}
   function targetsPanel(act, tot) {
     if (!(tot > 0)) return '';
     const T = tg(), cur = {}; act.forEach(r => cur[r.t] = (cur[r.t] || 0) + r.c.currentValue);
-    const band = parseFloat(localStorage.getItem('fos_port_tgtband')); const bd = band >= 0 ? band : 5, nm = Math.max(0, parseFloat(localStorage.getItem('fos_port_tgtnew')) || 0);
+    const band = parseFloat(localStorage.getItem('fos_port_tgtband')); const bd = band >= 0 ? band : FOSC('portfolio.targetBand'), nm = Math.max(0, parseFloat(localStorage.getItem('fos_port_tgtnew')) || 0);
     const keys = [...new Set(Object.keys(cur).concat(Object.keys(T)))].sort((a, b) => (cur[b] || 0) - (cur[a] || 0));
     const sumT = keys.reduce((s, k) => s + (Number(T[k]) || 0), 0), has = sumT > 0, T2 = tot + nm, short = {};
     let sh = 0; keys.forEach(k => { const d = Math.max(0, (Number(T[k]) || 0) / 100 * T2 - (cur[k] || 0)); short[k] = d; sh += d; });
