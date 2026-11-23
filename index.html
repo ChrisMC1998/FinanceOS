@@ -11,7 +11,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="fos-integrity" content="edbe827a756223b011e719a2124e5053796c435aae19de52c56276f9d14b63a3">
+<meta name="fos-integrity" content="106f2b314cf47e62ac5e9a1b2ca83f3478c7e7d50a7c522211125b22871daedf">
 <script id="fos-tamper-guard">
 /*! \u00a9 2026 MC Enterprise. Integrity check: detects a copy of this file that no longer matches the
     official release and locks it with a notice. This checks the FILE as served, not live memory --
@@ -528,7 +528,7 @@ function fosBrandRgba(a){return 'rgba('+fosBrandRgb()+','+a+')';}
   var SECRET = /(^|[_.-])(pin|hash|salt|token|secret|cred|credential|password|auth)([_.-]|$)|^sb-|^fos_users$|^fos_current_user$|^fos_pc_lock_|biometric|fos_admin_sess/i;
   var APPKEY = /^(fos_|financeOS_|pol_)/;
   var QUOTA = 5 * 1024 * 1024;
-  var SUBS = [['overview', 'Overview', 'fa-gauge'], ['console', 'Console', 'fa-terminal'], ['network', 'Network', 'fa-network-wired'], ['storage', 'Storage', 'fa-database'], ['config', 'Config & formulas', 'fa-sliders'], ['perf', 'Performance', 'fa-stopwatch'], ['switches', 'Switches', 'fa-toggle-on'], ['tools', 'Tools', 'fa-screwdriver-wrench']];
+  var SUBS = [['overview', 'Overview', 'fa-gauge'], ['health', 'Health', 'fa-heart-pulse'], ['cloud', 'Cloud & backend', 'fa-cloud'], ['timeline', 'Timeline', 'fa-timeline'], ['console', 'Console', 'fa-terminal'], ['network', 'Network', 'fa-network-wired'], ['storage', 'Storage', 'fa-database'], ['storageio', 'Storage I/O', 'fa-right-left'], ['runtime', 'Runtime', 'fa-microchip'], ['perf', 'Performance', 'fa-stopwatch'], ['data', 'Data quality', 'fa-clipboard-check'], ['state', 'State explorer', 'fa-sitemap'], ['config', 'Config & formulas', 'fa-sliders'], ['switches', 'Switches', 'fa-toggle-on'], ['tools', 'Tools', 'fa-screwdriver-wrench']];
 
   /* ── small helpers ─────────────────────────────────────────────────── */
   function E(s) { return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]; }); }
@@ -701,7 +701,8 @@ function fosBrandRgba(a){return 'rgba('+fosBrandRgb()+','+a+')';}
   function lsTotal() { return lsList(localStorage).reduce(function (s, x) { return s + x.size; }, 0); }
   function heap() { var m = performance && performance.memory; return m ? { used: m.usedJSHeapSize, total: m.totalJSHeapSize, limit: m.jsHeapSizeLimit } : null; }
   function counts() { var n = NET.filter(function (r) { return r.st === 0 || (r.st != null && r.st >= 400); }).length; return { errors: CNT.error, warns: CNT.warn, requests: NET.length, failed: n }; }
-  function bundle() {
+  function bundle() { var o = bundleBase(); try { if (window.FOS_DEVX) o.advanced = window.FOS_DEVX.bundleExtra(); } catch (e) { o.advanced = { error: String(e && e.message || e) }; } return o; }
+  function bundleBase() {
     var fl = J('fos_admin_flags_v1', null);
     return {
       app: 'FinanceOS', kind: 'debug-bundle', version: 1, createdAt: new Date().toISOString(), uptimeSec: Math.round((Date.now() - T0) / 1000),
@@ -899,7 +900,7 @@ function fosBrandRgba(a){return 'rgba('+fosBrandRgb()+','+a+')';}
 
   /* ── shell ─────────────────────────────────────────────────────────── */
   function body() {
-    switch (S.sub) { case 'console': return consoleHtml(); case 'network': return networkHtml(); case 'storage': return storageHtml(); case 'config': return configHtml(); case 'perf': return perfHtml(); case 'switches': return switchesHtml(); case 'tools': return toolsHtml(); default: return overviewHtml(); }
+    switch (S.sub) { case 'console': return consoleHtml(); case 'network': return networkHtml(); case 'storage': return storageHtml(); case 'config': return configHtml(); case 'perf': return perfHtml(); case 'switches': return switchesHtml(); case 'tools': return toolsHtml(); default: return (window.FOS_DEVX && window.FOS_DEVX.has(S.sub)) ? window.FOS_DEVX.html(S.sub) : overviewHtml(); }
   }
   function html() {
     return '<div class="tm-wrap dv-wrap"><div class="tm-note" id="dv-note" role="status" aria-live="polite"></div><div class="set-card"><div class="adm-h">Developer tools <small>inspect, debug and test the app</small></div>' +
@@ -911,6 +912,7 @@ function fosBrandRgba(a){return 'rgba('+fosBrandRgb()+','+a+')';}
     Array.prototype.forEach.call(document.querySelectorAll('.dv-wrap .tm-subb'), function (x) { var on = x.getAttribute('data-s') === S.sub; x.classList.toggle('on', on); x.setAttribute('aria-selected', on); });
     if (S.sub === 'console') { var l = $('dv-con-list'); if (l) l.scrollTop = l.scrollHeight; conRefresh(); }
     if (S.sub === 'storage') estimate();
+    if (window.FOS_DEVX && window.FOS_DEVX.has(S.sub)) { try { window.FOS_DEVX.wire(); window.FOS_DEVX.after(S.sub); } catch (e) { console.error('Developer tools section failed:', e); } }
     var n = $('dv-note'); if (n) { n.textContent = S.msg; n.className = 'tm-note' + (S.bad ? ' bad' : ''); }
   }
 
@@ -1003,7 +1005,7 @@ function fosBrandRgba(a){return 'rgba('+fosBrandRgb()+','+a+')';}
     if (t.id === 'dv-expr') { S.expr = t.value; var o = $('dv-expr-out'); if (o) o.innerHTML = exprResult(); }
   }
   function wire() { var r = $('adm-root'); if (!r || r.__dv) return; r.__dv = 1; r.addEventListener('click', onClick); r.addEventListener('change', onChange); r.addEventListener('input', onInput); }
-  function after() { wire(); hookCfg(); if (S.sub === 'console') { var l = $('dv-con-list'); if (l) { l.scrollTop = l.scrollHeight; conRefresh(); } } if (S.sub === 'storage') estimate(); }
+  function after() { wire(); hookCfg(); if (window.FOS_DEVX) { try { window.FOS_DEVX.wire(); if (window.FOS_DEVX.has(S.sub)) window.FOS_DEVX.after(S.sub); } catch (e) { console.error('Developer tools section failed:', e); } } if (S.sub === 'console') { var l = $('dv-con-list'); if (l) { l.scrollTop = l.scrollHeight; conRefresh(); } } if (S.sub === 'storage') estimate(); }
 
   /* live refresh for the tiles while they are on screen */
   setInterval(function () {
@@ -1014,10 +1016,543 @@ function fosBrandRgba(a){return 'rgba('+fosBrandRgb()+','+a+')';}
     var pt = $('dv-perf-tiles'); if (pt && pt.offsetParent !== null) pt.innerHTML = perfTiles();
   }, 1000);
 
-  window.FOS_DEVTOOLS = { html: html, after: after, apply: applyAll, bundle: bundle, logs: function () { return LOGS.slice(); }, network: function () { return NET.slice(); } };
+  window.FOS_DEVTOOLS = { html: html, after: after, apply: applyAll, bundle: bundle, logs: function () { return LOGS.slice(); }, network: function () { return NET.slice(); },
+    helpers: { E: E, $: $, J: J, put: put, safe: safe, pad: pad, clock: clock, bytes: bytes, dur: dur, active: active, isNode: isNode, fmt: fmt, tile: tile, copy: copy, download: download, say: say, logLine: logLine, cleanUrl: cleanUrl, shortUrl: shortUrl, lsList: lsList, heap: heap, counts: counts, selectorOf: selectorOf, SECRET: SECRET, APPKEY: APPKEY, QUOTA: QUOTA, sim: SIM,
+      fps: function () { return F.fps; }, net: function () { return NET; }, logs: function () { return LOGS; }, lt: function () { return LT; }, repaint: repaint } };
   function boot() { applyAll(); hookCfg(); wire(); }
   if (document.body) boot(); else document.addEventListener('DOMContentLoaded', boot);
   window.addEventListener('load', function () { applyAll(); wire(); });
+})();
+</script>
+<style id="fos-devtools-pro-style">
+.dv-wrap .dx-trends{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:10px;margin-bottom:12px}
+.dv-wrap .dx-tr{border:1px solid var(--adm-line);border-radius:10px;padding:8px 10px}.dv-wrap .dx-tr span{display:block;font-size:.66rem;font-weight:700;text-transform:uppercase;letter-spacing:.04em;color:var(--text-muted)}.dv-wrap .dx-tr b{font-size:1rem}.dv-wrap .dx-tr svg{display:block;margin-top:4px}.dv-wrap .dx-tr svg polyline{stroke:var(--adm-a,#20CDB5)}
+.dv-wrap .dx-tl .dv-lv{width:62px}.dv-wrap .dx-tl .dv-ln.net .dv-lv,.dv-wrap .dx-tl .dv-ln.cloud .dv-lv{color:var(--adm-a,#20CDB5)}.dv-wrap .dx-tl .dv-ln.slow .dv-lv,.dv-wrap .dx-tl .dv-ln.storage .dv-lv{color:var(--fs-warn,#fbbf24)}
+.dv-wrap .dx-probe{display:flex;gap:10px;align-items:center;padding:8px 10px;border:1px solid var(--adm-line);border-radius:10px;margin:6px 0;flex-wrap:wrap}.dv-wrap .dx-probe>div{flex:1;min-width:180px}.dv-wrap .dx-probe small{display:block;color:var(--text-muted);font-size:.72rem;overflow-wrap:anywhere}
+.dv-wrap .dx-bars{display:flex;align-items:flex-end;gap:2px;height:46px;margin:6px 0}.dv-wrap .dx-bars i{flex:1;min-width:3px;border-radius:2px 2px 0 0;background:var(--adm-a,#20CDB5)}.dv-wrap .dx-bars i.w{background:var(--fs-warn,#fbbf24)}.dv-wrap .dx-bars i.b{background:var(--fs-bad,#f87171)}
+.dv-wrap .dx-path{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:8px}.dv-wrap .dx-path .set-input{flex:1;min-width:220px;font-family:'DM Mono',monospace}
+.dv-wrap .dx-link{border:0;background:none;color:var(--adm-a,#20CDB5);cursor:pointer;font:inherit;font-family:'DM Mono',monospace;padding:0;text-align:left;word-break:break-all}.dv-wrap .dx-link:hover{text-decoration:underline}
+</style>
+<script id="fos-devtools-pro">
+/* ═══════════════════════════════════════════════════════════════════════
+   FOS ADMIN · DEVELOPER TOOLS (ADVANCED)
+     Health · Cloud · Timeline · Storage I/O · Runtime · Data quality · State explorer
+     Observation only. Hooks count timers, listeners and storage writes; they never change what
+     the app does, never record values, and add no network traffic of their own except the
+     probes you start by hand in the Cloud tab (or the optional 15 s monitor).
+   ═══════════════════════════════════════════════════════════════════════ */
+(function () {
+  'use strict';
+  if (window.FOS_DEVX) return;
+  var D = window.FOS_DEVTOOLS; if (!D || !D.helpers) return;
+  var H = D.helpers, E = H.E, $ = H.$, safe = H.safe, bytes = H.bytes, tile = H.tile, clock = H.clock, dur = H.dur, pad = H.pad, J = H.J;
+  var IDS = ['health', 'cloud', 'timeline', 'storageio', 'runtime', 'data', 'state'];
+  var MASK = /(token|secret|passw|apikey|api_key|anon|jwt|refresh|hash|salt|credential|authorization|bearer|cookie|(^|[_.-])pin($|[_.-])|(^|[_.-])key$|[a-z]Key$)/;
+  var si = window.setInterval, ci = window.clearInterval, st = window.setTimeout, ct = window.clearTimeout;
+  function arr(a) { return Array.prototype.slice.call(a); }
+  function sev(c) { return c === 'bad' ? 'fa-circle-xmark' : c === 'warn' ? 'fa-triangle-exclamation' : c === 'info' ? 'fa-circle-info' : 'fa-circle-check'; }
+
+  /* ═══ HOOKS ═══════════════════════════════════════════════════════════ */
+  /* timers: who is running in the background, how often, and how much time they cost */
+  var TM = { iv: {}, ivMade: 0, to: 0, fired: 0 }, PT = {};
+  function site() { try { var ls = (new Error()).stack.split('\n'); for (var i = 3; i < ls.length; i++) { var m = ls[i].match(/(?:at\s+([^\s(]+)\s+\()?[^()]*?:(\d+):(\d+)\)?\s*$/); if (m) return (m[1] && m[1] !== 'new' ? m[1] + ' ' : '') + 'line ' + m[2]; } } catch (e) { } return ''; }
+  window.setInterval = function (fn, d) {
+    var a = arr(arguments), rec = { d: +d || 0, t: Date.now(), site: site(), n: 0, ms: 0, max: 0 };
+    if (typeof fn === 'function') a[0] = function () { var t0 = performance.now(); try { return fn.apply(this, arguments); } finally { var x = performance.now() - t0; rec.n++; rec.ms += x; if (x > rec.max) rec.max = x; } };
+    var id = si.apply(window, a); try { TM.iv[id] = rec; TM.ivMade++; } catch (e) { } return id;
+  };
+  window.clearInterval = function (id) { try { delete TM.iv[id]; } catch (e) { } return ci.apply(window, arguments); };
+  window.setTimeout = function (fn, d) {
+    var a = arr(arguments), id, tracked = typeof fn === 'function';
+    if (tracked) a[0] = function () { delete PT[id]; TM.fired++; return fn.apply(this, arguments); };
+    id = st.apply(window, a); if (tracked) { PT[id] = 1; TM.to++; } return id;
+  };
+  window.clearTimeout = function (id) { try { delete PT[id]; } catch (e) { } return ct.apply(window, arguments); };
+
+  /* event listeners (approximate: counts registrations, not unique targets) */
+  var LS = { add: 0, rem: 0, types: {}, hist: [] };
+  (function () {
+    var P = EventTarget.prototype, ae = P.addEventListener, re = P.removeEventListener;
+    if (ae.__dvx) return;
+    P.addEventListener = function (type, fn, opt) { try { if (!(opt && typeof opt === 'object' && opt.once)) { LS.add++; LS.types[type] = (LS.types[type] || 0) + 1; } } catch (e) { } return ae.apply(this, arguments); };
+    P.removeEventListener = function (type) { try { LS.rem++; if (LS.types[type] > 0) LS.types[type]--; } catch (e) { } return re.apply(this, arguments); };
+    P.addEventListener.__dvx = 1;
+  })();
+  function lsCount() { return Math.max(0, LS.add - LS.rem); }
+
+  /* storage writes: which keys are written, how often, how big, did any write fail */
+  var SW = { w: 0, r: 0, q: 0, bytes: 0, keys: {}, ev: [], ts: [] };
+  function swEv(m) { SW.ev.unshift({ t: Date.now(), m: m }); if (SW.ev.length > 60) SW.ev.length = 60; }
+  (function () {
+    var sp = Storage.prototype, so = sp.setItem, ro = sp.removeItem;
+    if (so.__dvx) return;
+    var skip = /^fos_admin_dev|^fos_admin_sess/;
+    sp.setItem = function (k, v) {
+      var loc = false, b = 0; try { loc = this === localStorage; } catch (e) { }
+      try {
+        if (loc && !skip.test(k)) {
+          b = (String(k).length + String(v).length) * 2; SW.w++; SW.bytes += b;
+          var r = SW.keys[k] || (Object.keys(SW.keys).length < 300 ? (SW.keys[k] = { n: 0, bytes: 0, last: 0, first: b, cur: b, max: 0 }) : null);
+          if (r) { r.n++; r.bytes += b; r.last = Date.now(); r.cur = b; if (b > r.max) r.max = b; }
+          SW.ts.push(Date.now()); if (SW.ts.length > 400) SW.ts.shift();
+          if (b > 262144) swEv('Large write: ' + k + ' (' + bytes(b) + ')');
+        }
+      } catch (e) { }
+      try { return so.apply(this, arguments); } catch (e) { if (loc) { SW.q++; swEv('WRITE FAILED (' + (e && e.name || 'error') + '): ' + k + ' (' + bytes(b) + ')'); } throw e; }
+    };
+    sp.setItem.__dvx = 1;
+    sp.removeItem = function (k) { try { if (this === localStorage && !skip.test(k)) SW.r++; } catch (e) { } return ro.apply(this, arguments); };
+  })();
+  function wpm() { var n = Date.now() - 60000, c = 0; for (var i = SW.ts.length - 1; i >= 0 && SW.ts[i] >= n; i--) c++; return c; }
+
+  /* app-level hooks: cloud status pill + view switches (wrapped only after the app defines them) */
+  var CS = [], VW = [], SLOW = [];
+  function wrapFn(name, make) {
+    var o = window[name]; if (typeof o !== 'function' || o.__dvx) return; var w = make(o);
+    Object.keys(o).forEach(function (k) { w[k] = o[k]; }); w.__dvx = 1; w.__orig = o; window[name] = w;
+  }
+  function hookApp() {
+    wrapFn('setCloudStatus', function (o) { return function (s) { try { CS.unshift({ t: Date.now(), s: String(s) }); if (CS.length > 60) CS.length = 60; } catch (e) { } return o.apply(this, arguments); }; });
+    wrapFn('switchView', function (o) { return function (v) { var t0 = performance.now(); try { return o.apply(this, arguments); } finally { try { var ms = Math.round(performance.now() - t0); VW.unshift({ t: Date.now(), v: String(v), ms: ms }); if (VW.length > 80) VW.length = 80; if (ms > 250) SLOW.unshift({ t: Date.now(), m: 'Opening "' + v + '" took ' + ms + ' ms' }); } catch (e) { } } }; });
+  }
+  hookApp(); st(hookApp, 1500); st(hookApp, 4000); window.addEventListener('load', function () { hookApp(); st(hookApp, 500); });
+
+  /* render profiler (optional): times the app's global render/refresh/update functions */
+  var PR = { on: false, fns: {}, wrapped: [], since: 0 };
+  function profStart() {
+    if (PR.on) return; PR.on = true; PR.since = Date.now(); PR.fns = {}; PR.wrapped = [];
+    Object.getOwnPropertyNames(window).forEach(function (n) {
+      if (!/^(render|refresh|update|draw|calc|compute|build)[A-Z_]/.test(n)) return;
+      var o; try { o = window[n]; } catch (e) { return; } if (typeof o !== 'function' || o.__dvp || /\[native code\]/.test(Function.prototype.toString.call(o))) return;
+      var w = function () {
+        var t0 = performance.now(); try { return o.apply(this, arguments); } finally {
+          var d = performance.now() - t0, r = PR.fns[n] || (PR.fns[n] = { n: 0, ms: 0, max: 0, last: 0 }); r.n++; r.ms += d; r.last = d; if (d > r.max) r.max = d;
+          if (d > 50) { SLOW.unshift({ t: Date.now(), m: n + '() took ' + Math.round(d) + ' ms' }); if (SLOW.length > 80) SLOW.length = 80; }
+        }
+      };
+      Object.keys(o).forEach(function (k) { try { w[k] = o[k]; } catch (e) { } }); w.__dvp = 1; w.__orig = o;
+      try { window[n] = w; PR.wrapped.push(n); } catch (e) { }
+    });
+  }
+  function profStop() { PR.on = false; PR.wrapped.forEach(function (n) { try { var w = window[n]; if (w && w.__dvp && w.__orig) window[n] = w.__orig; } catch (e) { } }); PR.wrapped = []; }
+
+  /* DOM activity monitor (optional) */
+  var MO = { on: false, obs: null, n: 0, per: [], top: {}, since: 0, cur: 0 };
+  function moStart() {
+    if (MO.on || !window.MutationObserver) return; MO.on = true; MO.n = 0; MO.top = {}; MO.per = []; MO.cur = 0; MO.since = Date.now();
+    MO.obs = new MutationObserver(function (list) {
+      MO.n += list.length; MO.cur += list.length;
+      for (var i = 0; i < list.length && i < 40; i++) { var t = list[i].target; if (t && t.nodeType === 3) t = t.parentElement; if (!t || !t.nodeType || (t.closest && t.closest('#adm-root'))) continue; var k = H.selectorOf(t); MO.top[k] = (MO.top[k] || 0) + 1; }
+    });
+    MO.obs.observe(document.documentElement, { childList: true, subtree: true, attributes: true, characterData: true });
+  }
+  function moStop() { MO.on = false; try { MO.obs.disconnect(); } catch (e) { } MO.obs = null; }
+
+  /* once-a-second sampler for the trend lines */
+  var SER = { fps: [], heap: [], dom: [], lst: [], pend: [], wr: [] };
+  function push(k, v) { var a = SER[k]; a.push(v); if (a.length > 120) a.shift(); }
+  si.call(window, function () {
+    if (document.hidden) return;
+    var h = H.heap(); if (H.fps() != null) push('fps', H.fps()); push('heap', h ? h.used / 1048576 : 0); push('dom', document.getElementsByTagName('*').length);
+    push('lst', lsCount()); push('pend', Object.keys(PT).length); push('wr', wpm());
+    if (MO.on) { MO.per.push(MO.cur); MO.cur = 0; if (MO.per.length > 60) MO.per.shift(); }
+    if (SER.lst.length % 10 === 0) { LS.hist.push({ t: Date.now(), n: lsCount() }); if (LS.hist.length > 30) LS.hist.shift(); }
+  }, 1000);
+
+  /* ═══ SHARED RENDER HELPERS ═══════════════════════════════════════════ */
+  function spark(a) {
+    if (a.length < 2) return '<div class="adm-muted">collecting…</div>';
+    var w = 160, h = 36, mn = Math.min.apply(null, a), mx = Math.max.apply(null, a); if (mx === mn) mx = mn + 1;
+    return '<svg viewBox="0 0 160 36" width="100%" height="36" preserveAspectRatio="none" aria-hidden="true"><polyline fill="none" stroke-width="1.6" points="' + a.map(function (v, i) { return (i / (a.length - 1) * w).toFixed(1) + ',' + (h - 2 - (v - mn) / (mx - mn) * (h - 4)).toFixed(1); }).join(' ') + '"/></svg>';
+  }
+  function trend(label, a, f) { var last = a.length ? a[a.length - 1] : null; return '<div class="dx-tr"><span>' + E(label) + '</span><b>' + (last == null ? '—' : E(f ? f(last) : last)) + '</b>' + spark(a) + '</div>'; }
+  function pill(c, t) { return '<span class="rl-st ' + (c === 'ok' ? 'quiet' : c === 'bad' ? 'bad' : 'fire') + '">' + E(t) + '</span>'; }
+  function now() { return Date.now(); }
+  function ago(t) { var s = Math.max(0, Math.round((now() - t) / 1000)); return s < 60 ? s + 's ago' : s < 3600 ? Math.round(s / 60) + 'm ago' : s < 86400 ? Math.round(s / 3600) + 'h ago' : Math.round(s / 86400) + 'd ago'; }
+  function g(name) { try { switch (name) { case 'db': return typeof db === 'undefined' ? undefined : db; case 'portDb': return typeof portDb === 'undefined' ? undefined : portDb; case 'charts': return typeof charts === 'undefined' ? undefined : charts; case 'activeView': return typeof activeView === 'undefined' ? undefined : activeView; case 'cloudSession': return typeof cloudSession === 'undefined' ? undefined : cloudSession; case 'sb': return typeof sb === 'undefined' ? undefined : sb; } } catch (e) { } return undefined; }
+  function sbUrl() { try { return typeof SUPABASE_URL === 'undefined' ? '' : SUPABASE_URL; } catch (e) { return ''; } }
+  function sbKey() { try { return typeof SUPABASE_ANON_KEY === 'undefined' ? '' : SUPABASE_ANON_KEY; } catch (e) { return ''; } }
+
+  /* ═══ CLOUD ═══════════════════════════════════════════════════════════ */
+  var CL = { probes: null, at: 0, hist: [], series: null, tables: null, busy: '', mon: null, monOn: false };
+  function req(name, url, init, note) {
+    var t0 = performance.now(), ctl = new AbortController(), to = st(function () { ctl.abort(); }, 8000); init = init || {}; init.signal = ctl.signal;
+    return fetch(url, init).then(function (r) { ct(to); var opaque = r.type === 'opaque'; return { name: name, status: r.status, ms: Math.round(performance.now() - t0), ok: opaque || (r.status > 0 && r.status < 500), opaque: opaque, note: note || '' }; },
+      function (e) { ct(to); return { name: name, status: 0, ms: Math.round(performance.now() - t0), ok: false, note: (e && e.name === 'AbortError') ? 'timed out after 8 s' : String(e && e.message || e) }; });
+  }
+  function probes() {
+    var u = sbUrl(), k = sbKey(), sess = g('cloudSession'), L = [];
+    if (u && k) {
+      L.push(req('Backend REST API', u + '/rest/v1/', { headers: { apikey: k }, cache: 'no-store' }));
+      L.push(req('Auth service', u + '/auth/v1/health', { headers: { apikey: k }, cache: 'no-store' }));
+      if (sess && sess.access_token) L.push(req('Your sign-in session', u + '/auth/v1/user', { headers: { apikey: k, Authorization: 'Bearer ' + sess.access_token }, cache: 'no-store' }));
+    }
+    [['Exchange-rate service', 'https://open.er-api.com/v6/latest/INR'], ['jsDelivr CDN (Chart.js, Supabase)', 'https://cdn.jsdelivr.net/npm/chart.js'], ['cdnjs (icons)', 'https://cdnjs.cloudflare.com/'], ['Google Fonts', 'https://fonts.googleapis.com/'], ['TradingView widgets', 'https://s3.tradingview.com/']].forEach(function (x) { L.push(req(x[0], x[1], { method: 'HEAD', mode: 'no-cors', cache: 'no-store' }, 'reachability only')); });
+    return Promise.all(L);
+  }
+  function runProbes() {
+    if (CL.busy) return; CL.busy = 'probes'; cloudRefresh();
+    return probes().then(function (r) {
+      CL.probes = r; CL.at = now(); r.forEach(function (x) { if (/^(Backend|Auth)/.test(x.name)) pushHist(x); }); CL.busy = ''; cloudRefresh();
+    });
+  }
+  function pushHist(x) { CL.hist.push({ t: now(), ms: x.ms, ok: x.ok }); if (CL.hist.length > 80) CL.hist.shift(); }
+  function runSeries() {
+    var u = sbUrl(), k = sbKey(); if (!u || !k || CL.busy) return; CL.busy = 'series'; CL.series = { res: [], n: 10 }; cloudRefresh();
+    var i = 0; (function next() {
+      if (i >= 10) { CL.busy = ''; return cloudRefresh(); }
+      req('ping', u + '/auth/v1/health', { headers: { apikey: k }, cache: 'no-store' }).then(function (r) { CL.series.res.push(r); pushHist(r); i++; cloudRefresh(); st(next, 250); });
+    })();
+  }
+  function runTables() {
+    var sbc = g('sb'), sess = g('cloudSession'); if (!sbc || !sess || CL.busy) return; CL.busy = 'tables'; cloudRefresh();
+    var T = ['budgets', 'user_kv', 'notification_preferences', 'notification_queue', 'push_subscriptions', 'support_tickets', 'support_replies'];
+    Promise.all(T.map(function (t) {
+      var t0 = performance.now();
+      try { return Promise.resolve(sbc.from(t).select('*', { count: 'exact', head: true })).then(function (r) { return { t: t, ms: Math.round(performance.now() - t0), ok: !r.error, count: r.count, err: r.error ? (r.error.message || r.error.code || 'error') : '' }; }, function (e) { return { t: t, ms: Math.round(performance.now() - t0), ok: false, err: String(e && e.message || e) }; }); } catch (e) { return Promise.resolve({ t: t, ms: 0, ok: false, err: String(e.message || e) }); }
+    })).then(function (r) { CL.tables = { at: now(), rows: r }; CL.busy = ''; cloudRefresh(); });
+  }
+  function monitor(on) {
+    CL.monOn = on; if (CL.mon) { ci.call(window, CL.mon); CL.mon = null; }
+    if (on) { var tick = function () { var u = sbUrl(), k = sbKey(); if (u && k && !document.hidden) req('monitor', u + '/auth/v1/health', { headers: { apikey: k }, cache: 'no-store' }).then(function (r) { pushHist(r); cloudRefresh(); }); }; tick(); CL.mon = si.call(window, tick, 15000); }
+  }
+  function lat() { var a = CL.hist.filter(function (x) { return x.ok; }).map(function (x) { return x.ms; }); if (!a.length) return null; var s = a.slice().sort(function (x, y) { return x - y; }), avg = a.reduce(function (p, c) { return p + c; }, 0) / a.length, sd = Math.sqrt(a.reduce(function (p, c) { return p + (c - avg) * (c - avg); }, 0) / a.length); return { n: a.length, min: s[0], max: s[s.length - 1], avg: Math.round(avg), p95: s[Math.min(s.length - 1, Math.floor(s.length * .95))], jitter: Math.round(sd), loss: CL.hist.length - a.length, total: CL.hist.length }; }
+  function sessionInfo() {
+    var s = g('cloudSession'), tr = null; try { tr = typeof isCloudTrackingOn === 'function' ? isCloudTrackingOn() : null; } catch (e) { }
+    var exp = s && s.expires_at ? s.expires_at * 1000 : null, ls = H.J('fos_last_cloud_sync', null);
+    var lsRaw = null; try { lsRaw = localStorage.getItem('fos_last_cloud_sync'); } catch (e) { }
+    return { signedIn: !!s, user: s && s.user && s.user.id ? String(s.user.id).slice(0, 8) + '…' : '', exp: exp, tracking: tr, lastSync: lsRaw ? Date.parse(lsRaw) : null, client: !!g('sb'), url: sbUrl() };
+  }
+  function cloudTiles() {
+    var i = sessionInfo(), l = lat(), last = CS[0];
+    return tile('Connection', navigator.onLine ? 'Online' : 'Offline', H.sim.offline ? 'simulated offline is ON' : 'browser reports', navigator.onLine && !H.sim.offline ? '' : 'warn') + tile('Cloud account', i.signedIn ? 'Signed in' : 'Signed out', i.signedIn ? 'user ' + i.user : 'local data only', i.signedIn ? '' : 'warn') +
+      tile('Session', i.exp ? (i.exp > now() ? 'expires in ' + dur(i.exp - now()) : 'expired') : '—', i.exp && i.exp < now() ? 'will refresh on next request' : 'token auto-refreshes', i.exp && i.exp < now() ? 'warn' : '') +
+      tile('Last sync', i.lastSync && isFinite(i.lastSync) ? ago(i.lastSync) : 'never', i.tracking === false ? 'manual JSON mode' : i.tracking ? 'cloud tracking on' : '') + tile('Sync status', last ? last.s : '—', last ? ago(last.t) : 'no change seen this session', last && last.s === 'error' ? 'warn' : '') +
+      tile('Latency', l ? l.avg + ' ms' : '—', l ? 'p95 ' + l.p95 + ' ms · ' + l.total + ' samples' : 'run a check', l && l.avg > 800 ? 'warn' : '');
+  }
+  function probeRows() {
+    if (!CL.probes) return '<div class="adm-muted">No connectivity check run yet. Press “Run connectivity check”.</div>';
+    return CL.probes.map(function (x) {
+      var c = !x.ok ? 'bad' : (x.ms > 1500 ? 'warn' : 'ok'), txt = !x.ok ? 'Unreachable' : x.opaque ? 'Reachable' : 'Reachable · HTTP ' + x.status;
+      if (x.name === 'Your sign-in session') { c = x.status === 200 ? 'ok' : (x.status === 401 || x.status === 403) ? 'warn' : c; txt = x.status === 200 ? 'Session accepted' : (x.status === 401 || x.status === 403) ? 'Session rejected (HTTP ' + x.status + ')' : txt; }
+      if (x.name === 'Auth service' && x.ok && x.status !== 200) { c = 'warn'; }
+      return '<div class="dx-probe"><div><b>' + E(x.name) + '</b><small>' + E(x.note || (x.ok ? '' : 'no response')) + '</small></div>' + pill(c, txt) + '<span class="adm-muted" style="min-width:60px;text-align:right">' + x.ms + ' ms</span></div>';
+    }).join('') + '<div class="adm-muted">Checked ' + ago(CL.at) + '. Third-party hosts are tested for reachability only (the browser hides their response).</div>';
+  }
+  function bars(a) { if (!a.length) return ''; var mx = Math.max.apply(null, a.map(function (x) { return x.ms; }).concat([100])); return '<div class="dx-bars" role="img" aria-label="Latency history">' + a.map(function (x) { return '<i class="' + (!x.ok ? 'b' : x.ms > 800 ? 'w' : '') + '" style="height:' + Math.max(6, Math.round((x.ok ? x.ms : mx) / mx * 100)) + '%" title="' + (x.ok ? x.ms + ' ms' : 'failed') + '"></i>'; }).join('') + '</div>'; }
+  function cloudBody() {
+    var l = lat(), i = sessionInfo(), busy = CL.busy, off = !i.url;
+    var tb = CL.tables ? '<div class="adm-scroll" style="max-height:none"><table class="adm-tbl"><thead><tr><th>Table</th><th>Access</th><th class="n">Rows (yours)</th><th class="n">Time</th></tr></thead><tbody>' + CL.tables.rows.map(function (r) { return '<tr><td class="dv-key">' + E(r.t) + '</td><td class="' + (r.ok ? 'dv-g' : 'dv-r') + '">' + (r.ok ? 'OK' : E(r.err || 'failed')) + '</td><td class="n">' + (r.count == null ? '—' : r.count) + '</td><td class="n">' + r.ms + ' ms</td></tr>'; }).join('') + '</tbody></table></div><div class="adm-muted">Counts are head-only queries limited to your own rows by row-level security. Checked ' + ago(CL.tables.at) + '.</div>' : '<div class="adm-muted">Reads each cloud table the app uses (count only, no data) to confirm your account can reach it. Needs a signed-in session.</div>';
+    var ser = '';
+    if (CL.series) { var rs = CL.series.res, ok = rs.filter(function (r) { return r.ok; }).map(function (r) { return r.ms; }); ser = bars(rs) + '<div class="adm-muted">' + rs.length + ' of 10 pings' + (ok.length ? ' · min ' + Math.min.apply(null, ok) + ' ms · avg ' + Math.round(ok.reduce(function (a, b) { return a + b; }, 0) / ok.length) + ' ms · max ' + Math.max.apply(null, ok) + ' ms' : '') + ' · ' + (rs.length - ok.length) + ' lost</div>'; }
+    return '<div class="tm-tiles" id="dx-cloud-tiles">' + cloudTiles() + '</div>' +
+      (off ? '<div class="dv-warn">The cloud address could not be read from the app, so backend checks are unavailable.</div>' : '') +
+      '<div class="adm-actions" style="margin:0 0 10px"><button type="button" class="adm-btn" data-dx="probes"' + (busy || off ? ' disabled' : '') + '><i class="fas fa-satellite-dish"></i> ' + (busy === 'probes' ? 'Checking…' : 'Run connectivity check') + '</button><button type="button" class="adm-btn ghost" data-dx="series"' + (busy || off ? ' disabled' : '') + '><i class="fas fa-wave-square"></i> ' + (busy === 'series' ? 'Pinging…' : 'Ping ×10') + '</button><button type="button" class="adm-btn ghost" data-dx="tables"' + (busy || !i.signedIn ? ' disabled' : '') + '><i class="fas fa-table"></i> ' + (busy === 'tables' ? 'Checking…' : 'Check cloud tables') + '</button><label class="dv-chip"><input type="checkbox" data-dx-mon' + (CL.monOn ? ' checked' : '') + '> Monitor every 15 s</label></div>' +
+      '<div class="adm-h" style="font-size:.9rem">Connectivity</div><div id="dx-probes">' + probeRows() + '</div>' +
+      '<div class="dv-two"><div><div class="adm-h" style="font-size:.9rem;margin-top:14px">Latency to the backend <small>' + (l ? l.total + ' samples' : 'no samples yet') + '</small></div>' + (CL.hist.length ? bars(CL.hist.slice(-40)) : '') +
+      (l ? '<table class="adm-tbl dv-kv"><tbody><tr><td>Fastest / average / slowest</td><td>' + l.min + ' / ' + l.avg + ' / ' + l.max + ' ms</td></tr><tr><td>95th percentile</td><td>' + l.p95 + ' ms</td></tr><tr><td>Jitter (std. deviation)</td><td>' + l.jitter + ' ms</td></tr><tr><td>Failed requests</td><td>' + l.loss + ' of ' + l.total + '</td></tr></tbody></table>' : '<div class="adm-muted">Run a check or a ping series to collect samples.</div>') + ser + '</div>' +
+      '<div><div class="adm-h" style="font-size:.9rem;margin-top:14px">Cloud tables</div>' + tb + '</div></div>' +
+      '<div class="adm-h" style="font-size:.9rem;margin-top:16px">Sync status history <small>this session</small></div>' + (CS.length ? '<div class="adm-scroll"><table class="adm-tbl"><tbody>' + CS.slice(0, 20).map(function (c) { return '<tr><td class="n">' + clock(c.t).slice(0, 8) + '</td><td class="' + (c.s === 'error' ? 'dv-r' : c.s === 'offline' ? 'dv-y' : 'dv-g') + '">' + E(c.s) + '</td></tr>'; }).join('') + '</tbody></table></div>' : '<div class="adm-muted">No sync status changes seen since this page loaded.</div>');
+  }
+  function cloudRefresh() { var el = $('dx-cloud'); if (el) el.innerHTML = cloudBody(); }
+
+  /* ═══ HEALTH ══════════════════════════════════════════════════════════ */
+  var HL = { res: null, at: 0, busy: false };
+  function lastMin(arrx, f) { return arrx.filter(f); }
+  function checks() {
+    var R = [], C = H.counts(), h = H.heap(), nodes = document.getElementsByTagName('*').length, tot = H.lsList(localStorage), used = tot.reduce(function (s, x) { return s + x.size; }, 0), pct = used / H.QUOTA * 100;
+    function add(grp, title, s, detail, fix) { R.push({ g: grp, t: title, s: s, d: detail, f: fix || '' }); }
+    var recentErr = H.logs().filter(function (x) { return x.l === 'error' && now() - x.t < 300000 && !/Failed to load|Developer Tools test/.test(x.m); }).length;
+    /* frontend */
+    var libs = [['Chart.js (charts)', typeof Chart !== 'undefined'], ['Supabase client (cloud)', !!(window.supabase && window.supabase.createClient)]];
+    libs.forEach(function (x) { add('Frontend', x[0], x[1] ? 'ok' : 'bad', x[1] ? 'Loaded.' : 'Not loaded. Features that depend on it will not work.', x[1] ? '' : 'Check the connection or a blocker for the CDN.'); });
+    var fa = false; try { var i = document.createElement('i'); i.className = 'fas fa-user'; i.style.cssText = 'position:absolute;left:-99px'; document.body.appendChild(i); var c = getComputedStyle(i, '::before').content; fa = c && c !== 'none' && c !== 'normal'; i.remove(); } catch (e) { }
+    add('Frontend', 'Icon font (Font Awesome)', fa ? 'ok' : 'warn', fa ? 'Loaded.' : 'Icons are not rendering. Buttons may look empty.', fa ? '' : 'The icon stylesheet did not load.');
+    add('Frontend', 'Uncaught errors (last 5 minutes)', recentErr === 0 ? 'ok' : recentErr > 5 ? 'bad' : 'warn', recentErr === 0 ? 'None.' : recentErr + ' error' + (recentErr === 1 ? '' : 's') + ' in the Console tab.', recentErr ? 'Open the Console tab and filter by error.' : '');
+    add('Frontend', 'Page size (DOM nodes)', nodes > 15000 ? 'bad' : nodes > 6000 ? 'warn' : 'ok', nodes.toLocaleString() + ' elements on the page.', nodes > 6000 ? 'A very large page makes everything slower. Check the Runtime tab for the heaviest sections.' : '');
+    if (h) add('Frontend', 'JavaScript memory', h.used / h.limit > .8 ? 'bad' : h.used / h.limit > .5 ? 'warn' : 'ok', bytes(h.used) + ' of ' + bytes(h.limit) + ' (' + Math.round(h.used / h.limit * 100) + '%).');
+    /* performance */
+    var fps = H.fps(); add('Performance', 'Frame rate', fps == null ? 'info' : fps < 20 ? 'bad' : fps < 45 ? 'warn' : 'ok', fps == null ? 'Not measured yet. Open the Performance tab for a moment, or turn on the FPS badge.' : fps + ' fps.');
+    var base = performance.timeOrigin || 0, lt = H.lt().filter(function (x) { return now() - (base + x.at) < 60000; }), ltMs = lt.reduce(function (s, x) { return s + x.d; }, 0);
+    add('Performance', 'Main-thread blocking (last minute)', ltMs > 1500 ? 'bad' : ltMs > 500 ? 'warn' : 'ok', lt.length ? lt.length + ' long task' + (lt.length === 1 ? '' : 's') + ', ' + ltMs + ' ms blocked.' : 'No long tasks.', ltMs > 500 ? 'Turn on the render profiler in the Runtime tab to find the slow function.' : '');
+    var ivs = Object.keys(TM.iv).map(function (k) { return TM.iv[k]; }), busiest = ivs.slice().sort(function (a, b) { return b.ms - a.ms; })[0];
+    add('Performance', 'Background timers', ivs.length > 40 ? 'warn' : 'ok', ivs.length + ' repeating timers active, ' + Object.keys(PT).length + ' waiting.' + (busiest && busiest.n ? ' Busiest: ' + (busiest.site || 'unknown') + ', ' + (busiest.ms / busiest.n).toFixed(1) + ' ms per run.' : ''), ivs.length > 40 ? 'Timers that are never cleared pile up. See the Runtime tab.' : '');
+    var grow = LS.hist.length > 3 ? LS.hist[LS.hist.length - 1].n - LS.hist[0].n : 0, span = LS.hist.length > 3 ? (LS.hist[LS.hist.length - 1].t - LS.hist[0].t) / 60000 : 0;
+    add('Performance', 'Event-listener growth', span > 0.5 && grow / span > 200 ? 'warn' : 'ok', lsCount().toLocaleString() + ' registrations (approx.)' + (span > 0.5 ? ', ' + (grow >= 0 ? '+' : '') + Math.round(grow / span) + ' per minute.' : '.'), span > 0.5 && grow / span > 200 ? 'Listeners are being added faster than they are removed: a possible leak.' : '');
+    var slowR = Object.keys(PR.fns).filter(function (k) { return PR.fns[k].max > 100; });
+    add('Performance', 'Slow render functions', !PR.on ? 'info' : slowR.length ? 'warn' : 'ok', !PR.on ? 'Profiler is off. Turn it on in the Runtime tab to measure.' : slowR.length ? slowR.length + ' function(s) took over 100 ms: ' + slowR.slice(0, 4).join(', ') + '.' : 'None over 100 ms.');
+    /* storage */
+    add('Storage', 'Local storage usage', pct > 90 ? 'bad' : pct > 70 ? 'warn' : 'ok', bytes(used) + ' (' + Math.round(pct) + '% of a typical 5 MB limit).', pct > 70 ? 'Export a backup and remove old data. Look at the largest keys in the Storage tab.' : '');
+    add('Storage', 'Failed writes', SW.q ? 'bad' : 'ok', SW.q ? SW.q + ' write(s) failed because storage was full or blocked. Data may not have been saved.' : 'No failed writes this session.', SW.q ? 'See Storage I/O for which keys failed.' : '');
+    var hot = Object.keys(SW.keys).filter(function (k) { return SW.keys[k].n > 40 && (now() - SW.keys[k].last) < 120000; }).sort(function (a, b) { return SW.keys[b].n - SW.keys[a].n; });
+    add('Storage', 'Write frequency', wpm() > 60 ? 'warn' : 'ok', wpm() + ' write(s) in the last minute.' + (hot.length ? ' Most written: ' + hot[0] + ' (' + SW.keys[hot[0]].n + ' times).' : ''), wpm() > 60 ? 'Very frequent writes can slow the app and wear storage.' : '');
+    var big = tot.slice().sort(function (a, b) { return b.size - a.size; })[0]; if (big) add('Storage', 'Largest key', big.size > 2097152 ? 'warn' : 'ok', (big.secret ? '(protected key)' : big.k) + ' is ' + bytes(big.size) + '.');
+    var badJ = 0; tot.forEach(function (x) { if (!x.app || x.secret) return; var v = H.safe(function () { return localStorage.getItem(x.k); }, ''); if (v && v.length < 3000000 && /^\s*[\[{]/.test(v)) { try { JSON.parse(v); } catch (e) { badJ++; } } });
+    add('Storage', 'Saved data is readable', badJ ? 'bad' : 'ok', badJ ? badJ + ' saved item(s) contain damaged JSON.' : 'Every saved JSON value parses.', badJ ? 'Run the Integrity Checker tab to repair.' : '');
+    /* network & cloud */
+    add('Network & cloud', 'Browser connection', navigator.onLine && !H.sim.offline ? 'ok' : 'bad', H.sim.offline ? 'The offline simulator is ON (Switches tab).' : navigator.onLine ? 'Online.' : 'Offline.');
+    var rec = H.net().slice(-50), done = rec.filter(function (r) { return r.st != null; }), fail = done.filter(function (r) { return r.st === 0 || r.st >= 400; }), slowN = done.filter(function (r) { return r.ms > 3000; });
+    add('Network & cloud', 'Request failures', !done.length ? 'info' : fail.length / done.length > .3 ? 'bad' : fail.length ? 'warn' : 'ok', done.length ? fail.length + ' of the last ' + done.length + ' requests failed.' : 'No requests yet.', fail.length ? 'See the Network tab for addresses and reasons.' : '');
+    add('Network & cloud', 'Slow requests', slowN.length ? 'warn' : 'ok', slowN.length ? slowN.length + ' took over 3 seconds.' : 'None over 3 seconds.');
+    var si_ = sessionInfo(); add('Network & cloud', 'Cloud account', si_.signedIn ? 'ok' : 'info', si_.signedIn ? 'Signed in (' + si_.user + ').' : 'Signed out, so data stays on this device only.');
+    if (si_.signedIn && si_.exp) add('Network & cloud', 'Session token', si_.exp < now() ? 'warn' : 'ok', si_.exp < now() ? 'Expired ' + ago(si_.exp) + '. It should refresh on the next request.' : 'Valid for another ' + dur(si_.exp - now()) + '.');
+    var cs = CS[0]; add('Network & cloud', 'Last sync status', !cs ? 'info' : cs.s === 'error' ? 'bad' : cs.s === 'offline' ? 'warn' : 'ok', cs ? '“' + cs.s + '” ' + ago(cs.t) + '.' : 'No sync status change seen this session.');
+    if (si_.lastSync && isFinite(si_.lastSync) && si_.signedIn && si_.tracking !== false) add('Network & cloud', 'Last successful sync', now() - si_.lastSync > 86400000 * 2 ? 'warn' : 'ok', ago(si_.lastSync) + '.');
+    /* data */
+    var rows = g('db'); add('Data', 'Transactions loaded', Array.isArray(rows) ? 'ok' : 'bad', Array.isArray(rows) ? rows.length.toLocaleString() + ' transactions in memory.' : 'The transaction list is missing or not a list.');
+    if (Array.isArray(rows)) { var saved = H.J('fos_db_v3', null); if (Array.isArray(saved) && saved.length !== rows.length) add('Data', 'Memory matches saved copy', 'warn', 'Memory has ' + rows.length + ' rows but storage has ' + saved.length + '.', 'Another tab may have changed the data. Reload before editing.'); else add('Data', 'Memory matches saved copy', 'ok', 'Same row count.'); var sc = dataScan(); if (sc) add('Data', 'Row quality', (sc.bad.date + sc.bad.amt + sc.bad.nonobj) ? 'warn' : 'ok', (sc.bad.date + sc.bad.amt + sc.bad.nonobj) ? (sc.bad.date + ' with a bad date, ' + sc.bad.amt + ' with a bad amount, ' + sc.bad.nonobj + ' not records.') : 'Every row has a valid date and amount.', (sc.bad.date + sc.bad.amt) ? 'See the Data quality tab.' : ''); }
+    /* platform */
+    add('Platform', 'Secure context (HTTPS)', window.isSecureContext ? 'ok' : 'warn', window.isSecureContext ? 'Yes.' : 'No. PIN hashing, service workers and clipboard need HTTPS or localhost.');
+    add('Platform', 'Service worker (offline support)', 'serviceWorker' in navigator ? (navigator.serviceWorker.controller ? 'ok' : 'info') : 'warn', 'serviceWorker' in navigator ? (navigator.serviceWorker.controller ? 'Active and controlling this page.' : 'Supported, but not controlling this page yet.') : 'Not supported in this browser.');
+    add('Platform', 'Safe mode', H.active() ? 'ok' : 'warn', H.active() ? 'Off.' : 'ON: every admin override is being ignored.');
+    add('Platform', 'Tamper guard', document.getElementById('fos-tamper-lock') ? 'bad' : 'ok', document.getElementById('fos-tamper-lock') ? 'The file failed its integrity check and is locked.' : 'This file passed its integrity check (or runs from a local file).');
+    return R;
+  }
+  function runHealth() {
+    HL.busy = true; healthRefresh();
+    var R = checks(), pend = [];
+    try { if (navigator.storage && navigator.storage.persisted) pend.push(navigator.storage.persisted().then(function (p) { R.push({ g: 'Storage', t: 'Persistent storage', s: p ? 'ok' : 'info', d: p ? 'Granted: the browser will not clear your data under pressure.' : 'Not granted: the browser may clear data if the device runs low on space.', f: p ? '' : 'Use the button in the Storage I/O tab to request it.' }); }, function () { })); } catch (e) { }
+    try { if (navigator.storage && navigator.storage.estimate) pend.push(navigator.storage.estimate().then(function (r) { if (r && r.quota) { var p = r.usage / r.quota * 100; R.push({ g: 'Storage', t: 'Whole-site storage (all kinds)', s: p > 85 ? 'bad' : p > 60 ? 'warn' : 'ok', d: bytes(r.usage) + ' of ' + bytes(r.quota) + ' allowed (' + p.toFixed(1) + '%).', f: '' }); } }, function () { })); } catch (e) { }
+    var u = sbUrl(), k = sbKey();
+    if (u && k) pend.push(req('Backend', u + '/auth/v1/health', { headers: { apikey: k }, cache: 'no-store' }).then(function (x) { pushHist(x); R.push({ g: 'Network & cloud', t: 'Backend reachable', s: !x.ok ? 'bad' : x.status !== 200 ? 'warn' : x.ms > 1500 ? 'warn' : 'ok', d: !x.ok ? 'No response: ' + (x.note || 'unreachable') + '.' : 'Responded in ' + x.ms + ' ms (HTTP ' + x.status + ').', f: !x.ok ? 'Check the connection. Cloud sync will not work until this recovers.' : '' }); }));
+    Promise.all(pend).then(function () { var o = { bad: 0, warn: 1, info: 2, ok: 3 }; R.sort(function (a, b) { return o[a.s] - o[b.s]; }); HL.res = R; HL.at = now(); HL.busy = false; healthRefresh(); });
+  }
+  function healthBody() {
+    if (!HL.res) return '<div class="adm-muted">' + (HL.busy ? 'Running checks…' : 'Press “Run all checks”.') + '</div>';
+    var R = HL.res, c = { bad: 0, warn: 0, info: 0, ok: 0 }; R.forEach(function (x) { c[x.s]++; });
+    var cls = c.bad ? 'bad' : c.warn ? 'warn' : 'ok', head = c.bad ? 'Problems found' : c.warn ? 'Mostly healthy' : 'All healthy', GR = ['Frontend', 'Performance', 'Storage', 'Network & cloud', 'Data', 'Platform'];
+    var h = '<div class="ic-hero ' + cls + '"><i class="fas ' + (c.bad ? 'fa-circle-xmark' : c.warn ? 'fa-triangle-exclamation' : 'fa-circle-check') + '"></i><div><b>' + head + '</b><small>' + c.bad + ' problem' + (c.bad === 1 ? '' : 's') + ' · ' + c.warn + ' to watch · ' + c.ok + ' healthy · ' + c.info + ' note' + (c.info === 1 ? '' : 's') + ' · checked ' + ago(HL.at) + '</small></div></div>';
+    GR.forEach(function (gp) {
+      var l = R.filter(function (x) { return x.g === gp; }); if (!l.length) return;
+      h += '<div class="adm-h" style="font-size:.9rem;margin-top:14px">' + E(gp) + '</div>' + l.map(function (x) { return '<div class="ic-item ' + x.s + '"><i class="fas ' + sev(x.s) + '" aria-hidden="true"></i><div class="ic-tx"><b>' + E(x.t) + '</b> ' + pill(x.s, x.s === 'bad' ? 'Problem' : x.s === 'warn' ? 'Watch' : x.s === 'info' ? 'Note' : 'Healthy') + '<small>' + E(x.d) + (x.f ? ' <em>' + E(x.f) + '</em>' : '') + '</small></div></div>'; }).join('');
+    });
+    return h;
+  }
+  function healthHtml() {
+    return '<div class="adm-muted" style="margin-bottom:8px">One pass over the whole app: front end, speed, storage, cloud and data. Each line says what was measured and what to do if it is not healthy.</div>' +
+      '<div class="adm-actions" style="margin:0 0 10px"><button type="button" class="adm-btn" data-dx="health"><i class="fas fa-stethoscope"></i> Run all checks</button><button type="button" class="adm-btn ghost" data-dx="health-copy"><i class="fas fa-copy"></i> Copy results</button><label class="dv-chip"><input type="checkbox" data-dx-auto' + (HL.auto ? ' checked' : '') + '> Re-check every 30 s</label></div><div id="dx-health">' + healthBody() + '</div>';
+  }
+  function healthRefresh() { var el = $('dx-health'); if (el) el.innerHTML = healthBody(); }
+  function healthText() { if (!HL.res) return ''; return ['FinanceOS health report', new Date().toString(), ''].concat(HL.res.map(function (x) { return '[' + x.s.toUpperCase() + '] ' + x.g + ' · ' + x.t + ': ' + x.d + (x.f ? ' ' + x.f : ''); })).join('\n'); }
+  si.call(window, function () { if (HL.auto && $('dx-health') && !document.hidden && !HL.busy) runHealth(); }, 30000);
+
+  /* ═══ TIMELINE ════════════════════════════════════════════════════════ */
+  var TL = { f: { errors: 1, net: 1, slow: 1, storage: 1, cloud: 1, view: 1, mark: 1 }, marks: [] };
+  function events() {
+    var E_ = [], base = performance.timeOrigin || 0;
+    H.logs().forEach(function (x) { if (x.l === 'error' || x.l === 'warn') E_.push({ t: x.t, k: 'errors', l: x.l, m: x.m }); });
+    H.net().forEach(function (r) { if (r.st === 0 || (r.st != null && r.st >= 400) || (r.ms != null && r.ms > 2000)) E_.push({ t: r.t, k: 'net', l: 'net', m: r.m + ' ' + r.u + ' → ' + (r.st === 0 ? 'failed' + (r.err ? ' (' + r.err + ')' : '') : r.st) + (r.ms != null ? ' in ' + r.ms + ' ms' : '') }); });
+    H.lt().forEach(function (x) { if (x.d >= 100) E_.push({ t: base + x.at, k: 'slow', l: 'slow', m: 'Main thread blocked for ' + x.d + ' ms' }); });
+    SLOW.forEach(function (x) { E_.push({ t: x.t, k: 'slow', l: 'slow', m: x.m }); });
+    SW.ev.forEach(function (x) { E_.push({ t: x.t, k: 'storage', l: 'storage', m: x.m }); });
+    CS.forEach(function (x) { E_.push({ t: x.t, k: 'cloud', l: 'cloud', m: 'Cloud status: ' + x.s }); });
+    VW.forEach(function (x) { E_.push({ t: x.t, k: 'view', l: 'view', m: 'Opened “' + x.v + '” (' + x.ms + ' ms)' }); });
+    TL.marks.forEach(function (x) { E_.push({ t: x.t, k: 'mark', l: 'mark', m: x.m }); });
+    return E_.filter(function (e) { return TL.f[e.k]; }).sort(function (a, b) { return b.t - a.t; });
+  }
+  function tlRows() { var l = events().slice(0, 200); return l.length ? l.map(function (e) { return '<div class="dv-ln ' + e.l + '"><span class="dv-t">' + clock(e.t) + '</span><span class="dv-lv">' + (e.k === 'errors' ? e.l : e.k) + '</span><span class="dv-m">' + E(e.m) + '</span></div>'; }).join('') : '<div class="dv-empty">Nothing notable yet. Errors, failed or slow requests, long freezes, failed storage writes, cloud status changes and screen changes appear here in time order.</div>'; }
+  function timelineHtml() {
+    var F = [['errors', 'Errors & warnings'], ['net', 'Network problems'], ['slow', 'Slowness'], ['storage', 'Storage'], ['cloud', 'Cloud'], ['view', 'Screens'], ['mark', 'Markers']];
+    return '<div class="adm-muted" style="margin-bottom:8px">Everything that went wrong or slow, merged into one list, newest first. Add a marker before you reproduce a problem so you can see exactly what happened after it.</div>' +
+      '<div class="dv-bar">' + F.map(function (f) { return '<label class="dv-chip"><input type="checkbox" data-dx-tl="' + f[0] + '"' + (TL.f[f[0]] ? ' checked' : '') + '> ' + f[1] + '</label>'; }).join('') + '</div>' +
+      '<div class="dv-bar"><input type="text" id="dx-mark" class="set-input" maxlength="80" placeholder="Marker text, e.g. “about to open Analytics”" aria-label="Marker text"><button type="button" class="adm-btn sm" data-dx="mark">Add marker</button><button type="button" class="adm-btn ghost sm" data-dx="tl-copy"><i class="fas fa-copy"></i> Copy</button></div>' +
+      '<div class="dv-log dx-tl" id="dx-tl" tabindex="0" aria-label="Timeline">' + tlRows() + '</div>';
+  }
+  si.call(window, function () { var el = $('dx-tl'); if (el && !document.hidden) el.innerHTML = tlRows(); }, 2000);
+
+  /* ═══ STORAGE I/O ═════════════════════════════════════════════════════ */
+  var PERSIST = null;
+  function sioBody() {
+    var hot = Object.keys(SW.keys).map(function (k) { return { k: k, r: SW.keys[k] }; }).sort(function (a, b) { return b.r.n - a.r.n; }).slice(0, 15);
+    var rows = hot.length ? '<div class="adm-scroll" style="max-height:none"><table class="adm-tbl"><thead><tr><th>Key</th><th class="n">Writes</th><th class="n">Now</th><th class="n">Largest</th><th class="n">Growth</th><th class="n">Total written</th><th class="n">Last</th></tr></thead><tbody>' + hot.map(function (x) { var r = x.r, gr = r.cur - r.first; return '<tr><td class="dv-key">' + E(H.SECRET.test(x.k) ? '(protected key)' : x.k) + '</td><td class="n">' + r.n + '</td><td class="n">' + bytes(r.cur) + '</td><td class="n">' + bytes(r.max) + '</td><td class="n ' + (gr > 102400 ? 'dv-y' : '') + '">' + (gr > 0 ? '+' : '') + bytes(Math.abs(gr)) + '</td><td class="n">' + bytes(r.bytes) + '</td><td class="n">' + ago(r.last) + '</td></tr>'; }).join('') + '</tbody></table></div>' : '<div class="dv-empty">No writes have happened since this page loaded.</div>';
+    var ev = SW.ev.length ? '<div class="dv-log" style="max-height:200px">' + SW.ev.slice(0, 30).map(function (e) { return '<div class="dv-ln ' + (/FAILED/.test(e.m) ? 'error' : 'warn') + '"><span class="dv-t">' + clock(e.t) + '</span><span class="dv-m">' + E(e.m) + '</span></div>'; }).join('') + '</div>' : '<div class="adm-muted">No failed or unusually large writes.</div>';
+    return '<div class="tm-tiles">' + tile('Writes', SW.w.toLocaleString(), wpm() + ' in the last minute', wpm() > 60 ? 'warn' : '') + tile('Written', bytes(SW.bytes), 'since this page loaded') + tile('Removals', SW.r.toLocaleString()) + tile('Failed writes', SW.q, SW.q ? 'storage full or blocked' : 'none', SW.q ? 'warn' : '') + '</div>' +
+      '<div class="dx-trends">' + trend('Writes per minute', SER.wr) + '</div>' +
+      '<div class="adm-h" style="font-size:.9rem">Most-written keys</div>' + rows + '<div class="adm-h" style="font-size:.9rem;margin-top:14px">Failed and large writes</div>' + ev +
+      '<div class="adm-h" style="font-size:.9rem;margin-top:14px">Browser storage policy</div><div class="dv-act"><div><b>Persistent storage</b><small>' + (PERSIST == null ? 'Checking…' : PERSIST ? 'Granted. The browser will not clear this app’s data when the device runs low on space.' : 'Not granted. The browser may clear data under storage pressure. Granting it protects your data.') + '</small></div>' + (PERSIST === false ? '<button type="button" class="adm-btn sm" data-dx="persist">Request it</button>' : '') + '</div><div id="dx-quota" class="adm-muted"></div>';
+  }
+  function sioHtml() { return '<div class="adm-muted" style="margin-bottom:8px">Watches every write to local storage: which keys are written, how often, how large they are and whether any write failed. Values are never recorded, only key names and sizes.</div><div id="dx-sio">' + sioBody() + '</div>'; }
+  function sioAfter() {
+    try { if (navigator.storage && navigator.storage.persisted) navigator.storage.persisted().then(function (p) { PERSIST = p; var el = $('dx-sio'); if (el) el.innerHTML = sioBody(); sioQuota(); }); else sioQuota(); } catch (e) { }
+  }
+  function sioQuota() { try { if (navigator.storage && navigator.storage.estimate) navigator.storage.estimate().then(function (r) { var el = $('dx-quota'); if (!el || !r) return; var d = r.usageDetails ? Object.keys(r.usageDetails).map(function (k) { return k + ' ' + bytes(r.usageDetails[k]); }).join(' · ') : ''; el.textContent = 'Whole site uses ' + bytes(r.usage) + ' of ' + bytes(r.quota) + ' allowed' + (d ? ' (' + d + ')' : '') + '.'; }); } catch (e) { } }
+  si.call(window, function () { var el = $('dx-sio'); if (el && !document.hidden) { el.innerHTML = sioBody(); sioQuota(); } }, 3000);
+
+  /* ═══ RUNTIME ═════════════════════════════════════════════════════════ */
+  function chartRows() {
+    var ch = g('charts'), keys = ch ? Object.keys(ch) : [], n = 0; var inst = (typeof Chart !== 'undefined' && Chart.instances) ? Object.keys(Chart.instances).length : null;
+    var rows = keys.map(function (k) { var c = ch[k]; if (!c || !c.data) return null; n++; var pts = 0; try { c.data.datasets.forEach(function (d) { pts += (d.data || []).length; }); } catch (e) { } return '<tr><td class="dv-key">' + E(k) + '</td><td>' + E(safe(function () { return c.config.type; }, '—')) + '</td><td class="n">' + safe(function () { return c.data.datasets.length; }, '—') + '</td><td class="n">' + pts.toLocaleString() + '</td><td class="n">' + safe(function () { return c.canvas.width + '×' + c.canvas.height; }, '—') + '</td></tr>'; }).filter(Boolean);
+    return { n: n, inst: inst, html: rows.length ? '<div class="adm-scroll" style="max-height:260px"><table class="adm-tbl"><thead><tr><th>Chart</th><th>Type</th><th class="n">Series</th><th class="n">Points</th><th class="n">Canvas</th></tr></thead><tbody>' + rows.join('') + '</tbody></table></div>' : '<div class="adm-muted">No charts are alive right now (they are created when a page is opened).</div>' };
+  }
+  function runtimeLive() {
+    var ivs = Object.keys(TM.iv).map(function (k) { var r = TM.iv[k]; r.id = k; return r; }).sort(function (a, b) { return b.ms - a.ms; }), ch = chartRows(), nodes = document.getElementsByTagName('*').length;
+    var types = Object.keys(LS.types).map(function (k) { return [k, LS.types[k]]; }).filter(function (x) { return x[1] > 0; }).sort(function (a, b) { return b[1] - a[1]; }).slice(0, 12);
+    var secs = arr(document.querySelectorAll('.view-section')).map(function (s) { return { id: s.id || '(unnamed)', n: s.getElementsByTagName('*').length, on: s.offsetParent !== null }; }).sort(function (a, b) { return b.n - a.n; }).slice(0, 8);
+    return '<div class="tm-tiles">' + tile('Repeating timers', ivs.length, TM.ivMade + ' created in total', ivs.length > 40 ? 'warn' : '') + tile('Waiting timeouts', Object.keys(PT).length, TM.fired.toLocaleString() + ' have fired') + tile('Listeners (approx.)', lsCount().toLocaleString(), LS.add.toLocaleString() + ' added · ' + LS.rem.toLocaleString() + ' removed') +
+      tile('Live charts', ch.n, ch.inst != null ? ch.inst + ' registered in Chart.js' : '') + tile('DOM nodes', nodes.toLocaleString(), document.getElementsByTagName('canvas').length + ' canvases · ' + document.getElementsByTagName('img').length + ' images') + '</div>' +
+      '<div class="dx-trends">' + trend('Frame rate', SER.fps, function (v) { return v + ' fps'; }) + trend('JS memory', SER.heap, function (v) { return v.toFixed(1) + ' MB'; }) + trend('DOM nodes', SER.dom, function (v) { return v.toLocaleString(); }) + trend('Listeners', SER.lst, function (v) { return v.toLocaleString(); }) + trend('Waiting timeouts', SER.pend) + '</div>' +
+      '<div class="adm-h" style="font-size:.9rem">Repeating timers <small>busiest first</small></div><div class="adm-scroll" style="max-height:260px"><table class="adm-tbl"><thead><tr><th>Started at</th><th class="n">Every</th><th class="n">Runs</th><th class="n">Per run</th><th class="n">Slowest</th><th class="n">Total time</th><th class="n">Age</th></tr></thead><tbody>' + (ivs.length ? ivs.slice(0, 30).map(function (r) { return '<tr><td class="dv-key">' + E(r.site || 'unknown') + '</td><td class="n">' + (r.d >= 1000 ? (r.d / 1000) + ' s' : r.d + ' ms') + '</td><td class="n">' + r.n.toLocaleString() + '</td><td class="n ' + (r.n && r.ms / r.n > 20 ? 'dv-y' : '') + '">' + (r.n ? (r.ms / r.n).toFixed(2) + ' ms' : '—') + '</td><td class="n ' + (r.max > 100 ? 'dv-r' : '') + '">' + (r.n ? Math.round(r.max) + ' ms' : '—') + '</td><td class="n">' + Math.round(r.ms) + ' ms</td><td class="n">' + dur(now() - r.t) + '</td></tr>'; }).join('') : '<tr><td colspan="7">None tracked.</td></tr>') + '</tbody></table></div><div class="adm-muted">“Started at” is the line in the page where the timer was created.</div>' +
+      '<div class="dv-two"><div><div class="adm-h" style="font-size:.9rem;margin-top:14px">Listeners by event <small>approx.</small></div><table class="adm-tbl dv-kv"><tbody>' + types.map(function (x) { return '<tr><td>' + E(x[0]) + '</td><td class="n">' + x[1].toLocaleString() + '</td></tr>'; }).join('') + '</tbody></table></div>' +
+      '<div><div class="adm-h" style="font-size:.9rem;margin-top:14px">Heaviest page sections <small>by element count</small></div><table class="adm-tbl dv-kv"><tbody>' + secs.map(function (s) { return '<tr><td class="dv-key">' + E(s.id) + (s.on ? ' <span class="rl-st quiet">visible</span>' : '') + '</td><td class="n">' + s.n.toLocaleString() + '</td></tr>'; }).join('') + '</tbody></table></div></div>' +
+      '<div class="adm-h" style="font-size:.9rem;margin-top:14px">Charts</div>' + ch.html;
+  }
+  function profRows() {
+    var k = Object.keys(PR.fns).map(function (n) { var r = PR.fns[n]; return { n: n, r: r }; }).sort(function (a, b) { return b.r.ms - a.r.ms; }).slice(0, 25);
+    if (!PR.on) return '<div class="adm-muted">Off. Turn it on, then use the app: every global render/refresh/update function is timed.</div>';
+    return '<div class="adm-muted">Timing ' + PR.wrapped.length + ' functions since ' + ago(PR.since) + '. Only the synchronous part of each call is measured.</div>' + (k.length ? '<div class="adm-scroll" style="max-height:300px"><table class="adm-tbl"><thead><tr><th>Function</th><th class="n">Calls</th><th class="n">Average</th><th class="n">Slowest</th><th class="n">Total</th></tr></thead><tbody>' + k.map(function (x) { return '<tr><td class="dv-key">' + E(x.n) + '</td><td class="n">' + x.r.n + '</td><td class="n">' + (x.r.ms / x.r.n).toFixed(1) + ' ms</td><td class="n ' + (x.r.max > 100 ? 'dv-r' : x.r.max > 50 ? 'dv-y' : '') + '">' + Math.round(x.r.max) + ' ms</td><td class="n">' + Math.round(x.r.ms) + ' ms</td></tr>'; }).join('') + '</tbody></table></div>' : '<div class="adm-muted">Nothing called yet. Open a few pages.</div>');
+  }
+  function moRows() {
+    if (!MO.on) return '<div class="adm-muted">Off. Turn it on to see how much the page changes every second and which areas change most (a sign of constant re-rendering).</div>';
+    var secs = Math.max(1, (now() - MO.since) / 1000), top = Object.keys(MO.top).map(function (k) { return [k, MO.top[k]]; }).sort(function (a, b) { return b[1] - a[1]; }).slice(0, 8);
+    return '<div class="adm-muted"><b>' + MO.n.toLocaleString() + '</b> changes in ' + dur(now() - MO.since) + ' (about ' + Math.round(MO.n / secs) + ' per second).</div>' + trend('Changes per second', MO.per) + (top.length ? '<table class="adm-tbl dv-kv"><tbody>' + top.map(function (x) { return '<tr><td class="dv-key">' + E(x[0]) + '</td><td class="n">' + x[1].toLocaleString() + '</td></tr>'; }).join('') + '</tbody></table><div class="adm-muted">Sampled; the admin panel itself is excluded.</div>' : '');
+  }
+  function runtimeHtml() {
+    return '<div id="dx-rt">' + runtimeLive() + '</div>' +
+      '<div class="adm-h" style="font-size:.9rem;margin-top:16px">Render profiler</div><label class="ff-row' + (PR.on ? '' : ' off') + '"><span class="ff-sw"><input type="checkbox" role="switch" data-dx-prof' + (PR.on ? ' checked' : '') + ' aria-label="Render profiler"><i></i></span><span class="ff-tx"><b>Time every render function</b><small>Finds which screen or widget is slow. Adds a small overhead and turns off on reload.</small></span><span class="rl-st ' + (PR.on ? 'fire' : 'quiet') + '">' + (PR.on ? 'On' : 'Off') + '</span></label><div id="dx-prof">' + profRows() + '</div>' +
+      '<div class="adm-h" style="font-size:.9rem;margin-top:16px">DOM activity monitor</div><label class="ff-row' + (MO.on ? '' : ' off') + '"><span class="ff-sw"><input type="checkbox" role="switch" data-dx-mo' + (MO.on ? ' checked' : '') + ' aria-label="DOM activity monitor"><i></i></span><span class="ff-tx"><b>Watch page changes</b><small>Counts element changes per second and where they happen. Turns off on reload.</small></span><span class="rl-st ' + (MO.on ? 'fire' : 'quiet') + '">' + (MO.on ? 'On' : 'Off') + '</span></label><div id="dx-mo">' + moRows() + '</div>';
+  }
+  si.call(window, function () { if (document.hidden) return; var a = $('dx-rt'); if (a) a.innerHTML = runtimeLive(); var b = $('dx-prof'); if (b) b.innerHTML = profRows(); var c = $('dx-mo'); if (c) c.innerHTML = moRows(); }, 2000);
+
+  /* ═══ DATA QUALITY ════════════════════════════════════════════════════ */
+  function today() { try { return typeof fosTodayISO === 'function' ? fosTodayISO() : new Date().toISOString().slice(0, 10); } catch (e) { return new Date().toISOString().slice(0, 10); } }
+  function coverage(rows) { var k = {}; rows.forEach(function (r) { if (r && typeof r === 'object') Object.keys(r).forEach(function (x) { k[x] = (k[x] || 0) + 1; }); }); return Object.keys(k).map(function (x) { return [x, k[x]]; }).sort(function (a, b) { return b[1] - a[1]; }); }
+  function dataScan() {
+    var rows = g('db'); if (!Array.isArray(rows)) return null;
+    var bad = { date: 0, amt: 0, zero: 0, future: 0, nonobj: 0 }, seen = {}, dup = 0, types = {}, mn = null, mx = null, td = today();
+    rows.forEach(function (r) {
+      if (!r || typeof r !== 'object') { bad.nonobj++; return; }
+      var d = String(r.date || '').slice(0, 10); if (!/^\d{4}-\d{2}-\d{2}$/.test(d)) bad.date++; else { if (mn === null || d < mn) mn = d; if (mx === null || d > mx) mx = d; if (d > td) bad.future++; }
+      var a = Number(r.amount); if (!isFinite(a) || r.amount === '' || r.amount == null) bad.amt++; else if (a === 0) bad.zero++;
+      types[r.type] = (types[r.type] || 0) + 1; var key = d + '|' + r.type + '|' + r.amount + '|' + (r.desc || r.description || r.note || r.name || r.category || ''); if (seen[key]) dup++; else seen[key] = 1;
+    });
+    return { n: rows.length, bad: bad, dup: dup, types: types, min: mn, max: mx, cov: coverage(rows), bytes: safe(function () { return JSON.stringify(rows).length * 2; }, 0) };
+  }
+  var DQ = { idx: '' };
+  function dataBody() {
+    var s = dataScan(); if (!s) return '<div class="dv-warn">The transaction list is not available.</div>';
+    var pd = g('portDb'), pc = Array.isArray(pd) ? coverage(pd) : [], saved = H.J('fos_db_v3', null), drift = Array.isArray(saved) && saved.length !== s.n;
+    function row(l, v, c) { return '<tr><td>' + E(l) + '</td><td class="' + (c || '') + '">' + E(v) + '</td></tr>'; }
+    var issues = s.bad.date + s.bad.amt + s.bad.nonobj;
+    return '<div class="tm-tiles">' + tile('Transactions', s.n.toLocaleString(), s.min ? s.min + ' to ' + s.max : 'no dates') + tile('Problems', issues, issues ? 'rows need fixing' : 'none found', issues ? 'warn' : '') + tile('Possible duplicates', s.dup, 'same date, type, amount and text', s.dup ? 'warn' : '') + tile('In memory', bytes(s.bytes), 'approx. size') + tile('Holdings', Array.isArray(pd) ? pd.length : '—', 'portfolio records') + '</div>' +
+      '<div class="dv-two"><div><div class="adm-h" style="font-size:.9rem">Checks</div><table class="adm-tbl dv-kv"><tbody>' + row('Rows with a missing or invalid date', s.bad.date, s.bad.date ? 'dv-r' : 'dv-g') + row('Rows with a missing or invalid amount', s.bad.amt, s.bad.amt ? 'dv-r' : 'dv-g') + row('Entries that are not records', s.bad.nonobj, s.bad.nonobj ? 'dv-r' : 'dv-g') + row('Rows dated in the future', s.bad.future, s.bad.future ? 'dv-y' : 'dv-g') + row('Rows with a zero amount', s.bad.zero, s.bad.zero ? 'dv-y' : 'dv-g') + row('Memory matches saved copy', drift ? 'No: memory ' + s.n + ', saved ' + saved.length : 'Yes', drift ? 'dv-y' : 'dv-g') + '</tbody></table></div>' +
+      '<div><div class="adm-h" style="font-size:.9rem">Transaction types</div><table class="adm-tbl dv-kv"><tbody>' + Object.keys(s.types).sort(function (a, b) { return s.types[b] - s.types[a]; }).slice(0, 12).map(function (t) { return '<tr><td>' + E(t) + '</td><td class="n">' + s.types[t].toLocaleString() + '</td></tr>'; }).join('') + '</tbody></table></div></div>' +
+      '<div class="dv-two"><div><div class="adm-h" style="font-size:.9rem;margin-top:14px">Field coverage <small>transactions</small></div><table class="adm-tbl dv-kv"><tbody>' + s.cov.slice(0, 14).map(function (c) { var p = Math.round(c[1] / s.n * 100); return '<tr><td class="dv-key">' + E(c[0]) + '</td><td class="n ' + (p < 100 ? 'dv-y' : '') + '">' + p + '%</td></tr>'; }).join('') + '</tbody></table></div>' +
+      '<div><div class="adm-h" style="font-size:.9rem;margin-top:14px">Field coverage <small>holdings</small></div>' + (pc.length ? '<table class="adm-tbl dv-kv"><tbody>' + pc.slice(0, 14).map(function (c) { return '<tr><td class="dv-key">' + E(c[0]) + '</td><td class="n">' + Math.round(c[1] / pd.length * 100) + '%</td></tr>'; }).join('') + '</tbody></table>' : '<div class="adm-muted">No holdings.</div>') + '</div></div>' +
+      '<div class="adm-h" style="font-size:.9rem;margin-top:14px">Inspect a row</div><div class="dv-bar"><input type="number" min="0" max="' + Math.max(0, s.n - 1) + '" id="dx-row" class="set-input" placeholder="Row number (0 to ' + Math.max(0, s.n - 1) + ')" aria-label="Row number" value="' + E(DQ.idx) + '" style="max-width:240px;flex:none"><button type="button" class="adm-btn ghost sm" data-dx="row">Show</button></div><div id="dx-rowout"></div>';
+  }
+  function dataHtml() { return '<div class="adm-muted" style="margin-bottom:8px">Reads your transactions as the app holds them in memory and checks them for problems. Nothing is changed and no rows leave the device. Debug bundles contain only the counts.</div><div id="dx-data">' + dataBody() + '</div><div class="adm-actions"><button type="button" class="adm-btn ghost sm" data-dx="data-refresh"><i class="fas fa-rotate"></i> Scan again</button></div>'; }
+
+  /* ═══ STATE EXPLORER ══════════════════════════════════════════════════ */
+  var ST = { path: 'db', q: '', base: null };
+  function baseline() { if (ST.base) return ST.base; var s = {}; try { var f = document.createElement('iframe'); f.style.display = 'none'; document.body.appendChild(f); Object.getOwnPropertyNames(f.contentWindow).forEach(function (n) { s[n] = 1; }); f.remove(); } catch (e) { } return (ST.base = s); }
+  function parsePath(s) {
+    s = String(s || '').trim(); var m = s.match(/^[A-Za-z_$][\w$]*/); if (!m) return null; var out = [m[0]], i = m[0].length;
+    while (i < s.length) {
+      var c = s[i];
+      if (c === '.') { var mm = s.slice(i + 1).match(/^[A-Za-z_$][\w$]*/); if (!mm) return null; out.push(mm[0]); i += 1 + mm[0].length; }
+      else if (c === '[') { var q = s.slice(i).match(/^\[\s*(?:(\d+)|'([^']*)'|"([^"]*)")\s*\]/); if (!q) return null; out.push(q[1] !== undefined ? +q[1] : (q[2] !== undefined ? q[2] : q[3])); i += q[0].length; }
+      else return null;
+    }
+    return out;
+  }
+  function rootGet(n) { var v = g(n); if (v !== undefined) return v; if (Object.prototype.hasOwnProperty.call(window, n)) { var d = Object.getOwnPropertyDescriptor(window, n); if (d && 'value' in d) return d.value; return '[getter]'; } return undefined; }
+  function pv(v) {
+    var t = typeof v; if (v === null) return 'null'; if (t === 'undefined') return 'undefined'; if (t === 'string') return JSON.stringify(v.length > 90 ? v.slice(0, 90) + '…' : v); if (t !== 'object' && t !== 'function') return String(v);
+    if (t === 'function') { var a = safe(function () { return Function.prototype.toString.call(v).match(/^[^{=]*?\(([^)]*)\)/); }, null); return 'ƒ ' + (v.name || 'anonymous') + '(' + (a ? a[1].slice(0, 40) : '') + ')'; }
+    if (H.isNode(v)) return '<' + String(v.nodeName || 'node').toLowerCase() + '>'; if (Array.isArray(v)) return 'Array(' + v.length + ')'; if (v instanceof Map || v instanceof Set) return (v instanceof Map ? 'Map' : 'Set') + '(' + v.size + ')';
+    var k = safe(function () { return Object.keys(v); }, []); return '{' + k.slice(0, 4).join(', ') + (k.length > 4 ? ', …' : '') + '}' + (k.length ? ' · ' + k.length + ' keys' : '');
+  }
+  function tname(v) { return v === null ? 'null' : Array.isArray(v) ? 'array' : typeof v; }
+  function childPath(p, k) { return typeof k === 'number' || /^\d+$/.test(k) && Array.isArray(rootGetSafe(p)) ? p + '[' + k + ']' : /^[A-Za-z_$][\w$]*$/.test(k) ? p + '.' + k : p + "['" + String(k).replace(/'/g, '') + "']"; }
+  function rootGetSafe(p) { var r = resolve(p); return r.ok ? r.v : undefined; }
+  function resolve(p) {
+    var parts = parsePath(p); if (!parts) return { ok: false, msg: 'Use a path like  db[0].amount  or  charts.dash.data.labels  (names, dots and [numbers] only; nothing is run).' };
+    var v = rootGet(parts[0]); if (v === undefined) return { ok: false, msg: '“' + parts[0] + '” is not defined.' };
+    if (MASK.test(parts[0])) return { ok: true, v: '••• hidden', masked: true };
+    for (var i = 1; i < parts.length; i++) {
+      var k = parts[i]; if (k === '__proto__' || k === 'constructor' || k === 'prototype') return { ok: false, msg: 'That property is not available here.' };
+      if (MASK.test(String(k))) return { ok: true, v: '••• hidden', masked: true };
+      if (v === null || (typeof v !== 'object' && typeof v !== 'function')) return { ok: false, msg: 'Cannot read “' + k + '” of ' + pv(v) + '.' };
+      var d = safe(function () { return Object.getOwnPropertyDescriptor(v, k); }, null); if (!d) return { ok: false, msg: '“' + k + '” does not exist on ' + parts.slice(0, i).join('.') + '.' };
+      if (!('value' in d)) return { ok: true, v: '[getter: not read]', masked: true }; v = d.value;
+    }
+    return { ok: true, v: v };
+  }
+  function jsonSafe(v) { var seen = []; try { return JSON.stringify(v, function (k, x) { if (k && MASK.test(k)) return '••• hidden'; if (typeof x === 'function') return '[Function]'; if (typeof x === 'bigint') return String(x); if (x && typeof x === 'object') { if (H.isNode(x)) return '[Node]'; if (seen.indexOf(x) >= 0) return '[Circular]'; seen.push(x); } return x; }, 2); } catch (e) { return '[unprintable]'; } }
+  function stateBody() {
+    var r = resolve(ST.path), h = '';
+    if (!r.ok) return '<div class="dv-warn">' + E(r.msg) + '</div>' + rootList();
+    var v = r.v, t = r.masked ? 'hidden' : tname(v), crumbs = (parsePath(ST.path) || []).reduce(function (acc, k, i) { acc.push({ k: k, p: i === 0 ? String(k) : childPath(acc[i - 1].p, k) }); return acc; }, []);
+    h += '<div class="adm-muted" style="margin-bottom:6px">' + crumbs.map(function (c) { return '<button type="button" class="dx-link" data-dx="go" data-p="' + E(c.p) + '">' + E(typeof c.k === 'number' ? '[' + c.k + ']' : c.k) + '</button>'; }).join(' › ') + '</div>';
+    h += '<div class="adm-h" style="font-size:.9rem"><span class="dv-key">' + E(ST.path) + '</span> <small>' + E(t) + (t === 'array' ? ' · ' + v.length + ' items' : '') + '</small></div>';
+    if (r.masked) return h + '<div class="dv-warn">Values like tokens, keys, hashes and PINs are never shown.</div>';
+    if (v !== null && typeof v === 'object') {
+      var ks = Array.isArray(v) ? v.slice(0, 60).map(function (x, i) { return i; }) : safe(function () { return Object.keys(v); }, []);
+      h += '<div class="adm-scroll" style="max-height:340px"><table class="adm-tbl"><thead><tr><th>Key</th><th>Type</th><th>Value</th></tr></thead><tbody>' + ks.slice(0, 80).map(function (k) {
+        var d = safe(function () { return Object.getOwnPropertyDescriptor(v, k); }, null), val = d && 'value' in d ? d.value : '[getter]', masked = MASK.test(String(k)), isObj = !masked && val !== null && (typeof val === 'object' || typeof val === 'function');
+        return '<tr><td class="dv-key">' + (isObj ? '<button type="button" class="dx-link" data-dx="go" data-p="' + E(childPath(ST.path, k)) + '">' + E(k) + '</button>' : E(k)) + '</td><td>' + (masked ? 'hidden' : E(tname(val))) + '</td><td class="dv-key">' + (masked ? '••• hidden' : E(pv(val))) + '</td></tr>';
+      }).join('') + '</tbody></table></div>' + (ks.length > 80 ? '<div class="adm-muted">Showing 80 of ' + ks.length + '.</div>' : '');
+    } else if (typeof v === 'function') { h += '<pre class="dv-pre">' + E(Function.prototype.toString.call(v).slice(0, 1800)) + '</pre>'; }
+    else h += '<pre class="dv-pre">' + E(String(v)) + '</pre>';
+    return h + '<div class="adm-actions"><button type="button" class="adm-btn ghost sm" data-dx="st-copy"><i class="fas fa-copy"></i> Copy as JSON</button></div>' + rootList();
+  }
+  function rootList() {
+    var bl = baseline(), q = ST.q.toLowerCase().trim(), core = ['db', 'portDb', 'charts', 'activeView', 'cloudSession', 'sb'], all = core.filter(function (n) { return g(n) !== undefined; });
+    Object.getOwnPropertyNames(window).forEach(function (n) { if (bl[n] || all.indexOf(n) >= 0 || /^(on|webkit|__)/.test(n) || !/^[A-Za-z_$][\w$]*$/.test(n)) return; var d = Object.getOwnPropertyDescriptor(window, n); if (!d || !('value' in d)) return; all.push(n); });
+    var list = all.filter(function (n) { return !q || n.toLowerCase().indexOf(q) >= 0; }), nf = 0, no = 0; all.forEach(function (n) { var v = rootGet(n); if (typeof v === 'function') nf++; else no++; });
+    return '<div class="adm-h" style="font-size:.9rem;margin-top:16px">App globals <small>' + nf + ' functions · ' + no + ' values and objects</small></div><div class="dv-bar"><input type="search" id="dx-sq" class="set-input" placeholder="Filter names…" aria-label="Filter globals" value="' + E(ST.q) + '"></div><div class="adm-scroll" style="max-height:300px" id="dx-roots"><table class="adm-tbl"><tbody>' + list.slice(0, 120).map(function (n) { var v = rootGet(n), m = MASK.test(n); return '<tr><td class="dv-key"><button type="button" class="dx-link" data-dx="go" data-p="' + E(n) + '">' + E(n) + '</button></td><td>' + (m ? 'hidden' : E(tname(v))) + '</td><td class="dv-key">' + (m ? '••• hidden' : E(pv(v))) + '</td></tr>'; }).join('') + '</tbody></table></div>' + (list.length > 120 ? '<div class="adm-muted">Showing 120 of ' + list.length + '. Filter to narrow.</div>' : '');
+  }
+  function stateHtml() {
+    return '<div class="adm-muted" style="margin-bottom:8px">Look inside the running app: its data, charts, cloud client and every global it defines. This is read-only: the path is parsed, never executed, and anything that looks like a token, key, hash or PIN is hidden.</div>' +
+      '<div class="dx-path"><input type="text" id="dx-path" class="set-input" spellcheck="false" value="' + E(ST.path) + '" aria-label="Path to inspect" placeholder="e.g. db[0]  or  charts"><button type="button" class="adm-btn sm" data-dx="go-input">Inspect</button></div><div id="dx-state">' + stateBody() + '</div>';
+  }
+
+  /* ═══ DISPATCH ════════════════════════════════════════════════════════ */
+  function html(id) { return id === 'health' ? healthHtml() : id === 'cloud' ? '<div id="dx-cloud">' + cloudBody() + '</div>' : id === 'timeline' ? timelineHtml() : id === 'storageio' ? sioHtml() : id === 'runtime' ? runtimeHtml() : id === 'data' ? dataHtml() : id === 'state' ? stateHtml() : ''; }
+  function after(id) {
+    if (id === 'health' && !HL.res && !HL.busy) runHealth();
+    if (id === 'storageio') sioAfter();
+    if (id === 'timeline') { var l = $('dx-tl'); if (l) l.scrollTop = 0; }
+  }
+  function onClick(e) {
+    var t = e.target; if (!t || !t.closest || !t.closest('.dv-wrap')) return; var b = t.closest('[data-dx]'); if (!b || b.disabled) return; var a = b.getAttribute('data-dx');
+    try {
+      if (a === 'probes') return runProbes(); if (a === 'series') return runSeries(); if (a === 'tables') return runTables();
+      if (a === 'health') return runHealth(); if (a === 'health-copy') return H.copy(healthText()).then(function (ok) { H.say(ok ? 'Health report copied.' : 'Could not copy.', !ok); });
+      if (a === 'mark') { var i = $('dx-mark'); var m = i && i.value.trim(); TL.marks.push({ t: now(), m: m || 'Marker' }); if (i) i.value = ''; var el = $('dx-tl'); if (el) el.innerHTML = tlRows(); console.info('[marker] ' + (m || 'Marker')); return; }
+      if (a === 'tl-copy') return H.copy(events().map(function (x) { return clock(x.t) + ' [' + x.k + '] ' + x.m; }).join('\n')).then(function (ok) { H.say(ok ? 'Timeline copied.' : 'Could not copy.', !ok); });
+      if (a === 'persist') return navigator.storage.persist().then(function (p) { PERSIST = p; H.say(p ? 'Persistent storage granted.' : 'The browser declined. It usually grants this to installed apps or frequently used sites.', !p); var el = $('dx-sio'); if (el) el.innerHTML = sioBody(); });
+      if (a === 'data-refresh') { var d = $('dx-data'); if (d) d.innerHTML = dataBody(); return; }
+      if (a === 'row') { var inp = $('dx-row'), o = $('dx-rowout'), rows = g('db'); DQ.idx = inp ? inp.value : ''; var n = parseInt(DQ.idx, 10); if (!o) return; if (!Array.isArray(rows) || isNaN(n) || n < 0 || n >= rows.length) { o.innerHTML = '<div class="dv-warn">Enter a row number between 0 and ' + Math.max(0, (rows || []).length - 1) + '.</div>'; return; } o.innerHTML = '<pre class="dv-pre">' + E(jsonSafe(rows[n])) + '</pre>'; return; }
+      if (a === 'go' || a === 'go-input') { if (a === 'go-input') ST.path = ($('dx-path') || {}).value || ''; else ST.path = b.getAttribute('data-p'); var inp2 = $('dx-path'); if (inp2) inp2.value = ST.path; var s = $('dx-state'); if (s) s.innerHTML = stateBody(); return; }
+      if (a === 'st-copy') { var r = resolve(ST.path); return H.copy(r.ok ? (r.masked ? '' : jsonSafe(r.v)) : '').then(function (ok) { H.say(ok ? 'Copied.' : 'Could not copy.', !ok); }); }
+    } catch (x) { console.error(x); H.say('Something went wrong: ' + x.message, true); }
+  }
+  function onChange(e) {
+    var t = e.target; if (!t || !t.closest || !t.closest('.dv-wrap')) return;
+    if (t.hasAttribute('data-dx-mon')) { monitor(t.checked); return H.say(t.checked ? 'Monitoring the backend every 15 seconds. Results appear in the latency history.' : 'Monitor stopped.'); }
+    if (t.hasAttribute('data-dx-auto')) { HL.auto = t.checked; return; }
+    var tl = t.getAttribute('data-dx-tl'); if (tl) { TL.f[tl] = t.checked ? 1 : 0; var el = $('dx-tl'); if (el) el.innerHTML = tlRows(); return; }
+    if (t.hasAttribute('data-dx-prof')) { if (t.checked) profStart(); else profStop(); H.repaint(); return H.say(t.checked ? 'Profiler on. Use the app, then come back to see timings.' : 'Profiler off.'); }
+    if (t.hasAttribute('data-dx-mo')) { if (t.checked) moStart(); else moStop(); H.repaint(); return H.say(t.checked ? 'Watching page changes.' : 'Stopped.'); }
+  }
+  function onInput(e) { var t = e.target; if (!t || !t.closest || !t.closest('.dv-wrap')) return; if (t.id === 'dx-sq') { ST.q = t.value; var r = $('dx-roots'); if (r) { var tmp = document.createElement('div'); tmp.innerHTML = rootList(); var n = tmp.querySelector('#dx-roots'); if (n) r.innerHTML = n.innerHTML; } } }
+  function onKey(e) { var t = e.target; if (e.key !== 'Enter' || !t) return; if (t.id === 'dx-path') { e.preventDefault(); var b = document.querySelector('[data-dx="go-input"]'); if (b) b.click(); } if (t.id === 'dx-mark') { e.preventDefault(); var m = document.querySelector('[data-dx="mark"]'); if (m) m.click(); } if (t.id === 'dx-row') { e.preventDefault(); var r = document.querySelector('[data-dx="row"]'); if (r) r.click(); } }
+  function wire() { var r = $('adm-root'); if (!r || r.__dx) return; r.__dx = 1; r.addEventListener('click', onClick); r.addEventListener('change', onChange); r.addEventListener('input', onInput); r.addEventListener('keydown', onKey, true); }
+
+  function bundleExtra() {
+    var ivs = Object.keys(TM.iv).map(function (k) { var r = TM.iv[k]; return { everyMs: r.d, runs: r.n, totalMs: Math.round(r.ms), slowestMs: Math.round(r.max), startedAt: r.site }; }).sort(function (a, b) { return b.totalMs - a.totalMs; }).slice(0, 30);
+    return {
+      health: HL.res ? { checkedAt: new Date(HL.at).toISOString(), results: HL.res.map(function (x) { return { group: x.g, check: x.t, status: x.s, detail: x.d }; }) } : null,
+      cloud: { session: (function () { var i = sessionInfo(); return { signedIn: i.signedIn, tracking: i.tracking, lastSync: i.lastSync && isFinite(i.lastSync) ? new Date(i.lastSync).toISOString() : null }; })(), latency: lat(), probes: CL.probes, tables: CL.tables ? CL.tables.rows : null, statusHistory: CS.slice(0, 30).map(function (c) { return { time: new Date(c.t).toISOString(), status: c.s }; }) },
+      timers: { repeating: ivs, waitingTimeouts: Object.keys(PT).length, timeoutsFired: TM.fired }, listeners: { approxRegistered: lsCount(), added: LS.add, removed: LS.rem, topTypes: Object.keys(LS.types).map(function (k) { return [k, LS.types[k]]; }).sort(function (a, b) { return b[1] - a[1]; }).slice(0, 15) },
+      storageIO: { writes: SW.w, bytesWritten: SW.bytes, removals: SW.r, failedWrites: SW.q, writesLastMinute: wpm(), hotKeys: Object.keys(SW.keys).filter(function (k) { return !H.SECRET.test(k); }).map(function (k) { return { key: k, writes: SW.keys[k].n, bytesNow: SW.keys[k].cur, largest: SW.keys[k].max }; }).sort(function (a, b) { return b.writes - a.writes; }).slice(0, 15), events: SW.ev.slice(0, 20).map(function (e) { return { time: new Date(e.t).toISOString(), message: e.m }; }) },
+      renderProfile: Object.keys(PR.fns).map(function (n) { var r = PR.fns[n]; return { fn: n, calls: r.n, avgMs: +(r.ms / r.n).toFixed(1), maxMs: Math.round(r.max) }; }).sort(function (a, b) { return b.avgMs * b.calls - a.avgMs * a.calls; }).slice(0, 25),
+      screens: VW.slice(0, 30).map(function (v) { return { time: new Date(v.t).toISOString(), view: v.v, ms: v.ms }; }), dataQuality: (function () { var s = dataScan(); return s ? { rows: s.n, badDate: s.bad.date, badAmount: s.bad.amt, notRecords: s.bad.nonobj, future: s.bad.future, zero: s.bad.zero, possibleDuplicates: s.dup } : null; })()
+    };
+  }
+  window.FOS_DEVX = { ids: IDS, has: function (id) { return IDS.indexOf(id) >= 0; }, html: html, after: after, wire: wire, bundleExtra: bundleExtra, runHealth: runHealth, health: function () { return HL.res; }, hooks: function () { return { timers: Object.keys(TM.iv).length, listeners: lsCount(), writes: SW.w, views: VW.length, cloud: CS.length }; }, profStart: profStart, profStop: profStop };
+  wire(); window.addEventListener('load', wire);
 })();
 </script>
 <script id="fos-num-core">
