@@ -11,7 +11,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="fos-integrity" content="84dd3d1c606471b8eba981749046b331e647e1c4d51b312f063bc3a0f89b3711">
+<meta name="fos-integrity" content="edbe827a756223b011e719a2124e5053796c435aae19de52c56276f9d14b63a3">
 <script id="fos-tamper-guard">
 /*! \u00a9 2026 MC Enterprise. Integrity check: detects a copy of this file that no longer matches the
     official release and locks it with a notice. This checks the FILE as served, not live memory --
@@ -482,6 +482,544 @@ function fosBrandRgba(a){return 'rgba('+fosBrandRgb()+','+a+')';}
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<style id="fos-devtools-style">
+.dv-wrap .dv-bar{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:10px}.dv-wrap .dv-bar .set-input{flex:1;min-width:150px}
+.dv-wrap .dv-chip{display:inline-flex;align-items:center;gap:5px;border:1px solid var(--adm-line);border-radius:99px;padding:4px 10px;font-size:.72rem;font-weight:700;cursor:pointer;user-select:none}
+.dv-wrap .dv-chip input{margin:0;accent-color:var(--adm-a)}
+.dv-wrap .dv-log{font-family:'DM Mono',monospace;font-size:.72rem;max-height:400px;overflow:auto;border:1px solid var(--adm-line);border-radius:10px}
+.dv-wrap .dv-ln{display:flex;gap:8px;padding:4px 9px;border-bottom:1px solid rgba(128,128,128,.12);align-items:flex-start}.dv-wrap .dv-ln:last-child{border-bottom:0}
+.dv-wrap .dv-ln.warn{background:rgba(251,191,36,.09)}.dv-wrap .dv-ln.error{background:rgba(248,113,113,.11)}
+.dv-wrap .dv-t{color:var(--text-muted);flex:none}.dv-wrap .dv-lv{flex:none;width:44px;font-weight:800;text-transform:uppercase;font-size:.6rem;padding-top:2px;color:var(--text-muted)}
+.dv-wrap .dv-ln.warn .dv-lv{color:var(--fs-warn,#fbbf24)}.dv-wrap .dv-ln.error .dv-lv{color:var(--fs-bad,#f87171)}
+.dv-wrap .dv-m{white-space:pre-wrap;word-break:break-word;min-width:0;flex:1}
+.dv-wrap .dv-empty{padding:18px;text-align:center;color:var(--text-muted);font-size:.78rem}
+.dv-wrap .adm-tbl td,.dv-wrap .adm-tbl th{text-align:left!important;vertical-align:top}.dv-wrap .adm-tbl td.n,.dv-wrap .adm-tbl th.n{text-align:right!important;white-space:nowrap}
+.dv-wrap .adm-tbl td.dv-g{color:var(--fs-ok,#34d399)!important;font-weight:700}.dv-wrap .adm-tbl td.dv-r{color:var(--fs-bad,#f87171)!important;font-weight:700}.dv-wrap .adm-tbl td.dv-y{color:var(--fs-warn,#fbbf24)!important;font-weight:700}
+.dv-wrap .dv-url{font-family:'DM Mono',monospace;word-break:break-all;min-width:160px}.dv-wrap .dv-key{font-family:'DM Mono',monospace;word-break:break-all}
+.dv-wrap .dv-kv td:first-child{color:var(--text-muted)!important;white-space:nowrap;width:1%}
+.dv-wrap .dv-pre{max-height:320px;overflow:auto;font-family:'DM Mono',monospace;font-size:.72rem;white-space:pre-wrap;word-break:break-all;padding:10px;border:1px solid var(--adm-line);border-radius:10px;margin:8px 0}
+.dv-wrap .dv-ta{width:100%;min-height:240px;font-family:'DM Mono',monospace;font-size:.72rem;margin:8px 0}
+.dv-wrap .dv-meter{height:8px;border-radius:99px;background:rgba(128,128,128,.25);overflow:hidden;margin:6px 0}.dv-wrap .dv-meter i{display:block;height:100%;background:var(--adm-g)}.dv-wrap .dv-meter.hot i{background:var(--fs-warn,#fbbf24)}
+.dv-wrap .dv-res{font-family:'DM Mono',monospace;font-size:.9rem;padding:10px 12px;border:1px solid var(--adm-line);border-radius:10px;margin-top:8px;word-break:break-word}.dv-wrap .dv-res.bad{color:var(--fs-bad,#f87171)}.dv-wrap .dv-res.ok b{color:var(--fs-ok,#34d399)}
+.dv-wrap .dv-two{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:14px}
+.dv-wrap .dv-warn{padding:9px 12px;border-radius:10px;background:rgba(251,191,36,.12);border:1px solid rgba(251,191,36,.45);font-size:.76rem}
+.dv-wrap .dv-act{display:flex;align-items:center;gap:12px;padding:10px 12px;border:1px solid var(--adm-line);border-radius:10px;margin:6px 0;flex-wrap:wrap}.dv-wrap .dv-act>div{flex:1;min-width:200px}.dv-wrap .dv-act small{display:block;color:var(--text-muted);font-size:.72rem}
+.dv-wrap select.set-input{width:auto;flex:none;min-width:110px}
+#dv-fps{position:fixed;left:10px;bottom:10px;z-index:199000;font:700 11px/1 'DM Mono',monospace;padding:6px 9px;border-radius:8px;background:rgba(5,7,8,.82);color:#34d399;border:1px solid rgba(52,211,153,.45);pointer-events:none}
+#dv-fps.lo{color:#fbbf24;border-color:rgba(251,191,36,.55)}#dv-fps.vlo{color:#f87171;border-color:rgba(248,113,113,.6)}
+</style>
+<script id="fos-devtools">
+/* ═══════════════════════════════════════════════════════════════════════
+   FOS ADMIN · DEVELOPER TOOLS
+     Overview · Console · Network · Storage · Config & formulas · Performance · Switches · Tools
+     · Console / error / network capture starts as early as this script runs (in-memory only,
+       nothing is sent anywhere). Values are never inspected beyond a safe text preview.
+     · Secrets (PINs, hashes, auth tokens, user lists) are hidden and cannot be viewed,
+       edited, exported or deleted from here.
+     · Formula tester uses the same no-eval expression engine as Formula Studio.
+     · Debug switches persist in 'fos_admin_dev_v1' and are ignored in Safe mode; the offline /
+       latency simulator is session-only and resets on reload.
+   ═══════════════════════════════════════════════════════════════════════ */
+(function () {
+  'use strict';
+  if (window.FOS_DEVTOOLS) return;
+  var C = window.FOS_CONFIG;
+  var KEY = 'fos_admin_dev_v1', LKEY = 'fos_admin_dev_log_v1', STYLE = 'fos-dev-ovr', BADGE = 'dv-fps';
+  var SECRET = /(^|[_.-])(pin|hash|salt|token|secret|cred|credential|password|auth)([_.-]|$)|^sb-|^fos_users$|^fos_current_user$|^fos_pc_lock_|biometric|fos_admin_sess/i;
+  var APPKEY = /^(fos_|financeOS_|pol_)/;
+  var QUOTA = 5 * 1024 * 1024;
+  var SUBS = [['overview', 'Overview', 'fa-gauge'], ['console', 'Console', 'fa-terminal'], ['network', 'Network', 'fa-network-wired'], ['storage', 'Storage', 'fa-database'], ['config', 'Config & formulas', 'fa-sliders'], ['perf', 'Performance', 'fa-stopwatch'], ['switches', 'Switches', 'fa-toggle-on'], ['tools', 'Tools', 'fa-screwdriver-wrench']];
+
+  /* ── small helpers ─────────────────────────────────────────────────── */
+  function E(s) { return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]; }); }
+  function $(id) { return document.getElementById(id); }
+  function J(k, d) { try { var v = JSON.parse(localStorage.getItem(k)); return v == null ? d : v; } catch (e) { return d; } }
+  function raw(k) { try { return localStorage.getItem(k); } catch (e) { return null; } }
+  function put(k, v) { try { localStorage.setItem(k, v); return true; } catch (e) { return false; } }
+  function safe(f, d) { try { var v = f(); return v === undefined ? d : v; } catch (e) { return d; } }
+  function pad(n, l) { n = String(n); while (n.length < (l || 2)) n = '0' + n; return n; }
+  function clock(t) { var d = new Date(t); return pad(d.getHours()) + ':' + pad(d.getMinutes()) + ':' + pad(d.getSeconds()) + '.' + pad(d.getMilliseconds(), 3); }
+  function bytes(n) { return n == null ? '—' : n < 1024 ? n + ' B' : n < 1048576 ? (n / 1024).toFixed(1) + ' KB' : n < 1073741824 ? (n / 1048576).toFixed(2) + ' MB' : (n / 1073741824).toFixed(2) + ' GB'; }
+  function dur(ms) { var s = Math.floor(ms / 1000); return s < 60 ? s + 's' : s < 3600 ? Math.floor(s / 60) + 'm ' + (s % 60) + 's' : Math.floor(s / 3600) + 'h ' + Math.floor((s % 3600) / 60) + 'm'; }
+  function active() { try { return !(C && C.safe()); } catch (e) { return true; } }
+  function isNode(v) { try { return (typeof Node !== 'undefined' && v instanceof Node) || (typeof Window !== 'undefined' && v instanceof Window) || (typeof Event !== 'undefined' && v instanceof Event); } catch (e) { return false; } }
+  function download(name, text, type) { try { var u = URL.createObjectURL(new Blob([text], { type: type || 'text/plain' })), a = document.createElement('a'); a.href = u; a.download = name; document.body.appendChild(a); a.click(); a.remove(); setTimeout(function () { URL.revokeObjectURL(u); }, 4000); return true; } catch (e) { return false; } }
+  function copy(text) {
+    return new Promise(function (ok) {
+      try { if (navigator.clipboard && navigator.clipboard.writeText) { navigator.clipboard.writeText(text).then(function () { ok(true); }, function () { ok(fallback()); }); return; } } catch (e) { }
+      ok(fallback());
+      function fallback() { try { var t = document.createElement('textarea'); t.value = text; t.style.cssText = 'position:fixed;opacity:0'; document.body.appendChild(t); t.select(); var r = document.execCommand('copy'); t.remove(); return r; } catch (e) { return false; } }
+    });
+  }
+  function shortUrl(u) { try { var x = new URL(String(u), location.href); return (x.origin === location.origin ? '' : x.origin) + x.pathname; } catch (e) { return String(u).split('?')[0].slice(0, 120); } }
+  function cleanUrl(u) {
+    var s = String(u == null ? '' : u); if (/^(data|blob):/i.test(s)) return s.slice(0, s.indexOf(':') + 1) + '…';
+    try { var x = new URL(s, location.href), keys = []; x.searchParams.forEach(function (v, k) { if (keys.indexOf(k) < 0) keys.push(k); }); return (x.origin === location.origin ? '' : x.origin) + x.pathname.slice(0, 160) + (keys.length ? '?' + keys.slice(0, 6).join('&') + (keys.length > 6 ? '…' : '') : ''); } catch (e) { return s.split('?')[0].slice(0, 120); }
+  }
+
+  /* ── persistent switches / session simulator / buffers ─────────────── */
+  function cleanP(o) { var b = { fps: false, outline: false, noanim: false, logcfg: false, inspect: false }; if (o && typeof o === 'object') Object.keys(b).forEach(function (k) { b[k] = o[k] === true; }); return b; }
+  var P = cleanP(J(KEY, null));
+  var SIM = { offline: false, delay: 0 };
+  var LOGS = [], NET = [], LT = [], CNT = { log: 0, info: 0, warn: 0, error: 0, debug: 0 }, NSEQ = 0, T0 = Date.now();
+  var S = { sub: 'overview', paused: false, lv: { log: 1, info: 1, warn: 1, error: 1, debug: 1 }, cq: '', nq: '', nfail: false, sq: '', sscope: 'app', sel: null, edit: false, kq: '', kmod: false, msg: '', bad: false, expr: 'savings / income * 100', month: '', last: null };
+  var UNDO = null;
+  var PEND = {};
+
+  /* ── console capture ───────────────────────────────────────────────── */
+  var IGNORE = /Nice try|Better luck|All rights reserved|^Stop!/;
+  function fmt(v) {
+    var t = typeof v;
+    if (v === null) return 'null'; if (t === 'undefined') return 'undefined'; if (t === 'string') return v;
+    if (t === 'number' || t === 'boolean' || t === 'bigint') return String(v); if (t === 'symbol') return v.toString();
+    if (t === 'function') return '[Function ' + (v.name || 'anonymous') + ']';
+    if (isNode(v)) { try { return '[' + Object.prototype.toString.call(v).slice(8, -1) + ']'; } catch (e) { return '[object]'; } }
+    if (v instanceof Error) return String(v.stack || v.message || v).slice(0, 900);
+    try {
+      var seen = [], s = JSON.stringify(v, function (k, x) { if (typeof x === 'function') return '[Function]'; if (typeof x === 'bigint') return String(x); if (x && typeof x === 'object') { if (isNode(x)) return '[Node]'; if (seen.indexOf(x) >= 0) return '[Circular]'; seen.push(x); } return x; });
+      return s === undefined ? String(v) : (s.length > 700 ? s.slice(0, 700) + '…' : s);
+    } catch (e) { return '[unprintable]'; }
+  }
+  function argsText(a) {
+    var arr = Array.prototype.slice.call(a), f = arr[0];
+    if (typeof f === 'string' && f.indexOf('%c') >= 0) { var n = (f.match(/%c/g) || []).length; arr[0] = f.replace(/%c/g, ''); arr.splice(1, n); }
+    return arr.map(fmt).join(' ');
+  }
+  function addLog(level, text, src) {
+    if (S.paused) return;
+    CNT[level] = (CNT[level] || 0) + 1;
+    LOGS.push({ t: Date.now(), l: level, m: String(text).slice(0, 2000), s: src || '' });
+    if (LOGS.length > 500) LOGS.splice(0, LOGS.length - 500);
+    schedule('con');
+  }
+  ['log', 'info', 'warn', 'error', 'debug'].forEach(function (l) {
+    var o = console[l]; if (typeof o !== 'function' || o.__fosdev) return;
+    var w = function () {
+      try { var a = arguments; if (a.length && !Array.prototype.every.call(a, isNode)) { var t = argsText(a); if (!IGNORE.test(t)) addLog(l, t, 'console'); } } catch (e) { }
+      return o.apply(console, arguments);
+    };
+    w.__fosdev = 1; console[l] = w;
+  });
+  window.addEventListener('error', function (e) {
+    try {
+      if (e.target && e.target !== window && (e.target.src || e.target.href)) { addLog('error', 'Failed to load ' + String(e.target.tagName || 'resource').toLowerCase() + ': ' + shortUrl(e.target.src || e.target.href), 'resource'); return; }
+      addLog('error', (e.message || 'Error') + (e.filename ? '  (' + shortUrl(e.filename) + ':' + e.lineno + ':' + e.colno + ')' : ''), 'uncaught');
+    } catch (x) { }
+  }, true);
+  window.addEventListener('unhandledrejection', function (e) { try { var r = e.reason; addLog('error', 'Unhandled promise rejection: ' + (r && r.message ? r.message : fmt(r)), 'promise'); } catch (x) { } });
+
+  /* ── network capture (method, address without query values, status, time) ─ */
+  function netStart(m, u) { var r = { id: ++NSEQ, t: Date.now(), m: String(m || 'GET').toUpperCase(), u: cleanUrl(u), st: null, ms: null, size: null, err: '', t0: performance.now() }; NET.push(r); if (NET.length > 200) NET.splice(0, NET.length - 200); schedule('net'); return r; }
+  function netEnd(r, st, size, err) { r.st = st; r.ms = Math.round(performance.now() - r.t0); r.size = size; r.err = err || ''; schedule('net'); }
+  (function () {
+    var of = window.fetch; if (typeof of === 'function' && !of.__fosdev) {
+      var wf = function (input, init) {
+        var m = (init && init.method) || (input && input.method) || 'GET', u = safe(function () { return typeof input === 'string' ? input : (input && input.url) || String(input); }, ''), r = netStart(m, u), self = this, args = arguments;
+        if (SIM.offline) { netEnd(r, 0, null, 'simulated offline'); return Promise.reject(new TypeError('Failed to fetch (simulated offline)')); }
+        var go = function () { return of.apply(self, args); }, p = SIM.delay > 0 ? new Promise(function (ok) { setTimeout(ok, SIM.delay); }).then(go) : go();
+        return p.then(function (res) { try { var cl = res.headers && res.headers.get('content-length'); netEnd(r, res.status, cl == null ? null : +cl, ''); } catch (e) { } return res; }, function (e) { try { netEnd(r, 0, null, String(e && e.message || e)); } catch (x) { } throw e; });
+      };
+      wf.__fosdev = 1; window.fetch = wf;
+    }
+    var X = window.XMLHttpRequest && window.XMLHttpRequest.prototype; if (X && !X.open.__fosdev) {
+      var xo = X.open, xs = X.send;
+      X.open = function (m, u) { try { this.__fd = { m: m, u: u }; } catch (e) { } return xo.apply(this, arguments); }; X.open.__fosdev = 1;
+      X.send = function () {
+        try { var d = this.__fd; if (d) { var r = netStart(d.m, d.u), x = this; x.addEventListener('loadend', function () { var n = null; try { var cl = x.getResponseHeader('content-length'); if (cl != null) n = +cl; } catch (e) { } netEnd(r, x.status, n, x.status ? '' : 'failed'); }); } } catch (e) { }
+        return xs.apply(this, arguments);
+      };
+    }
+  })();
+  try { new PerformanceObserver(function (l) { l.getEntries().forEach(function (e) { LT.push({ at: Math.round(e.startTime), d: Math.round(e.duration) }); }); if (LT.length > 50) LT.splice(0, LT.length - 50); }).observe({ entryTypes: ['longtask'] }); } catch (e) { }
+
+  /* ── FPS meter (runs only while the badge or the Performance tab needs it) ─ */
+  var F = { on: false, frames: 0, t: 0, fps: null, raf: 0 };
+  function fpsLoop(ts) {
+    F.frames++; if (!F.t) F.t = ts;
+    if (ts - F.t >= 1000) { F.fps = Math.round(F.frames * 1000 / (ts - F.t)); F.frames = 0; F.t = ts; badge(); }
+    F.raf = requestAnimationFrame(fpsLoop);
+  }
+  function fpsSet(on) { if (on && !F.on) { F.on = true; F.t = 0; F.frames = 0; F.raf = requestAnimationFrame(fpsLoop); } else if (!on && F.on) { F.on = false; cancelAnimationFrame(F.raf); F.fps = null; } }
+  function badge() {
+    var el = $(BADGE), want = P.fps && active();
+    if (!want) { if (el) el.remove(); return; }
+    if (!el && document.body) { el = document.createElement('div'); el.id = BADGE; el.setAttribute('aria-hidden', 'true'); document.body.appendChild(el); }
+    if (el) { el.textContent = (F.fps == null ? '…' : F.fps) + ' fps'; el.className = F.fps != null && F.fps < 20 ? 'vlo' : F.fps != null && F.fps < 45 ? 'lo' : ''; }
+  }
+
+  /* ── apply persisted debug switches ────────────────────────────────── */
+  function css() {
+    if (!active()) return '';
+    var o = [];
+    if (P.outline) o.push('html body *{outline:1px solid rgba(244,63,94,.38)!important;outline-offset:-1px}');
+    if (P.noanim) o.push('html body *,html body *::before,html body *::after{animation:none!important;transition:none!important;scroll-behavior:auto!important}');
+    return o.join('\n');
+  }
+  function applyAll() {
+    var el = $(STYLE); if (!el) { el = document.createElement('style'); el.id = STYLE; (document.head || document.documentElement).appendChild(el); }
+    el.textContent = css(); badge();
+  }
+  function logLine(m) { var l = J(LKEY, []); if (!Array.isArray(l)) l = []; l.unshift({ t: new Date().toISOString(), m: String(m).slice(0, 180) }); put(LKEY, JSON.stringify(l.slice(0, 60))); }
+  function selectorOf(el) {
+    var parts = [], n = el, i = 0;
+    while (n && n.nodeType === 1 && i < 5 && n !== document.body) { var s = n.tagName.toLowerCase(); if (n.id) { parts.unshift(s + '#' + n.id); break; } var c = (typeof n.className === 'string' ? n.className : '').trim().split(/\s+/).filter(Boolean).slice(0, 2); if (c.length) s += '.' + c.join('.'); parts.unshift(s); n = n.parentElement; i++; }
+    return parts.join(' > ');
+  }
+  document.addEventListener('click', function (e) {
+    if (!P.inspect || !e.altKey || !active() || !e.target || e.target.nodeType !== 1) return;
+    e.preventDefault(); e.stopPropagation();
+    var el = e.target, r = el.getBoundingClientRect(), cs = getComputedStyle(el);
+    var txt = selectorOf(el) + '  |  ' + Math.round(r.width) + '×' + Math.round(r.height) + ' at ' + Math.round(r.left) + ',' + Math.round(r.top) + '  |  font ' + cs.fontSize + ' ' + cs.fontFamily.split(',')[0] + '  |  color ' + cs.color + '  |  bg ' + cs.backgroundColor;
+    S.last = txt; console.info('[inspect] ' + txt); say('Inspected: ' + selectorOf(el));
+  }, true);
+  var cfgHooked = false;
+  function hookCfg() { if (cfgHooked || !C || !C.onChange) return; cfgHooked = true; try { C.onChange(function (p) { if (P.logcfg && active()) console.info('[config] changed: ' + (Array.isArray(p) ? p.join(', ') : fmt(p))); }); } catch (e) { } }
+
+  /* ── schedule list refreshes without rebuilding the whole tab ─────── */
+  function schedule(k) { PEND[k] = 1; if (PEND.t) return; PEND.t = setTimeout(function () { PEND.t = 0; var c = PEND.con, n = PEND.net; PEND.con = PEND.net = 0; if (c) conRefresh(); if (n) netRefresh(); }, 150); }
+
+  /* ── messages ──────────────────────────────────────────────────────── */
+  function say(m, bad) { S.msg = m || ''; S.bad = !!bad; var el = $('dv-note'); if (el) { el.textContent = S.msg; el.className = 'tm-note' + (bad ? ' bad' : ''); el.setAttribute('role', bad ? 'alert' : 'status'); } clearTimeout(say._t); if (m) say._t = setTimeout(function () { S.msg = ''; var e = $('dv-note'); if (e) e.textContent = ''; }, 7000); }
+
+  /* ═══ ENVIRONMENT / DIAGNOSTICS ═══════════════════════════════════════ */
+  function env() {
+    var nav = navigator, con = nav.connection || {};
+    return {
+      userAgent: nav.userAgent, language: nav.language, timezone: safe(function () { return Intl.DateTimeFormat().resolvedOptions().timeZone; }, ''), platform: nav.platform || '',
+      screen: screen.width + '×' + screen.height, viewport: innerWidth + '×' + innerHeight, pixelRatio: window.devicePixelRatio || 1,
+      online: nav.onLine, standalone: safe(function () { return matchMedia('(display-mode: standalone)').matches; }, false), secureContext: !!window.isSecureContext, protocol: location.protocol,
+      cores: nav.hardwareConcurrency || null, deviceMemoryGB: nav.deviceMemory || null, connection: con.effectiveType || null,
+      serviceWorker: 'serviceWorker' in nav ? (nav.serviceWorker.controller ? 'active' : 'supported, none controlling') : 'unsupported',
+      notifications: 'Notification' in window ? Notification.permission : 'unsupported', cookies: nav.cookieEnabled, colorScheme: safe(function () { return matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light'; }, ''),
+      reducedMotion: safe(function () { return matchMedia('(prefers-reduced-motion: reduce)').matches; }, false)
+    };
+  }
+  function lsList(store) {
+    var out = []; try { for (var i = 0; i < store.length; i++) { var k = store.key(i), v = store.getItem(k) || ''; out.push({ k: k, size: (k.length + v.length) * 2, secret: SECRET.test(k), app: APPKEY.test(k) }); } } catch (e) { }
+    return out;
+  }
+  function lsTotal() { return lsList(localStorage).reduce(function (s, x) { return s + x.size; }, 0); }
+  function heap() { var m = performance && performance.memory; return m ? { used: m.usedJSHeapSize, total: m.totalJSHeapSize, limit: m.jsHeapSizeLimit } : null; }
+  function counts() { var n = NET.filter(function (r) { return r.st === 0 || (r.st != null && r.st >= 400); }).length; return { errors: CNT.error, warns: CNT.warn, requests: NET.length, failed: n }; }
+  function bundle() {
+    var fl = J('fos_admin_flags_v1', null);
+    return {
+      app: 'FinanceOS', kind: 'debug-bundle', version: 1, createdAt: new Date().toISOString(), uptimeSec: Math.round((Date.now() - T0) / 1000),
+      note: 'Contains no transactions, PINs, tokens or account details. Network addresses have query values removed.',
+      environment: env(), safeMode: !active(), switches: P, simulator: SIM,
+      config: { changedSettings: safe(function () { return C.overrides(); }, {}) }, featureFlags: fl,
+      storage: lsList(localStorage).map(function (x) { return { key: x.secret ? '(protected key)' : x.k, bytes: x.size }; }).sort(function (a, b) { return b.bytes - a.bytes; }),
+      performance: { fps: F.fps, domNodes: document.getElementsByTagName('*').length, heap: heap(), longTasks: LT.slice(-20) },
+      counts: counts(), console: LOGS.slice(-200).map(function (x) { return { time: new Date(x.t).toISOString(), level: x.l, message: x.m }; }),
+      network: NET.slice(-100).map(function (r) { return { time: new Date(r.t).toISOString(), method: r.m, url: r.u, status: r.st, ms: r.ms, bytes: r.size, error: r.err }; })
+    };
+  }
+  function summaryText() {
+    var e = env(), c = counts(), h = heap(), L = ['FinanceOS diagnostic summary', new Date().toString(), ''];
+    L.push('Uptime: ' + dur(Date.now() - T0), 'Safe mode: ' + (active() ? 'off' : 'ON'), 'Errors: ' + c.errors + ' · Warnings: ' + c.warns, 'Requests: ' + c.requests + ' (' + c.failed + ' failed)');
+    L.push('Storage used: ' + bytes(lsTotal()) + ' of about 5 MB', 'DOM nodes: ' + document.getElementsByTagName('*').length, h ? 'JS heap: ' + bytes(h.used) + ' of ' + bytes(h.limit) : 'JS heap: not reported by this browser', '');
+    Object.keys(e).forEach(function (k) { L.push(k + ': ' + e[k]); });
+    return L.join('\n');
+  }
+
+  /* ═══ VIEWS ═══════════════════════════════════════════════════════════ */
+  function tile(label, value, sub, cls) { return '<div class="tm-tile' + (cls ? ' ' + cls : '') + '"><span>' + E(label) + '</span><b>' + E(value) + '</b>' + (sub ? '<small>' + E(sub) + '</small>' : '') + '</div>'; }
+  function tilesHtml() {
+    var c = counts(), h = heap(), tot = lsTotal();
+    return tile('Uptime', dur(Date.now() - T0), 'since this page loaded') + tile('Errors', c.errors, c.warns + ' warning' + (c.warns === 1 ? '' : 's'), c.errors ? 'warn' : '') +
+      tile('Requests', c.requests, c.failed + ' failed', c.failed ? 'warn' : '') + tile('Storage', bytes(tot), Math.round(tot / QUOTA * 100) + '% of ~5 MB', tot / QUOTA > .8 ? 'warn' : '') +
+      tile('DOM nodes', document.getElementsByTagName('*').length.toLocaleString(), 'elements on the page') + tile('JS memory', h ? bytes(h.used) : 'n/a', h ? 'of ' + bytes(h.limit) : 'not reported here') +
+      tile('Frame rate', F.fps == null ? '—' : F.fps + ' fps', F.on ? 'live' : 'measured while this tab is open');
+  }
+  function overviewHtml() {
+    var e = env(), rows = Object.keys(e).map(function (k) { return '<tr><td>' + E(k) + '</td><td class="dv-key">' + E(e[k]) + '</td></tr>'; }).join('');
+    return '<div class="tm-tiles" id="dv-tiles" data-live="1">' + tilesHtml() + '</div>' +
+      '<div class="adm-actions" style="margin:0 0 10px"><button type="button" class="adm-btn" data-dv="copy-sum"><i class="fas fa-copy"></i> Copy diagnostic summary</button><button type="button" class="adm-btn ghost" data-dv="bundle"><i class="fas fa-file-export"></i> Download debug bundle</button></div>' +
+      '<div class="adm-muted" style="margin-bottom:10px">The debug bundle holds environment details, changed settings, console and network history and storage key sizes. It never contains transactions, PINs, tokens or account details.</div>' +
+      '<div class="adm-h" style="font-size:.9rem">Environment</div><div class="adm-scroll" style="max-height:none"><table class="adm-tbl dv-kv"><tbody>' + rows + '</tbody></table></div>';
+  }
+
+  /* — console — */
+  function conFiltered() { var q = S.cq.toLowerCase().trim(); return LOGS.filter(function (x) { return S.lv[x.l] && (!q || x.m.toLowerCase().indexOf(q) >= 0); }); }
+  function conRows() {
+    var list = conFiltered(), tot = list.length; list = list.slice(-300);
+    if (!list.length) return '<div class="dv-empty">' + (LOGS.length ? 'No messages match the filter.' : 'Nothing logged yet. Messages from console.log, warnings, errors and uncaught exceptions appear here.') + '</div>';
+    return list.map(function (x) { return '<div class="dv-ln ' + x.l + '"><span class="dv-t">' + clock(x.t) + '</span><span class="dv-lv">' + x.l + '</span><span class="dv-m">' + E(x.m) + '</span></div>'; }).join('') + (tot > 300 ? '<div class="dv-empty">Showing the latest 300 of ' + tot + ' matching messages.</div>' : '');
+  }
+  function consoleHtml() {
+    var chips = ['log', 'info', 'warn', 'error', 'debug'].map(function (l) { return '<label class="dv-chip"><input type="checkbox" data-dv-lv="' + l + '"' + (S.lv[l] ? ' checked' : '') + '> ' + l + ' <span class="adm-muted">' + (CNT[l] || 0) + '</span></label>'; }).join('');
+    return '<div class="adm-muted" style="margin-bottom:8px">Everything the app writes to the console, plus uncaught errors and failed promises, kept in memory for this page load (latest 500).</div>' +
+      '<div class="dv-bar"><input type="search" id="dv-cq" class="set-input" placeholder="Filter messages…" aria-label="Filter console messages" value="' + E(S.cq) + '">' + chips + '</div>' +
+      '<div class="dv-bar"><button type="button" class="adm-btn ghost sm" data-dv="con-pause" id="dv-pause">' + (S.paused ? '<i class="fas fa-play"></i> Resume capture' : '<i class="fas fa-pause"></i> Pause capture') + '</button><button type="button" class="adm-btn ghost sm" data-dv="con-copy"><i class="fas fa-copy"></i> Copy</button><button type="button" class="adm-btn ghost sm" data-dv="con-dl"><i class="fas fa-download"></i> Download</button><button type="button" class="adm-btn danger sm" data-dv="con-clear"><i class="fas fa-trash"></i> Clear</button><span class="adm-muted" id="dv-con-n"></span></div>' +
+      '<div class="dv-log" id="dv-con-list" role="log" aria-live="off" tabindex="0" aria-label="Console messages">' + conRows() + '</div>';
+  }
+  function conRefresh() { var el = $('dv-con-list'); if (!el) return; var stick = el.scrollTop + el.clientHeight >= el.scrollHeight - 30; el.innerHTML = conRows(); if (stick) el.scrollTop = el.scrollHeight; var n = $('dv-con-n'); if (n) n.textContent = conFiltered().length + ' shown'; ['log', 'info', 'warn', 'error', 'debug'].forEach(function (l) { var c = document.querySelector('[data-dv-lv="' + l + '"]'); if (c && c.nextElementSibling) c.nextElementSibling.textContent = CNT[l] || 0; }); }
+
+  /* — network — */
+  function netFiltered() { var q = S.nq.toLowerCase().trim(); return NET.filter(function (r) { return (!S.nfail || r.st === 0 || (r.st != null && r.st >= 400)) && (!q || (r.u + ' ' + r.m).toLowerCase().indexOf(q) >= 0); }); }
+  function netRows() {
+    var list = netFiltered().slice(-200).reverse();
+    if (!list.length) return '<div class="dv-empty">' + (NET.length ? 'No requests match the filter.' : 'No network requests yet. fetch and XMLHttpRequest calls made by the app appear here.') + '</div>';
+    return '<table class="adm-tbl"><thead><tr><th>Time</th><th>Method</th><th>Address</th><th class="n">Status</th><th class="n">Time</th><th class="n">Size</th></tr></thead><tbody>' + list.map(function (r) {
+      var cls = r.st == null ? '' : (r.st === 0 || r.st >= 400) ? 'dv-r' : r.st >= 300 ? 'dv-y' : 'dv-g';
+      return '<tr><td class="n">' + clock(r.t).slice(0, 8) + '</td><td>' + E(r.m) + '</td><td class="dv-url">' + E(r.u) + (r.err ? '<div class="adm-muted">' + E(r.err) + '</div>' : '') + '</td><td class="n ' + cls + '">' + (r.st == null ? '…' : r.st === 0 ? 'failed' : r.st) + '</td><td class="n">' + (r.ms == null ? '…' : r.ms + ' ms') + '</td><td class="n">' + bytes(r.size) + '</td></tr>';
+    }).join('') + '</tbody></table>';
+  }
+  function netTiles() {
+    var done = NET.filter(function (r) { return r.ms != null; }), avg = done.length ? Math.round(done.reduce(function (s, r) { return s + r.ms; }, 0) / done.length) : null, slow = done.reduce(function (m, r) { return !m || r.ms > m.ms ? r : m; }, null), c = counts();
+    return tile('Requests', c.requests, 'this page load') + tile('Failed', c.failed, 'status 400+ or no response', c.failed ? 'warn' : '') + tile('Average time', avg == null ? '—' : avg + ' ms') + tile('Slowest', slow ? slow.ms + ' ms' : '—', slow ? slow.u.slice(0, 40) : '');
+  }
+  function networkHtml() {
+    return '<div class="adm-muted" style="margin-bottom:8px">Requests the app makes (cloud sync, prices, exchange rates). Query values are removed from addresses and headers and bodies are never recorded.</div>' +
+      '<div class="tm-tiles" id="dv-net-tiles">' + netTiles() + '</div>' +
+      '<div class="dv-bar"><input type="search" id="dv-nq" class="set-input" placeholder="Filter by address or method…" aria-label="Filter requests" value="' + E(S.nq) + '"><label class="dv-chip"><input type="checkbox" id="dv-nfail"' + (S.nfail ? ' checked' : '') + '> Failed only</label><button type="button" class="adm-btn ghost sm" data-dv="net-copy"><i class="fas fa-copy"></i> Copy</button><button type="button" class="adm-btn ghost sm" data-dv="net-dl"><i class="fas fa-download"></i> Download</button><button type="button" class="adm-btn danger sm" data-dv="net-clear"><i class="fas fa-trash"></i> Clear</button></div>' +
+      '<div class="adm-scroll" style="max-height:420px" id="dv-net-list">' + netRows() + '</div>';
+  }
+  function netRefresh() { var el = $('dv-net-list'); if (el) el.innerHTML = netRows(); var t = $('dv-net-tiles'); if (t) t.innerHTML = netTiles(); }
+
+  /* — storage — */
+  function kind(v) {
+    if (v == null) return '—'; if (v.length > 400000) return 'large'; var t = v.trim(); if (t === '') return 'empty';
+    if (/^[\[{]/.test(t)) { try { var p = JSON.parse(t); return Array.isArray(p) ? 'array · ' + p.length : 'object · ' + Object.keys(p).length; } catch (e) { return 'invalid JSON'; } }
+    if (/^-?\d+(\.\d+)?$/.test(t)) return 'number'; if (t === 'true' || t === 'false') return 'boolean'; return 'text';
+  }
+  function stList() {
+    var store = S.sscope === 'session' ? sessionStorage : localStorage, q = S.sq.toLowerCase().trim();
+    return lsList(store).filter(function (x) { return (S.sscope !== 'app' || x.app) && (!q || x.k.toLowerCase().indexOf(q) >= 0); }).sort(function (a, b) { return b.size - a.size; });
+  }
+  function stRows() {
+    var store = S.sscope === 'session' ? sessionStorage : localStorage, list = stList();
+    if (!list.length) return '<div class="dv-empty">No keys match.</div>';
+    return '<table class="adm-tbl"><thead><tr><th>Key</th><th>Type</th><th class="n">Size</th><th></th></tr></thead><tbody>' + list.map(function (x) {
+      var v = x.secret ? null : safe(function () { return store.getItem(x.k); }, null);
+      return '<tr' + (S.sel === x.k ? ' style="background:rgba(128,128,128,.12)"' : '') + '><td class="dv-key">' + E(x.k) + (x.secret ? ' <span class="rl-st fire">protected</span>' : '') + '</td><td>' + (x.secret ? '—' : E(kind(v))) + '</td><td class="n">' + bytes(x.size) + '</td><td class="n">' +
+        (x.secret ? '' : '<button type="button" class="adm-btn ghost sm" data-dv="st-view" data-k="' + E(x.k) + '">View</button> <button type="button" class="adm-btn danger sm" data-dv="st-del" data-k="' + E(x.k) + '" aria-label="Delete ' + E(x.k) + '">Delete</button>') + '</td></tr>';
+    }).join('') + '</tbody></table>';
+  }
+  function stView() {
+    if (!S.sel) return '<div class="adm-muted">Choose a key and press View to inspect its value.</div>';
+    var store = S.sscope === 'session' ? sessionStorage : localStorage, k = S.sel;
+    if (SECRET.test(k)) return '<div class="dv-warn">This key is protected and cannot be shown.</div>';
+    var v = safe(function () { return store.getItem(k); }, null); if (v == null) return '<div class="dv-warn">That key no longer exists.</div>';
+    var pretty = v, isJson = false; try { if (/^\s*[\[{]/.test(v) && v.length <= 400000) { pretty = JSON.stringify(JSON.parse(v), null, 2); isJson = true; } } catch (e) { }
+    var head = '<div class="adm-h" style="font-size:.9rem;margin-top:12px"><span class="dv-key">' + E(k) + '</span> <small>' + bytes((k.length + v.length) * 2) + ' · ' + E(kind(v)) + '</small></div>';
+    if (S.edit && v.length <= 200000) return head + '<textarea id="dv-st-ta" class="set-input dv-ta" spellcheck="false" aria-label="Value of ' + E(k) + '">' + E(pretty) + '</textarea><div class="adm-actions" style="margin-top:0"><button type="button" class="adm-btn" data-dv="st-save">Save value</button><button type="button" class="adm-btn ghost" data-dv="st-cancel">Cancel</button></div><div class="adm-muted" style="margin-top:6px">' + (isJson ? 'The value must stay valid JSON. ' : '') + 'The old value is kept so you can undo. Reload the app afterwards so every screen reads the new value.</div>';
+    var shown = pretty.length > 30000 ? pretty.slice(0, 30000) + '\n… (' + (pretty.length - 30000).toLocaleString() + ' more characters not shown)' : pretty;
+    return head + '<pre class="dv-pre" tabindex="0">' + E(shown) + '</pre><div class="adm-actions" style="margin-top:0"><button type="button" class="adm-btn ghost sm" data-dv="st-copy"><i class="fas fa-copy"></i> Copy value</button>' + (v.length <= 200000 && S.sscope !== 'session' ? '<button type="button" class="adm-btn ghost sm" data-dv="st-edit"><i class="fas fa-pen"></i> Edit</button>' : '') + '</div>';
+  }
+  function stMeter() { var t = lsTotal(); return '<div class="adm-muted"><b>' + bytes(t) + '</b> in local storage (about ' + Math.round(t / QUOTA * 100) + '% of a typical 5 MB limit)<span id="dv-st-est"></span></div><div class="dv-meter' + (t / QUOTA > .8 ? ' hot' : '') + '"><i style="width:' + Math.min(100, Math.round(t / QUOTA * 100)) + '%"></i></div>'; }
+  function storageHtml() {
+    return '<div class="adm-muted" style="margin-bottom:8px">Look inside what this browser has saved. PINs, hashes, sign-in tokens and user lists are protected: they cannot be viewed, exported or deleted here.</div>' +
+      '<div id="dv-st-meter">' + stMeter() + '</div>' +
+      '<div class="dv-bar"><input type="search" id="dv-sq" class="set-input" placeholder="Filter keys…" aria-label="Filter storage keys" value="' + E(S.sq) + '"><select id="dv-sscope" class="set-input" aria-label="Storage scope"><option value="app"' + (S.sscope === 'app' ? ' selected' : '') + '>App keys</option><option value="all"' + (S.sscope === 'all' ? ' selected' : '') + '>All local keys</option><option value="session"' + (S.sscope === 'session' ? ' selected' : '') + '>Session storage</option></select></div>' +
+      '<div class="adm-scroll" style="max-height:300px" id="dv-st-list">' + stRows() + '</div><div id="dv-st-view">' + stView() + '</div>' +
+      '<div class="adm-actions"><button type="button" class="adm-btn ghost sm" data-dv="st-export"><i class="fas fa-file-export"></i> Export app data</button><button type="button" class="adm-btn ghost sm" data-dv="st-import"><i class="fas fa-file-import"></i> Import app data</button><input type="file" id="dv-st-file" accept="application/json,.json" hidden><button type="button" class="adm-btn ghost sm" data-dv="st-undo" id="dv-st-undo"' + (UNDO ? '' : ' disabled') + '><i class="fas fa-rotate-left"></i> Undo last change</button></div>';
+  }
+  function stRefresh(full) { var l = $('dv-st-list'); if (l) l.innerHTML = stRows(); var v = $('dv-st-view'); if (v && full !== false) v.innerHTML = stView(); var m = $('dv-st-meter'); if (m) m.innerHTML = stMeter(); var u = $('dv-st-undo'); if (u) u.disabled = !UNDO; estimate(); }
+  function estimate() { try { if (navigator.storage && navigator.storage.estimate) navigator.storage.estimate().then(function (r) { var el = $('dv-st-est'); if (el && r && r.quota) el.textContent = ' · whole site uses ' + bytes(r.usage) + ' of ' + bytes(r.quota) + ' allowed'; }); } catch (e) { } }
+
+  /* — config & formulas — */
+  function cfgRows() {
+    var sc = safe(function () { return C.SCHEMA(); }, []), q = S.kq.toLowerCase().trim();
+    var list = sc.filter(function (s) { return (!S.kmod || safe(function () { return C.isModified(s.p); }, false)) && (!q || (s.p + ' ' + (s.l || '') + ' ' + (s.g || '')).toLowerCase().indexOf(q) >= 0); });
+    if (!list.length) return '<div class="dv-empty">No settings match.</div>';
+    return '<table class="adm-tbl"><thead><tr><th>Setting</th><th>Default</th><th>Current</th></tr></thead><tbody>' + list.slice(0, 400).map(function (s) {
+      var mod = safe(function () { return C.isModified(s.p); }, false), cur = safe(function () { return C.get(s.p); }, '');
+      return '<tr><td><span class="dv-key">' + E(s.p) + '</span><div class="adm-muted">' + E(s.l || '') + '</div></td><td class="dv-key">' + E(fmt(s.d)) + '</td><td class="dv-key' + (mod ? ' dv-y' : '') + '">' + E(fmt(cur)) + (mod ? ' <span class="rl-st fire">changed</span>' : '') + '</td></tr>';
+    }).join('') + '</tbody></table>' + (list.length > 400 ? '<div class="dv-empty">Showing the first 400 of ' + list.length + '. Narrow the filter to see the rest.</div>' : '');
+  }
+  function monthKey() { var d = new Date(); return d.getFullYear() + '-' + pad(d.getMonth() + 1); }
+  function exprResult() {
+    var X = window.FOS_EXPR; if (!X) return '<div class="dv-res bad">The expression engine is not available.</div>';
+    var src = S.expr.trim(); if (!src) return '<div class="adm-muted" style="margin-top:8px">Type a formula to see its value.</div>';
+    var ck = X.check(src); if (!ck.ok) return '<div class="dv-res bad">' + E(ck.msg || 'Invalid formula') + (ck.pos != null ? ' <small>(at character ' + (ck.pos + 1) + ')</small>' : '') + '</div>';
+    var env = safe(function () { return X.varsFor(S.month || monthKey()); }, null); if (!env) return '<div class="dv-res bad">Could not read the ledger for that month.</div>';
+    var r = X.run(src, env); return r.ok ? '<div class="dv-res ok">= <b>' + E(Number.isInteger(r.value) ? r.value : +r.value.toFixed(6)) + '</b></div>' : '<div class="dv-res bad">' + E(r.msg || 'Could not evaluate') + '</div>';
+  }
+  function varsTable() {
+    var X = window.FOS_EXPR; if (!X) return ''; var env = safe(function () { return X.varsFor(S.month || monthKey()); }, null); if (!env) return '';
+    return '<table class="adm-tbl dv-kv"><tbody>' + X.VARS.map(function (v) { var x = env[v]; return '<tr><td>' + E(v) + '</td><td class="dv-key">' + E(x == null ? '—' : (typeof x === 'number' && !Number.isInteger(x) ? x.toFixed(2) : x)) + '</td></tr>'; }).join('') + '</tbody></table>';
+  }
+  function configHtml() {
+    var X = window.FOS_EXPR, mk = S.month || monthKey();
+    return '<div class="dv-two"><div><div class="adm-h" style="font-size:.9rem">Formula tester</div><div class="adm-muted" style="margin-bottom:8px">Runs a formula against your real ledger for the chosen month using the same safe engine as Formula Studio (no scripts are evaluated). Functions: ' + E(X ? X.FUNCS.join(', ') : '') + '.</div>' +
+      '<div class="dv-bar"><input type="month" id="dv-month" class="set-input" value="' + E(mk) + '" aria-label="Month" style="max-width:170px;flex:none"></div>' +
+      '<input type="text" id="dv-expr" class="set-input adm-mono" spellcheck="false" maxlength="500" aria-label="Formula" value="' + E(S.expr) + '"><div id="dv-expr-out" aria-live="polite">' + exprResult() + '</div></div>' +
+      '<div><div class="adm-h" style="font-size:.9rem">Variables for ' + E(mk) + '</div><div class="adm-scroll" style="max-height:300px;margin-top:0" id="dv-vars">' + varsTable() + '</div></div></div>' +
+      '<div class="adm-h" style="font-size:.9rem;margin-top:18px">All settings <small>default vs current</small></div>' +
+      '<div class="dv-bar"><input type="search" id="dv-kq" class="set-input" placeholder="Filter settings…" aria-label="Filter settings" value="' + E(S.kq) + '"><label class="dv-chip"><input type="checkbox" id="dv-kmod"' + (S.kmod ? ' checked' : '') + '> Changed only</label><button type="button" class="adm-btn ghost sm" data-dv="cfg-copy"><i class="fas fa-copy"></i> Copy changed settings</button></div>' +
+      '<div class="adm-scroll" style="max-height:380px" id="dv-cfg-list">' + cfgRows() + '</div>';
+  }
+
+  /* — performance — */
+  function perfHtml() {
+    var nav = safe(function () { return performance.getEntriesByType('navigation')[0]; }, null), res = safe(function () { return performance.getEntriesByType('resource'); }, []), h = heap();
+    var lt = LT.reduce(function (s, x) { return s + x.d; }, 0);
+    var navRows = nav ? [['DNS + connect', nav.connectEnd - nav.domainLookupStart], ['Time to first byte', nav.responseStart - nav.requestStart], ['Download', nav.responseEnd - nav.responseStart], ['DOM ready', nav.domContentLoadedEventEnd], ['Fully loaded', nav.loadEventEnd]].map(function (r) { return '<tr><td>' + r[0] + '</td><td class="n">' + (r[1] > 0 ? Math.round(r[1]) + ' ms' : '—') + '</td></tr>'; }).join('') : '';
+    var slow = res.slice().sort(function (a, b) { return b.duration - a.duration; }).slice(0, 8).map(function (r) { return '<tr><td class="dv-url">' + E(cleanUrl(r.name)) + '</td><td class="n">' + Math.round(r.duration) + ' ms</td><td class="n">' + bytes(r.transferSize || r.encodedBodySize || null) + '</td></tr>'; }).join('');
+    var ltRows = LT.slice(-8).reverse().map(function (x) { return '<tr><td>at ' + (x.at / 1000).toFixed(1) + 's</td><td class="n ' + (x.d > 200 ? 'dv-r' : 'dv-y') + '">' + x.d + ' ms</td></tr>'; }).join('');
+    return '<div id="dv-perf" data-live="1"><div class="tm-tiles" id="dv-perf-tiles">' + perfTiles(h, lt) + '</div></div>' +
+      '<div class="dv-two"><div><div class="adm-h" style="font-size:.9rem">Page load</div>' + (navRows ? '<table class="adm-tbl dv-kv"><tbody>' + navRows + '</tbody></table>' : '<div class="adm-muted">Not available in this browser.</div>') + '</div>' +
+      '<div><div class="adm-h" style="font-size:.9rem">Long tasks <small>over 50 ms, main thread blocked</small></div>' + (ltRows ? '<table class="adm-tbl dv-kv"><tbody>' + ltRows + '</tbody></table>' : '<div class="adm-muted">' + ('PerformanceObserver' in window ? 'None recorded. Good.' : 'Not reported by this browser.') + '</div>') + '</div></div>' +
+      '<div class="adm-h" style="font-size:.9rem;margin-top:14px">Slowest resources</div>' + (slow ? '<div class="adm-scroll" style="max-height:none"><table class="adm-tbl"><thead><tr><th>Resource</th><th class="n">Time</th><th class="n">Size</th></tr></thead><tbody>' + slow + '</tbody></table></div>' : '<div class="adm-muted">No resource timings yet.</div>') +
+      '<div class="adm-actions"><button type="button" class="adm-btn ghost sm" data-dv="perf-refresh"><i class="fas fa-rotate"></i> Refresh</button></div>';
+  }
+  function perfTiles(h, lt) { h = h || heap(); if (lt == null) lt = LT.reduce(function (s, x) { return s + x.d; }, 0); return tile('Frame rate', F.fps == null ? '…' : F.fps + ' fps', 'live', F.fps != null && F.fps < 30 ? 'warn' : '') + tile('DOM nodes', document.getElementsByTagName('*').length.toLocaleString(), 'elements') + tile('JS memory', h ? bytes(h.used) : 'n/a', h ? Math.round(h.used / h.limit * 100) + '% of limit' : 'not reported here') + tile('Long tasks', LT.length, lt + ' ms blocked in total', lt > 1000 ? 'warn' : ''); }
+
+  /* — switches — */
+  var SW = [
+    ['fps', 'Frame-rate badge', 'Shows a small live FPS counter in the corner of every page.'],
+    ['outline', 'Outline every element', 'Draws a thin outline around each element to debug layout, spacing and overflow.'],
+    ['noanim', 'Turn off animations', 'Stops CSS animations and transitions so layout issues are easier to see.'],
+    ['inspect', 'Alt-click inspector', 'Hold Alt and click anything to log its selector, size, font and colours to the Console tab.'],
+    ['logcfg', 'Log setting changes', 'Writes a console line every time an Admin Panel setting changes.']
+  ];
+  function row(id, on, label, desc, attr) { return '<label class="ff-row' + (on ? '' : ' off') + '"><span class="ff-sw"><input type="checkbox" role="switch" ' + attr + (on ? ' checked' : '') + ' aria-label="' + E(label) + '"><i></i></span><span class="ff-tx"><b>' + E(label) + '</b><small>' + E(desc) + '</small></span><span class="rl-st ' + (on ? 'quiet' : 'fire') + '">' + (on ? 'On' : 'Off') + '</span></label>'; }
+  function switchesHtml() {
+    return (!active() ? '<div class="adm-banner" role="note">Safe mode is on, so these switches have no effect until it is turned off.</div>' : '') +
+      '<div class="adm-h" style="font-size:.9rem">Debug switches <small>remembered on this device</small></div>' + SW.map(function (s) { return row(s[0], P[s[0]], s[1], s[2], 'data-dv-sw="' + s[0] + '"'); }).join('') +
+      '<div class="adm-h" style="font-size:.9rem;margin-top:16px">Network simulator <small>this page only, resets on reload</small></div>' +
+      row('offline', SIM.offline, 'Simulate offline', 'Makes every fetch request fail as if the connection dropped. Use it to test how cloud sync and price refresh behave.', 'data-dv-sim="offline"') +
+      '<div class="dv-act"><div><b>Added delay</b><small>Slows every fetch request to mimic a poor connection.</small></div><select id="dv-delay" class="set-input" aria-label="Added delay">' + [[0, 'None'], [300, '300 ms'], [1000, '1 second'], [3000, '3 seconds']].map(function (o) { return '<option value="' + o[0] + '"' + (SIM.delay === o[0] ? ' selected' : '') + '>' + o[1] + '</option>'; }).join('') + '</select></div>' +
+      '<div class="adm-actions"><button type="button" class="adm-btn ghost sm" data-dv="sw-reset">Reset all switches</button></div>' + (S.last ? '<div class="adm-muted" style="margin-top:10px">Last inspected: <span class="dv-key">' + E(S.last) + '</span></div>' : '');
+  }
+
+  /* — tools — */
+  function toolsHtml() {
+    var lg = J(LKEY, []); if (!Array.isArray(lg)) lg = [];
+    function act(id, title, desc, danger) { return '<div class="dv-act"><div><b>' + E(title) + '</b><small>' + E(desc) + '</small></div><button type="button" class="adm-btn ' + (danger ? 'danger' : 'ghost') + ' sm" data-dv="' + id + '">Run</button></div>'; }
+    return '<div class="adm-h" style="font-size:.9rem">Test &amp; debug</div>' +
+      act('t-log', 'Write test messages', 'Logs one message at every level so you can check the Console tab.') + act('t-error', 'Throw a test error', 'Raises an uncaught error, which appears in the Console tab and the error count.') + act('t-fetch', 'Send a test request', 'Requests the app manifest so you can see it in the Network tab.') +
+      '<div class="adm-h" style="font-size:.9rem;margin-top:16px">Caches &amp; reload</div>' +
+      act('t-reload', 'Reload the app', 'Reloads the page. Nothing saved is touched.') + act('t-caches', 'Clear app caches', 'Deletes offline copies of the app files. Your data stays. They download again on the next load.', true) + act('t-sw', 'Unregister service workers', 'Removes the background worker that serves the offline copy. It registers again on the next load.', true) + act('t-hard', 'Hard reload', 'Clears caches and workers, then reloads so you get the newest files.', true) +
+      '<div class="adm-h" style="font-size:.9rem;margin-top:16px">Housekeeping</div>' +
+      act('t-clearbufs', 'Clear console and network history', 'Empties the in-memory logs shown in these tabs.') + act('t-clearlog', 'Clear this activity log', 'Removes the list of developer actions below.') +
+      '<div class="adm-h" style="font-size:.9rem;margin-top:16px">Developer activity <small>' + lg.length + ' recorded</small></div>' + (lg.length ? '<div class="adm-scroll"><table class="adm-tbl"><thead><tr><th>When</th><th>What</th></tr></thead><tbody>' + lg.slice(0, 30).map(function (r) { return '<tr><td class="n">' + E(String(r.t).replace('T', ' ').slice(0, 16)) + '</td><td>' + E(r.m) + '</td></tr>'; }).join('') + '</tbody></table></div>' : '<div class="adm-muted">Nothing yet. Edits, deletes, imports and cache actions made here are listed.</div>');
+  }
+
+  /* ── shell ─────────────────────────────────────────────────────────── */
+  function body() {
+    switch (S.sub) { case 'console': return consoleHtml(); case 'network': return networkHtml(); case 'storage': return storageHtml(); case 'config': return configHtml(); case 'perf': return perfHtml(); case 'switches': return switchesHtml(); case 'tools': return toolsHtml(); default: return overviewHtml(); }
+  }
+  function html() {
+    return '<div class="tm-wrap dv-wrap"><div class="tm-note" id="dv-note" role="status" aria-live="polite"></div><div class="set-card"><div class="adm-h">Developer tools <small>inspect, debug and test the app</small></div>' +
+      '<div class="tm-subs" role="tablist" aria-label="Developer tools sections">' + SUBS.map(function (s) { return '<button type="button" role="tab" class="tm-subb' + (S.sub === s[0] ? ' on' : '') + '" data-dv="sub" data-s="' + s[0] + '" aria-selected="' + (S.sub === s[0]) + '"><i class="fas ' + s[2] + '"></i> ' + E(s[1]) + '</button>'; }).join('') + '</div>' +
+      '<div id="dv-body">' + body() + '</div></div></div>';
+  }
+  function repaint() {
+    var b = $('dv-body'); if (!b) return; b.innerHTML = body();
+    Array.prototype.forEach.call(document.querySelectorAll('.dv-wrap .tm-subb'), function (x) { var on = x.getAttribute('data-s') === S.sub; x.classList.toggle('on', on); x.setAttribute('aria-selected', on); });
+    if (S.sub === 'console') { var l = $('dv-con-list'); if (l) l.scrollTop = l.scrollHeight; conRefresh(); }
+    if (S.sub === 'storage') estimate();
+    var n = $('dv-note'); if (n) { n.textContent = S.msg; n.className = 'tm-note' + (S.bad ? ' bad' : ''); }
+  }
+
+  /* ── actions ───────────────────────────────────────────────────────── */
+  function textOfConsole() { return conFiltered().map(function (x) { return clock(x.t) + ' [' + x.l + '] ' + x.m; }).join('\n'); }
+  function textOfNet() { return netFiltered().map(function (r) { return clock(r.t) + ' ' + r.m + ' ' + r.u + ' → ' + (r.st == null ? 'pending' : r.st === 0 ? 'failed' : r.st) + (r.ms != null ? ' (' + r.ms + ' ms)' : '') + (r.err ? ' ' + r.err : ''); }).join('\n'); }
+  function exportItems() { var o = {}; lsList(localStorage).forEach(function (x) { if (x.app && !x.secret) o[x.k] = raw(x.k); }); return o; }
+  function reloadSoon() { setTimeout(function () { location.reload(); }, 150); }
+  function dropCaches() { return ('caches' in window ? caches.keys().then(function (ks) { return Promise.all(ks.map(function (k) { return caches.delete(k); })).then(function () { return ks.length; }); }) : Promise.resolve(0)); }
+  function dropWorkers() { return (navigator.serviceWorker && navigator.serviceWorker.getRegistrations ? navigator.serviceWorker.getRegistrations().then(function (rs) { return Promise.all(rs.map(function (r) { return r.unregister(); })).then(function () { return rs.length; }); }) : Promise.resolve(0)); }
+  function onAction(a, b) {
+    var k = b && b.getAttribute ? b.getAttribute('data-k') : null;
+    if (a === 'sub') { S.sub = b.getAttribute('data-s'); S.edit = false; return repaint(); }
+    if (a === 'copy-sum') return copy(summaryText()).then(function (ok) { say(ok ? 'Diagnostic summary copied.' : 'Could not copy. Use the download instead.', !ok); });
+    if (a === 'bundle') { var okd = download('financeos-debug-bundle.json', JSON.stringify(bundle(), null, 2), 'application/json'); logLine('Downloaded debug bundle'); return say(okd ? 'Debug bundle downloaded.' : 'Download failed.', !okd); }
+    if (a === 'con-pause') { S.paused = !S.paused; b.innerHTML = S.paused ? '<i class="fas fa-play"></i> Resume capture' : '<i class="fas fa-pause"></i> Pause capture'; return say(S.paused ? 'Capture paused. New messages are not recorded.' : 'Capture resumed.'); }
+    if (a === 'con-clear') { LOGS.length = 0; CNT = { log: 0, info: 0, warn: 0, error: 0, debug: 0 }; conRefresh(); return say('Console cleared.'); }
+    if (a === 'con-copy') return copy(textOfConsole()).then(function (ok) { say(ok ? 'Copied ' + conFiltered().length + ' messages.' : 'Could not copy.', !ok); });
+    if (a === 'con-dl') return say(download('financeos-console.txt', textOfConsole()) ? 'Downloaded.' : 'Download failed.');
+    if (a === 'net-clear') { NET.length = 0; netRefresh(); return say('Network history cleared.'); }
+    if (a === 'net-copy') return copy(textOfNet()).then(function (ok) { say(ok ? 'Copied.' : 'Could not copy.', !ok); });
+    if (a === 'net-dl') return say(download('financeos-network.json', JSON.stringify(bundle().network, null, 2), 'application/json') ? 'Downloaded.' : 'Download failed.');
+    if (a === 'st-view') { S.sel = k; S.edit = false; return stRefresh(); }
+    if (a === 'st-cancel') { S.edit = false; return stRefresh(); }
+    if (a === 'st-edit') { if (!S.sel || SECRET.test(S.sel)) return; S.edit = true; return stRefresh(); }
+    if (a === 'st-copy') { var cv = raw(S.sel); return copy(cv == null ? '' : cv).then(function (ok) { say(ok ? 'Value copied.' : 'Could not copy.', !ok); }); }
+    if (a === 'st-save') {
+      var ta = $('dv-st-ta'), key = S.sel; if (!ta || !key || SECRET.test(key)) return; var old = raw(key), nv = ta.value;
+      if (old != null && /^\s*[\[{]/.test(old)) { try { nv = JSON.stringify(JSON.parse(nv)); } catch (e) { return say('That is not valid JSON, so it was not saved: ' + e.message, true); } }
+      if (nv === old) { S.edit = false; stRefresh(); return say('No change.'); }
+      if (!confirm('Overwrite "' + key + '"?\n\nThis changes saved data directly, so a wrong value can break screens. The old value is kept so you can undo until you close or reload this page.')) return;
+      if (!put(key, nv)) return say('Could not save (browser storage is full).', true);
+      UNDO = { label: 'edit of ' + key, items: [{ k: key, v: old }] }; logLine('Edited ' + key); S.edit = false; stRefresh(); return say('Saved. Reload the app so every screen reads the new value.');
+    }
+    if (a === 'st-del') {
+      var store = S.sscope === 'session' ? sessionStorage : localStorage; if (!k || SECRET.test(k)) return;
+      var core = /^fos_(db|port|credit|notes|insurance|subscriptions|budgets|finai_goals)/.test(k) || k.indexOf('financeOS_') === 0;
+      if (!confirm('Delete "' + k + '"?' + (core ? '\n\nThis looks like your own financial data. Export a backup first if you might need it.' : '') + '\n\nYou can undo until you close or reload this page.')) return;
+      var ov = safe(function () { return store.getItem(k); }, null); try { store.removeItem(k); } catch (e) { return say('Could not delete.', true); }
+      UNDO = S.sscope === 'session' ? null : { label: 'delete of ' + k, items: [{ k: k, v: ov }] }; if (S.sel === k) { S.sel = null; S.edit = false; } logLine('Deleted ' + k); stRefresh(); return say('Deleted ' + k + '.');
+    }
+    if (a === 'st-undo') {
+      if (!UNDO) return say('Nothing to undo.', true); UNDO.items.forEach(function (it) { try { if (it.v == null) localStorage.removeItem(it.k); else localStorage.setItem(it.k, it.v); } catch (e) { } }); var lb = UNDO.label; UNDO = null; logLine('Undid ' + lb); stRefresh(); return say('Undid ' + lb + '.');
+    }
+    if (a === 'st-export') { var items = exportItems(); return say(download('financeos-app-data.json', JSON.stringify({ app: 'FinanceOS', kind: 'storage-dump', version: 1, exportedAt: new Date().toISOString(), items: items }, null, 2), 'application/json') ? 'Exported ' + Object.keys(items).length + ' keys. Protected keys are left out.' : 'Download failed.'); }
+    if (a === 'st-import') { var f = $('dv-st-file'); if (f) f.click(); return; }
+    if (a === 'cfg-copy') { var ch = safe(function () { return C.overrides(); }, {}); return copy(JSON.stringify(ch, null, 2)).then(function (ok) { say(ok ? 'Copied ' + Object.keys(ch).length + ' changed setting(s).' : 'Could not copy.', !ok); }); }
+    if (a === 'perf-refresh') return repaint();
+    if (a === 'sw-reset') { P = cleanP(null); SIM.offline = false; SIM.delay = 0; put(KEY, JSON.stringify(P)); applyAll(); logLine('Reset developer switches'); repaint(); return say('All switches are off.'); }
+    if (a === 't-log') { console.log('Developer Tools test: log'); console.info('Developer Tools test: info'); console.warn('Developer Tools test: warning'); console.error('Developer Tools test: error'); console.debug('Developer Tools test: debug'); return say('Wrote five test messages. Open the Console tab.'); }
+    if (a === 't-error') { setTimeout(function () { throw new Error('Developer Tools test error'); }, 0); return say('Raised a test error. Open the Console tab.'); }
+    if (a === 't-fetch') { try { fetch('./manifest.webmanifest', { cache: 'no-store' }).catch(function () { }); } catch (e) { } return say('Sent a test request. Open the Network tab.'); }
+    if (a === 't-reload') return location.reload();
+    if (a === 't-caches') { if (!confirm('Delete the offline copies of the app files? Your saved data is not touched.')) return; return dropCaches().then(function (n) { logLine('Cleared ' + n + ' cache(s)'); say('Cleared ' + n + ' cache' + (n === 1 ? '' : 's') + '.'); }); }
+    if (a === 't-sw') { if (!confirm('Unregister the background service workers? They register again on the next load.')) return; return dropWorkers().then(function (n) { logLine('Unregistered ' + n + ' worker(s)'); say('Unregistered ' + n + ' service worker' + (n === 1 ? '' : 's') + '.'); }); }
+    if (a === 't-hard') { if (!confirm('Clear caches and workers, then reload? Your saved data is not touched.')) return; return Promise.all([dropCaches(), dropWorkers()]).then(function () { logLine('Hard reload'); reloadSoon(); }); }
+    if (a === 't-clearbufs') { LOGS.length = 0; NET.length = 0; CNT = { log: 0, info: 0, warn: 0, error: 0, debug: 0 }; return say('Console and network history cleared.'); }
+    if (a === 't-clearlog') { try { localStorage.removeItem(LKEY); } catch (e) { } return repaint(); }
+  }
+  function onClick(e) { var t = e.target; if (!t || !t.closest || !t.closest('.dv-wrap')) return; var b = t.closest('[data-dv]'); if (!b || b.disabled) return; try { onAction(b.getAttribute('data-dv'), b); } catch (x) { console.error(x); say('Something went wrong: ' + x.message, true); } }
+  function onChange(e) {
+    var t = e.target; if (!t || !t.closest || !t.closest('.dv-wrap')) return;
+    var lv = t.getAttribute('data-dv-lv'); if (lv) { S.lv[lv] = t.checked ? 1 : 0; return conRefresh(); }
+    var sw = t.getAttribute('data-dv-sw'); if (sw) { P[sw] = t.checked; if (!put(KEY, JSON.stringify(P))) say('Could not save (browser storage is full).', true); logLine('Switch ' + sw + (t.checked ? ' on' : ' off')); applyAll(); return repaint(); }
+    if (t.getAttribute('data-dv-sim') === 'offline') { SIM.offline = t.checked; return repaint(); }
+    if (t.id === 'dv-delay') { SIM.delay = +t.value || 0; return say(SIM.delay ? 'Every request is now delayed by ' + SIM.delay + ' ms.' : 'Delay removed.'); }
+    if (t.id === 'dv-nfail') { S.nfail = t.checked; return netRefresh(); }
+    if (t.id === 'dv-sscope') { S.sscope = t.value; S.sel = null; S.edit = false; return stRefresh(); }
+    if (t.id === 'dv-kmod') { S.kmod = t.checked; var cl = $('dv-cfg-list'); if (cl) cl.innerHTML = cfgRows(); return; }
+    if (t.id === 'dv-month') { S.month = t.value; var v = $('dv-vars'); if (v) v.innerHTML = varsTable(); var o = $('dv-expr-out'); if (o) o.innerHTML = exprResult(); return; }
+    if (t.id === 'dv-st-file') {
+      var f = t.files && t.files[0]; t.value = ''; if (!f) return; if (f.size > 3145728) return say('That file is too large (limit 3 MB).', true);
+      var rd = new FileReader(); rd.onload = function () {
+        var o; try { o = JSON.parse(rd.result); } catch (x) { return say('That is not a valid JSON file.', true); }
+        if (!o || o.kind !== 'storage-dump' || !o.items || typeof o.items !== 'object') return say('That is not a FinanceOS app-data export.', true);
+        var keys = Object.keys(o.items).filter(function (k) { return APPKEY.test(k) && !SECRET.test(k) && typeof o.items[k] === 'string'; }), skipped = Object.keys(o.items).length - keys.length;
+        if (!keys.length) return say('Nothing in that file can be imported.', true);
+        if (!confirm('Import ' + keys.length + ' key(s)? Existing values with the same name are replaced.' + (skipped ? '\n' + skipped + ' protected or unrecognised key(s) will be skipped.' : '') + '\n\nYou can undo until you reload this page.')) return;
+        var undo = []; try { keys.forEach(function (k) { undo.push({ k: k, v: raw(k) }); localStorage.setItem(k, o.items[k]); }); } catch (x) { undo.forEach(function (it) { try { if (it.v == null) localStorage.removeItem(it.k); else localStorage.setItem(it.k, it.v); } catch (y) { } }); return say('Import stopped because storage is full. Nothing was changed.', true); }
+        UNDO = { label: 'import of ' + keys.length + ' keys', items: undo }; logLine('Imported ' + keys.length + ' keys'); stRefresh(); say('Imported ' + keys.length + ' key(s). Reload the app to use them.');
+      }; rd.readAsText(f);
+    }
+  }
+  function onInput(e) {
+    var t = e.target; if (!t || !t.closest || !t.closest('.dv-wrap')) return;
+    if (t.id === 'dv-cq') { S.cq = t.value; return conRefresh(); }
+    if (t.id === 'dv-nq') { S.nq = t.value; return netRefresh(); }
+    if (t.id === 'dv-sq') { S.sq = t.value; return stRefresh(false); }
+    if (t.id === 'dv-kq') { S.kq = t.value; var cl = $('dv-cfg-list'); if (cl) cl.innerHTML = cfgRows(); return; }
+    if (t.id === 'dv-expr') { S.expr = t.value; var o = $('dv-expr-out'); if (o) o.innerHTML = exprResult(); }
+  }
+  function wire() { var r = $('adm-root'); if (!r || r.__dv) return; r.__dv = 1; r.addEventListener('click', onClick); r.addEventListener('change', onChange); r.addEventListener('input', onInput); }
+  function after() { wire(); hookCfg(); if (S.sub === 'console') { var l = $('dv-con-list'); if (l) { l.scrollTop = l.scrollHeight; conRefresh(); } } if (S.sub === 'storage') estimate(); }
+
+  /* live refresh for the tiles while they are on screen */
+  setInterval(function () {
+    var perf = $('dv-perf'), tiles = $('dv-tiles'), vis = !document.hidden;
+    fpsSet(vis && ((P.fps && active()) || !!perf));
+    if (!vis) return;
+    if (tiles && tiles.offsetParent !== null) tiles.innerHTML = tilesHtml();
+    var pt = $('dv-perf-tiles'); if (pt && pt.offsetParent !== null) pt.innerHTML = perfTiles();
+  }, 1000);
+
+  window.FOS_DEVTOOLS = { html: html, after: after, apply: applyAll, bundle: bundle, logs: function () { return LOGS.slice(); }, network: function () { return NET.slice(); } };
+  function boot() { applyAll(); hookCfg(); wire(); }
+  if (document.body) boot(); else document.addEventListener('DOMContentLoaded', boot);
+  window.addEventListener('load', function () { applyAll(); wire(); });
+})();
+</script>
 <script id="fos-num-core">
 /* ── NUMBER ANIMATION CORE: shared parser/formatter + Chart.js plugin (tooltips, centre text, data labels count up from 0) ── */
 (function () {
@@ -11474,7 +12012,7 @@ function passAppLockGate() {
           </div>
           <div style="display:flex; gap:10px; align-items:flex-start; padding:9px 10px; border:1px solid var(--glass-border); border-radius:10px; background:rgba(255,255,255,0.02);">
             <i class="fas fa-user-shield" style="color:var(--c-net); width:18px; text-align:center; margin-top:2px;"></i>
-            <div><div class="set-lbl readable-white" style="font-size:0.78rem">Admin Panel</div><div class="set-desc" style="margin-top:2px">PIN-protected controls for how FinanceOS calculates, alerts and unlocks: Calculation Lab, backups &amp; versions and an audit log.</div></div>
+            <div><div class="set-lbl readable-white" style="font-size:0.78rem">Admin Panel</div><div class="set-desc" style="margin-top:2px">PIN-protected controls for how FinanceOS calculates, alerts and unlocks: Calculation Lab, backups &amp; versions, an audit log and developer tools.</div></div>
           </div>
           </div>
         </div>
@@ -37876,7 +38414,7 @@ body.light-mode .adm-toast{background:#e0f7fc;color:#06303c}body.light-mode .adm
     ['overview', 'Overview', 'fa-gauge-high', 1], ['lab', 'Calculation Lab', 'fa-flask', 1], ['formula', 'Formula Studio', 'fa-square-root-variable', 1], ['chart', 'Chart Studio', 'fa-chart-pie', 1],
     ['rules', 'Insight & Alert Rules', 'fa-bell', 1], ['unlocks', 'Unlocks & Streaks', 'fa-unlock', 1], ['data', 'Data Manager', 'fa-table', 1], ['tax', 'Taxonomy', 'fa-tags', 1],
     ['port', 'Portfolio & Credit', 'fa-briefcase', 1], ['theme', 'Layout & Theme', 'fa-palette', 1], ['flags', 'Feature Flags', 'fa-toggle-on', 1], ['integrity', 'Integrity Checker', 'fa-shield-halved', 1],
-    ['backups', 'Backups & Versions', 'fa-clock-rotate-left', 1], ['audit', 'Audit Log', 'fa-list-check', 1], ['dev', 'Developer Tools', 'fa-terminal', 0]
+    ['backups', 'Backups & Versions', 'fa-clock-rotate-left', 1], ['audit', 'Audit Log', 'fa-list-check', 1], ['dev', 'Developer Tools', 'fa-terminal', 1]
   ];
   function root() { return document.getElementById('adm-root'); }
   function scrollParent(el) { for (var n = el && el.parentElement; n; n = n.parentElement) { var o = getComputedStyle(n).overflowY; if ((o === 'auto' || o === 'scroll') && n.scrollHeight > n.clientHeight) return n; } return null; }
@@ -37920,7 +38458,7 @@ body.light-mode .adm-toast{background:#e0f7fc;color:#06303c}body.light-mode .adm
   }
   function body() {
     var b = document.getElementById('adm-body'); if (!b) return; var t = S.tab;
-    try { b.innerHTML = t === 'overview' ? overview() : t === 'lab' ? lab() : t === 'backups' ? backups() : t === 'audit' ? auditTab() : (t === 'formula' && window.FOS_FORMULA_STUDIO) ? window.FOS_FORMULA_STUDIO.html() : (t === 'chart' && window.FOS_CHART_STUDIO) ? window.FOS_CHART_STUDIO.html() : (t === 'rules' && window.FOS_RULES) ? window.FOS_RULES.html() : (t === 'unlocks' && window.FOS_UNLOCKS) ? window.FOS_UNLOCKS.html() : (t === 'data' && window.FOS_DATA) ? window.FOS_DATA.html() : (t === 'tax' && window.FOS_TAXONOMY) ? window.FOS_TAXONOMY.html() : (t === 'port' && window.FOS_PORTCREDIT) ? window.FOS_PORTCREDIT.html() : (t === 'theme' && window.FOS_THEME) ? window.FOS_THEME.html() : (t === 'flags' && window.FOS_FLAGS) ? window.FOS_FLAGS.html() : (t === 'integrity' && window.FOS_INTEGRITY) ? window.FOS_INTEGRITY.html() : planned(t); } catch (e) { console.error('Admin tab failed:', e); b.innerHTML = '<div class="set-card"><b>This tab failed to load.</b><div class="adm-muted">' + E(e.message) + '</div></div>'; }
+    try { b.innerHTML = t === 'overview' ? overview() : t === 'lab' ? lab() : t === 'backups' ? backups() : t === 'audit' ? auditTab() : (t === 'formula' && window.FOS_FORMULA_STUDIO) ? window.FOS_FORMULA_STUDIO.html() : (t === 'chart' && window.FOS_CHART_STUDIO) ? window.FOS_CHART_STUDIO.html() : (t === 'rules' && window.FOS_RULES) ? window.FOS_RULES.html() : (t === 'unlocks' && window.FOS_UNLOCKS) ? window.FOS_UNLOCKS.html() : (t === 'data' && window.FOS_DATA) ? window.FOS_DATA.html() : (t === 'tax' && window.FOS_TAXONOMY) ? window.FOS_TAXONOMY.html() : (t === 'port' && window.FOS_PORTCREDIT) ? window.FOS_PORTCREDIT.html() : (t === 'theme' && window.FOS_THEME) ? window.FOS_THEME.html() : (t === 'flags' && window.FOS_FLAGS) ? window.FOS_FLAGS.html() : (t === 'integrity' && window.FOS_INTEGRITY) ? window.FOS_INTEGRITY.html() : (t === 'dev' && window.FOS_DEVTOOLS) ? window.FOS_DEVTOOLS.html() : planned(t); } catch (e) { console.error('Admin tab failed:', e); b.innerHTML = '<div class="set-card"><b>This tab failed to load.</b><div class="adm-muted">' + E(e.message) + '</div></div>'; }
     if (t === 'lab') labPreview();
     if (t === 'rules' && window.FOS_RULES) { try { window.FOS_RULES.after(); } catch (e) { console.error('Rules failed:', e); } }
     if (t === 'unlocks' && window.FOS_UNLOCKS) { try { window.FOS_UNLOCKS.after(); } catch (e) { console.error('Unlocks failed:', e); } }
@@ -37930,6 +38468,7 @@ body.light-mode .adm-toast{background:#e0f7fc;color:#06303c}body.light-mode .adm
     if (t === 'theme' && window.FOS_THEME) { try { window.FOS_THEME.after(); } catch (e) { console.error('Theme failed:', e); } }
     if (t === 'flags' && window.FOS_FLAGS) { try { window.FOS_FLAGS.after(); } catch (e) { console.error('Flags failed:', e); } }
     if (t === 'integrity' && window.FOS_INTEGRITY) { try { window.FOS_INTEGRITY.after(); } catch (e) { console.error('Integrity failed:', e); } }
+    if (t === 'dev' && window.FOS_DEVTOOLS) { try { window.FOS_DEVTOOLS.after(); } catch (e) { console.error('Developer tools failed:', e); } }
     if (t === 'chart' && window.FOS_CHART_STUDIO) { try { window.FOS_CHART_STUDIO.after(); } catch (e) { console.error('Chart Studio failed:', e); } }
     if (t === 'formula' && window.FOS_FORMULA_STUDIO) { try { window.FOS_FORMULA_STUDIO.after(); } catch (e) { console.error('Formula Studio failed:', e); } }
   }
@@ -41069,7 +41608,7 @@ body.light-mode #adm-root{--fs-ok:#059669;--fs-bad:#dc2626;--fs-warn:#b45309}
   var C = window.FOS_CONFIG;
   var LAST = 'fos_admin_integrity_last_v1', LOG = 'fos_admin_integrity_log_v1', QUAR = 'fos_admin_integrity_quar_v1', QUOTA = 5 * 1024 * 1024;
   var GROUPS = ['Storage', 'Transactions', 'Portfolio & credit', 'Categories', 'Admin settings', 'Backups'];
-  var ADMIN_STORES = [['fos_admin_formulas_v1', 'Formula Studio', 'array'], ['fos_admin_charts_v1', 'Chart Studio', 'any'], ['fos_admin_rules_v1', 'Insight & alert rules', 'any'], ['fos_admin_badges_v1', 'Custom badges', 'any'], ['fos_admin_theme_v1', 'Layout & theme', 'object'], ['fos_admin_flags_v1', 'Feature flags', 'object'], ['fos_admin_config_v1', 'Settings overrides', 'object'], ['fos_admin_snapshots_v1', 'Settings snapshots', 'array'], ['fos_admin_audit_v1', 'Settings audit log', 'array']];
+  var ADMIN_STORES = [['fos_admin_formulas_v1', 'Formula Studio', 'array'], ['fos_admin_charts_v1', 'Chart Studio', 'any'], ['fos_admin_rules_v1', 'Insight & alert rules', 'any'], ['fos_admin_badges_v1', 'Custom badges', 'any'], ['fos_admin_theme_v1', 'Layout & theme', 'object'], ['fos_admin_flags_v1', 'Feature flags', 'object'], ['fos_admin_config_v1', 'Settings overrides', 'object'], ['fos_admin_snapshots_v1', 'Settings snapshots', 'array'], ['fos_admin_audit_v1', 'Settings audit log', 'array'], ['fos_admin_dev_v1', 'Developer tools switches', 'object']];
   var NOFIX = ['fos_admin_pin_v1', 'fos_admin_sess', 'fos_admin_safe_v1', 'fos_admin_boot_v1'];
   var S = { res: null, prev: null, msg: '', bad: false, filter: 'all', ran: null };
 
