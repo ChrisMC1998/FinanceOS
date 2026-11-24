@@ -11,7 +11,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="fos-integrity" content="106f2b314cf47e62ac5e9a1b2ca83f3478c7e7d50a7c522211125b22871daedf">
+<meta name="fos-integrity" content="1f4dba59ba2a1ecdeb9dd6d9d30cc2b674087a3342f5724c6fa0613d84b91db4">
 <script id="fos-tamper-guard">
 /*! \u00a9 2026 MC Enterprise. Integrity check: detects a copy of this file that no longer matches the
     official release and locks it with a notice. This checks the FILE as served, not live memory --
@@ -4265,6 +4265,14 @@ body.light-mode .tag-suggestion-item { color:#0f172a; }
 #port-err { color:#ef4444; font-size:0.78rem; margin-top:8px; }
 #p-type-seg { flex-wrap:wrap; }
 #p-type-seg button { flex:1 1 28%; }
+/* Add-transaction type selector: keep all 5 types inside the modal on phones (3 on top, 2 below) */
+@media (max-width:640px){
+  #type-seg { display:grid; grid-template-columns:repeat(6,minmax(0,1fr)); gap:4px; }
+  #type-seg button { grid-column:span 2; min-width:0; padding:9px 4px; font-size:0.8rem; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  #type-seg button:nth-child(n+4) { grid-column:span 3; }
+  #recv-mode-seg { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); }
+  #recv-mode-seg button { min-width:0; padding:9px 4px; white-space:normal; line-height:1.2; }
+}
 #modal .modal-actions { flex-wrap:wrap; }
 .input-field.err { border-color:#ef4444; }
 .tag-filter-row { display:flex; flex-wrap:wrap; gap:5px; margin-bottom:10px; align-items:center; }
