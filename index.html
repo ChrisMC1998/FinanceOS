@@ -11,7 +11,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="fos-integrity" content="2bec3b3cd958b18e5fef5fcb8f77c5518c5d1dcd7538ede9df3a75e2dc0e7f52">
+<meta name="fos-integrity" content="54221080c681ce3c51637af217b876fd9e2c0486827d79208a42cc3781c27814">
 <script id="fos-tamper-guard">
 /*! \u00a9 2026 MC Enterprise. Integrity check: detects a copy of this file that no longer matches the
     official release and locks it with a notice. This checks the FILE as served, not live memory --
@@ -1721,6 +1721,7 @@ function fosBrandRgba(a){return 'rgba('+fosBrandRgb()+','+a+')';}
     { id: 'cc-cards', g: 'card', t: 'Credit card stack deal and risk pulse', d: 'Cards dealing into the stack, high-risk pulse, detail panel fade.', s: '.cc-stack-card|.cc-stack-card .cc-card-face|.cc-active-detail|.cc-face-ring-fill' },
     { id: 'nav-glide', g: 'card', t: 'Menu highlight glide', d: 'The sliding highlight behind the active menu item.', s: '.fos-glide' },
 
+    { id: 'scroll-reveal', g: 'page', t: 'Scroll glide and card reveal', d: 'Smooth mouse-wheel scrolling, and cards easing up and fading in as you scroll to them.', s: '.fos-rv-pre|.fos-rv-in' },
     { id: 'page-fade', g: 'page', t: 'Page transitions', d: 'Fade when you switch between FinanceOS and PortfolioOS pages.', s: '.view-section' },
     { id: 'modal', g: 'page', t: 'Windows and dialogs', d: 'Settings window and pop-up dialogs opening and closing.', s: '#settings-modal|#settings-modal .settings-modal-box|.modal-overlay|.modal-box|.search-overlay|.txa-inspect|.onboard-step|.onboard-final-icon' },
     { id: 'smoke', g: 'page', t: 'Smoke dropdown menus', d: 'The smoky reveal on custom dropdown lists.', s: '.fos-smoke-menu|.fos-smoke-menu::before|.fos-smoke-menu::after|.fos-smoke-list' },
@@ -46829,6 +46830,99 @@ html body .cc-face-ring-fill { transition: stroke-dashoffset 1.1s cubic-bezier(.
       plainDismiss(ov);
     }
   };
+})();
+</script>
+<style id="fos-scroll-fx-css">
+/* Scroll reveal: cards below the fold ease up + fade in as they enter. Uses opacity + the standalone `translate`
+   property only, so it never clashes with the cards' own hover transforms, and the classes are removed afterwards. */
+html body .view-section .fos-rv-pre { opacity:0 !important; translate:0 28px !important; will-change:opacity,translate; }
+html body .view-section .fos-rv-in { opacity:1 !important; translate:0 0 !important; will-change:opacity,translate;
+  transition:opacity .65s cubic-bezier(.22,1,.36,1) var(--rv-d,0ms), translate .8s cubic-bezier(.22,1,.36,1) var(--rv-d,0ms) !important; }
+@media (max-width:640px){ html body .view-section .fos-rv-pre { translate:0 18px !important; } }
+@media (prefers-reduced-motion: reduce){ html body .view-section .fos-rv-pre { opacity:1 !important; translate:none !important; } }
+</style>
+<script id="fos-scroll-fx">
+/* Premium scroll feel for every FinanceOS + PortfolioOS page: (1) glide for mouse-wheel scrolling,
+   (2) staggered reveal of cards as they scroll into view. Both obey Settings > Animations ("Scroll reveal"). */
+(function () {
+  'use strict';
+  var area = document.querySelector('.scroll-area'); if (!area) return;
+  function en() { try { return !window.FosMotion || FosMotion.on('scroll-reveal'); } catch (e) { return true; } }
+
+  /* ---------- 1. smooth wheel glide (mouse wheels only; trackpads/touch stay native) ---------- */
+  var target = 0, busy = false, last = 0;
+  function nested(t) {
+    for (var n = t; n && n !== area; n = n.parentElement) {
+      if (n.nodeType !== 1) continue;
+      var o = getComputedStyle(n).overflowY;
+      if ((o === 'auto' || o === 'scroll') && n.scrollHeight > n.clientHeight + 1) return true;
+    }
+    return false;
+  }
+  function step(ts) {
+    if (!busy) return;
+    var dt = Math.min(48, last ? ts - last : 16.7); last = ts;
+    var d = target - area.scrollTop;
+    if (Math.abs(d) < 0.6) { area.scrollTop = target; busy = false; last = 0; return; }
+    var k = 1 - Math.pow(1 - 0.17, dt / 16.67), m = d * k;
+    if (Math.abs(m) < 1) m = d > 0 ? Math.min(1, d) : Math.max(-1, d);
+    area.scrollTop += m;
+    requestAnimationFrame(step);
+  }
+  function stop() { busy = false; last = 0; }
+  area.addEventListener('wheel', function (e) {
+    if (!en() || e.ctrlKey || e.defaultPrevented) return;
+    var wd = e.wheelDeltaY, mouse = e.deltaMode !== 0 || (wd && wd % 120 === 0);
+    if (!mouse || Math.abs(e.deltaX) > Math.abs(e.deltaY)) { stop(); return; }
+    if (nested(e.target)) return;
+    var max = area.scrollHeight - area.clientHeight; if (max <= 0) return;
+    var dy = e.deltaMode === 1 ? e.deltaY * 40 : e.deltaMode === 2 ? e.deltaY * area.clientHeight : e.deltaY;
+    if (!busy) target = area.scrollTop;
+    var nt = Math.max(0, Math.min(max, target + dy));
+    if (nt === target) return;                       // already at an edge: let the page chain normally
+    e.preventDefault(); target = nt;
+    if (!busy) { busy = true; last = 0; requestAnimationFrame(step); }
+  }, { passive: false });
+  ['pointerdown', 'touchstart', 'keydown'].forEach(function (n) { area.addEventListener(n, stop, { passive: true }); });
+
+  /* ---------- 2. staggered scroll reveal ---------- */
+  var CARD = '.glass-panel,.finai-panel,.cc-panel-box,.finai-score-card,.kpi-card,.port-kpi-card,.nw-card,.credit-kpi-card,.spark-card,.insight-kpi-card,.game-card,.market-card,.ins-kpi-card,.ins-expiry-card,.insight-rec-card,.nw-milestone,.finai-card,.cin-card,.ins-card,.sub-card,.emi-card,.cca-sum-card';
+  var io = null, timer = 0;
+  function reveal(el, d) {
+    el.style.setProperty('--rv-d', d + 'ms');
+    el.classList.remove('fos-rv-pre'); el.classList.add('fos-rv-in');
+    setTimeout(function () { el.classList.remove('fos-rv-in'); el.style.removeProperty('--rv-d'); }, 1000 + d);
+  }
+  function onIO(list) {
+    var hit = list.filter(function (x) { return x.isIntersecting; }).map(function (x) { return x.target; });
+    if (!hit.length) return;
+    hit.sort(function (a, b) { var A = a.getBoundingClientRect(), B = b.getBoundingClientRect(); return (A.top - B.top) || (A.left - B.left); });
+    hit.forEach(function (el, i) { io.unobserve(el); reveal(el, Math.min(i, 5) * 70); });
+  }
+  function scan() {
+    timer = 0;
+    if (!en() || !window.IntersectionObserver) return;
+    var view = area.querySelector('.view-section.active'); if (!view) return;
+    if (!io) io = new IntersectionObserver(onIO, { root: area, rootMargin: '0px 0px -7% 0px', threshold: 0 });
+    var ar = area.getBoundingClientRect(), els = view.querySelectorAll(CARD);
+    for (var i = 0; i < els.length; i++) {
+      var el = els[i]; if (el.__rv) continue; el.__rv = 1;
+      if (el.parentElement && el.parentElement.closest(CARD)) continue;       // outermost card only
+      var r = el.getBoundingClientRect();
+      if (!r.height || !r.width || r.top < ar.bottom - 40) continue;           // hidden, or already on screen / scrolled past
+      el.classList.add('fos-rv-pre'); io.observe(el);
+    }
+  }
+  function queue() { if (!timer) timer = setTimeout(scan, 160); }
+  function showAll() { Array.prototype.forEach.call(document.querySelectorAll('.fos-rv-pre'), function (el) { el.classList.remove('fos-rv-pre'); }); }
+
+  try {
+    new MutationObserver(queue).observe(area, { childList: true, subtree: true });
+    var vo = new MutationObserver(queue);
+    Array.prototype.forEach.call(area.querySelectorAll('.view-section'), function (v) { vo.observe(v, { attributes: true, attributeFilter: ['class'] }); });
+  } catch (e) { }
+  if (window.FosMotion && FosMotion.onChange) FosMotion.onChange(function () { if (!en()) { showAll(); stop(); } else queue(); });
+  if (document.readyState === 'complete') queue(); else window.addEventListener('load', queue);
 })();
 </script>
 </body>
