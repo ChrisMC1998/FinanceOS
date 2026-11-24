@@ -11,7 +11,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="fos-integrity" content="1f4dba59ba2a1ecdeb9dd6d9d30cc2b674087a3342f5724c6fa0613d84b91db4">
+<meta name="fos-integrity" content="2bec3b3cd958b18e5fef5fcb8f77c5518c5d1dcd7538ede9df3a75e2dc0e7f52">
 <script id="fos-tamper-guard">
 /*! \u00a9 2026 MC Enterprise. Integrity check: detects a copy of this file that no longer matches the
     official release and locks it with a notice. This checks the FILE as served, not live memory --
@@ -4265,6 +4265,13 @@ body.light-mode .tag-suggestion-item { color:#0f172a; }
 #port-err { color:#ef4444; font-size:0.78rem; margin-top:8px; }
 #p-type-seg { flex-wrap:wrap; }
 #p-type-seg button { flex:1 1 28%; }
+/* Tag picker: all saved tags as tappable chips that sit in the form (never hidden behind the phone keyboard) */
+.tag-picker { display:flex; flex-wrap:wrap; gap:6px; margin-top:8px; max-height:116px; overflow-y:auto; -webkit-overflow-scrolling:touch; }
+.tag-picker:empty { display:none; }
+.tag-pick { border:1px solid rgba(var(--brand-rgb),0.3); background:rgba(var(--brand-rgb),0.08); color:var(--text-main); padding:6px 11px; border-radius:999px; font-size:0.78rem; font-weight:600; cursor:pointer; font-family:inherit; }
+.tag-pick:active { background:rgba(var(--brand-rgb),0.25); }
+body.light-mode .tag-pick { color:#0f172a; }
+@media (max-width:640px){ #tag-suggestions { display:none !important; } }
 /* Add-transaction type selector: keep all 5 types inside the modal on phones (3 on top, 2 below) */
 @media (max-width:640px){
   #type-seg { display:grid; grid-template-columns:repeat(6,minmax(0,1fr)); gap:4px; }
@@ -10948,8 +10955,9 @@ function passAppLockGate() {
       </div>
       <div class="input-group tag-input-wrap">
         <label>Tags <span style="color:var(--text-muted);font-weight:400;text-transform:none;letter-spacing:0">(optional — press Enter or comma to add)</span></label>
-        <input type="text" id="inp-tags-input" class="input-field" placeholder="e.g. essential, emi, festival…" autocomplete="off" oninput="showTagSuggestions(this.value)" onkeydown="_autoFill.tags=false;handleTagKey(event)">
+        <input type="text" id="inp-tags-input" class="input-field" placeholder="e.g. essential, emi, festival…" autocomplete="off" oninput="showTagSuggestions(this.value)" onfocus="renderTagPicker(this.value);var _i=this;setTimeout(function(){try{_i.scrollIntoView({block:'center',behavior:'smooth'})}catch(e){}},300)" onkeydown="_autoFill.tags=false;handleTagKey(event)">
         <div class="tag-suggestions" id="tag-suggestions"></div>
+        <div class="tag-picker" id="tag-picker"></div>
         <div class="tag-chips" id="tag-chips-preview"></div>
         <input type="hidden" id="inp-tags">
       </div>
@@ -24415,6 +24423,7 @@ function fosUiRenamePayee(i) { const p = _fosPL[i]; if (!p) return; const v = pr
 function fosUiTogglePayee(i) { const p = _fosPL[i]; if (!p) return; const k = fosKey(p.name), H = fosM().hiddenPayees, j = H.indexOf(k); if (j >= 0) H.splice(j, 1); else H.push(k); fosSave(); fosPayeeRows(); }
 
 function openModal() {
+  try { renderTagPicker(''); } catch (e) { }
   editingFinanceId = null; _entryCount = 0; _autoFill = { sub:false, notes:false, tags:false, pay:false };
   document.getElementById('modal-title').textContent = 'Add Finance Record';
   document.getElementById('inp-date').value = localISO();
@@ -29399,6 +29408,16 @@ function renderTagChips(tags) {
   container.innerHTML = tags.map(t => `
     <span class="tag-chip">${t}<span class="tag-remove" onclick="removeTag('${t}')">✕</span></span>
   `).join('');
+  try { renderTagPicker(); } catch (e) { }
+}
+
+function renderTagPicker(q) {
+  const box = document.getElementById('tag-picker'); if (!box) return;
+  if (q === undefined) { const inp = document.getElementById('inp-tags-input'); q = inp ? inp.value : ''; }
+  q = (q || '').trim().toLowerCase();
+  const existing = getCurrentTags();
+  const all = [...new Set([...TAG_SUGGESTIONS_LIST, ...getAllTags()])].filter(t => t && !existing.includes(t) && (!q || t.includes(q)));
+  box.innerHTML = all.map(t => `<button type="button" class="tag-pick" onmousedown="event.preventDefault()" onclick="addTag('${t}')">#${t}</button>`).join('');
 }
 
 function getCurrentTags() {
@@ -29433,6 +29452,7 @@ function handleTagKey(e) {
 }
 
 function showTagSuggestions(val) {
+  try { renderTagPicker(val); } catch (e) { }
   const box = document.getElementById('tag-suggestions');
   const q = val.trim().toLowerCase();
   const existing = getCurrentTags();
