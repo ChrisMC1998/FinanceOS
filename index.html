@@ -11,7 +11,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="fos-integrity" content="54221080c681ce3c51637af217b876fd9e2c0486827d79208a42cc3781c27814">
+<meta name="fos-integrity" content="f0b5699b47371732be243c8996ddae901700e7e9fb4e35128410ba79f22d5d15">
 <script id="fos-tamper-guard">
 /*! \u00a9 2026 MC Enterprise. Integrity check: detects a copy of this file that no longer matches the
     official release and locks it with a notice. This checks the FILE as served, not live memory --
@@ -1722,6 +1722,7 @@ function fosBrandRgba(a){return 'rgba('+fosBrandRgb()+','+a+')';}
     { id: 'nav-glide', g: 'card', t: 'Menu highlight glide', d: 'The sliding highlight behind the active menu item.', s: '.fos-glide' },
 
     { id: 'scroll-reveal', g: 'page', t: 'Scroll glide and card reveal', d: 'Smooth mouse-wheel scrolling, and cards easing up and fading in as you scroll to them.', s: '.fos-rv-pre|.fos-rv-in' },
+    { id: 'parallax', g: 'page', t: 'Parallax scrolling', d: 'Background glow layers and cards drift at different depths as you scroll.', s: '.fos-px' },
     { id: 'page-fade', g: 'page', t: 'Page transitions', d: 'Fade when you switch between FinanceOS and PortfolioOS pages.', s: '.view-section' },
     { id: 'modal', g: 'page', t: 'Windows and dialogs', d: 'Settings window and pop-up dialogs opening and closing.', s: '#settings-modal|#settings-modal .settings-modal-box|.modal-overlay|.modal-box|.search-overlay|.txa-inspect|.onboard-step|.onboard-final-icon' },
     { id: 'smoke', g: 'page', t: 'Smoke dropdown menus', d: 'The smoky reveal on custom dropdown lists.', s: '.fos-smoke-menu|.fos-smoke-menu::before|.fos-smoke-menu::after|.fos-smoke-list' },
@@ -46923,6 +46924,259 @@ html body .view-section .fos-rv-in { opacity:1 !important; translate:0 0 !import
   } catch (e) { }
   if (window.FosMotion && FosMotion.onChange) FosMotion.onChange(function () { if (!en()) { showAll(); stop(); } else queue(); });
   if (document.readyState === 'complete') queue(); else window.addEventListener('load', queue);
+})();
+</script>
+<style id="fos-parallax-css">
+/* Parallax: (a) three glow layers drift behind the page at different speeds, (b) cards float at slightly different depths.
+   Cards use the standalone `translate` property via --px, so hover transforms and the reveal animation keep working. */
+#fos-px-bg { position:fixed; inset:0; z-index:-1; pointer-events:none; overflow:hidden; }
+#fos-px-bg i { position:absolute; display:block; border-radius:50%; will-change:transform; filter:blur(8px); }
+#fos-px-bg .a { width:60vmax; height:60vmax; left:-18vmax; top:-8vmax; background:radial-gradient(circle, rgba(var(--brand-rgb,32,205,181),.16), transparent 65%); }
+#fos-px-bg .b { width:52vmax; height:52vmax; right:-16vmax; top:40vh; background:radial-gradient(circle, rgba(167,139,250,.13), transparent 65%); }
+#fos-px-bg .c { width:44vmax; height:44vmax; left:22vw; top:110vh; background:radial-gradient(circle, rgba(var(--brand-rgb,32,205,181),.10), transparent 65%); }
+body.light-mode #fos-px-bg { opacity:.55; }
+html.fos-off-parallax #fos-px-bg { display:none; }
+html body .view-section .fos-px { translate:0 var(--px,0px); }
+html body .view-section .fos-px.fos-rv-pre { translate:0 calc(28px + var(--px,0px)) !important; }
+html body .view-section .fos-px.fos-rv-in { translate:0 var(--px,0px) !important; }
+</style>
+<script id="fos-parallax">
+(function () {
+  'use strict';
+  var area = document.querySelector('.scroll-area'); if (!area || !document.body) return;
+  function en() { try { return !window.FosMotion || FosMotion.on('parallax'); } catch (e) { return true; } }
+  var CARD = '.glass-panel,.finai-panel,.cc-panel-box,.finai-score-card,.kpi-card,.port-kpi-card,.nw-card,.credit-kpi-card,.spark-card,.insight-kpi-card,.game-card,.market-card,.ins-kpi-card,.ins-expiry-card,.insight-rec-card,.nw-milestone,.finai-card,.cin-card,.ins-card,.sub-card,.emi-card,.cca-sum-card';
+
+  /* background depth layers */
+  var bg = document.createElement('div'); bg.id = 'fos-px-bg'; bg.setAttribute('aria-hidden', 'true');
+  bg.innerHTML = '<i class="a"></i><i class="b"></i><i class="c"></i>';
+  document.body.insertBefore(bg, document.body.firstChild);
+  var layers = bg.children, SPEED = [0.12, 0.28, 0.5];
+
+  var list = [], raf = 0, tmr = 0;
+  function mobile() { return window.innerWidth <= 640; }
+  function refresh() {
+    tmr = 0; list = [];
+    var view = area.querySelector('.view-section.active'); if (!view) return;
+    var els = view.querySelectorAll(CARD);
+    for (var i = 0; i < els.length; i++) {
+      var el = els[i];
+      if (el.parentElement && el.parentElement.closest(CARD)) continue;
+      if (el.querySelector('input,select,textarea,.fos-smoke-menu,[class*="dropdown"]')) continue;   // keep menus/forms un-layered
+      list.push(el);
+    }
+    frame();
+  }
+  function clear() { list.forEach(function (el) { el.classList.remove('fos-px'); el.style.removeProperty('--px'); }); }
+  function frame() {
+    raf = 0;
+    var on = en(), st = area.scrollTop;
+    for (var k = 0; k < layers.length; k++) layers[k].style.transform = on ? 'translate3d(0,' + (-st * SPEED[k]).toFixed(1) + 'px,0)' : '';
+    if (!on) { clear(); return; }
+    var ar = area.getBoundingClientRect(), mid = ar.top + ar.height / 2, m = mobile(), cap = m ? 12 : 24, sc = m ? 0.6 : 1;
+    var reads = [];
+    for (var i = 0; i < list.length; i++) {
+      var el = list[i], r = el.getBoundingClientRect();
+      if (r.bottom < ar.top - 500 || r.top > ar.bottom + 500 || !r.height) continue;
+      var own = el.__px || 0, ty = r.top - own;           /* keyed to the card's top edge so cards in one row move together and stay aligned */
+      reads.push([el, cap * Math.tanh((ty - mid) * 0.06 * sc / cap)]);
+    }
+    for (var j = 0; j < reads.length; j++) {
+      var e = reads[j][0], v = reads[j][1];
+      if (!e.classList.contains('fos-px')) e.classList.add('fos-px');
+      e.__px = v; e.style.setProperty('--px', v.toFixed(1) + 'px');
+    }
+  }
+  function req() { if (!raf) raf = requestAnimationFrame(frame); }
+  function queue() { if (!tmr) tmr = setTimeout(refresh, 200); }
+  area.addEventListener('scroll', req, { passive: true });
+  window.addEventListener('resize', req);
+  try {
+    new MutationObserver(queue).observe(area, { childList: true, subtree: true });
+    var vo = new MutationObserver(queue);
+    Array.prototype.forEach.call(area.querySelectorAll('.view-section'), function (v) { vo.observe(v, { attributes: true, attributeFilter: ['class'] }); });
+  } catch (e) { }
+  if (window.FosMotion && FosMotion.onChange) FosMotion.onChange(function () { if (en()) queue(); req(); });
+  if (document.readyState === 'complete') queue(); else window.addEventListener('load', queue);
+})();
+</script>
+<style id="fos-ccm-css">
+/* ── Credit-card page redesign: "Card Management" list + hero card detail ── */
+.cc-cards-panel { align-items:flex-start; }
+.ccm-list-col { width:360px; flex-shrink:0; position:sticky; top:6px; display:flex; flex-direction:column; max-height:calc(100vh - 150px); min-height:260px;
+  background:rgba(255,255,255,0.03); border:1px solid var(--glass-border); border-radius:16px; overflow:hidden; }
+.ccm-tabs { display:flex; align-items:center; justify-content:space-between; gap:10px; padding:12px 16px 0; border-bottom:1px solid rgba(255,255,255,0.07); }
+.ccm-tab { font-size:0.86rem; font-weight:700; color:var(--text-main); padding:6px 0 11px; position:relative; }
+.ccm-tab::after { content:''; position:absolute; left:0; right:0; bottom:-1px; height:2px; border-radius:2px; background:rgb(var(--brand-rgb,32,205,181)); }
+.ccm-count { font-size:0.68rem; font-weight:700; color:var(--text-main); background:rgba(255,255,255,0.07); padding:3px 10px; border-radius:20px; margin-bottom:9px; }
+.ccm-list { overflow-y:auto; padding:8px; display:flex; flex-direction:column; gap:4px; overscroll-behavior:contain; scrollbar-width:thin; scrollbar-color:rgba(255,255,255,.18) transparent; }
+.ccm-row { position:relative; display:grid; grid-template-columns:42px minmax(0,1fr) auto; align-items:center; column-gap:12px; row-gap:8px; padding:11px 12px; border-radius:12px;
+  border:1px solid transparent; cursor:pointer; transition:background .16s, border-color .16s, transform .16s; outline:none; }
+.ccm-row:hover { background:rgba(255,255,255,0.05); }
+.ccm-row:focus-visible { border-color:rgba(var(--brand-rgb,32,205,181),.6); }
+.ccm-row.active { background:rgba(var(--brand-rgb,32,205,181),0.10); border-color:rgba(var(--brand-rgb,32,205,181),0.35); }
+.ccm-row.entering { animation:ccmRowIn .45s cubic-bezier(.22,1,.36,1) backwards; animation-delay:calc(var(--i,0) * 45ms); }
+@keyframes ccmRowIn { from { opacity:0; transform:translateY(12px); } }
+.ccm-logo { width:42px; height:42px; border-radius:11px; position:relative; overflow:hidden; display:flex; align-items:center; justify-content:center; background:#fff;
+  box-shadow:0 2px 8px rgba(0,0,0,.3), inset 0 0 0 1px rgba(0,0,0,.06); }
+.ccm-logo span { font-size:.62rem; font-weight:800; letter-spacing:-.3px; }
+.ccm-logo img { position:absolute; inset:0; width:100%; height:100%; object-fit:contain; padding:6px; box-sizing:border-box; opacity:0; transition:opacity .2s; }
+.ccm-logo img.loaded { opacity:1; }
+.ccm-main { min-width:0; }
+.ccm-name { font-size:.88rem; font-weight:700; color:var(--text-main); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.ccm-sub { font-size:.7rem; color:var(--text-muted); margin-top:2px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; display:flex; align-items:center; gap:6px; }
+.ccm-sub .dot { width:3px; height:3px; border-radius:50%; background:currentColor; opacity:.5; flex-shrink:0; }
+.ccm-sub .frz { color:#93c5fd; font-weight:700; }
+.ccm-right { text-align:right; }
+.ccm-amt { font-size:.88rem; font-weight:700; color:var(--text-main); font-family:'DM Mono',monospace; }
+.ccm-pct { font-size:.68rem; font-weight:700; margin-top:2px; }
+.ccm-bar { grid-column:1 / -1; height:4px; border-radius:4px; background:rgba(255,255,255,0.08); overflow:hidden; }
+.ccm-bar i { display:block; height:100%; border-radius:4px; transition:width .7s cubic-bezier(.22,1,.36,1); }
+
+.cc-active-detail.ccm-detail { position:static; align-items:stretch; padding:1.4rem 1.5rem 1.5rem; min-width:0; }
+.ccm-head { display:flex; flex-direction:column; align-items:center; gap:7px; text-align:center; position:relative; margin-bottom:1.1rem; }
+.ccm-title { display:flex; align-items:center; gap:10px; font-size:1.15rem; font-weight:800; color:var(--text-main); max-width:100%; }
+.ccm-title b { white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.ccm-ibtn { width:30px; height:30px; border-radius:9px; display:inline-flex; align-items:center; justify-content:center; cursor:pointer; font-size:.78rem; flex-shrink:0;
+  background:rgba(255,255,255,0.05); border:1px solid rgba(255,255,255,0.12); color:var(--text-muted); transition:.16s; }
+.ccm-ibtn:hover { color:var(--text-main); background:rgba(255,255,255,0.1); }
+.ccm-ibtn.del:hover { color:#fff; background:rgba(239,68,68,.85); border-color:transparent; }
+.ccm-del-wrap { position:absolute; top:0; right:0; }
+.ccm-bank { font-size:.76rem; color:var(--text-muted); display:flex; align-items:center; gap:7px; }
+.ccm-hero { position:relative; width:min(100%,440px); aspect-ratio:1.586; margin:0 auto; border-radius:20px; box-shadow:0 22px 48px -14px rgba(0,0,0,.65), 0 0 0 1px rgba(255,255,255,.07); }
+.ccm-hero.entering { animation:ccmHeroIn .6s cubic-bezier(.22,1,.36,1) backwards; }
+@keyframes ccmHeroIn { from { opacity:0; transform:translateY(34px) scale(.9) rotateX(10deg); } }
+.ccm-hero .cc-face-number { font-size:1.3rem; letter-spacing:3px; }
+.ccm-hero .cc-face-name { font-size:1rem; max-width:200px; }
+.ccm-hero .cc-card-face { --cc-ring-size:60px; padding:24px 26px; }
+.ccm-hero.risk-high .cc-card-face { animation:ccRiskPulse 2.4s ease-in-out infinite; }
+.ccm-hero.is-frozen .cc-card-face { filter:saturate(.35) brightness(.8); }
+.ccm-showinfo { display:flex; align-items:center; gap:8px; margin:16px auto 0; padding:9px 18px; border-radius:11px; cursor:pointer; font-family:inherit; font-size:.8rem; font-weight:700;
+  color:var(--text-main); background:rgba(255,255,255,0.06); border:1px solid rgba(255,255,255,0.12); transition:.16s; }
+.ccm-showinfo:hover { background:rgba(255,255,255,0.11); }
+.ccm-body { margin-top:1.4rem; padding-top:1.2rem; border-top:1px solid rgba(255,255,255,0.07); }
+body.light-mode .ccm-list-col { background:#fff; border-color:rgba(15,23,42,.12); }
+body.light-mode .ccm-row:hover { background:rgba(15,23,42,.04); }
+body.light-mode .ccm-bar { background:rgba(15,23,42,.1); }
+body.light-mode .ccm-count, body.light-mode .ccm-showinfo, body.light-mode .ccm-ibtn { background:rgba(15,23,42,.05); border-color:rgba(15,23,42,.12); }
+@media (max-width:900px){
+  .ccm-list-col { display:none !important; }
+  .cc-active-detail.ccm-detail { width:100%; padding:1.1rem 1rem 1.2rem; }
+  .ccm-hero .cc-face-number { font-size:1.05rem; letter-spacing:2px; }
+}
+</style>
+<script id="fos-ccm">
+/* Credit-card page: replaces the stacked-card deck with a Card Management list + a hero card in the detail panel.
+   Overrides renderCCCards / setActiveCCCard / layoutCCStack / renderCCActiveDetail. Data, insights, actions, analytics are unchanged. */
+(function () {
+  'use strict';
+  var reveal = false, lastIds = [];
+  function esc(s) { return String(s == null ? '' : s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;'); }
+  function pctOf(c) { return c.limit > 0 ? Math.min(100, (c.used / c.limit) * 100) : 0; }
+  function inr(n) { return '₹' + Math.round(n).toLocaleString('en-IN'); }
+  function last4(c) { return String(c.number || '').replace(/\D/g, '').slice(-4); }
+  function logo(c) {
+    var b = (typeof CC_BANKS !== 'undefined') ? CC_BANKS.find(function (x) { return x.id === c.bankId; }) : null;
+    var url = b ? b.logo : c.bankLogo, fb = b ? (b.logoFallback || '') : (c.bankLogoFallback || '');
+    var col = b ? b.color : (c.bankColor || '#334155'), ab = b ? b.abbr : (c.bankAbbr || (c.bankName || 'BANK').substring(0, 4).toUpperCase());
+    return '<div class="ccm-logo"><span style="color:' + esc(col) + '">' + esc(ab) + '</span>' + (url ? '<img src="' + esc(url) + '" alt="" data-fallback="' + esc(fb) + '" onload="this.classList.add(\'loaded\')" onerror="if(this.dataset.fallback){this.src=this.dataset.fallback;this.dataset.fallback=\'\';}else{this.remove()}">' : '') + '</div>';
+  }
+  function rowHTML(c, i, enter) {
+    var p = pctOf(c), col = getCCUtilColor(p);
+    return '<div class="ccm-row' + (c.id === ccActiveId ? ' active' : '') + (enter ? ' entering' : '') + '" data-id="' + c.id + '" style="--i:' + i + '" tabindex="0" role="button" aria-label="' + esc(c.nickname) + '" onclick="setActiveCCCard(' + c.id + ')" onkeydown="if(event.key===\'Enter\'||event.key===\' \'){event.preventDefault();setActiveCCCard(' + c.id + ')}">' +
+      logo(c) +
+      '<div class="ccm-main"><div class="ccm-name" data-no-count>' + esc(c.nickname || c.bankName) + '</div>' +
+      '<div class="ccm-sub" data-no-count><span>' + esc(c.bankName || '') + '</span>' + (last4(c) ? '<i class="dot"></i><span>•••• ' + last4(c) + '</span>' : '') + (c.frozen ? '<i class="dot"></i><span class="frz">Frozen</span>' : '') + '</div></div>' +
+      '<div class="ccm-right" data-no-count><div class="ccm-amt">' + inr(c.used) + '</div><div class="ccm-pct" style="color:' + col + '">' + p.toFixed(0) + '% used</div></div>' +
+      '<div class="ccm-bar"><i style="width:' + p + '%;background:' + col + '"></i></div></div>';
+  }
+  function syncPicker() {
+    var s = document.getElementById('cc-mobile-select'); if (!s) return;
+    s.innerHTML = ccCards.map(function (c) { return '<option value="' + c.id + '">' + esc(c.nickname || c.bankName || 'Card') + (last4(c) ? ' ••' + last4(c) : '') + ' — ' + pctOf(c).toFixed(0) + '%</option>'; }).join('');
+    s.value = String(ccActiveId);
+  }
+
+  window.layoutCCStack = function () {
+    var n = document.getElementById('ccm-count'); if (n) n.textContent = ccCards.length + ' card' + (ccCards.length === 1 ? '' : 's');
+    syncPicker();
+  };
+
+  window.renderCCCards = function () {
+    var panel = document.getElementById('cc-cards-panel'), empty = document.getElementById('cc-empty');
+    if (!panel) return;
+    if (!ccCards.length) {
+      panel.innerHTML = ''; panel.appendChild(empty || document.createElement('div')); if (empty) empty.style.display = 'flex';
+      ccActiveId = null; lastIds = [];
+      var a = document.getElementById('cc-analytics-section'); if (a) a.innerHTML = '';
+      return;
+    }
+    if (!ccActiveId || !ccCards.find(function (c) { return c.id === ccActiveId; })) { ccActiveId = ccCards[0].id; reveal = false; }
+    var ids = ccCards.map(function (c) { return c.id; });
+    var same = ids.length === lastIds.length && ids.every(function (id, i) { return id === lastIds[i]; });
+    var old = document.getElementById('ccm-list'), keep = old ? old.scrollTop : 0;
+    if (!document.getElementById('cc-active-detail') || !document.getElementById('ccm-list')) {
+      panel.innerHTML =
+        '<div class="cc-mobile-picker" id="cc-mobile-picker"><label class="cc-mobile-picker-lbl" for="cc-mobile-select">Select Card</label><div class="cc-mobile-picker-wrap"><select class="cc-mobile-select" id="cc-mobile-select" onchange="setActiveCCCard(Number(this.value))"></select></div></div>' +
+        '<div class="ccm-list-col"><div class="ccm-tabs"><span class="ccm-tab">Card Management</span><span class="ccm-count" id="ccm-count"></span></div><div class="ccm-list" id="ccm-list"></div></div>' +
+        '<div class="cc-active-detail ccm-detail" id="cc-active-detail"></div>';
+    }
+    var list = document.getElementById('ccm-list');
+    list.innerHTML = ccCards.map(function (c, i) { return rowHTML(c, i, !same); }).join('');
+    list.scrollTop = keep;
+    lastIds = ids;
+    layoutCCStack();
+    renderCCActiveDetail(!same);
+    renderCCAnalytics();
+  };
+
+  window.setActiveCCCard = function (id) {
+    if (ccActiveId === id) return;
+    ccActiveId = id; reveal = false;
+    document.querySelectorAll('#ccm-list .ccm-row').forEach(function (r) { r.classList.toggle('active', Number(r.dataset.id) === id); });
+    var act = document.querySelector('#ccm-list .ccm-row.active'); if (act && act.scrollIntoView) act.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+    syncPicker();
+    renderCCActiveDetail(true);
+    renderCCAnalytics();
+  };
+
+  window.ccmToggleNum = function () {
+    var c = ccCards.find(function (x) { return x.id === ccActiveId; }); if (!c) return;
+    reveal = !reveal;
+    var n = document.querySelector('#cc-active-detail .cc-face-number'), b = document.getElementById('ccm-showinfo');
+    if (n) n.textContent = reveal ? String(c.number).replace(/\s+/g, ' ').trim() : String(c.number).replace(/\d(?=\d{4})/g, '•').replace(/\s+/g, ' ').trim();
+    if (b) b.innerHTML = reveal ? '<i class="fas fa-eye-slash"></i> Hide number' : '<i class="fas fa-eye"></i> Show number';
+  };
+
+  window.renderCCActiveDetail = function (animate) {
+    var wrap = document.getElementById('cc-active-detail'); if (!wrap) return;
+    var c = ccCards.find(function (x) { return x.id === ccActiveId; });
+    if (!c) { wrap.innerHTML = ''; return; }
+    var pct = pctOf(c), avail = Math.max(0, c.limit - c.used), color = getCCUtilColor(pct), st = getCCUtilStatus(pct);
+    var face = ccCardFaceHTML(c);
+    if (reveal) face = face.replace(String(c.number).replace(/\d(?=\d{4})/g, '•').replace(/\s+/g, ' ').trim(), String(c.number).replace(/\s+/g, ' ').trim());
+    wrap.innerHTML =
+      '<div class="ccm-head"><div class="ccm-del-wrap"><button class="ccm-ibtn del" onclick="deleteCCCard(' + c.id + ')" title="Remove card" aria-label="Remove card"><i class="fas fa-trash-alt"></i></button></div>' +
+        '<div class="ccm-title"><b data-no-count>' + esc(c.nickname) + '</b><button class="ccm-ibtn" onclick="editCCCard(' + c.id + ')" title="Edit card" aria-label="Edit card"><i class="fas fa-pen"></i></button></div>' +
+        '<div class="ccm-bank" data-no-count><span class="cc-util-status ' + st.cls + '">' + st.label + '</span><span>' + esc(c.bankName || '') + (last4(c) ? ' · •••• ' + last4(c) : '') + '</span></div></div>' +
+      '<div class="ccm-hero' + (animate ? ' entering' : '') + (pct >= 90 ? ' risk-high' : '') + (c.frozen ? ' is-frozen' : '') + '">' + face + '</div>' +
+      '<button type="button" class="ccm-showinfo" id="ccm-showinfo" onclick="ccmToggleNum()">' + (reveal ? '<i class="fas fa-eye-slash"></i> Hide number' : '<i class="fas fa-eye"></i> Show number') + '</button>' +
+      '<div class="ccm-body">' +
+        '<div class="cc-util-bar-wrap"><div class="cc-util-bar-header"><span style="font-size:0.72rem;color:var(--text-muted)">Credit Utilization</span>' +
+          '<div style="display:flex;align-items:center;gap:8px"><span class="cc-util-pct" style="color:' + color + '">' + pct.toFixed(1) + '%</span><span class="cc-util-status ' + st.cls + '">' + st.label + '</span></div></div>' +
+          '<div class="cc-util-track"><div class="cc-util-fill" style="width:' + pct + '%;background:linear-gradient(90deg,' + color + '99,' + color + ')"></div></div>' +
+          '<div class="cc-util-legend" data-no-count><div class="cc-util-legend-item"><div class="cc-util-legend-dot" style="background:' + color + '"></div>Outstanding: ' + inr(c.used) + '</div>' +
+          '<div class="cc-util-legend-item"><div class="cc-util-legend-dot" style="background:rgba(255,255,255,0.15)"></div>Available: ' + inr(avail) + '</div></div></div>' +
+        '<div class="cc-stats-row"><div class="cc-stat-chip"><div class="cs-lbl">Total Limit</div><div class="cs-val" style="color:#94a3b8">' + inr(c.limit) + '</div></div>' +
+          '<div class="cc-stat-chip"><div class="cs-lbl">Outstanding</div><div class="cs-val" style="color:' + color + '">' + inr(c.used) + '</div></div>' +
+          '<div class="cc-stat-chip"><div class="cs-lbl">Available</div><div class="cs-val" style="color:#34d399">' + inr(avail) + '</div></div></div>' +
+        ccInsightsHTML(c, pct, avail) + ccActionsHTML(c) +
+      '</div>';
+    requestAnimationFrame(function () { requestAnimationFrame(function () {
+      var ring = wrap.querySelector('.cc-face-ring-fill'); if (ring) ring.style.strokeDashoffset = ring.dataset.targetOffset;
+    }); });
+    wrap.classList.remove('refresh'); void wrap.offsetWidth; wrap.classList.add('refresh');
+  };
+  try { if (ccCards && ccCards.length && document.getElementById('cc-cards-panel')) renderCCCards(); } catch (e) { }
 })();
 </script>
 </body>
