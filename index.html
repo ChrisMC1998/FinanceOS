@@ -4265,6 +4265,14 @@ body.light-mode .tag-suggestion-item { color:#0f172a; }
 #port-err { color:#ef4444; font-size:0.78rem; margin-top:8px; }
 #p-type-seg { flex-wrap:wrap; }
 #p-type-seg button { flex:1 1 28%; }
+/* Add-transaction type selector: keep all 5 types inside the modal on phones (3 on top, 2 below) */
+@media (max-width:640px){
+  #type-seg { display:grid; grid-template-columns:repeat(6,minmax(0,1fr)); gap:4px; }
+  #type-seg button { grid-column:span 2; min-width:0; padding:9px 4px; font-size:0.8rem; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  #type-seg button:nth-child(n+4) { grid-column:span 3; }
+  #recv-mode-seg { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); }
+  #recv-mode-seg button { min-width:0; padding:9px 4px; white-space:normal; line-height:1.2; }
+}
 #modal .modal-actions { flex-wrap:wrap; }
 .input-field.err { border-color:#ef4444; }
 .tag-filter-row { display:flex; flex-wrap:wrap; gap:5px; margin-bottom:10px; align-items:center; }
