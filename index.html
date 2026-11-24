@@ -11,7 +11,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="fos-integrity" content="e2e9dae8fe46c857d902f1efe7fe31b2d49d35f36933ac7818cde87716cc3049">
+<meta name="fos-integrity" content="897dbe9f1de1562c62cfe9164789fd922026ea230052c81ea65c48dff9f86f75">
 <script id="fos-tamper-guard">
 /*! \u00a9 2026 MC Enterprise. Integrity check: detects a copy of this file that no longer matches the
     official release and locks it with a notice. This checks the FILE as served, not live memory --
@@ -46930,7 +46930,6 @@ html body .view-section .fos-rv-in { opacity:1 !important; translate:0 0 !import
     for (var i = 0; i < els.length; i++) {
       var el = els[i]; if (el.__rv) continue; el.__rv = 1;
       if (el.parentElement && el.parentElement.closest(CARD)) continue;       // outermost card only
-      if (el.closest('.cc-view-wrap')) continue;
       var r = el.getBoundingClientRect();
       if (!r.height || !r.width || r.top < ar.bottom - 40) continue;           // hidden, or already on screen / scrolled past
       el.classList.add('fos-rv-pre'); io.observe(el);
@@ -46978,13 +46977,12 @@ html body .view-section .fos-px.fos-rv-in { translate:0 var(--px,0px) !important
   var list = [], raf = 0, tmr = 0;
   function mobile() { return window.innerWidth <= 640; }
   function refresh() {
-    tmr = 0; clear(); list = [];
+    tmr = 0; list = [];
     var view = area.querySelector('.view-section.active'); if (!view) return;
     var els = view.querySelectorAll(CARD);
     for (var i = 0; i < els.length; i++) {
       var el = els[i];
       if (el.parentElement && el.parentElement.closest(CARD)) continue;
-      if (el.closest('.cc-view-wrap')) continue;                                  // structural page layout: keep perfectly aligned
       if (el.querySelector('input,select,textarea,.fos-smoke-menu,[class*="dropdown"]')) continue;   // keep menus/forms un-layered
       list.push(el);
     }
@@ -47026,7 +47024,7 @@ html body .view-section .fos-px.fos-rv-in { translate:0 var(--px,0px) !important
 <style id="fos-ccm-css">
 /* ── Credit-card page redesign: "Card Management" list + hero card detail ── */
 .cc-cards-panel { align-items:flex-start; }
-.ccm-list-col { width:360px; flex-shrink:0; display:flex; flex-direction:column; min-height:260px;
+.ccm-list-col { width:360px; flex-shrink:0; position:sticky; top:6px; display:flex; flex-direction:column; max-height:calc(100vh - 150px); min-height:260px;
   background:rgba(255,255,255,0.03); border:1px solid var(--glass-border); border-radius:16px; overflow:hidden; }
 .ccm-tabs { display:flex; align-items:center; justify-content:space-between; gap:10px; padding:12px 16px 0; border-bottom:1px solid rgba(255,255,255,0.07); }
 .ccm-tab { font-size:0.86rem; font-weight:700; color:var(--text-main); padding:6px 0 11px; position:relative; }
@@ -47087,32 +47085,7 @@ body.light-mode .ccm-list-col { background:#fff; border-color:rgba(15,23,42,.12)
 body.light-mode .ccm-row:hover { background:rgba(15,23,42,.04); }
 body.light-mode .ccm-bar { background:rgba(15,23,42,.1); }
 body.light-mode .ccm-count, body.light-mode .ccm-showinfo, body.light-mode .ccm-ibtn { background:rgba(15,23,42,.05); border-color:rgba(15,23,42,.12); }
-/* ── Page grid: every panel starts on the same line, nothing is sticky, so the page scrolls as one calm surface ── */
-.ccm-extra { display:grid; grid-template-columns:minmax(0,1.7fr) minmax(0,1fr); gap:1rem; align-items:start; }
-.ccm-extra.refresh { animation:ccDetailFade .35s ease; }
-.ccm-xcard { background:rgba(255,255,255,0.03); border:1px solid var(--glass-border); border-radius:16px; padding:1.2rem 1.4rem; min-width:0; }
-.ccm-xcard .cc-insights, .ccm-xcard .cc-actions-block { margin:0; padding:0; border:0; }
-.ccm-xcard .cc-actions-row { flex-wrap:wrap; }
-body.light-mode .ccm-xcard { background:#fff; border-color:rgba(15,23,42,.12); }
-@media (min-width:901px){
-  html body .cc-view-wrap { display:grid !important; grid-template-columns:340px minmax(0,1fr); gap:1.2rem !important; height:auto !important; align-items:stretch; }
-  html body .cc-view-wrap > .cc-cards-panel { display:contents !important; }
-  .cc-view-wrap > .cc-setup-panel { grid-column:1 / -1; width:auto; display:grid; grid-template-columns:repeat(auto-fit,minmax(280px,1fr)); gap:1rem; align-items:start; }
-  .cc-view-wrap .cc-bank-grid { grid-template-columns:repeat(auto-fill,minmax(112px,1fr)); }
-  .ccm-list-col { contain:size; width:auto; min-height:0; position:static; }
-  .cc-active-detail.ccm-detail { grid-column:2; }
-  .ccm-extra { grid-column:1 / -1; }
-  .cc-view-wrap #cc-empty { grid-column:1 / -1; }
-}
-@media (min-width:1700px){
-  html body .cc-view-wrap { grid-template-columns:300px 360px minmax(0,1fr); }
-  .cc-view-wrap > .cc-setup-panel { grid-column:1; grid-row:1; display:flex; flex-direction:column; contain:size; min-height:0; overflow-y:auto; overscroll-behavior:contain; scrollbar-width:thin; padding-right:2px; }
-  .ccm-list-col { grid-column:2; grid-row:1; }
-  .cc-active-detail.ccm-detail { grid-column:3; grid-row:1; }
-  .ccm-extra { grid-row:2; }
-}
 @media (max-width:900px){
-  .ccm-extra { grid-template-columns:1fr; }
   .ccm-list-col { display:none !important; }
   .cc-active-detail.ccm-detail { width:100%; padding:1.1rem 1rem 1.2rem; }
   .ccm-hero .cc-face-number { font-size:1.05rem; letter-spacing:2px; }
@@ -47174,8 +47147,7 @@ body.light-mode .ccm-xcard { background:#fff; border-color:rgba(15,23,42,.12); }
       panel.innerHTML =
         '<div class="cc-mobile-picker" id="cc-mobile-picker"><label class="cc-mobile-picker-lbl" for="cc-mobile-select">Select Card</label><div class="cc-mobile-picker-wrap"><select class="cc-mobile-select" id="cc-mobile-select" onchange="setActiveCCCard(Number(this.value))"></select></div></div>' +
         '<div class="ccm-list-col"><div class="ccm-tabs"><span class="ccm-tab">Card Management</span><span class="ccm-count" id="ccm-count"></span></div><div class="ccm-list" id="ccm-list"></div></div>' +
-        '<div class="cc-active-detail ccm-detail" id="cc-active-detail"></div>' +
-        '<div class="ccm-extra" id="ccm-extra"></div>';
+        '<div class="cc-active-detail ccm-detail" id="cc-active-detail"></div>';
     }
     var list = document.getElementById('ccm-list');
     list.innerHTML = ccCards.map(function (c, i) { return rowHTML(c, i, !same); }).join('');
@@ -47226,9 +47198,8 @@ body.light-mode .ccm-xcard { background:#fff; border-color:rgba(15,23,42,.12); }
         '<div class="cc-stats-row"><div class="cc-stat-chip"><div class="cs-lbl">Total Limit</div><div class="cs-val" style="color:#94a3b8">' + inr(c.limit) + '</div></div>' +
           '<div class="cc-stat-chip"><div class="cs-lbl">Outstanding</div><div class="cs-val" style="color:' + color + '">' + inr(c.used) + '</div></div>' +
           '<div class="cc-stat-chip"><div class="cs-lbl">Available</div><div class="cs-val" style="color:#34d399">' + inr(avail) + '</div></div></div>' +
+        ccInsightsHTML(c, pct, avail) + ccActionsHTML(c) +
       '</div>';
-    var ex = document.getElementById('ccm-extra');
-    if (ex) { ex.innerHTML = '<div class="ccm-xcard">' + ccInsightsHTML(c, pct, avail) + '</div><div class="ccm-xcard">' + ccActionsHTML(c) + '</div>'; ex.classList.remove('refresh'); void ex.offsetWidth; ex.classList.add('refresh'); }
     requestAnimationFrame(function () { requestAnimationFrame(function () {
       var ring = wrap.querySelector('.cc-face-ring-fill'); if (ring) ring.style.strokeDashoffset = ring.dataset.targetOffset;
     }); });
