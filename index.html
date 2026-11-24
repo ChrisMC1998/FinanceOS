@@ -11,7 +11,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="fos-integrity" content="f0b5699b47371732be243c8996ddae901700e7e9fb4e35128410ba79f22d5d15">
+<meta name="fos-integrity" content="e2e9dae8fe46c857d902f1efe7fe31b2d49d35f36933ac7818cde87716cc3049">
 <script id="fos-tamper-guard">
 /*! \u00a9 2026 MC Enterprise. Integrity check: detects a copy of this file that no longer matches the
     official release and locks it with a notice. This checks the FILE as served, not live memory --
@@ -2733,14 +2733,19 @@ body.light-mode .cc-mobile-picker-wrap::after { color:#475569; }
    Mastercard/etc all differ in intrinsic width) — the slot is right-aligned
    to the card's own padding, so the badge below can reserve space against
    the slot's width instead of any one logo's pixel size. */
-.cc-card-face { --cc-net-w:46px; --cc-net-gap:10px; --cc-ring-size:54px; }
+.cc-card-face { --cc-net-w:62px; --cc-net-gap:10px; --cc-ring-size:54px; }
 .cc-face-bottom {
   display:flex; align-items:flex-end; justify-content:flex-start; gap:12px; position:relative; z-index:1;
   padding-right: calc(var(--cc-ring-size) + var(--cc-net-gap) + var(--cc-net-w) + 6px);
 }
-.cc-face-name-lbl { font-size:0.58rem; text-transform:uppercase; letter-spacing:1.3px; color:rgba(255,255,255,0.68); margin-bottom:3px; }
-.cc-face-name { font-size:0.9rem; font-weight:700; color:#fff; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width:170px; }
-.cc-face-exp { font-size:0.63rem; color:rgba(255,255,255,0.62); margin-top:3px; }
+.cc-face-name-lbl { font-size:0.62rem; font-weight:700; text-transform:uppercase; letter-spacing:1.3px; color:rgba(255,255,255,0.92); margin-bottom:3px; text-shadow:0 1px 3px rgba(0,0,0,.55); }
+.cc-face-name { font-size:0.9rem; font-weight:700; color:#fff; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width:170px; text-transform:uppercase; letter-spacing:.6px; text-shadow:0 1px 3px rgba(0,0,0,.5); }
+.cc-face-exp { font-size:0.74rem; font-weight:600; color:rgba(255,255,255,0.95); margin-top:4px; text-shadow:0 1px 3px rgba(0,0,0,.55); font-family:'DM Mono',monospace; }
+.cc-face-exp span { font-family:'DM Sans',sans-serif; font-size:0.6rem; font-weight:700; letter-spacing:1px; text-transform:uppercase; color:rgba(255,255,255,0.85); margin-right:4px; }
+.cc-face-type { font-size:0.74rem; font-weight:600; color:rgba(255,255,255,0.95); margin-top:3px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width:230px; text-shadow:0 1px 3px rgba(0,0,0,.55); }
+.cc-face-unset { font-weight:600; font-size:.8rem; opacity:.85; text-transform:none; letter-spacing:0; }
+.cc-face-info { min-width:0; }
+.cc-face-network svg { width:100%; height:100%; filter:drop-shadow(0 1px 2px rgba(0,0,0,.35)); }
 /* The ring is anchored independently of the bottom text row so it never
    grows/shrinks with the cardholder name — it always sits clear of the
    network logo's protected slot, above/left of it. */
@@ -2759,7 +2764,7 @@ body.light-mode .cc-mobile-picker-wrap::after { color:#475569; }
    the same reserved footprint the ring above is calculated against. */
 .cc-face-network {
   position:absolute; bottom:18px; right:22px; z-index:1;
-  width:var(--cc-net-w); height:16px;
+  width:var(--cc-net-w); height:calc(var(--cc-net-w) * .42);
   display:flex; align-items:center; justify-content:flex-end;
 }
 @media (max-width:380px) {
@@ -10321,6 +10326,11 @@ function passAppLockGate() {
             <div class="cc-input-row">
               <div class="cc-input-label">Card Nickname (optional)</div>
               <input class="cc-input" id="cc-nickname" placeholder="e.g. My Rewards Card" maxlength="30">
+            </div>
+
+            <div class="cc-input-row">
+              <div class="cc-input-label">Card Holder's Name</div>
+              <input class="cc-input" id="cc-holder" placeholder="Name as printed on the card" maxlength="26" autocomplete="off" style="text-transform:uppercase">
             </div>
 
             <div class="cc-input-row">
@@ -30945,7 +30955,7 @@ function selectCCBank(id) {
   document.getElementById('cc-details-box').style.display = 'block';
   document.getElementById('cc-limit-box').style.display = 'block';
   // Clear fields
-  ['cc-nickname','cc-number','cc-expiry','cc-cvv','cc-limit','cc-used'].forEach(id => {
+  ['cc-nickname','cc-holder','cc-number','cc-expiry','cc-cvv','cc-limit','cc-used'].forEach(id => {
     const el = document.getElementById(id); if(el) el.value = '';
   });
   document.getElementById('cc-preview-wrap').style.display = 'none';
@@ -30990,6 +31000,7 @@ function addCCCard() {
   if (!ccSelectedBank) { alert('Please select a bank first.'); return; }
   const bank    = CC_BANKS.find(b => b.id === ccSelectedBank);
   const nick    = document.getElementById('cc-nickname').value.trim();
+  const holder  = (document.getElementById('cc-holder').value || '').trim().toUpperCase();
   const number  = document.getElementById('cc-number').value.trim();
   const expiry  = document.getElementById('cc-expiry').value.trim();
   const cvv     = document.getElementById('cc-cvv').value.trim();
@@ -31010,6 +31021,7 @@ function addCCCard() {
     bankAbbr: bank.abbr,
     bankLogo: bank.logo,
     nickname: nick || bank.name + ' Card',
+    holder: holder,
     number: number,
     expiry: expiry,
     network: network,
@@ -31025,7 +31037,7 @@ function addCCCard() {
   renderCCCards();
 
   // Reset form
-  ['cc-nickname','cc-number','cc-expiry','cc-cvv','cc-limit','cc-used','cc-network'].forEach(id => {
+  ['cc-nickname','cc-holder','cc-number','cc-expiry','cc-cvv','cc-limit','cc-used','cc-network'].forEach(id => {
     const el = document.getElementById(id); if(el) el.value = '';
   });
   document.querySelectorAll('.cc-network-btn').forEach(b => b.classList.remove('selected'));
@@ -31051,6 +31063,7 @@ function editCCCard(id) {
 
   document.getElementById('cc-edit-id').value       = id;
   document.getElementById('cc-edit-nickname').value = card.nickname || '';
+  document.getElementById('cc-edit-holder').value   = card.holder   || '';
   document.getElementById('cc-edit-limit').value    = card.limit   || '';
   document.getElementById('cc-edit-used').value     = card.used    || '';
   document.getElementById('cc-edit-expiry').value   = card.expiry  || '';
@@ -31079,6 +31092,7 @@ function updateCCEditPreview() {
 function saveCCEdit() {
   const id       = Number(document.getElementById('cc-edit-id').value);
   const nickname = document.getElementById('cc-edit-nickname').value.trim();
+  const holder   = (document.getElementById('cc-edit-holder').value || '').trim().toUpperCase();
   const limit    = parseFloat(document.getElementById('cc-edit-limit').value)  || 0;
   const used     = parseFloat(document.getElementById('cc-edit-used').value)   || 0;
   const expiry   = document.getElementById('cc-edit-expiry').value.trim();
@@ -31092,6 +31106,7 @@ function saveCCEdit() {
   ccCards[idx] = {
     ...ccCards[idx],
     nickname: nickname || ccCards[idx].bankName + ' Card',
+    holder,
     limit,
     used,
     expiry,
@@ -31177,10 +31192,11 @@ function ccCardFaceHTML(c) {
       </div>
       <div class="cc-face-number" data-no-count>${maskedNum}</div>
       <div class="cc-face-bottom">
-        <div>
+        <div class="cc-face-info">
           <div class="cc-face-name-lbl">Card Holder</div>
-          <div class="cc-face-name" data-no-count>${c.nickname}</div>
-          <div class="cc-face-exp" data-no-count>Exp ${c.expiry}</div>
+          <div class="cc-face-name" data-no-count>${c.holder ? String(c.holder).replace(/&/g,'&amp;').replace(/</g,'&lt;') : '<span class="cc-face-unset">Not set \u2013 tap edit</span>'}</div>
+          <div class="cc-face-type" data-no-count>${String(c.nickname || '').replace(/&/g,'&amp;').replace(/</g,'&lt;')}</div>
+          <div class="cc-face-exp" data-no-count><span>Valid thru</span> ${c.expiry}</div>
         </div>
       </div>
       <div class="cc-face-ring-wrap" role="img" aria-label="Utilization ${pct.toFixed(0)}%">
@@ -35382,6 +35398,11 @@ function renderSubscriptions() {
     <div class="input-group">
       <label>Card Nickname</label>
       <input type="text" id="cc-edit-nickname" class="input-field" placeholder="e.g. My Rewards Card" maxlength="30">
+    </div>
+
+    <div class="input-group">
+      <label>Card Holder's Name</label>
+      <input type="text" id="cc-edit-holder" class="input-field" placeholder="Name as printed on the card" maxlength="26" autocomplete="off" style="text-transform:uppercase">
     </div>
 
     <div class="modal-row">
@@ -46909,6 +46930,7 @@ html body .view-section .fos-rv-in { opacity:1 !important; translate:0 0 !import
     for (var i = 0; i < els.length; i++) {
       var el = els[i]; if (el.__rv) continue; el.__rv = 1;
       if (el.parentElement && el.parentElement.closest(CARD)) continue;       // outermost card only
+      if (el.closest('.cc-view-wrap')) continue;
       var r = el.getBoundingClientRect();
       if (!r.height || !r.width || r.top < ar.bottom - 40) continue;           // hidden, or already on screen / scrolled past
       el.classList.add('fos-rv-pre'); io.observe(el);
@@ -46956,12 +46978,13 @@ html body .view-section .fos-px.fos-rv-in { translate:0 var(--px,0px) !important
   var list = [], raf = 0, tmr = 0;
   function mobile() { return window.innerWidth <= 640; }
   function refresh() {
-    tmr = 0; list = [];
+    tmr = 0; clear(); list = [];
     var view = area.querySelector('.view-section.active'); if (!view) return;
     var els = view.querySelectorAll(CARD);
     for (var i = 0; i < els.length; i++) {
       var el = els[i];
       if (el.parentElement && el.parentElement.closest(CARD)) continue;
+      if (el.closest('.cc-view-wrap')) continue;                                  // structural page layout: keep perfectly aligned
       if (el.querySelector('input,select,textarea,.fos-smoke-menu,[class*="dropdown"]')) continue;   // keep menus/forms un-layered
       list.push(el);
     }
@@ -47003,7 +47026,7 @@ html body .view-section .fos-px.fos-rv-in { translate:0 var(--px,0px) !important
 <style id="fos-ccm-css">
 /* ── Credit-card page redesign: "Card Management" list + hero card detail ── */
 .cc-cards-panel { align-items:flex-start; }
-.ccm-list-col { width:360px; flex-shrink:0; position:sticky; top:6px; display:flex; flex-direction:column; max-height:calc(100vh - 150px); min-height:260px;
+.ccm-list-col { width:360px; flex-shrink:0; display:flex; flex-direction:column; min-height:260px;
   background:rgba(255,255,255,0.03); border:1px solid var(--glass-border); border-radius:16px; overflow:hidden; }
 .ccm-tabs { display:flex; align-items:center; justify-content:space-between; gap:10px; padding:12px 16px 0; border-bottom:1px solid rgba(255,255,255,0.07); }
 .ccm-tab { font-size:0.86rem; font-weight:700; color:var(--text-main); padding:6px 0 11px; position:relative; }
@@ -47047,7 +47070,12 @@ html body .view-section .fos-px.fos-rv-in { translate:0 var(--px,0px) !important
 .ccm-hero.entering { animation:ccmHeroIn .6s cubic-bezier(.22,1,.36,1) backwards; }
 @keyframes ccmHeroIn { from { opacity:0; transform:translateY(34px) scale(.9) rotateX(10deg); } }
 .ccm-hero .cc-face-number { font-size:1.3rem; letter-spacing:3px; }
-.ccm-hero .cc-face-name { font-size:1rem; max-width:200px; }
+.ccm-hero .cc-face-name { font-size:1.08rem; max-width:240px; }
+.ccm-hero .cc-card-face { --cc-net-w:92px; }
+.ccm-hero .cc-face-network { bottom:20px; }
+.ccm-hero .cc-face-type, .ccm-hero .cc-face-exp { font-size:.82rem; }
+.ccm-hero .cc-face-name-lbl { font-size:.68rem; }
+.ccm-hero .cc-face-ring-wrap { bottom:50px; }
 .ccm-hero .cc-card-face { --cc-ring-size:60px; padding:24px 26px; }
 .ccm-hero.risk-high .cc-card-face { animation:ccRiskPulse 2.4s ease-in-out infinite; }
 .ccm-hero.is-frozen .cc-card-face { filter:saturate(.35) brightness(.8); }
@@ -47059,10 +47087,38 @@ body.light-mode .ccm-list-col { background:#fff; border-color:rgba(15,23,42,.12)
 body.light-mode .ccm-row:hover { background:rgba(15,23,42,.04); }
 body.light-mode .ccm-bar { background:rgba(15,23,42,.1); }
 body.light-mode .ccm-count, body.light-mode .ccm-showinfo, body.light-mode .ccm-ibtn { background:rgba(15,23,42,.05); border-color:rgba(15,23,42,.12); }
+/* ── Page grid: every panel starts on the same line, nothing is sticky, so the page scrolls as one calm surface ── */
+.ccm-extra { display:grid; grid-template-columns:minmax(0,1.7fr) minmax(0,1fr); gap:1rem; align-items:start; }
+.ccm-extra.refresh { animation:ccDetailFade .35s ease; }
+.ccm-xcard { background:rgba(255,255,255,0.03); border:1px solid var(--glass-border); border-radius:16px; padding:1.2rem 1.4rem; min-width:0; }
+.ccm-xcard .cc-insights, .ccm-xcard .cc-actions-block { margin:0; padding:0; border:0; }
+.ccm-xcard .cc-actions-row { flex-wrap:wrap; }
+body.light-mode .ccm-xcard { background:#fff; border-color:rgba(15,23,42,.12); }
+@media (min-width:901px){
+  html body .cc-view-wrap { display:grid !important; grid-template-columns:340px minmax(0,1fr); gap:1.2rem !important; height:auto !important; align-items:stretch; }
+  html body .cc-view-wrap > .cc-cards-panel { display:contents !important; }
+  .cc-view-wrap > .cc-setup-panel { grid-column:1 / -1; width:auto; display:grid; grid-template-columns:repeat(auto-fit,minmax(280px,1fr)); gap:1rem; align-items:start; }
+  .cc-view-wrap .cc-bank-grid { grid-template-columns:repeat(auto-fill,minmax(112px,1fr)); }
+  .ccm-list-col { contain:size; width:auto; min-height:0; position:static; }
+  .cc-active-detail.ccm-detail { grid-column:2; }
+  .ccm-extra { grid-column:1 / -1; }
+  .cc-view-wrap #cc-empty { grid-column:1 / -1; }
+}
+@media (min-width:1700px){
+  html body .cc-view-wrap { grid-template-columns:300px 360px minmax(0,1fr); }
+  .cc-view-wrap > .cc-setup-panel { grid-column:1; grid-row:1; display:flex; flex-direction:column; contain:size; min-height:0; overflow-y:auto; overscroll-behavior:contain; scrollbar-width:thin; padding-right:2px; }
+  .ccm-list-col { grid-column:2; grid-row:1; }
+  .cc-active-detail.ccm-detail { grid-column:3; grid-row:1; }
+  .ccm-extra { grid-row:2; }
+}
 @media (max-width:900px){
+  .ccm-extra { grid-template-columns:1fr; }
   .ccm-list-col { display:none !important; }
   .cc-active-detail.ccm-detail { width:100%; padding:1.1rem 1rem 1.2rem; }
   .ccm-hero .cc-face-number { font-size:1.05rem; letter-spacing:2px; }
+  .ccm-hero .cc-card-face { --cc-net-w:66px; --cc-ring-size:48px; padding:18px 18px; }
+  .ccm-hero .cc-face-type, .ccm-hero .cc-face-exp { font-size:.7rem; }
+  .ccm-hero .cc-face-name { font-size:.9rem; }
 }
 </style>
 <script id="fos-ccm">
@@ -47118,7 +47174,8 @@ body.light-mode .ccm-count, body.light-mode .ccm-showinfo, body.light-mode .ccm-
       panel.innerHTML =
         '<div class="cc-mobile-picker" id="cc-mobile-picker"><label class="cc-mobile-picker-lbl" for="cc-mobile-select">Select Card</label><div class="cc-mobile-picker-wrap"><select class="cc-mobile-select" id="cc-mobile-select" onchange="setActiveCCCard(Number(this.value))"></select></div></div>' +
         '<div class="ccm-list-col"><div class="ccm-tabs"><span class="ccm-tab">Card Management</span><span class="ccm-count" id="ccm-count"></span></div><div class="ccm-list" id="ccm-list"></div></div>' +
-        '<div class="cc-active-detail ccm-detail" id="cc-active-detail"></div>';
+        '<div class="cc-active-detail ccm-detail" id="cc-active-detail"></div>' +
+        '<div class="ccm-extra" id="ccm-extra"></div>';
     }
     var list = document.getElementById('ccm-list');
     list.innerHTML = ccCards.map(function (c, i) { return rowHTML(c, i, !same); }).join('');
@@ -47169,8 +47226,9 @@ body.light-mode .ccm-count, body.light-mode .ccm-showinfo, body.light-mode .ccm-
         '<div class="cc-stats-row"><div class="cc-stat-chip"><div class="cs-lbl">Total Limit</div><div class="cs-val" style="color:#94a3b8">' + inr(c.limit) + '</div></div>' +
           '<div class="cc-stat-chip"><div class="cs-lbl">Outstanding</div><div class="cs-val" style="color:' + color + '">' + inr(c.used) + '</div></div>' +
           '<div class="cc-stat-chip"><div class="cs-lbl">Available</div><div class="cs-val" style="color:#34d399">' + inr(avail) + '</div></div></div>' +
-        ccInsightsHTML(c, pct, avail) + ccActionsHTML(c) +
       '</div>';
+    var ex = document.getElementById('ccm-extra');
+    if (ex) { ex.innerHTML = '<div class="ccm-xcard">' + ccInsightsHTML(c, pct, avail) + '</div><div class="ccm-xcard">' + ccActionsHTML(c) + '</div>'; ex.classList.remove('refresh'); void ex.offsetWidth; ex.classList.add('refresh'); }
     requestAnimationFrame(function () { requestAnimationFrame(function () {
       var ring = wrap.querySelector('.cc-face-ring-fill'); if (ring) ring.style.strokeDashoffset = ring.dataset.targetOffset;
     }); });
