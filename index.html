@@ -11,7 +11,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="fos-integrity" content="28fb9b1ac141643e7596325ed18a444ffc8580a62b615229e627a2bb12635685">
+<meta name="fos-integrity" content="9c1940ad0dc6f27bec85ac90c8046e72f6116273f16640474395e07a8245b84e">
 <script id="fos-tamper-guard">
 /*! \u00a9 2026 MC Enterprise. Integrity check: detects a copy of this file that no longer matches the
     official release and locks it with a notice. This checks the FILE as served, not live memory --
@@ -17961,7 +17961,9 @@ function renderDashboardImmediate() {
     document.getElementById('dash-roi-bar')
   ];
   
-  const allReady = requiredElements.every(el => el && el.offsetParent !== null && el.offsetWidth > 0);
+  // A chart whose old holder was swapped for a redesigned one (.fx-old, hidden on purpose) counts as ready,
+  // otherwise this waits forever and the whole dashboard stays blank.
+  const allReady = requiredElements.every(el => el && ((el.offsetParent !== null && el.offsetWidth > 0) || (el.closest && el.closest('.fx-old') && document.getElementById('view-dashboard') && document.getElementById('view-dashboard').offsetParent !== null)));
   
   if (!allReady) {
     setTimeout(renderDashboardImmediate, 100);
@@ -20321,6 +20323,7 @@ function renderPortAnalytics() {
   // 1. Timeline
   const sorted = [...data].sort((a,b) => new Date(a.date) - new Date(b.date));
   const tlLabels = sorted.map(e => e.date.slice(5) + ' ' + assetTypeLabel(e.assetType).slice(0,3));
+  window.__fosPA = { data, sorted };   // read by the chart styling layer (fos-fx6) for names in tooltips; no effect on the numbers
   destroyChart('port-timeline');
   charts['port-timeline'] = new Chart(document.getElementById('port-timeline').getContext('2d'), {
     type: 'line',
@@ -29871,13 +29874,13 @@ function syncMetalPricesToPortfolio(liveGold24, liveSilver) {
     const type = normalizeAssetType(item.assetType);
     if (type === 'Gold' && liveGold24 > 0) {
       const applied = Math.round(liveGold24 * goldFactor(item) * 100) / 100;
-      if (Math.abs((Number(item.currentPrice) || 0) - applied) > 1) { item.currentPrice = applied; updated = true; }
-      stamp(item);
+      if (Math.abs((Number(item.currentPrice) || 0) - applied) > 1) { item.currentPrice = applied; updated = true; stamp(item); }
+      else if (!item.priceSync) stamp(item);
     }
     if (type === 'Silver' && liveSilver > 0) {
       const applied = Math.round(liveSilver * silverFactor(item) * 100) / 100;
-      if (Math.abs((Number(item.currentPrice) || 0) - applied) > 0.05) { item.currentPrice = applied; updated = true; }
-      stamp(item);
+      if (Math.abs((Number(item.currentPrice) || 0) - applied) > 0.05) { item.currentPrice = applied; updated = true; stamp(item); }
+      else if (!item.priceSync) stamp(item);
     }
   });
 
@@ -42818,6 +42821,7 @@ body.light-mode #adm-root{--fs-ok:#059669;--fs-bad:#dc2626;--fs-warn:#b45309}
     const band = parseFloat(localStorage.getItem('fos_port_tgtband')); const bd = band >= 0 ? band : FOSC('portfolio.targetBand'), nm = Math.max(0, parseFloat(localStorage.getItem('fos_port_tgtnew')) || 0);
     const keys = [...new Set(Object.keys(cur).concat(Object.keys(T)))].sort((a, b) => (cur[b] || 0) - (cur[a] || 0));
     const sumT = keys.reduce((s, k) => s + (Number(T[k]) || 0), 0), has = sumT > 0, T2 = tot + nm, short = {};
+    window.__fosPIband = bd;   // read by the chart styling layer (fos-fx6)
     let sh = 0; keys.forEach(k => { const d = Math.max(0, (Number(T[k]) || 0) / 100 * T2 - (cur[k] || 0)); short[k] = d; sh += d; });
     const k2 = nm > 0 && sh > 0 ? Math.min(1, nm / sh) : 0;
     tgRows = keys.map(k => ({ k, cur: cur[k] || 0, tgt: Number(T[k]) || 0 }));
@@ -42866,6 +42870,7 @@ body.light-mode #adm-root{--fs-ok:#059669;--fs-bad:#dc2626;--fs-warn:#b45309}
     // concentration + health
     if (H) {
       const top5 = [...act].sort((a, b) => b.c.currentValue - a.c.currentValue).slice(0, 5), cl = grp(act, r => r.t), hhi = Math.round(cl.reduce((s, x) => s + Math.pow(x.v / tot * 100, 2), 0));
+      window.__fosPI = { H, tot, top5, hhi, cls: cl };   // read by the chart styling layer (fos-fx6); no effect on the numbers
       const flags = []; if (H.top > 25) flags.push('One holding is ' + H.top.toFixed(0) + '% of the portfolio.'); if (cl[0].v / tot > .5) flags.push(cl[0].k + ' is ' + (cl[0].v / tot * 100).toFixed(0) + '% of the portfolio.'); if (H.liq < .15) flags.push('Under 15% is reachable within 30 days.'); if (H.fgn === 0) flags.push('No exposure outside the home market.'); if (!incT) flags.push('No income-generating holdings recorded (add yield / rate / rent fields).');
       h += `<div class="pi-two">${panel('Diversification & concentration', top5.map(r => `<div class="pi-bar"><span>${_esc(r.e.subType || assetTypeLabel(r.t))}</span><i style="width:${Math.min(100, r.c.currentValue / tot * 100)}%"></i><b>${(r.c.currentValue / tot * 100).toFixed(1)}%</b></div>`).join('') + `<div class="pi-sub" style="margin-top:.6rem">Class-level HHI ${hhi} (below 2,500 is healthy) · ${H.effN.toFixed(1)} effective classes</div>` + (flags.length ? `<ul class="pi-fl">${flags.map(f => `<li>${f}</li>`).join('')}</ul>` : '<div class="pi-sub">No concentration flags.</div>'), 'margin-bottom:0', true)}
         ${panel('Risk exposure & health score', H.parts.map(p => `<div class="pi-bar"><span data-no-count>${p[0]} <small>(${p[1]}%)</small></span><i style="width:${Math.max(2, p[2])}%;background:${p[2] >= 70 ? '#34d399' : p[2] >= 45 ? '#f59e0b' : '#f43f5e'}"></i><b>${Math.round(p[2])}</b></div><div class="pi-sub pi-note" data-no-count>${p[3]}</div>`).join(''), 'margin-bottom:0')}</div><div style="height:1.1rem"></div>`;
@@ -44495,6 +44500,285 @@ body.light-mode .fx-mark { background:#0f172a; box-shadow:none; }
 })();
 </script>
 
+<style id="fos-fx6-css">
+/* Round 6: Portfolio Analytics (appreciation timeline, ROI scatter) and Portfolio Intelligence chart styling.
+   Visual only: every number comes from the original calculation. */
+.fx6-chips { display:grid; grid-template-columns:repeat(auto-fit, minmax(110px, 1fr)); gap:6px; margin:0 0 10px; }
+.fx6-leg { display:flex; flex-wrap:wrap; gap:6px; margin-top:8px; }
+.fx6-leg button { all:unset; cursor:pointer; display:inline-flex; align-items:center; gap:6px; padding:3px 9px; border-radius:99px; border:1px solid color-mix(in srgb, var(--cc) 35%, transparent); background:color-mix(in srgb, var(--cc) 8%, transparent); font-size:.64rem; color:var(--text-main); transition:opacity .2s, background .2s; }
+.fx6-leg button i { width:7px; height:7px; border-radius:50%; background:var(--cc); box-shadow:0 0 8px var(--cc); }
+.fx6-leg button em { font-style:normal; font-family:'DM Mono',monospace; color:var(--text-muted); font-size:.6rem; }
+.fx6-leg button.off { opacity:.38; }
+.fx6-leg button:focus-visible { outline:2px solid var(--cc); outline-offset:2px; }
+/* allocation ring */
+.fx6-alloc { display:flex; flex-direction:column; align-items:center; justify-content:center; height:100%; min-height:240px; gap:6px; }
+.fx6-alloc .fr-wrap { width:100%; max-width:220px; }
+.fx6-alloc .fx6-leg { justify-content:center; }
+/* ladders and drift */
+.fx6-rows { display:flex; flex-direction:column; gap:7px; }
+.fx6-r { display:grid; grid-template-columns:minmax(80px, 30%) minmax(0,1fr) auto; gap:9px; align-items:center; padding:5px 7px; border-radius:10px; transition:background .2s; }
+.fx6-r:hover { background:color-mix(in srgb, var(--cc, #20cdb5) 9%, transparent); }
+.fx6-n { font-size:.72rem; font-weight:600; color:var(--text-main); display:flex; align-items:center; gap:7px; min-width:0; }
+.fx6-n span { white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.fx6-n i { width:8px; height:8px; border-radius:50%; background:var(--cc); box-shadow:0 0 9px var(--cc); flex-shrink:0; }
+.fx6-n small { display:block; font-size:.58rem; color:var(--text-muted); font-weight:500; }
+.fx6-v { font-family:'DM Mono',monospace; font-size:.74rem; font-weight:700; text-align:right; white-space:nowrap; }
+.fx6-v small { display:block; font-size:.58rem; color:var(--text-muted); font-weight:600; }
+.fx6-trk { position:relative; height:12px; border-radius:6px; background:rgba(255,255,255,.045); }
+body.light-mode .fx6-trk { background:rgba(15,23,42,.07); }
+.fx6-fill { position:absolute; left:0; top:0; bottom:0; border-radius:6px; transform-origin:left center; animation:fx6Grow 1s cubic-bezier(.22,1,.36,1) both; }
+.fx6-band { position:absolute; top:-3px; bottom:-3px; border-radius:4px; background:rgba(226,232,240,.09); border:1px dashed rgba(226,232,240,.3); }
+body.light-mode .fx6-band { background:rgba(15,23,42,.05); border-color:rgba(15,23,42,.25); }
+.fx6-mark { position:absolute; top:-5px; bottom:-5px; width:3px; margin-left:-1.5px; border-radius:2px; background:#f8fafc; box-shadow:0 0 8px rgba(248,250,252,.8); }
+body.light-mode .fx6-mark { background:#0f172a; box-shadow:none; }
+.fx6-cum { position:absolute; top:50%; width:9px; height:9px; margin:-4.5px 0 0 -4.5px; border-radius:50%; border:2px solid var(--text-main); background:var(--bg-main, #0b1012); }
+@keyframes fx6Grow { from { transform:scaleX(0); } }
+.fx6-steps { display:grid; grid-template-columns:repeat(4, minmax(0,1fr)); gap:4px; margin:4px 0 10px; }
+.fx6-step { position:relative; height:46px; border-radius:9px; overflow:hidden; background:rgba(255,255,255,.03); border:1px solid var(--glass-border); }
+.fx6-step i { position:absolute; left:0; right:0; bottom:0; background:linear-gradient(0deg, var(--cc), color-mix(in srgb, var(--cc) 30%, transparent)); box-shadow:0 0 14px color-mix(in srgb, var(--cc) 50%, transparent); animation:fx6Rise 1s cubic-bezier(.22,1,.36,1) both; transform-origin:bottom; }
+.fx6-step b { position:absolute; left:7px; top:5px; font-family:'DM Mono',monospace; font-size:.7rem; color:var(--text-main); text-shadow:0 1px 4px rgba(0,0,0,.5); }
+body.light-mode .fx6-step b { text-shadow:none; }
+@keyframes fx6Rise { from { transform:scaleY(0); } }
+.fx6-rows.tg .fx6-r { grid-template-columns:minmax(80px, 24%) minmax(0,1fr) 150px; }
+.fx6-rows.lq .fx6-r { grid-template-columns:minmax(118px, 40%) minmax(0,1fr) 64px; }
+.fx6-step small { position:absolute; left:7px; bottom:4px; font-size:.54rem; font-weight:700; color:var(--text-main); opacity:.85; text-shadow:0 1px 4px rgba(0,0,0,.5); }
+body.light-mode .fx6-step small { text-shadow:none; }
+.fx6-note { font-size:.64rem; color:var(--text-muted); line-height:1.45; margin-top:8px; }
+.fx6-note b { color:var(--text-main); }
+/* health gauge + factor list */
+.fx6-health { display:grid; grid-template-columns:150px minmax(0,1fr); gap:14px; align-items:center; }
+.fx6-health .fr-wrap { max-width:150px; }
+.fx6-f { padding:5px 7px; border-radius:10px; }
+.fx6-f:hover { background:color-mix(in srgb, var(--cc) 9%, transparent); }
+.fx6-f .t { display:flex; justify-content:space-between; gap:8px; font-size:.72rem; font-weight:600; color:var(--text-main); }
+.fx6-f .t em { font-style:normal; font-size:.58rem; color:var(--text-muted); font-weight:600; margin-left:4px; }
+.fx6-f .t b { font-family:'DM Mono',monospace; color:var(--cc); }
+.fx6-f .fx6-trk { height:7px; margin:4px 0 3px; }
+.fx6-f .s { font-size:.6rem; color:var(--text-muted); }
+.fx6-conc { display:grid; grid-template-columns:150px minmax(0,1fr); gap:14px; align-items:center; }
+.fx6-conc .fr-wrap { max-width:150px; }
+.fx6-fl { margin:8px 0 0; padding:0; list-style:none; display:flex; flex-direction:column; gap:4px; }
+.fx6-fl li { font-size:.64rem; color:var(--text-mid, var(--text-main)); padding:5px 8px 5px 24px; border-radius:8px; background:rgba(245,158,11,.07); border:1px solid rgba(245,158,11,.22); position:relative; }
+.fx6-fl li::before { content:'!'; position:absolute; left:8px; top:4px; font-weight:800; color:#f59e0b; }
+.fx6-ok { font-size:.64rem; color:#34d399; margin-top:8px; }
+.fx6-old { display:none !important; }
+@media (max-width:520px) { .fx6-health, .fx6-conc { grid-template-columns:minmax(0,1fr); justify-items:center; } .fx6-health > div:last-child, .fx6-conc > div:last-child { width:100%; } .fx6-r, .fx6-rows.lq .fx6-r { grid-template-columns:minmax(70px, 34%) minmax(0,1fr) auto; } .fx6-rows.tg .fx6-r { grid-template-columns:minmax(0,1fr) auto; } .fx6-rows.tg .fx6-trk { grid-column:1 / -1; grid-row:2; } }
+@media (prefers-reduced-motion: reduce) { .fx6-fill, .fx6-step i { animation:none; } }
+</style>
+<script id="fos-fx6-js">
+/* Round 6 chart upgrades, visual only. Every value is read from what the original code already
+   calculated (its chart data, or the numbers it hands over in window.__fosPA / __fosPI), never re-derived. */
+(function () {
+  'use strict';
+  var $ = function (id) { return document.getElementById(id); };
+  var esc = function (s) { return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]; }); };
+  var F = function (n) { try { return fmt(n || 0); } catch (e) { return '₹' + Math.round(n || 0).toLocaleString('en-IN'); } };
+  var K = function (n) { var a = Math.abs(n || 0); return (n < 0 ? '−' : '') + '₹' + (a >= 1e7 ? (a / 1e7).toFixed(2) + 'Cr' : a >= 1e5 ? (a / 1e5).toFixed(a >= 1e6 ? 1 : 2) + 'L' : a >= 1e3 ? (a / 1e3).toFixed(a >= 1e4 ? 0 : 1) + 'k' : Math.round(a)); };
+  var PC = function (n, d) { return (n > 0 ? '+' : n < 0 ? '−' : '') + Math.abs(n).toFixed(d == null ? 1 : d) + '%'; };
+  var light = function () { return document.body.classList.contains('light-mode'); };
+  var tc = function () { return typeof chartTextColor === 'function' ? chartTextColor() : '#B7C4C5'; };
+  var gc = function () { return typeof chartGridColor === 'function' ? chartGridColor() : 'rgba(180,220,218,.06)'; };
+  var tip = function () { return { backgroundColor: typeof fosTipBg === 'function' ? fosTipBg() : 'rgba(10,14,18,.95)', borderColor: 'rgba(45,212,191,.35)', borderWidth: 1, titleColor: '#e2e8f0', bodyColor: '#cbd5e1', footerColor: '#94a3b8', titleFont: { family: 'DM Sans', size: 12, weight: '700' }, bodyFont: { family: 'DM Mono', size: 11 }, footerFont: { family: 'DM Sans', size: 10, weight: '600' }, padding: 10, cornerRadius: 10, displayColors: true, boxPadding: 4 }; };
+  var col = function (t) { try { return assetColor(t); } catch (e) { return '#a78bfa'; } };
+  var lbl = function (t) { try { return assetTypeLabel(t); } catch (e) { return t; } };
+  var typ = function (e) { try { return normalizeAssetType(e.assetType) || 'Other'; } catch (e2) { return 'Other'; } };
+  var nm = function (e) { return String(e.name || e.subType || lbl(typ(e))); };
+  var chip = function (l, v, c, vc) { return '<div class="fx-chip" style="--c:' + c + '"><em>' + esc(l) + '</em><b' + (vc ? ' style="color:' + vc + '"' : '') + '>' + esc(v) + '</b></div>'; };
+  var GOOD = '#34d399', BAD = '#f87171', MID = '#f59e0b';
+  function scoreCol(v) { return v >= 70 ? GOOD : v >= 45 ? MID : '#f43f5e'; }
+  function set(host, html) { var k = (light() ? 'L' : 'D') + html.replace(/fr\d+[a-z0-9]+/g, ''); if (host.__fxk === k && host.firstChild) return false; host.__fxk = k; host.innerHTML = html; return true; }
+  // a header strip above a chart card's canvas (kept in the same card)
+  function strip(canvasId, id) {
+    var cv = $(canvasId); if (!cv) return null; var holder = cv.parentNode, n = $(id);
+    if (!n) { n = document.createElement('div'); n.id = id; n.setAttribute('data-no-count', ''); holder.parentNode.insertBefore(n, holder); }
+    return n;
+  }
+  function after(canvasId, id) {
+    var cv = $(canvasId); if (!cv) return null; var holder = cv.parentNode, n = $(id);
+    if (!n) { n = document.createElement('div'); n.id = id; n.setAttribute('data-no-count', ''); holder.parentNode.insertBefore(n, holder.nextSibling); }
+    return n;
+  }
+  // swap a canvas holder for a new box; the old holder stays in the page, hidden, so the original code keeps working
+  function swap(canvasId, id) {
+    var cv = $(canvasId); if (!cv) return null; var holder = cv.parentNode, n = $(id);
+    if (!n) { n = document.createElement('div'); n.id = id; n.className = 'fx-box'; n.setAttribute('data-no-count', ''); n.setAttribute('data-fr-group', ''); holder.parentNode.insertBefore(n, holder.nextSibling); }
+    holder.classList.add('fx6-old');
+    return n;
+  }
+  function panelBy(root, title) {
+    var ps = root ? root.querySelectorAll('.glass-panel') : [];
+    for (var i = 0; i < ps.length; i++) { var t = ps[i].querySelector(':scope > .panel-title'); if (t && t.textContent.trim().toLowerCase() === title.toLowerCase()) return ps[i]; }
+    return null;
+  }
+  // replace a panel's body (everything under its title) with a new box; old children stay, hidden
+  function panelBody(p, id) {
+    var n = $(id); if (n && n.parentNode === p) return n;
+    Array.prototype.forEach.call(p.children, function (c) { if (!c.classList.contains('panel-title')) c.classList.add('fx6-old'); });
+    n = document.createElement('div'); n.id = id; n.setAttribute('data-no-count', ''); n.setAttribute('data-fr-group', ''); p.appendChild(n); return n;
+  }
+
+  /* glow + reference lines for the two Port Analytics charts (only charts listed here are touched) */
+  var GLOW = {};
+  if (window.Chart && !window.__fx6Plug) {
+    window.__fx6Plug = 1;
+    Chart.register({ id: 'fx6Glow',
+      beforeDatasetsDraw: function (ch) { var g = GLOW[ch.canvas && ch.canvas.id]; if (!g) return; var c = ch.ctx, a = ch.chartArea; c.save();
+        if (g.zeroY && ch.scales.y) { var y0 = ch.scales.y.getPixelForValue(0); if (y0 > a.top && y0 < a.bottom) {
+          var gr = c.createLinearGradient(0, a.top, 0, a.bottom); gr.addColorStop(0, 'rgba(52,211,153,.07)'); gr.addColorStop(Math.max(0, Math.min(1, (y0 - a.top) / (a.bottom - a.top))), 'rgba(52,211,153,0)'); gr.addColorStop(Math.max(0, Math.min(1, (y0 - a.top) / (a.bottom - a.top))), 'rgba(248,113,113,0)'); gr.addColorStop(1, 'rgba(248,113,113,.08)');
+          c.fillStyle = gr; c.fillRect(a.left, a.top, a.right - a.left, a.bottom - a.top);
+          c.setLineDash([5, 4]); c.strokeStyle = light() ? 'rgba(15,23,42,.35)' : 'rgba(226,232,240,.35)'; c.lineWidth = 1; c.beginPath(); c.moveTo(a.left, y0); c.lineTo(a.right, y0); c.stroke(); c.setLineDash([]);
+          c.font = '600 9px DM Sans, sans-serif'; c.fillStyle = tc(); c.globalAlpha = .7; c.fillText('Break-even (0%)', a.left + 6, y0 - 5); c.globalAlpha = 1; } }
+        c.restore(); c.save(); c.shadowColor = g.shadow || 'rgba(45,212,191,.55)'; c.shadowBlur = light() ? 0 : 12; },
+      afterDatasetsDraw: function (ch) { if (GLOW[ch.canvas && ch.canvas.id]) ch.ctx.restore(); } });
+  }
+
+  /* ═════ Port Analytics › Appreciation Timeline (by Purchase Date) ═════ */
+  function timeline() {
+    var ch = typeof charts !== 'undefined' && charts['port-timeline'], P = window.__fosPA; if (!ch || !P || !P.sorted) return;
+    var S = P.sorted, V = ch.data.datasets[0], I = ch.data.datasets[1]; if (!V || !I || S.length !== V.data.length) return;
+    var tV = V.data.reduce(function (s, x) { return s + (Number(x) || 0); }, 0), tI = I.data.reduce(function (s, x) { return s + (Number(x) || 0); }, 0);
+    var best = null; S.forEach(function (e, i) { var g = (Number(V.data[i]) || 0) - (Number(I.data[i]) || 0); if (!best || g > best.g) best = { e: e, g: g }; });
+    var h = strip('port-timeline', 'fx6-tl-chips');
+    if (h) set(h, '<div class="fx6-chips">' + chip('Holdings plotted', String(S.length), '#38bdf8') + chip('Invested', K(tI), '#a78bfa') + chip('Worth now', K(tV), '#34d399') + chip('Appreciation', (tV - tI >= 0 ? '+' : '−') + K(Math.abs(tV - tI)).replace('−', '') + (tI ? ' · ' + PC((tV - tI) / tI * 100) : ''), tV >= tI ? GOOD : BAD, tV >= tI ? GOOD : BAD) + (best && best.g > 0 ? chip('Best buy', nm(best.e), '#fbbf24') : '') + '</div>');
+    var ptCol = S.map(function (e) { return col(typ(e)); });
+    V.borderColor = '#34d399'; V.borderWidth = 2.5; V.tension = .35; V.fill = { target: 1, above: 'rgba(52,211,153,.16)', below: 'rgba(248,113,113,.2)' };
+    V.pointRadius = 4; V.pointHoverRadius = 7; V.pointBackgroundColor = ptCol; V.pointBorderColor = light() ? '#fff' : '#0b1012'; V.pointBorderWidth = 1.5;
+    I.borderColor = '#a78bfa'; I.borderWidth = 1.6; I.borderDash = [6, 4]; I.tension = .35; I.fill = false; I.pointRadius = 0; I.pointHoverRadius = 5; I.pointBackgroundColor = '#a78bfa';
+    var o = ch.config.options; o.interaction = { mode: 'index', intersect: false };
+    o.plugins = Object.assign({}, o.plugins); o.plugins.legend = { display: true, position: 'top', align: 'end', labels: { color: tc(), boxWidth: 14, boxHeight: 3, usePointStyle: false, font: { size: 10, weight: '600' } } };
+    o.plugins.tooltip = Object.assign(tip(), { callbacks: {
+      title: function (it) { var e = S[it[0].dataIndex]; return e ? nm(e) + ' · ' + lbl(typ(e)) : ''; },
+      label: function (c) { return ' ' + c.dataset.label + ': ' + F(c.parsed.y); },
+      footer: function (it) { var i = it[0].dataIndex, v = Number(V.data[i]) || 0, iv = Number(I.data[i]) || 0, e = S[i]; return [(v - iv >= 0 ? 'Gain ' : 'Loss ') + F(Math.abs(v - iv)) + (iv ? ' (' + PC((v - iv) / iv * 100) + ')' : ''), e && e.date ? 'Bought ' + (typeof fmtDate === 'function' ? fmtDate(e.date) : e.date) : '']; } } });
+    o.scales = { y: { grid: { color: gc() }, border: { display: false }, ticks: { color: tc(), font: { size: 10 }, callback: function (v) { return K(v); } } },
+      x: { grid: { display: false }, border: { display: false }, ticks: { color: tc(), font: { size: 9 }, maxTicksLimit: 8, maxRotation: 0 } } };
+    GLOW['port-timeline'] = { shadow: 'rgba(52,211,153,.45)' };
+    try { ch.stop(); } catch (e) { } ch.update();
+  }
+
+  /* ═════ Port Analytics › ROI% Distribution (Scatter) ═════ */
+  var roiOff = {};
+  function roiScatter() {
+    var ch = typeof charts !== 'undefined' && charts['port-roi-scatter'], P = window.__fosPA; if (!ch || !P || !P.data) return;
+    // the original groups points by asset type in the order of P.data: rebuild the same grouping for names only
+    var names = {}; P.data.forEach(function (e) { var k = lbl(typ(e)); (names[k] = names[k] || []).push(e); });
+    var tot = 0, pos = 0, all = [];
+    ch.data.datasets.forEach(function (ds) {
+      var t = Object.keys(window.ASSET_CATALOG || {}).filter(function (k) { return lbl(k) === ds.label; })[0] || ds.label, c = col(t);
+      ds.backgroundColor = c + (light() ? '55' : '40'); ds.borderColor = c; ds.borderWidth = 1.6; ds.hoverBorderWidth = 3; ds.hoverRadius = 3; ds.__c = c;
+      ds.hidden = !!roiOff[ds.label];
+      ds.data.forEach(function (p, i) { tot++; if (p.y >= 0) pos++; all.push({ l: ds.label, y: p.y, x: p.x, e: (names[ds.label] || [])[i] }); });
+    });
+    var vmax = Math.max.apply(null, all.map(function (p) { return p.e ? Number(p.e.currentValue) || 0 : 0; }).concat([1]));
+    ch.data.datasets.forEach(function (ds) { ds.data.forEach(function (p, i) { var e = (names[ds.label] || [])[i]; if (e) p.r = 5 + 20 * Math.sqrt(Math.max(0, Number(e.currentValue) || 0) / vmax); }); });
+    var avgW = (function () { var s = 0, w = 0; all.forEach(function (p) { s += p.y * p.x; w += p.x; }); return w ? s / w : 0; })();
+    var top = all.slice().sort(function (a, b) { return b.y - a.y; })[0], low = all.slice().sort(function (a, b) { return a.y - b.y; })[0];
+    var h = strip('port-roi-scatter', 'fx6-roi-chips');
+    if (h) set(h, '<div class="fx6-chips">' + chip('In profit', pos + ' of ' + tot, GOOD, GOOD) + chip('Weighted ROI', PC(avgW), avgW >= 0 ? GOOD : BAD, avgW >= 0 ? GOOD : BAD) + (top ? chip('Highest', (top.e ? nm(top.e) : top.l) + ' ' + PC(top.y), '#fbbf24') : '') + (low && low.y < 0 ? chip('Lowest', (low.e ? nm(low.e) : low.l) + ' ' + PC(low.y), BAD, BAD) : '') + '</div>');
+    var lg = after('port-roi-scatter', 'fx6-roi-leg');
+    if (lg) {
+      var html = '<div class="fx6-leg">' + ch.data.datasets.map(function (ds) { var a = ds.data.reduce(function (s, p) { return s + p.y; }, 0) / (ds.data.length || 1); return '<button type="button" data-l="' + esc(ds.label) + '" class="' + (roiOff[ds.label] ? 'off' : '') + '" style="--cc:' + ds.__c + '" aria-pressed="' + (!roiOff[ds.label]) + '"><i></i>' + esc(ds.label) + ' <em>' + ds.data.length + ' · avg ' + PC(a) + '</em></button>'; }).join('') + '</div>';
+      if (set(lg, html)) lg.querySelectorAll('button').forEach(function (b) { b.onclick = function () { var l = b.getAttribute('data-l'); roiOff[l] = !roiOff[l]; roiScatter(); }; });
+    }
+    var o = ch.config.options; o.plugins = Object.assign({}, o.plugins); o.plugins.legend = { display: false };
+    o.plugins.tooltip = Object.assign(tip(), { callbacks: {
+      title: function (it) { var c = it[0], e = (names[c.dataset.label] || [])[c.dataIndex]; return e ? nm(e) : c.dataset.label; },
+      label: function (c) { return [' ' + c.dataset.label, ' Invested ' + F(c.parsed.x), ' ROI ' + PC(c.parsed.y)]; },
+      footer: function () { return 'Bubble size = value now'; } } });
+    var xt = (o.scales && o.scales.x && o.scales.x.title && o.scales.x.title.text) || 'Total Invested (₹)', yt = (o.scales && o.scales.y && o.scales.y.title && o.scales.y.title.text) || 'ROI %';
+    o.clip = false;
+    o.scales = { x: { grace: '8%', beginAtZero: true, title: { display: true, text: xt, color: tc(), font: { size: 10, weight: '600' } }, grid: { color: gc() }, border: { display: false }, ticks: { color: tc(), font: { size: 9 }, maxRotation: 0, callback: function (v) { return K(v); } } },
+      y: { title: { display: true, text: yt, color: tc(), font: { size: 10, weight: '600' } }, grid: { color: gc() }, border: { display: false }, grace: '12%', ticks: { color: tc(), font: { size: 10 }, callback: function (v) { return v + '%'; } } } };
+    o.layout = { padding: { top: 8, right: 14 } };
+    GLOW['port-roi-scatter'] = { zeroY: true, shadow: 'rgba(167,139,250,.5)' };
+    try { ch.stop(); } catch (e) { } ch.update();
+  }
+
+  /* ═════ Portfolio Intelligence › Asset allocation ═════ */
+  var PAL = ['#a78bfa', '#2dd4bf', '#f59e0b', '#38bdf8', '#f43f5e', '#34d399', '#fb923c', '#e879f9', '#94a3b8', '#facc15', '#60a5fa', '#4ade80'];
+  function alloc() {
+    var ch = typeof charts !== 'undefined' && charts['pi-alloc']; if (!ch) return; var host = swap('pi-alloc', 'fx6-alloc'); if (!host) return;
+    var L = ch.data.labels || [], D = (ch.data.datasets[0] || {}).data || [], C = (ch.data.datasets[0] || {}).backgroundColor || PAL;
+    var tot = D.reduce(function (s, x) { return s + (Number(x) || 0); }, 0); if (!(tot > 0)) { set(host, ''); return; }
+    var tab = (document.querySelector('#pi-root .pi-tab.on') || {}).textContent || 'Class';
+    var segs = L.map(function (l, i) { var v = Number(D[i]) || 0; return { key: 'pa' + i, v: v, c: Array.isArray(C) ? C[i % C.length] : C, t: String(l), vs: F(v), s: (v / tot * 100).toFixed(1) + '% of holdings' }; }).filter(function (s) { return s.v > 0; });
+    var lead = segs.slice().sort(function (a, b) { return b.v - a.v; })[0];
+    set(host, '<div class="fx6-alloc">' + fosRing({ size: 210, core: 'rgba(167,139,250,.18)', rings: [{ r: 82, w: 17, segs: segs }, { r: 64, w: 4, full: tot, segs: lead ? [{ key: lead.key, v: lead.v, c: lead.c, t: lead.t + ' (largest)', vs: F(lead.v), s: (lead.v / tot * 100).toFixed(1) + '%' }] : [] }], center: { k: 'By ' + tab.trim().toLowerCase(), v: K(tot), s: segs.length + ' group' + (segs.length === 1 ? '' : 's'), col: '#a78bfa' }, label: 'Asset allocation' }) +
+      '<div class="fx6-leg">' + segs.map(function (s) { return '<button type="button" data-fr="' + s.key + '" style="--cc:' + s.c + '" onmouseenter="fosRingHi(this)" onmouseleave="fosRingHi(this,1)" onfocus="fosRingHi(this)" onblur="fosRingHi(this,1)"><i></i>' + esc(s.t) + ' <em>' + (s.v / tot * 100).toFixed(1) + '%</em></button>'; }).join('') + '</div></div>');
+  }
+
+  /* ═════ Portfolio Intelligence › Target allocation & rebalancing ═════ */
+  function targets() {
+    var ch = typeof charts !== 'undefined' && charts['pi-tgt']; if (!ch) return; var host = swap('pi-tgt', 'fx6-tgt'); if (!host) return;
+    host.style.margin = '.6rem 0';
+    var L = ch.data.labels || [], cur = (ch.data.datasets[0] || {}).data || [], tgt = (ch.data.datasets[1] || {}).data || [];
+    var bd = Number(window.__fosPIband); if (!(bd >= 0)) bd = 0;
+    var rows = L.map(function (l, i) { return { l: String(l), c: Number(cur[i]) || 0, t: Number(tgt[i]) || 0 }; });
+    var mx = Math.max.apply(null, rows.map(function (r) { return Math.max(r.c, r.t + bd); }).concat([10])) * 1.06;
+    var drift = rows.reduce(function (s, r) { return s + Math.abs(r.c - r.t); }, 0) / 2, onT = rows.filter(function (r) { return r.t > 0 && Math.abs(r.c - r.t) <= bd; }).length, set_ = rows.filter(function (r) { return r.t > 0; }).length;
+    set(host, '<div class="fx6-chips">' + chip('On target', onT + ' of ' + set_, GOOD, GOOD) + chip('Total drift', drift.toFixed(1) + ' pp', '#38bdf8') + chip('Tolerance', '± ' + bd + ' pp', '#94a3b8') + '</div><div class="fx6-rows tg">' + rows.map(function (r) {
+      var d = r.c - r.t, ok = r.t > 0 && Math.abs(d) <= bd, c = r.t <= 0 ? '#94a3b8' : ok ? GOOD : d > 0 ? '#f43f5e' : MID;
+      var st = r.t <= 0 ? 'no target' : ok ? 'within band' : (d > 0 ? 'over by ' : 'under by ') + Math.abs(d).toFixed(1) + ' pp';
+      return '<div class="fx6-r" style="--cc:' + c + '" title="' + esc(r.l + ': now ' + r.c.toFixed(1) + '%, target ' + r.t.toFixed(1) + '%') + '"><span class="fx6-n"><i></i><span>' + esc(r.l) + '</span></span><div class="fx6-trk">' +
+        (r.t > 0 && bd > 0 ? '<span class="fx6-band" style="left:' + (Math.max(0, r.t - bd) / mx * 100).toFixed(1) + '%;width:' + ((Math.min(mx, r.t + bd) - Math.max(0, r.t - bd)) / mx * 100).toFixed(1) + '%"></span>' : '') +
+        '<span class="fx6-fill" style="width:' + Math.max(0.8, r.c / mx * 100).toFixed(1) + '%;background:linear-gradient(90deg, color-mix(in srgb, ' + c + ' 22%, transparent), ' + c + ');box-shadow:0 0 10px ' + c + '77"></span>' +
+        (r.t > 0 ? '<span class="fx6-mark" style="left:' + (r.t / mx * 100).toFixed(1) + '%"></span>' : '') +
+        '</div><span class="fx6-v" style="color:' + c + '">' + r.c.toFixed(1) + '%<small>' + (r.t > 0 ? 'target ' + r.t.toFixed(1) + '% · ' : '') + st + '</small></span></div>';
+    }).join('') + '</div><div class="fx-legend"><span><i style="background:#f8fafc;width:3px;height:10px"></i>Target</span>' + (bd > 0 ? '<span><i style="background:rgba(226,232,240,.2);border:1px dashed rgba(226,232,240,.5)"></i>Tolerance band</span>' : '') + '<span><i style="background:' + GOOD + '"></i>Within band</span><span><i style="background:#f43f5e"></i>Over</span><span><i style="background:' + MID + '"></i>Under</span></div>');
+  }
+
+  /* ═════ Portfolio Intelligence › Risk exposure & health score ═════ */
+  function health() {
+    var X = window.__fosPI, root = $('pi-root'); if (!X || !X.H) return; var p = panelBy(root, 'Risk exposure & health score'); if (!p) return;
+    var host = panelBody(p, 'fx6-health'), H = X.H, sc = H.score, c = scoreCol(sc);
+    var segs = H.parts.map(function (q, i) { var v = Math.max(0, q[2]); return { key: 'ph' + i, v: q[1] * v / 100, c: scoreCol(v), t: q[0], vs: Math.round(v) + ' / 100', s: 'adds ' + (q[1] * v / 100).toFixed(1) + ' of ' + q[1] + ' points' }; });
+    set(host, '<div class="fx6-health"><div>' + fosRing({ size: 150, core: 'rgba(52,211,153,.14)', rings: [{ r: 60, w: 13, full: 100, segs: segs }], center: { k: 'Health', v: sc + '/100', s: sc >= 70 ? 'healthy' : sc >= 45 ? 'fair' : 'needs work', col: c }, label: 'Health score ' + sc + ' out of 100' }) + '</div><div>' +
+      H.parts.map(function (q, i) { var v = Math.max(0, q[2]), cc = scoreCol(v); return '<div class="fx6-f fr-row" data-fr="ph' + i + '" style="--cc:' + cc + ';display:block;border:0;background:none" onmouseenter="fosRingHi(this)" onmouseleave="fosRingHi(this,1)"><div class="t"><span>' + esc(q[0]) + '<em>weight ' + q[1] + '%</em></span><b>' + Math.round(v) + '</b></div><div class="fx6-trk"><span class="fx6-fill" style="width:' + Math.max(2, Math.min(100, v)).toFixed(1) + '%;background:linear-gradient(90deg, color-mix(in srgb, ' + cc + ' 25%, transparent), ' + cc + ');box-shadow:0 0 8px ' + cc + '88"></span></div><div class="s">' + esc(q[3]) + '</div></div>'; }).join('') +
+      '</div></div><div class="fx6-note">Each arc is one factor’s share of the score: a full ring is 100. Risk level <b>' + H.risk.toFixed(1) + ' / 5</b>.</div>');
+  }
+
+  /* ═════ Portfolio Intelligence › Diversification & concentration ═════ */
+  function conc() {
+    var X = window.__fosPI, root = $('pi-root'); if (!X || !X.H || !X.top5) return; var p = panelBy(root, 'Diversification & concentration'); if (!p) return;
+    var old = Array.prototype.slice.call(p.querySelectorAll('.pi-fl li')).map(function (li) { return li.innerHTML; });
+    var host = panelBody(p, 'fx6-conc'), tot = X.tot, t5 = X.top5, H = X.H;
+    var segs = t5.map(function (r, i) { var v = r.c.currentValue; return { key: 'pc' + i, v: v, c: PAL[i % PAL.length], t: String(r.e.subType || lbl(r.t)), vs: (v / tot * 100).toFixed(1) + '%', s: F(v) }; });
+    var top5v = segs.reduce(function (s, x) { return s + x.v; }, 0), rest = Math.max(0, tot - top5v);
+    var ringSegs = segs.concat(rest > 0 ? [{ key: 'pcr', v: rest, c: light() ? '#cbd5e1' : '#334155', t: 'Everything else', vs: (rest / tot * 100).toFixed(1) + '%', s: F(rest) }] : []);
+    var hc = X.hhi < 1500 ? GOOD : X.hhi < 2500 ? MID : '#f43f5e';
+    set(host, '<div class="fx6-chips">' + chip('Class HHI', X.hhi.toLocaleString('en-IN'), hc, hc) + chip('Effective classes', H.effN.toFixed(1), '#38bdf8') + chip('Largest holding', H.top.toFixed(1) + '%', H.top > 25 ? '#f43f5e' : GOOD, H.top > 25 ? '#f43f5e' : '') + '</div>' +
+      '<div class="fx6-conc"><div>' + fosRing({ size: 150, core: 'rgba(56,189,248,.14)', rings: [{ r: 60, w: 13, full: tot, segs: ringSegs }], center: { k: 'Top ' + segs.length, v: (top5v / tot * 100).toFixed(0) + '%', s: 'of the portfolio', col: '#38bdf8' }, label: 'Top holdings share' }) + '</div><div class="fx6-rows">' +
+      segs.map(function (s) { return '<div class="fx6-r fr-row" data-fr="' + s.key + '" style="--cc:' + s.c + ';border:0;background:none" onmouseenter="fosRingHi(this)" onmouseleave="fosRingHi(this,1)"><span class="fx6-n"><i></i><span>' + esc(s.t) + '</span></span><div class="fx6-trk"><span class="fx6-fill" style="width:' + Math.min(100, s.v / tot * 100).toFixed(1) + '%;background:linear-gradient(90deg, color-mix(in srgb, ' + s.c + ' 25%, transparent), ' + s.c + ');box-shadow:0 0 8px ' + s.c + '88"></span></div><span class="fx6-v">' + s.vs + '</span></div>'; }).join('') + '</div></div>' +
+      '<div class="fx6-note">HHI below <b>2,500</b> is healthy (lower = more spread out).</div>' +
+      (old.length ? '<ul class="fx6-fl">' + old.map(function (x) { return '<li>' + x + '</li>'; }).join('') + '</ul>' : '<div class="fx6-ok"><i class="fas fa-check"></i> No concentration flags.</div>'));
+  }
+
+  /* ═════ Portfolio Intelligence › Liquidity ladder ═════ */
+  function ladder() {
+    var ch = typeof charts !== 'undefined' && charts['pi-liq']; if (!ch) return; var host = swap('pi-liq', 'fx6-liq'); if (!host) return;
+    var L = ch.data.labels || [], D = (ch.data.datasets[0] || {}).data || [], C = (ch.data.datasets[0] || {}).backgroundColor || [];
+    var tot = D.reduce(function (s, x) { return s + (Number(x) || 0); }, 0); if (!(tot > 0)) { set(host, ''); return; }
+    var cum = 0, rows = L.map(function (l, i) { var v = Number(D[i]) || 0; cum += v; return { l: String(l), v: v, c: C[i] || '#2dd4bf', cum: cum }; });
+    var mx = Math.max.apply(null, rows.map(function (r) { return r.v; }).concat([1]));
+    var m30 = rows.length > 1 ? rows[1].cum : rows[0].cum;
+    set(host, '<div class="fx6-steps">' + rows.map(function (r) { var h = r.cum / tot * 100; return '<div class="fx6-step" style="--cc:' + r.c + '" title="' + esc(r.l + ': ' + (r.cum / tot * 100).toFixed(1) + '% reachable by then') + '"><i style="height:' + Math.max(3, h).toFixed(1) + '%"></i><b>' + h.toFixed(0) + '%</b><small>' + esc((r.l.match(/\(([^)]+)\)/) || [0, r.l])[1]) + '</small></div>'; }).join('') + '</div>' +
+      '<div class="fx6-rows lq">' + rows.map(function (r) { return '<div class="fx6-r" style="--cc:' + r.c + '"><span class="fx6-n"><i></i><span>' + esc(r.l) + '</span></span><div class="fx6-trk"><span class="fx6-fill" style="width:' + Math.max(r.v > 0 ? 1.5 : 0, r.v / mx * 100).toFixed(1) + '%;background:linear-gradient(90deg, color-mix(in srgb, ' + r.c + ' 25%, transparent), ' + r.c + ');box-shadow:0 0 10px ' + r.c + '77"></span></div><span class="fx6-v">' + K(r.v) + '<small>' + (r.v / tot * 100).toFixed(1) + '%</small></span></div>'; }).join('') + '</div>' +
+      '<div class="fx6-note">Top row: how much of your holdings you could reach by each step, adding up. <b>' + (m30 / tot * 100).toFixed(0) + '%</b> (' + K(m30) + ') is reachable within 30 days.</div>');
+  }
+
+  function run(list) { list.forEach(function (f) { try { f(); } catch (e) { console.warn('Chart upgrade failed:', f.name, e); } }); }
+  function wrap(name, list) {
+    var o = window[name]; if (typeof o !== 'function' || o.__fx6) return false;
+    var w = function () { var r = o.apply(this, arguments); run(list); return r; };
+    Object.keys(o).forEach(function (k) { try { w[k] = o[k]; } catch (e) { } }); w.__fx6 = 1; window[name] = w; return true;
+  }
+  var PA = [timeline, roiScatter], PI = [alloc, targets, health, conc, ladder];
+  function hookAll() { wrap('renderPortAnalytics', PA); wrap('renderPortIntel', PI); }
+  hookAll();
+  window.addEventListener('load', function () { setTimeout(function () { hookAll(); try { if (activeView === 'port-analytics') run(PA); else if (activeView === 'port-intel') run(PI); } catch (e) { } }, 0); });
+  window.fosFx6 = { run: run, timeline: timeline, roiScatter: roiScatter, alloc: alloc, targets: targets, health: health, conc: conc, ladder: ladder };
+})();
+</script>
 <script id="fos-tour-js">
 /* ── New-user tutorial (product tour) ─────────────────────────────────────────
    Shows once for a newly created account, can be replayed from Settings > About FinanceOS.
@@ -46013,7 +46297,10 @@ function fosPushRefreshUI() {
       if (changed.length) {
         var rest = applyLive(changed);
         if (rest.length) {
-          if (initial && !sessionStorage.getItem('fos_kv_reloaded') && performance.now() < 12000) { sessionStorage.setItem('fos_kv_reloaded', '1'); location.reload(); }   // only right after opening, before you start working
+          // Never reload when Face ID / PC Lock is on: the reload would ask for it a second time. The change is already saved
+          // on this device and loads quietly behind the lock screen or the next time the app opens.
+          var lockOn = false; try { lockOn = (localStorage.getItem('fos_biometric_enabled') === 'true' && !!localStorage.getItem('fos_biometric_cred_id')) || (localStorage.getItem('fos_pc_lock_enabled') === 'true' && !!localStorage.getItem('fos_pc_lock_hash')); } catch (x) { }
+          if (initial && !lockOn && !sessionStorage.getItem('fos_kv_reloaded') && performance.now() < 12000) { sessionStorage.setItem('fos_kv_reloaded', '1'); location.reload(); }   // only right after opening, before you start working
           else markPending();   // applied silently the next time you switch away or pause
         }
       }
@@ -46038,6 +46325,8 @@ function fosPushRefreshUI() {
       try {
         var v = origGet.call(localStorage, k);
         if (k === 'fos_notif_dismissed') { /* nothing to redraw */ }
+        // bookkeeping only (dates of the last weekly update, milestones, unlocked badges, cached insights): read on the next check, no reload needed
+        else if (['fos_last_portfolio_update', 'fos_last_nw_milestone', 'fos_lh_unlocked', 'fos_finai_insights_v1', 'fos_finai_score_history', 'fos_onboarding_goal', 'fos_academy_v1'].indexOf(k) > -1) { }
         else if (k === 'fos_reminders_v1') { if (window.fosRemReload) window.fosRemReload(); }
         else if (k === 'fos_game_stats') { gameStats = JSON.parse(v) || {}; if (typeof renderGameStats === 'function') renderGameStats(); }
         else if (k === 'fos_finai_goals_v1') { finaiGoals = JSON.parse(v) || []; if (activeView === 'finai' && typeof renderFinAI === 'function') renderFinAI(); }
@@ -46112,9 +46401,8 @@ function fosPushRefreshUI() {
   var pendingToast = false;
   function markPending() {
     pendingReload = true;
-    if (window.fosIdleLocked && fosIdleLocked()) { pendingReload = false; fosIdleReloadLocked(); return; }
-    if (pendingToast) return; pendingToast = true;
-    try { window.fosToast && fosToast({ id: 'fos-sync-pending', text: 'Changes from your other device are ready. They\u2019ll load next time you open the app.', color: '#38bdf8', ms: 9000, actions: [{ label: 'Refresh now', primary: true, fn: function () { location.reload(); } }] }); } catch (x) { }
+    if (window.fosIdleLocked && fosIdleLocked() && !(typeof _appLockGatePending !== 'undefined' && _appLockGatePending)) { pendingReload = false; fosIdleReloadLocked(); return; }
+    // No pop-up: the change loads quietly behind the lock screen or the next time the app opens.
   }
   window.fosSyncPending = function () { return pendingReload; };
   window.fosSyncMarkPending = markPending;
@@ -51495,6 +51783,8 @@ body.light-mode .fj-tl li::before { background:#fff; }
   function lock(reason) {
     if (locked || overlayShown()) return;
     locked = true; try { sessionStorage.setItem('fos_idle_locked', '1'); } catch (e) { }
+    // changes from another device that need a reload: reload now, BEFORE asking for Face ID / PIN, so it is asked once (after the reload), not twice
+    try { if (window.fosSyncTakePending && fosSyncTakePending()) { fosIdleReloadLocked(); return; } } catch (e) { }
     try { var mods = document.querySelectorAll('.modal-overlay.active, .modal-overlay.show'); } catch (e) { }
     var note = reason || ('Locked after ' + label(STEPS[cfg.i]) + ' of inactivity');
     var mobile = false; try { mobile = isMobileViewport(); } catch (e) { }
@@ -51512,8 +51802,6 @@ body.light-mode .fj-tl li::before { background:#fff; }
       var o = overlay(); if (o) o.classList.remove('hidden');
       setTimeout(function () { var b = ip && ip.querySelector('button'); if (b) b.focus(); }, 80);
     }
-    // changes from another device that needed a reload: do it now, behind the lock
-    try { if (window.fosSyncTakePending && fosSyncTakePending()) fosIdleReloadLocked(); } catch (e) { }
   }
   window.fosIdleReloadLocked = function () { try { sessionStorage.setItem('fos_idle_locked', '1'); } catch (e) { } setTimeout(function () { location.reload(); }, 300); };
   function unlocked() {
