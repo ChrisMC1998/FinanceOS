@@ -11,7 +11,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="fos-integrity" content="a19227322d9cd82067a693f15d3d16331c266a5b4f58e3221809e72bde8b14c1">
+<meta name="fos-integrity" content="28fb9b1ac141643e7596325ed18a444ffc8580a62b615229e627a2bb12635685">
 <script id="fos-tamper-guard">
 /*! \u00a9 2026 MC Enterprise. Integrity check: detects a copy of this file that no longer matches the
     official release and locks it with a notice. This checks the FILE as served, not live memory --
@@ -20984,6 +20984,7 @@ function renderPortAnalytics() {
       idealData[0] += 5;
     }
 
+    window.__fosExposure = { labels: labels, actualData: actualData.slice(), idealData: idealData.slice(), ageTier: ageTier, incomeTier: incomeTier };
     destroyChart('port-exposure');
     const expEl = document.getElementById('chart-port-exposure');
 
@@ -44078,6 +44079,419 @@ body.light-mode .tx-bar select option,body.light-mode .tx-cls option{color:#111}
       try { const cur = jget('fos_profile_v1', {}); localStorage.setItem('fos_profile_v1', JSON.stringify(Object.assign({}, cur, d.profileStore))); } catch (e) { }
     }
   };
+})();
+</script>
+
+<style id="fos-fx5-css">
+/* Round 5: chart upgrades (dashboard, debt tracker, scenario, portfolio summary and analytics) */
+.fx-old { display:none !important; }
+.fx-box { min-width:0; position:relative; container-type:inline-size; }
+@container (max-width:380px) {
+  .fx-split { grid-template-columns:108px minmax(0,1fr); gap:10px; }
+  .fx-split .fr-wrap { max-width:108px; }
+  .fx-split .fr-center { padding:0 18%; }
+  .fx-split .fr-k { font-size:.46rem; letter-spacing:.6px; }
+  .fx-split .fr-v { font-size:.74rem; }
+  .fx-split .fr-s { font-size:.5rem; }
+  .fx-split .fr-a em { display:none; }
+  .fx-split .fr-row { column-gap:6px; padding:4px 5px; }
+  .fx-split .fr-sub { display:none; }
+}
+.fx-chips { display:grid; grid-template-columns:repeat(auto-fit, minmax(96px, 1fr)); gap:6px; margin:0 0 10px; }
+.fx-chip { position:relative; padding:6px 9px 6px 11px; border-radius:10px; background:rgba(255,255,255,.03); border:1px solid var(--glass-border); overflow:hidden; min-width:0; }
+.fx-chip::before { content:''; position:absolute; left:0; top:0; bottom:0; width:3px; background:var(--c, #20cdb5); box-shadow:0 0 10px var(--c, #20cdb5); }
+.fx-chip em { display:block; font-style:normal; font-size:.54rem; font-weight:800; letter-spacing:.9px; text-transform:uppercase; color:var(--text-muted); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.fx-chip b { display:block; font-family:'DM Mono',monospace; font-size:.84rem; color:var(--text-main); margin-top:2px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+body.light-mode .fx-chip { background:#f1f5f9; }
+.fx-split { display:grid; grid-template-columns:minmax(120px, 44%) minmax(0,1fr); gap:12px; align-items:center; height:100%; }
+.fx-split .fr-wrap { max-width:190px; }
+.fx-split .fr-rows { max-height:100%; overflow:auto; scrollbar-width:none; }
+.fx-split .fr-rows::-webkit-scrollbar { display:none; }
+.fx-split .fr-row { padding:5px 7px; }
+.fx-split .fr-n, .fx-split .fr-a { font-size:.72rem; }
+.fx-note { font-size:.64rem; color:var(--text-muted); line-height:1.45; margin-top:6px; }
+.fx-note b { color:var(--text-main); }
+@media (max-width:520px) { .fx-box { height:auto !important; } .fx-split { grid-template-columns:minmax(0,1fr); height:auto; } .fx-split .fr-wrap { max-width:200px; } .fx-split .fr-rows { max-height:none; } }
+/* diverging and range bars */
+.fx-bars { display:flex; flex-direction:column; gap:6px; overflow:auto; scrollbar-width:none; max-height:100%; }
+.fx-bars::-webkit-scrollbar { display:none; }
+.fx-br { display:grid; grid-template-columns:minmax(64px, 30%) minmax(0,1fr) auto; gap:8px; align-items:center; padding:4px 6px; border-radius:9px; transition:background .2s; }
+.fx-br:hover { background:color-mix(in srgb, var(--cc, #20cdb5) 9%, transparent); }
+.fx-br-n { font-size:.72rem; font-weight:600; color:var(--text-main); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; display:flex; align-items:center; gap:6px; }
+.fx-br-n i { width:7px; height:7px; border-radius:50%; background:var(--cc); box-shadow:0 0 8px var(--cc); flex-shrink:0; }
+.fx-br-v { font-family:'DM Mono',monospace; font-size:.72rem; font-weight:700; white-space:nowrap; text-align:right; }
+.fx-br-v small { display:block; font-size:.58rem; font-weight:600; color:var(--text-muted); }
+.fx-trk { position:relative; height:12px; border-radius:6px; background:rgba(255,255,255,.04); overflow:visible; }
+body.light-mode .fx-trk { background:rgba(15,23,42,.06); }
+.fx-zero { position:absolute; top:-3px; bottom:-3px; width:1px; background:rgba(226,232,240,.35); }
+body.light-mode .fx-zero { background:rgba(15,23,42,.3); }
+.fx-fill { position:absolute; top:0; bottom:0; border-radius:6px; box-shadow:0 0 10px var(--g, rgba(52,211,153,.5)); animation:fxGrow 1s cubic-bezier(.22,1,.36,1) both; }
+.fx-fill.l { transform-origin:right center; } .fx-fill.r { transform-origin:left center; }
+@keyframes fxGrow { from { transform:scaleX(0); } }
+.fx-mark { position:absolute; top:-4px; bottom:-4px; width:3px; margin-left:-1.5px; border-radius:2px; background:#f8fafc; box-shadow:0 0 8px rgba(248,250,252,.8); }
+body.light-mode .fx-mark { background:#0f172a; box-shadow:none; }
+.fx-loss { background:repeating-linear-gradient(135deg, rgba(248,113,113,.75) 0 4px, rgba(248,113,113,.3) 4px 8px) !important; }
+.fx-legend { display:flex; gap:12px; flex-wrap:wrap; justify-content:center; font-size:.62rem; color:var(--text-muted); margin-top:8px; }
+.fx-legend span { display:inline-flex; align-items:center; gap:5px; }
+.fx-legend i { width:12px; height:5px; border-radius:3px; display:inline-block; }
+/* best performers podium */
+.fx-pod { display:flex; flex-direction:column; gap:8px; }
+.fx-pc { display:grid; grid-template-columns:52px minmax(0,1fr) auto; gap:10px; align-items:center; padding:8px 10px; border-radius:13px; border:1px solid color-mix(in srgb, var(--cc) 28%, transparent); background:linear-gradient(110deg, color-mix(in srgb, var(--cc) 10%, transparent), transparent 70%); position:relative; overflow:hidden; }
+.fx-pc svg { width:52px; height:52px; display:block; }
+.fx-pc .rk { position:absolute; top:6px; right:8px; font-size:.56rem; font-weight:800; letter-spacing:1px; color:var(--text-muted); }
+.fx-pc .nm { font-size:.78rem; font-weight:700; color:var(--text-main); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.fx-pc .sb { font-size:.62rem; color:var(--text-muted); margin-top:2px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.fx-pc .rv { font-family:'DM Mono',monospace; font-size:.95rem; font-weight:700; text-align:right; text-shadow:0 0 14px currentColor; padding-top:8px; }
+.fx-pc .rv small { display:block; font-size:.6rem; color:var(--text-muted); text-shadow:none; font-weight:600; }
+.fx-arc { transform-origin:50% 50%; transform:rotate(-90deg); animation:fxArc 1.2s cubic-bezier(.22,1,.36,1) both; }
+@keyframes fxArc { from { stroke-dasharray:0 200; } }
+.fx-worst { font-size:.64rem; color:var(--text-muted); padding:2px 4px; }
+.fx-worst b { color:#f87171; font-family:'DM Mono',monospace; }
+/* Asset value breakdown dominance banner */
+.fx-dom { display:flex; align-items:center; gap:8px; font-size:.64rem; color:var(--text-mid); padding:6px 9px; border-radius:9px; border:1px dashed color-mix(in srgb, var(--cc) 45%, transparent); background:color-mix(in srgb, var(--cc) 7%, transparent); margin-bottom:8px; }
+.fx-dom b { color:var(--text-main); }
+.fr-row.fx-pin { border-color:color-mix(in srgb, var(--cc) 30%, transparent); }
+.fr-row.fx-pin .fr-bar i { background:repeating-linear-gradient(90deg, var(--cc) 0 10px, color-mix(in srgb, var(--cc) 55%, transparent) 10px 13px); }
+/* Sector ROI velocity radial bars */
+.fx-vel .fr-wrap { max-width:210px; }
+.fx-vel .fr-center { padding:0 27% !important; }
+.fx-vel .fr-v { font-size:.78rem !important; }
+.fx-vel .fr-s { font-size:.52rem; }
+.fx-scn { display:grid; grid-template-columns:minmax(0,1fr); gap:10px; }
+.fx-scn .fr-wrap { max-width:220px; }
+.fx-scn .fr-row { padding:5px 8px; }
+.fx-vel-lbl { font:700 7.5px 'DM Sans', sans-serif; fill:var(--text-muted); }
+/* Portfolio › Active vs Sold ring fills the card next to Sold Holdings */
+#view-port-analytics .glass-panel:has(> #port-invest-ring) { display:flex; flex-direction:column; }
+#view-port-analytics .pir { flex:1 1 auto; display:flex !important; flex-direction:column; align-items:stretch; min-height:0; }
+#view-port-analytics .pir > div:first-child { flex:0 0 auto; }
+#view-port-analytics .pir .fr-rows { flex:1 1 0; min-height:150px; max-height:none !important; overflow:auto; }
+@media (prefers-reduced-motion: reduce) { .fx-fill, .fx-arc { animation:none; } }
+</style>
+<script id="fos-fx5-js">
+/* Round 5 chart upgrades. Each new chart takes the place of an old one: the old canvas stays in the page,
+   hidden, so the original render code keeps working, and the new chart is drawn right after it runs. */
+(function () {
+  'use strict';
+  var $ = function (id) { return document.getElementById(id); };
+  var esc = function (s) { return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]; }); };
+  var F = function (n) { try { return fmt(Math.round(n || 0)); } catch (e) { return '₹' + Math.round(n || 0).toLocaleString('en-IN'); } };
+  var K = function (n) { var a = Math.abs(n || 0); return (n < 0 ? '−' : '') + '₹' + (a >= 1e7 ? (a / 1e7).toFixed(2) + 'Cr' : a >= 1e5 ? (a / 1e5).toFixed(a >= 1e6 ? 1 : 2) + 'L' : a >= 1e3 ? (a / 1e3).toFixed(a >= 1e4 ? 0 : 1) + 'k' : Math.round(a)); };
+  var SG = function (n) { return (n > 0 ? '+' : n < 0 ? '−' : '') + K(Math.abs(n)).replace('−', ''); };
+  var PC = function (n, d) { return (n > 0 ? '+' : n < 0 ? '−' : '') + Math.abs(n).toFixed(d == null ? 1 : d) + '%'; };
+  var light = function () { return document.body.classList.contains('light-mode'); };
+  var tc = function () { return typeof chartTextColor === 'function' ? chartTextColor() : '#B7C4C5'; };
+  var gc = function () { return typeof chartGridColor === 'function' ? chartGridColor() : 'rgba(180,220,218,.07)'; };
+  var tipBase = function () { return { backgroundColor: typeof fosTipBg === 'function' ? fosTipBg() : 'rgba(10,14,18,.95)', borderColor: 'rgba(45,212,191,.35)', borderWidth: 1, titleFont: { family: 'DM Sans', size: 12, weight: '700' }, bodyFont: { family: 'DM Mono', size: 11 }, footerFont: { family: 'DM Sans', size: 10, weight: '600' }, padding: 10 }; };
+  var col = function (t) { try { return assetColor(t); } catch (e) { return '#a78bfa'; } };
+  var lbl = function (t) { try { return assetTypeLabel(t); } catch (e) { return t; } };
+  var typ = function (e) { try { return normalizeAssetType(e.assetType) || 'Other'; } catch (e2) { return 'Other'; } };
+  var sold = function (e) { return String(e && e.status || '').toLowerCase() === 'sold'; };
+  var calc = function (e) { try { return portCalc(e); } catch (er) { return { totalInvestment: 0, currentValue: 0, gainLoss: 0, roi: 0, profitPct: 0 }; } };
+  var killChart = function (k, cv) { try { if (charts[k]) { charts[k].destroy(); delete charts[k]; } } catch (e) { } try { var c = cv && window.Chart && Chart.getChart(cv); if (c) c.destroy(); } catch (e) { } };
+  var empty = function (ic, msg) { return '<div class="empty-state" style="padding-top:2rem"><i class="fas ' + ic + '"></i><p>' + esc(msg) + '</p></div>'; };
+  var chip = function (l, v, c, vc) { return '<div class="fx-chip" style="--c:' + c + '"><em>' + esc(l) + '</em><b' + (vc ? ' style="color:' + vc + '"' : '') + '>' + esc(v) + '</b></div>'; };
+  var rowsFor = function (list, total, opts) { opts = opts || {}; var top = Math.max.apply(null, list.map(function (x) { return x.v; }).concat([1])); return list.map(function (x) { return fosRingRow({ key: x.key, c: x.c, t: x.t, vs: opts.short ? K(x.v) : F(x.v), pct: total ? (x.v / total * 100).toFixed(total && x.v / total < 0.1 ? 1 : 0) + '%' : null, bar: x.v / top * 100, sub: x.sub || '' }); }).join(''); };
+
+  // Swap an old chart's box for a new one (kept next to it; the old one is hidden, not removed)
+  function box(ids, newId) {
+    var el = null; for (var i = 0; i < ids.length && !el; i++) el = $(ids[i]);
+    var n = $(newId); if (n) return n;
+    if (!el) return null;
+    var holder = (el.tagName === 'CANVAS' || /-wrap$/.test(el.id)) ? el.parentNode : el;
+    n = document.createElement('div'); n.id = newId; n.className = 'fx-box'; n.setAttribute('data-no-count', ''); n.setAttribute('data-fr-group', '');
+    var h = holder.style && holder.style.height; if (h && holder !== el) n.style.height = h;
+    holder.classList.add('fx-old'); holder.parentNode.insertBefore(n, holder.nextSibling);
+    return n;
+  }
+  function byType(list, f) { var m = {}; list.forEach(function (e) { var t = typ(e); m[t] = (m[t] || 0) + f(e); }); return m; }
+  function set(host, html) { var k = (light() ? 'L' : 'D') + html.replace(/fr\d+[a-z0-9]+|fxv[a-z0-9]+/g, ''); if (host.__fxk === k && host.firstChild) return false; host.__fxk = k; host.innerHTML = html; return true; }
+  function ringSplit(host, ring, rows) { return set(host, '<div class="fx-split">' + ring + '<div class="fr-rows">' + rows + '</div></div>'); }
+
+  /* ═════ Dashboard › Portfolio by Asset Type ═════ */
+  function dashPort() {
+    var host = box(['dash-port-donut-wrap', 'dash-port-donut'], 'fx-dash-port'); if (!host) return;
+    var data = (typeof getPortFiltered === 'function' ? getPortFiltered() : portDb).filter(function (e) { return !sold(e); });
+    var m = byType(data, function (e) { return calc(e).currentValue; }), keys = Object.keys(m).filter(function (k) { return m[k] > 0; }).sort(function (a, b) { return m[b] - m[a]; });
+    if (!keys.length) { set(host, empty('fa-gem', 'No portfolio data')); return; }
+    var tot = keys.reduce(function (s, k) { return s + m[k]; }, 0);
+    var segs = keys.map(function (k) { return { key: 'dp' + k, v: m[k], c: col(k), t: lbl(k), vs: F(m[k]), s: (m[k] / tot * 100).toFixed(1) + '% of your portfolio' }; });
+    ringSplit(host, fosRing({ size: 200, core: 'rgba(167,139,250,.16)', rings: [{ r: 80, w: 18, segs: segs }], center: { k: 'Portfolio', v: K(tot), s: keys.length + ' asset type' + (keys.length === 1 ? '' : 's'), col: '#a78bfa' } }), rowsFor(segs, tot, { short: true }));
+  }
+
+  /* ═════ Dashboard › Credit Summary ═════ */
+  function dashCredit() {
+    var host = box(['dash-credit-summary'], 'fx-dash-credit'); if (!host) return;
+    var act = (creditDb || []).filter(function (c) { return (Number(c.outstandingBalance) || 0) > 0; });
+    var emi = (creditDb || []).filter(function (c) { return c.status === 'Active'; }).reduce(function (s, c) { return s + (Number(c.monthlyEmi) || 0); }, 0);
+    if (!act.length) { set(host, empty('fa-credit-card', 'No active balances') + '<div class="fx-chips" style="margin-top:8px">' + chip('Total EMI / month', F(emi), '#fbbf24') + '</div>'); return; }
+    var PAL = ['#f97316', '#fbbf24', '#ef4444', '#60a5fa', '#34d399', '#a78bfa', '#f472b6'], m = {}, cnt = {};
+    act.forEach(function (c) { var t = c.type || 'Loan'; m[t] = (m[t] || 0) + Number(c.outstandingBalance); cnt[t] = (cnt[t] || 0) + 1; });
+    var keys = Object.keys(m).sort(function (a, b) { return m[b] - m[a]; }), tot = keys.reduce(function (s, k) { return s + m[k]; }, 0);
+    var prin = act.reduce(function (s, c) { return s + Math.max(Number(c.principalAmount) || 0, Number(c.outstandingBalance) || 0); }, 0), paid = Math.max(0, prin - tot);
+    var segs = keys.map(function (k, i) { return { key: 'dc' + i, v: m[k], c: PAL[i % PAL.length], t: k, vs: F(m[k]), s: cnt[k] + ' account' + (cnt[k] === 1 ? '' : 's') + ' · ' + (m[k] / tot * 100).toFixed(1) + '% of what you owe' }; });
+    var ring = fosRing({ size: 200, core: 'rgba(249,115,22,.16)', rings: [
+      { r: 92, w: 4, full: prin || 1, segs: [{ v: paid, c: '#34d399', t: 'Repaid so far', vs: F(paid), s: (prin ? paid / prin * 100 : 0).toFixed(0) + '% of the original loans', key: '' }] },
+      { r: 76, w: 17, segs: segs }], center: { k: 'You owe', v: K(tot), s: F(emi) + ' EMI / month', col: '#fb923c' } });
+    ringSplit(host, ring, rowsFor(segs, tot, { short: true }) + '<div class="fx-note"><b style="color:#34d399">' + (prin ? Math.round(paid / prin * 100) : 0) + '% repaid</b> · green arc = principal already cleared</div>');
+  }
+
+  /* ═════ Debt Tracker › Loan Type Mix ═════ */
+  function loanMix() {
+    var host = box(['credit-type-donut-wrap', 'credit-type-donut'], 'fx-loan-mix'); if (!host) return;
+    var data = (creditDb || []).filter(function (c) { return (Number(c.outstandingBalance) || 0) > 0; });
+    if (!data.length) { set(host, empty('fa-hand-holding-usd', 'No outstanding loans')); return; }
+    var PAL = ['#f97316', '#fbbf24', '#60a5fa', '#34d399', '#a78bfa', '#f472b6', '#ef4444'], g = {};
+    data.forEach(function (c) { var t = c.type || 'Loan', x = g[t] = g[t] || { bal: 0, emi: 0, n: 0, rw: 0 }; var b = Number(c.outstandingBalance) || 0; x.bal += b; x.emi += c.status === 'Active' ? (Number(c.monthlyEmi) || 0) : 0; x.n++; x.rw += b * (Number(c.interestRate) || 0); });
+    var keys = Object.keys(g).sort(function (a, b) { return g[b].bal - g[a].bal; }), tot = keys.reduce(function (s, k) { return s + g[k].bal; }, 0), emi = keys.reduce(function (s, k) { return s + g[k].emi; }, 0);
+    var segs = keys.map(function (k, i) { var x = g[k], r = x.bal ? x.rw / x.bal : 0; return { key: 'lm' + i, v: x.bal, c: PAL[i % PAL.length], t: k, vs: F(x.bal), s: x.n + ' loan' + (x.n === 1 ? '' : 's') + ' · ' + r.toFixed(1) + '% avg rate · ' + F(x.emi) + ' EMI', sub: x.n + ' · ' + r.toFixed(1) + '% · ' + K(x.emi) + '/mo EMI' }; });
+    var emiSegs = keys.map(function (k, i) { return { key: 'lm' + i, v: g[k].emi, c: PAL[i % PAL.length], t: k + ' · EMI', vs: F(g[k].emi) + ' / mo', s: (emi ? g[k].emi / emi * 100 : 0).toFixed(0) + '% of your monthly EMIs' }; });
+    var ring = fosRing({ size: 220, core: 'rgba(249,115,22,.16)', rings: [{ r: 90, w: 18, segs: segs }, { r: 66, w: 7, segs: emiSegs }],
+      center: { k: 'Outstanding', v: K(tot), s: F(emi) + ' EMI / month', col: '#fb923c' } });
+    set(host, '<div class="fx-split">' + ring + '<div><div class="fr-rows">' + rowsFor(segs, tot) + '</div><div class="fx-legend"><span><i style="background:#f97316"></i>Outer: balance</span><span><i style="background:#fbbf24;height:3px"></i>Inner: monthly EMI</span></div></div></div>');
+  }
+
+  /* ═════ Scenario › Where the Final Value Comes From ═════ */
+  function scenario() {
+    var host = box(['sc-donut-chart'], 'fx-scn-src'); if (!host) return;
+    var ch = charts && charts['sc-donut']; if (!ch || !ch.data) { set(host, empty('fa-chart-pie', 'Run a scenario to see this')); return; }
+    var L = ch.data.labels || [], D = (ch.data.datasets[0] || {}).data || [], C = (ch.data.datasets[0] || {}).backgroundColor || [];
+    var pal = function (l, i) { var c = Array.isArray(C) ? C[i] : null; if (typeof c === 'string') return c; return /put in/i.test(l) ? '#a78bfa' : /kept/i.test(l) ? '#34d399' : /^tax/i.test(l) ? '#f87171' : /fee/i.test(l) ? '#f472b6' : '#38bdf8'; };
+    var parts = L.map(function (l, i) { return { t: l, v: Number(D[i]) || 0, c: pal(l, i) }; }).filter(function (x) { return x.v > 0; });
+    var put = parts.filter(function (x) { return /put in/i.test(x.t); })[0], kept = parts.filter(function (x) { return /kept/i.test(x.t); })[0];
+    var tax = parts.filter(function (x) { return /^tax/i.test(x.t); })[0], fee = parts.filter(function (x) { return /fee/i.test(x.t); })[0];
+    var fin = (put ? put.v : 0) + (kept ? kept.v : 0), gross = fin + (tax ? tax.v : 0) + (fee ? fee.v : 0);
+    var mult = put && put.v ? fin / put.v : 0;
+    var segsOut = [put, kept].filter(Boolean).map(function (x, i) { return { key: 'sc' + i, v: x.v, c: x.c, t: x.t, vs: F(x.v), s: (x.v / fin * 100).toFixed(1) + '% of the final value' }; });
+    var segsIn = [tax, fee].filter(Boolean).map(function (x, i) { return { key: 'sd' + i, v: x.v, c: x.c, t: x.t, vs: F(x.v), s: (x.v / gross * 100).toFixed(1) + '% of the gross value went here' }; });
+    var ring = fosRing({ size: 250, core: 'rgba(52,211,153,.16)', rings: [{ r: 98, w: 22, segs: segsOut }, { r: 72, w: 8, full: gross || 1, segs: segsIn }],
+      center: { k: 'Final value', v: K(fin), s: mult ? mult.toFixed(2) + '× what you put in' : '', col: '#34d399' } });
+    var step = function (t, v, c, sign, sub) { return '<div class="fr-row" style="--cc:' + c + '"><span class="fr-dot"></span><span class="fr-n">' + esc(t) + '</span><span class="fr-a" style="color:' + c + '">' + sign + K(v) + '</span><div class="fr-bar"><i style="width:' + Math.max(2, v / (gross || 1) * 100).toFixed(1) + '%"></i></div>' + (sub ? '<div class="fr-sub">' + esc(sub) + '</div>' : '') + '</div>'; };
+    var rows = (put ? step('You put in', put.v, put.c, '', 'your own money') : '') + (kept || tax || fee ? step('Growth earned', (kept ? kept.v : 0) + (tax ? tax.v : 0), '#34d399', '+', 'before tax, after fees') : '') +
+      (fee ? step('Fees paid', fee.v, fee.c, '−', 'already taken out of the growth') : '') + (tax ? step('Tax on gains', tax.v, tax.c, '−', '') : '') +
+      '<div class="fr-row" style="--cc:#34d399;border-color:rgba(52,211,153,.35)"><span class="fr-dot"></span><span class="fr-n"><b>Final value</b></span><span class="fr-a" style="color:#34d399">' + K(fin) + '</span></div>';
+    host.style.height = 'auto'; set(host, '<div class="fx-scn">' + ring + '<div class="fr-rows">' + rows + '</div></div><div class="fx-legend"><span><i style="background:#a78bfa"></i>Outer: what you end with</span><span><i style="background:#f87171;height:3px"></i>Inner: tax &amp; fees</span></div>');
+  }
+
+  /* ═════ Summary › Asset Value Breakdown (stays readable when one asset dominates) ═════ */
+  function valueBreakdown() {
+    var host = box(['port-value-bar'], 'fx-val'); if (!host) return;
+    host.style.height = 'auto';
+    var data = getPortFiltered().filter(function (e) { return !sold(e); });
+    var m = byType(data, function (e) { return calc(e).currentValue; }), keys = Object.keys(m).filter(function (k) { return m[k] > 0; }).sort(function (a, b) { return m[b] - m[a]; });
+    if (!keys.length) { set(host, empty('fa-chart-pie', 'No holdings')); return; }
+    var tot = keys.reduce(function (s, k) { return s + m[k]; }, 0), big = keys[0], share = m[big] / tot, dom = keys.length > 1 && share >= 0.45;
+    var rest = keys.slice(dom ? 1 : 0), restTot = rest.reduce(function (s, k) { return s + m[k]; }, 0);
+    var all = keys.map(function (k) { return { key: 'av' + k, v: m[k], c: col(k), t: lbl(k), vs: F(m[k]), s: (m[k] / tot * 100).toFixed(1) + '% of your portfolio' + (dom && k !== big ? ' · ' + (m[k] / restTot * 100).toFixed(0) + '% of the rest' : '') }; });
+    var restSegs = all.filter(function (x) { return x.key !== 'av' + big || !dom; });
+    var rings = dom ? [{ r: 96, w: 9, segs: all }, { r: 74, w: 18, segs: restSegs.map(function (x) { return Object.assign({}, x); }) }] : [{ r: 86, w: 20, segs: all }];
+    var ring = fosRing({ size: 230, core: 'rgba(56,189,248,.14)', rings: rings,
+      center: dom ? { k: 'Without ' + lbl(big), v: K(restTot), s: (100 - share * 100).toFixed(0) + '% of ' + K(tot) + ' · inner ring zoomed', col: '#38bdf8' } : { k: 'Portfolio value', v: K(tot), s: keys.length + ' asset types', col: '#38bdf8' } });
+    var topRest = Math.max.apply(null, rest.map(function (k) { return m[k]; }).concat([1]));
+    var rows = (dom ? '<div class="fr-row fx-pin" data-fr="av' + esc(big) + '" style="--cc:' + col(big) + '" onmouseenter="fosRingHi(this)" onmouseleave="fosRingHi(this,1)"><span class="fr-dot"></span><span class="fr-n">' + esc(lbl(big)) + '</span><span class="fr-a">' + K(m[big]) + '<em>' + (share * 100).toFixed(0) + '%</em></span><div class="fr-bar"><i style="width:100%"></i></div><div class="fr-sub">off the scale below · ' + (m[big] / (topRest || 1)).toFixed(1) + '× the next largest</div></div>' : '') +
+      rest.map(function (k) { return fosRingRow({ key: 'av' + k, c: col(k), t: lbl(k), vs: K(m[k]), pct: (m[k] / tot * 100).toFixed(m[k] / tot < 0.1 ? 1 : 0) + '%', bar: m[k] / topRest * 100 }); }).join('');
+    set(host, (dom ? '<div class="fx-dom" style="--cc:' + col(big) + '"><i class="fas fa-magnifying-glass-plus" style="color:' + col(big) + '"></i><span><b>' + esc(lbl(big)) + '</b> is ' + (share * 100).toFixed(0) + '% of your portfolio, so the inner ring and the bars zoom in on everything else.</span></div>' : '') +
+      '<div class="fx-split">' + ring + '<div class="fr-rows" style="max-height:230px">' + rows + '</div></div>');
+  }
+
+  /* ═════ Summary › ROI% by Asset Type (diverging bars around 0%) ═════ */
+  function roiByType() {
+    var host = box(['port-roi-chart'], 'fx-roi'); if (!host) return;
+    var data = getPortFiltered(); if (!data.length) { set(host, empty('fa-percent', 'No holdings')); return; }
+    var inv = byType(data, function (e) { return calc(e).totalInvestment; }), val = byType(data, function (e) { return calc(e).currentValue; });
+    var rows = Object.keys(inv).filter(function (k) { return inv[k] > 0; }).map(function (k) { return { k: k, r: (val[k] - inv[k]) / inv[k] * 100, g: val[k] - inv[k] }; }).sort(function (a, b) { return b.r - a.r; });
+    if (!rows.length) { set(host, empty('fa-percent', 'No holdings')); return; }
+    var hasNeg = rows.some(function (x) { return x.r < 0; }), hasPos = rows.some(function (x) { return x.r > 0; });
+    var negMax = Math.max.apply(null, rows.map(function (x) { return x.r < 0 ? -x.r : 0; }).concat([0])), posMax = Math.max.apply(null, rows.map(function (x) { return x.r > 0 ? x.r : 0; }).concat([0]));
+    var z = negMax + posMax > 0 ? negMax / (negMax + posMax) * 100 : 50; z = hasNeg && hasPos ? Math.min(70, Math.max(18, z)) : z;
+    var tInv = rows.reduce(function (s, x) { return s + inv[x.k]; }, 0), tG = rows.reduce(function (s, x) { return s + x.g; }, 0);
+    set(host, '<div class="fx-chips">' + chip('Best', lbl(rows[0].k) + ' ' + PC(rows[0].r), '#34d399') + chip('Weakest', lbl(rows[rows.length - 1].k) + ' ' + PC(rows[rows.length - 1].r), rows[rows.length - 1].r < 0 ? '#f87171' : '#fbbf24') + chip('Overall', PC(tInv ? tG / tInv * 100 : 0), '#38bdf8', tG >= 0 ? '#34d399' : '#f87171') + '</div>' +
+      '<div class="fx-bars" style="max-height:150px">' + rows.map(function (x) {
+        var pos = x.r >= 0, span = pos ? (100 - z) : z, mxs = pos ? (posMax || 1) : (negMax || 1), w = Math.max(1.5, Math.abs(x.r) / mxs * span);
+        var c = pos ? '#34d399' : '#f87171', bg = pos ? 'linear-gradient(90deg, rgba(52,211,153,.35), #34d399)' : 'linear-gradient(270deg, rgba(248,113,113,.35), #f87171)';
+        return '<div class="fx-br" style="--cc:' + col(x.k) + '" title="' + esc(lbl(x.k) + ': ' + PC(x.r) + ' · ' + SG(x.g) + ' on ' + F(inv[x.k]) + ' invested') + '"><span class="fx-br-n"><i></i>' + esc(lbl(x.k)) + '</span><div class="fx-trk"><span class="fx-zero" style="left:' + z.toFixed(1) + '%"></span><span class="fx-fill ' + (pos ? 'r' : 'l') + '" style="' + (pos ? 'left:' + z.toFixed(1) + '%' : 'right:' + (100 - z).toFixed(1) + '%') + ';width:' + w.toFixed(1) + '%;background:' + bg + ';--g:' + c + '80"></span></div><span class="fx-br-v" style="color:' + c + '">' + PC(x.r) + '</span></div>';
+      }).join('') + '</div>');
+  }
+
+  /* ═════ Summary › Gain/Loss by Asset (what went in vs what it is worth) ═════ */
+  function gainByType() {
+    var host = box(['port-gain-chart'], 'fx-gain'); if (!host) return;
+    var data = getPortFiltered(); if (!data.length) { set(host, empty('fa-scale-balanced', 'No holdings')); return; }
+    var inv = byType(data, function (e) { return calc(e).totalInvestment; }), val = byType(data, function (e) { return calc(e).currentValue; });
+    var keys = Object.keys(inv).filter(function (k) { return inv[k] > 0 || val[k] > 0; }).sort(function (a, b) { return Math.abs(val[b] - inv[b]) - Math.abs(val[a] - inv[a]); });
+    var mx = Math.max.apply(null, keys.map(function (k) { return Math.max(inv[k], val[k]); }).concat([1]));
+    var tg = keys.reduce(function (s, k) { return s + val[k] - inv[k]; }, 0), up = keys.filter(function (k) { return val[k] >= inv[k]; }).length;
+    set(host, '<div class="fx-chips">' + chip('Total gain / loss', SG(tg), tg >= 0 ? '#34d399' : '#f87171', tg >= 0 ? '#34d399' : '#f87171') + chip('In profit', up + ' of ' + keys.length + ' types', '#38bdf8') + '</div>' +
+      '<div class="fx-bars" style="max-height:132px">' + keys.map(function (k) {
+        var g = val[k] - inv[k], c = g >= 0 ? '#34d399' : '#f87171', lo = Math.min(inv[k], val[k]) / mx * 100, hi = Math.max(inv[k], val[k]) / mx * 100;
+        return '<div class="fx-br" style="--cc:' + col(k) + '" title="' + esc(lbl(k) + ': ' + F(inv[k]) + ' in → ' + F(val[k]) + ' now (' + SG(g) + ')') + '"><span class="fx-br-n"><i></i>' + esc(lbl(k)) + '</span><div class="fx-trk">' +
+          '<span class="fx-fill r" style="left:0;width:' + Math.max(1, lo).toFixed(1) + '%;background:linear-gradient(90deg, color-mix(in srgb, ' + col(k) + ' 25%, transparent), ' + col(k) + ');--g:' + col(k) + '66"></span>' +
+          (hi - lo > 0.3 ? '<span class="fx-fill r' + (g < 0 ? ' fx-loss' : '') + '" style="left:' + lo.toFixed(1) + '%;width:' + (hi - lo).toFixed(1) + '%;background:' + (g >= 0 ? 'linear-gradient(90deg, rgba(52,211,153,.5), #34d399)' : '') + ';--g:' + c + '90;animation-delay:.35s"></span>' : '') +
+          '<span class="fx-mark" style="left:' + (inv[k] / mx * 100).toFixed(1) + '%" title="Invested"></span></div><span class="fx-br-v" style="color:' + c + '">' + SG(g) + '<small>' + K(val[k]) + ' now</small></span></div>';
+      }).join('') + '</div><div class="fx-legend"><span><i style="background:#f8fafc;width:3px;height:10px"></i>Invested</span><span><i style="background:#34d399"></i>Gain</span><span><i class="fx-loss"></i>Loss</span></div>');
+  }
+
+  /* ═════ Summary › Best Performers (podium with ROI gauges) ═════ */
+  function bestPerformers() {
+    var host = box(['port-top3'], 'fx-top'); if (!host) return;
+    var data = getPortFiltered().map(function (e) { var c = calc(e); return { e: e, c: c, roi: Number(c.roi) || 0 }; }).filter(function (x) { return x.c.totalInvestment > 0; }).sort(function (a, b) { return b.roi - a.roi; });
+    if (!data.length) { set(host, empty('fa-trophy', 'No data')); return; }
+    var top = data.slice(0, 3), best = Math.max(Math.abs(top[0].roi), 1), worst = data.length > 3 ? data[data.length - 1] : null, MED = ['1ST', '2ND', '3RD'];
+    var name = function (x) { var u = x.e.unit === 'grams' ? 'g' : x.e.unit === 'units' ? 'u' : ''; return String(x.e.subType || '').trim() || (lbl(typ(x.e)) + (x.e.quantity ? ' ' + x.e.quantity + u : '')); };
+    set(host, '<div class="fx-pod">' + top.map(function (x, i) {
+      var c = x.roi >= 0 ? col(typ(x.e)) : '#f87171', f = Math.min(1, Math.abs(x.roi) / best), C = 2 * Math.PI * 20, len = (f * C).toFixed(1);
+      return '<div class="fx-pc" style="--cc:' + c + '"><svg viewBox="0 0 52 52" aria-hidden="true"><circle cx="26" cy="26" r="20" fill="none" stroke="rgba(148,163,184,.14)" stroke-width="5"/><circle class="fx-arc" cx="26" cy="26" r="20" fill="none" stroke="' + c + '" stroke-width="5" stroke-linecap="round" stroke-dasharray="' + len + ' ' + C.toFixed(1) + '" style="filter:drop-shadow(0 0 4px ' + c + ');animation-delay:' + (i * 0.15) + 's"/><text x="26" y="29.5" text-anchor="middle" font-family="DM Mono, monospace" font-size="10" font-weight="700" fill="' + c + '">' + (i + 1) + '</text></svg>' +
+        '<div style="min-width:0"><div class="nm" title="' + esc(name(x)) + '">' + esc(name(x)) + '</div><div class="sb">' + esc(lbl(typ(x.e))) + ' · ' + K(x.c.totalInvestment) + ' → ' + K(x.c.currentValue) + (sold(x.e) ? ' · sold' : '') + '</div></div>' +
+        '<div class="rv" style="color:' + c + '">' + PC(x.roi) + '<small>' + SG(x.c.gainLoss != null ? x.c.gainLoss : x.c.currentValue - x.c.totalInvestment) + '</small></div><span class="rk">' + MED[i] + '</span></div>';
+    }).join('') + (worst && worst.roi < 0 ? '<div class="fx-worst">Needs a look: ' + esc(name(worst)) + ' <b>' + PC(worst.roi) + '</b></div>' : '') + '</div>');
+  }
+
+  /* ═════ Summary › Buy / Sell Rhythm (mirrored bars + money still invested) ═════ */
+  function rhythm() {
+    var cv = $('port-buysell-rhythm'); if (!cv || !window.Chart) return;
+    var host = box(['port-buysell-rhythm'], 'fx-rhy'); if (!host) return;
+    host.style.height = 'auto';
+    var all = typeof getPortFilteredAllStatus === 'function' ? getPortFilteredAllStatus() : portDb;
+    var B = {}, S = {};
+    all.forEach(function (e) { var k = String(e.date || '').slice(0, 7); if (/^\d{4}-\d{2}$/.test(k)) B[k] = (B[k] || 0) + calc(e).totalInvestment; });
+    all.filter(function (e) { return sold(e) && e.sellDate; }).forEach(function (e) { var k = String(e.sellDate).slice(0, 7); if (/^\d{4}-\d{2}$/.test(k)) S[k] = (S[k] || 0) + calc(e).currentValue; });
+    var months = Object.keys(B).concat(Object.keys(S)).filter(function (k, i, a) { return a.indexOf(k) === i; }).sort();
+    if (!months.length) { set(host, empty('fa-wave-square', 'No activity yet')); return; }
+    var cum = 0, run = {}; months.forEach(function (k) { cum += (B[k] || 0) - (S[k] || 0); run[k] = cum; });
+    var shown = months.slice(-12), lab = shown.map(function (m) { var p = m.split('-'); return MONTHS[+p[1] - 1] + " '" + p[0].slice(2); });
+    var tb = months.reduce(function (s, k) { return s + (B[k] || 0); }, 0), ts = months.reduce(function (s, k) { return s + (S[k] || 0); }, 0);
+    var busy = months.reduce(function (a, k) { return (B[k] || 0) + (S[k] || 0) > (B[a] || 0) + (S[a] || 0) ? k : a; }, months[0]), bp = busy.split('-');
+    if (!set(host, '<div class="fx-chips">' + chip('Bought', K(tb), '#a78bfa') + chip('Sold', K(ts), '#f472b6') + chip('Net put to work', SG(tb - ts), '#38bdf8') + chip('Busiest month', MONTHS[+bp[1] - 1] + " '" + bp[0].slice(2), '#fbbf24') + '</div><div style="height:220px;position:relative"><canvas id="fx-rhy-c"></canvas></div>')) return;
+    var c = $('fx-rhy-c'), ctx = c.getContext('2d');
+    var gB = ctx.createLinearGradient(0, 0, 0, 220); gB.addColorStop(0, 'rgba(167,139,250,.95)'); gB.addColorStop(1, 'rgba(167,139,250,.2)');
+    var gS = ctx.createLinearGradient(0, 220, 0, 0); gS.addColorStop(0, 'rgba(244,114,182,.95)'); gS.addColorStop(1, 'rgba(244,114,182,.2)');
+    var glow = { id: 'fxRhyGlow', beforeDatasetsDraw: function (ch) { if (light()) return; ch.ctx.save(); ch.ctx.shadowColor = 'rgba(167,139,250,.45)'; ch.ctx.shadowBlur = 12; }, afterDatasetsDraw: function (ch) { if (!light()) ch.ctx.restore(); } };
+    killChart('fx-rhy', c);
+    charts['fx-rhy'] = new Chart(c, { type: 'bar', plugins: [glow], data: { labels: lab, datasets: [
+      { label: 'Bought', data: shown.map(function (k) { return Math.round(B[k] || 0); }), backgroundColor: gB, borderRadius: 6, borderSkipped: false, maxBarThickness: 26, stack: 's', yAxisID: 'y' },
+      { label: 'Sold', data: shown.map(function (k) { return -Math.round(S[k] || 0); }), backgroundColor: gS, borderRadius: 6, borderSkipped: false, maxBarThickness: 26, stack: 's', yAxisID: 'y' },
+      { type: 'line', label: 'Money still invested', data: shown.map(function (k) { return Math.round(run[k]); }), borderColor: '#38bdf8', backgroundColor: 'rgba(56,189,248,.08)', borderWidth: 2, tension: .35, pointRadius: 3, pointBackgroundColor: '#38bdf8', fill: false, yAxisID: 'y1', order: -1 }] },
+      options: { responsive: true, maintainAspectRatio: false, interaction: { mode: 'index', intersect: false },
+        plugins: { legend: { position: 'bottom', labels: { color: tc(), usePointStyle: true, boxWidth: 8, boxHeight: 8, font: { size: 10 }, generateLabels: function (ch) { var L = Chart.defaults.plugins.legend.labels.generateLabels(ch), CC = ['#a78bfa', '#f472b6', '#38bdf8']; L.forEach(function (l) { var c = CC[l.datasetIndex]; if (c) { l.fillStyle = c; l.strokeStyle = c; } }); return L; } } },
+          tooltip: Object.assign(tipBase(), { callbacks: { label: function (x) { var v = x.raw; return ' ' + x.dataset.label + ': ' + F(Math.abs(v)); }, footer: function (it) { var k = shown[it[0].dataIndex]; return 'Net this month ' + SG((B[k] || 0) - (S[k] || 0)); } } }) },
+        scales: { x: { stacked: true, ticks: { color: tc(), font: { size: 10 }, maxRotation: 0, autoSkip: true }, grid: { display: false }, border: { display: false } },
+          y: { stacked: true, ticks: { color: tc(), callback: function (v) { return K(Math.abs(v)); }, maxTicksLimit: 5 }, grid: { color: function (g) { return g.tick && g.tick.value === 0 ? (light() ? 'rgba(15,23,42,.35)' : 'rgba(226,232,240,.35)') : gc(); } }, border: { display: false } },
+          y1: { position: 'right', ticks: { color: '#38bdf8', callback: function (v) { return K(v); }, maxTicksLimit: 4 }, grid: { display: false }, border: { display: false } } } } });
+  }
+
+  /* ═════ Port Analytics › Profit% Distribution (histogram) ═════ */
+  function profitDist() {
+    var host = box(['port-profit-donut-wrap', 'port-profit-donut'], 'fx-prof'); if (!host || !window.Chart) return;
+    host.style.height = 'auto';
+    var data = getPortFiltered().map(function (e) { var c = calc(e); return { n: String(e.subType || '').trim() || lbl(typ(e)), p: Number(c.profitPct) || 0, v: c.currentValue, g: c.currentValue - c.totalInvestment }; });
+    if (!data.length) { set(host, empty('fa-chart-column', 'No holdings')); return; }
+    var BK = [['Below −25%', -1e9, -25, '#ef4444'], ['−25% to 0', -25, 0, '#fb7185'], ['0 to 25%', 0, 25, '#60a5fa'], ['25 to 50%', 25, 50, '#2dd4bf'], ['50 to 100%', 50, 100, '#34d399'], ['Above 100%', 100, 1e9, '#fbbf24']];
+    var bins = BK.map(function (b, i) { return { b: b, items: data.filter(function (x) { return i === 0 ? x.p < -25 : i === 1 ? x.p >= -25 && x.p < 0 : i === 5 ? x.p > 100 : x.p >= b[1] && x.p <= b[2] && !(i > 1 && x.p === b[1] && b[1] !== 0); }) }; });
+    var ps = data.map(function (x) { return x.p; }).sort(function (a, b) { return a - b; }), med = ps.length % 2 ? ps[(ps.length - 1) / 2] : (ps[ps.length / 2 - 1] + ps[ps.length / 2]) / 2;
+    var win = data.filter(function (x) { return x.p >= 0; }).length;
+    if (!set(host, '<div class="fx-chips">' + chip('In profit', win + ' of ' + data.length, '#34d399') + chip('Median return', PC(med), '#38bdf8', med >= 0 ? '#34d399' : '#f87171') + chip('Spread', PC(ps[0], 0) + ' … ' + PC(ps[ps.length - 1], 0), '#fbbf24') + '</div><div style="height:190px;position:relative"><canvas id="fx-prof-c"></canvas></div>')) return;
+    var c = $('fx-prof-c'); killChart('fx-prof', c);
+    var glow = { id: 'fxProfGlow', beforeDatasetsDraw: function (ch) { if (light()) return; ch.ctx.save(); ch.ctx.shadowColor = 'rgba(96,165,250,.5)'; ch.ctx.shadowBlur = 14; }, afterDatasetsDraw: function (ch) { if (!light()) ch.ctx.restore(); } };
+    var medLine = { id: 'fxProfMed', afterDatasetsDraw: function (ch) { var idx = bins.findIndex(function (bn) { return bn.items.some(function (x) { return x.p === med; }); }); if (idx < 0) idx = med < -25 ? 0 : med < 0 ? 1 : med <= 25 ? 2 : med <= 50 ? 3 : med <= 100 ? 4 : 5; var x = ch.scales.x.getPixelForValue(idx), a = ch.chartArea, g = ch.ctx; g.save(); g.strokeStyle = 'rgba(248,250,252,.55)'; g.setLineDash([3, 3]); g.beginPath(); g.moveTo(x, a.top); g.lineTo(x, a.bottom); g.stroke(); g.setLineDash([]); g.fillStyle = tc(); g.font = '700 9px "DM Sans", sans-serif'; g.textAlign = 'center'; g.fillText('MEDIAN', x, a.top + 8); g.restore(); } };
+    charts['fx-prof'] = new Chart(c, { type: 'bar', plugins: [glow, medLine], data: { labels: BK.map(function (b) { return b[0]; }), datasets: [{ label: 'Holdings', data: bins.map(function (b) { return b.items.length; }),
+      backgroundColor: BK.map(function (b) { var g = c.getContext('2d').createLinearGradient(0, 0, 0, 190); g.addColorStop(0, b[3]); g.addColorStop(1, b[3] + '33'); return g; }), borderColor: BK.map(function (b) { return b[3]; }), borderWidth: { top: 2, left: 0, right: 0, bottom: 0 }, borderRadius: 8, borderSkipped: false, maxBarThickness: 46 }] },
+      options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false }, tooltip: Object.assign(tipBase(), { callbacks: {
+        title: function (it) { return BK[it[0].dataIndex][0] + ' return'; },
+        label: function (it) { var b = bins[it.dataIndex]; return ' ' + b.items.length + ' holding' + (b.items.length === 1 ? '' : 's') + ' · worth ' + F(b.items.reduce(function (s, x) { return s + x.v; }, 0)); },
+        afterBody: function (it) { var b = bins[it[0].dataIndex]; return b.items.slice().sort(function (p, q) { return q.v - p.v; }).slice(0, 6).map(function (x) { return '  ' + x.n + '  ' + PC(x.p); }).concat(b.items.length > 6 ? ['  + ' + (b.items.length - 6) + ' more'] : []); } } }) },
+        scales: { x: { ticks: { color: tc(), font: { size: 9.5 }, maxRotation: 0, autoSkip: false }, grid: { display: false }, border: { display: false } }, y: { beginAtZero: true, ticks: { color: tc(), precision: 0, stepSize: 1, maxTicksLimit: 5 }, grid: { color: gc() }, border: { display: false } } } } });
+  }
+
+  /* ═════ Port Analytics › Sector ROI Velocity (return per year, radial bars) ═════ */
+  function velocity() {
+    var host = box(['chart-port-roi'], 'fx-vel'); if (!host) return;
+    host.style.height = 'auto';
+    var data = getPortFiltered(), now = Date.now(), g = {};
+    data.forEach(function (e) { var c = calc(e), t = typ(e), x = g[t] = g[t] || { inv: 0, val: 0, yrsW: 0 }; var d = e.date ? new Date(String(e.date).slice(0, 10) + 'T00:00:00') : null, end = sold(e) && e.sellDate ? new Date(String(e.sellDate).slice(0, 10) + 'T00:00:00').getTime() : now;
+      var yrs = d && !isNaN(d) ? Math.max(0.0833, (end - d.getTime()) / (365.25 * 864e5)) : 1; x.inv += c.totalInvestment; x.val += c.currentValue; x.yrsW += c.totalInvestment * yrs; });
+    var rows = Object.keys(g).filter(function (k) { return g[k].inv > 0; }).map(function (k) { var x = g[k], yrs = x.yrsW / x.inv, roi = (x.val - x.inv) / x.inv, ann = x.val > 0 ? (Math.pow(x.val / x.inv, 1 / Math.max(yrs, 1)) - 1) * 100 : -100; return { k: k, roi: roi * 100, ann: yrs < 1 ? roi * 100 : ann, yrs: yrs }; }).sort(function (a, b) { return b.ann - a.ann; });
+    if (!rows.length) { set(host, empty('fa-tachometer-alt', 'No holdings')); return; }
+    var mx = Math.max.apply(null, rows.map(function (r) { return Math.abs(r.ann); }).concat([1])), n = rows.length, S = 220, cx = S / 2, R1 = 104, R0 = 62, w = Math.max(3, Math.min(10, (R1 - R0) / n - 2.5)), step = (R1 - R0) / Math.max(1, n);
+    var tInv = 0, tVal = 0, tY = 0; Object.keys(g).forEach(function (k) { tInv += g[k].inv; tVal += g[k].val; tY += g[k].yrsW; });
+    var pY = tInv ? tY / tInv : 1, pAnn = tInv && tVal > 0 ? (pY < 1 ? (tVal / tInv - 1) * 100 : (Math.pow(tVal / tInv, 1 / pY) - 1) * 100) : 0;
+    var id = 'fxv' + Date.now().toString(36), h = '<svg class="fr-svg" viewBox="0 0 ' + S + ' ' + S + '" aria-hidden="true"><defs><filter id="' + id + '" x="-30%" y="-30%" width="160%" height="160%"><feGaussianBlur stdDeviation="2.2" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter></defs>';
+    for (var k = 0; k <= 4; k++) { var a = (k / 4 * 0.75) * 2 * Math.PI - Math.PI / 2; h += '<line class="fr-tick' + (k % 2 ? '' : ' major') + '" x1="' + (cx + (R0 - 6) * Math.cos(a)).toFixed(1) + '" y1="' + (cx + (R0 - 6) * Math.sin(a)).toFixed(1) + '" x2="' + (cx + (R1 + 8) * Math.cos(a)).toFixed(1) + '" y2="' + (cx + (R1 + 8) * Math.sin(a)).toFixed(1) + '" stroke-dasharray="2 3"/>'; }
+    rows.forEach(function (r, i) {
+      var rr = R1 - i * step, C = 2 * Math.PI * rr, len = Math.max(0.6, Math.abs(r.ann) / mx * 0.75 * C), c = r.ann >= 0 ? col(r.k) : '#f87171';
+      h += '<g class="fr-ring" style="animation-delay:' + (i * 0.07).toFixed(2) + 's"><circle class="fr-track" cx="' + cx + '" cy="' + cx + '" r="' + rr.toFixed(1) + '" stroke-width="' + w + '" stroke-dasharray="' + (0.75 * C).toFixed(1) + ' ' + C.toFixed(1) + '" transform="rotate(-90 ' + cx + ' ' + cx + ')"/>' +
+        '<circle class="fr-seg" cx="' + cx + '" cy="' + cx + '" r="' + rr.toFixed(1) + '" stroke="' + c + '" stroke-width="' + w + '" stroke-linecap="round"' + (r.ann < 0 ? ' stroke-opacity=".85"' : '') + ' stroke-dasharray="' + len.toFixed(1) + ' ' + C.toFixed(1) + '" transform="rotate(-90 ' + cx + ' ' + cx + ')" filter="url(#' + id + ')" data-fr="vl' + esc(r.k) + '" data-t="' + esc(lbl(r.k)) + '" data-v="' + esc(PC(r.ann) + ' / yr') + '" data-s="' + esc(PC(r.roi) + ' total over ' + (r.yrs >= 1 ? r.yrs.toFixed(1) + ' yrs' : Math.round(r.yrs * 12) + ' mo')) + '" data-c="' + c + '" onmouseenter="fosRingHi(this)" onmouseleave="fosRingHi(this,1)"><title>' + esc(lbl(r.k) + ': ' + PC(r.ann) + ' a year') + '</title></circle>' +
+        '</g>';
+    });
+    h += '</svg>';
+    var ring = '<div class="fr-wrap">' + h + '<div class="fr-center" style="padding:0 30%" data-k="Pace" data-v="' + esc(PC(pAnn)) + '" data-s="a year · whole portfolio" data-c="' + (pAnn >= 0 ? '#34d399' : '#f87171') + '"><div class="fr-k">Pace</div><div class="fr-v" style="color:' + (pAnn >= 0 ? '#34d399' : '#f87171') + ';font-size:.9rem">' + esc(PC(pAnn)) + '</div><div class="fr-s">a year · whole portfolio</div></div></div>';
+    var list = rows.map(function (r) { var c = r.ann >= 0 ? col(r.k) : '#f87171'; return '<div class="fr-row" data-fr="vl' + esc(r.k) + '" style="--cc:' + c + '" onmouseenter="fosRingHi(this)" onmouseleave="fosRingHi(this,1)"><span class="fr-dot"></span><span class="fr-n">' + esc(lbl(r.k)) + '</span><span class="fr-a" style="color:' + c + '">' + PC(r.ann) + '<em>/yr</em></span></div>'; }).join('');
+    var fresh = set(host, '<div class="fx-split fx-vel">' + ring + '<div class="fr-rows">' + list + '</div></div>');
+    if (fresh) host.insertAdjacentHTML('beforeend', '<div class="fx-note">Velocity = return per year: total return spread over how long the money has been invested (under a year, the plain return).</div>');
+  }
+
+  /* ═════ Port Analytics › Capital Gains Engine (principal + gains per asset type) ═════ */
+  function gainsEngine() {
+    var host = box(['chart-port-gains-wrap', 'chart-port-gains'], 'fx-cge'); if (!host) return;
+    host.style.height = 'auto';
+    var data = getPortFiltered(); if (!data.length) { set(host, empty('fa-layer-group', 'No portfolio data')); return; }
+    var inv = byType(data, function (e) { return calc(e).totalInvestment; }), val = byType(data, function (e) { return calc(e).currentValue; });
+    var keys = Object.keys(inv).filter(function (k) { return inv[k] > 0; }).sort(function (a, b) { return val[b] - val[a]; });
+    var tI = keys.reduce(function (s, k) { return s + inv[k]; }, 0), tV = keys.reduce(function (s, k) { return s + val[k]; }, 0), tG = tV - tI;
+    var gainOnly = keys.reduce(function (s, k) { return s + Math.max(0, val[k] - inv[k]); }, 0), lossOnly = keys.reduce(function (s, k) { return s + Math.min(0, val[k] - inv[k]); }, 0);
+    var mx = Math.max.apply(null, keys.map(function (k) { return Math.max(inv[k], val[k]); }).concat([1]));
+    var top = keys.slice().sort(function (a, b) { return (val[b] - inv[b]) - (val[a] - inv[a]); })[0];
+    set(host, '<div class="fx-chips">' + chip('Principal', K(tI), '#64748b') + chip('Gains made', '+' + K(gainOnly).replace('−', ''), '#10b981', '#34d399') + chip('Losses', lossOnly ? '−' + K(-lossOnly) : '₹0', '#f87171', lossOnly ? '#f87171' : '') + chip('Gain share of value', tV > 0 ? PC(tG / tV * 100) : '—', '#38bdf8') + '</div>' +
+      '<div class="fx-bars" style="max-height:200px">' + keys.map(function (k) {
+        var g = val[k] - inv[k], c = g >= 0 ? '#34d399' : '#f87171', a = Math.min(inv[k], val[k]) / mx * 100, b = Math.abs(g) / mx * 100;
+        return '<div class="fx-br" style="--cc:' + col(k) + '" title="' + esc(lbl(k) + ': ' + F(inv[k]) + ' principal ' + (g >= 0 ? '+ ' + F(g) + ' gain' : '− ' + F(-g) + ' loss') + ' = ' + F(val[k])) + '"><span class="fx-br-n"><i></i>' + esc(lbl(k)) + '</span><div class="fx-trk" style="height:14px">' +
+          '<span class="fx-fill r" style="left:0;width:' + Math.max(1, a).toFixed(1) + '%;background:linear-gradient(90deg, rgba(100,116,139,.35), ' + (light() ? '#94a3b8' : '#64748b') + ');--g:rgba(100,116,139,.4)"></span>' +
+          (b > 0.2 ? '<span class="fx-fill r' + (g < 0 ? ' fx-loss' : '') + '" style="left:' + a.toFixed(1) + '%;width:' + b.toFixed(1) + '%;' + (g >= 0 ? 'background:linear-gradient(90deg, #10b981, #6ee7b7)' : '') + ';--g:' + c + 'aa;animation-delay:.4s"></span>' : '') +
+          '</div><span class="fx-br-v" style="color:' + c + '">' + SG(g) + '<small>' + (inv[k] ? PC(g / inv[k] * 100) : '') + ' · ' + K(val[k]) + '</small></span></div>';
+      }).join('') + '</div><div class="fx-legend"><span><i style="background:#64748b"></i>Principal</span><span><i style="background:#10b981"></i>Gain on top</span><span><i class="fx-loss"></i>Principal lost</span>' + (top && val[top] > inv[top] ? '<span>Biggest engine: <b style="color:var(--text-main)">' + esc(lbl(top)) + '</b></span>' : '') + '</div>');
+  }
+
+  /* ═════ Port Analytics › Systemic Exposure (actual vs ideal) ═════ */
+  function exposure() {
+    var host = box(['chart-port-exposure-wrap', 'chart-port-exposure'], 'fx-exp'); if (!host) return;
+    host.style.height = 'auto';
+    var X = window.__fosExposure; if (!X || !X.labels) { set(host, empty('fa-crosshairs', 'No portfolio data')); return; }
+    var rows = X.labels.map(function (l, i) { return { l: l, a: Number(X.actualData[i]) || 0, t: Number(X.idealData[i]) || 0 }; }).filter(function (r) { return r.a > 0.05 || r.t > 0.05; });
+    var mx = Math.max.apply(null, rows.map(function (r) { return Math.max(r.a, r.t); }).concat([10])) * 1.08;
+    var drift = rows.reduce(function (s, r) { return s + Math.abs(r.a - r.t); }, 0) / 2, other = Math.max(0, 100 - rows.reduce(function (s, r) { return s + r.a; }, 0));
+    var over = rows.slice().sort(function (p, q) { return (q.a - q.t) - (p.a - p.t); })[0], under = rows.slice().sort(function (p, q) { return (p.a - p.t) - (q.a - q.t); })[0];
+    var AGE = { twenties: '20s', thirties: '30s', forties: '40s', fifties: '50s+' }, INC = { tiny: 'starter', small: 'modest', mid: 'middle', high: 'high', vhigh: 'very high' };
+    var score = Math.max(0, Math.round(100 - drift * 1.6)), sc = score >= 75 ? '#34d399' : score >= 50 ? '#fbbf24' : '#f87171';
+    set(host, '<div class="fx-chips">' + chip('Alignment', score + ' / 100', sc, sc) + chip('Needs moving', drift.toFixed(0) + '%', '#38bdf8') + (over && over.a - over.t > 0.5 ? chip('Most over', over.l + ' +' + (over.a - over.t).toFixed(0) + ' pts', '#f43f5e') : '') + (under && under.t - under.a > 0.5 ? chip('Most under', under.l + ' −' + (under.t - under.a).toFixed(0) + ' pts', '#fbbf24') : '') + '</div>' +
+      '<div class="fx-bars" style="max-height:230px">' + rows.map(function (r) {
+        var d = r.a - r.t, c = d > 2 ? '#f43f5e' : d < -2 ? '#fbbf24' : '#34d399', st = Math.abs(d) <= 2 ? 'on target' : (d > 0 ? '+' : '−') + Math.abs(d).toFixed(1) + ' pts ' + (d > 0 ? 'over' : 'under');
+        return '<div class="fx-br" style="--cc:' + c + '" title="' + esc(r.l + ': you hold ' + r.a.toFixed(1) + '%, ideal ' + r.t.toFixed(1) + '%') + '"><span class="fx-br-n"><i></i>' + esc(r.l) + '</span><div class="fx-trk" style="height:12px">' +
+          '<span class="fx-fill r" style="left:0;width:' + Math.max(0.8, r.a / mx * 100).toFixed(1) + '%;background:linear-gradient(90deg, color-mix(in srgb, ' + c + ' 25%, transparent), ' + c + ');--g:' + c + '88"></span>' +
+          (r.t > 0 ? '<span class="fx-mark" style="left:' + (r.t / mx * 100).toFixed(1) + '%" title="Ideal ' + r.t.toFixed(1) + '%"></span>' : '') +
+          '</div><span class="fx-br-v" style="color:' + c + '">' + r.a.toFixed(1) + '%<small>' + st + '</small></span></div>';
+      }).join('') + '</div><div class="fx-legend"><span><i style="background:#f8fafc;width:3px;height:10px"></i>Ideal for age ' + esc(AGE[X.ageTier] || X.ageTier || '') + ', ' + esc(INC[X.incomeTier] || X.incomeTier || '') + ' income</span><span><i style="background:#34d399"></i>On target</span><span><i style="background:#f43f5e"></i>Over</span><span><i style="background:#fbbf24"></i>Under</span></div>' +
+      (other > 0.5 ? '<div class="fx-note">' + other.toFixed(0) + '% of your portfolio sits in types without an ideal weight here (ETFs, bonds, REITs and others).</div>' : ''));
+  }
+
+  function run(list) { list.forEach(function (f) { try { f(); } catch (e) { console.warn('Chart upgrade failed:', f.name, e); } }); }
+  function wrap(name, list) {
+    var o = window[name]; if (typeof o !== 'function' || o.__fx5) return false;
+    var w = function () { var r = o.apply(this, arguments); run(list); return r; };
+    Object.keys(o).forEach(function (k) { try { w[k] = o[k]; } catch (e) { } }); w.__fx5 = 1; window[name] = w; return true;
+  }
+  function hookAll() {
+    wrap('renderDashboardImmediate', [dashPort]);
+    wrap('renderDashCreditCharts', [dashCredit]);
+    wrap('renderCreditCharts', [loanMix]);
+    wrap('calcScenario', [scenario]);
+    wrap('renderPortOverview', [valueBreakdown, roiByType, gainByType, bestPerformers]);
+    wrap('renderPortStatusCharts', [rhythm]);
+    wrap('renderPortAnalytics', [profitDist, velocity, gainsEngine, exposure]);
+  }
+  hookAll();
+  // other scripts re-wrap renderDashboardImmediate later: hook again once everything has loaded
+  window.addEventListener('load', function () { setTimeout(function () { hookAll(); try { if (typeof activeView !== 'undefined') {
+    if (activeView === 'dashboard') run([dashPort, dashCredit]); else if (activeView === 'credit') run([loanMix]); else if (activeView === 'port-overview') run([valueBreakdown, roiByType, gainByType, bestPerformers, rhythm]); else if (activeView === 'port-analytics') run([profitDist, velocity, gainsEngine, exposure]); } } catch (e) { } }, 0); });
+  window.fosFx5 = { run: run, dashPort: dashPort, dashCredit: dashCredit, loanMix: loanMix, scenario: scenario, valueBreakdown: valueBreakdown, roiByType: roiByType, gainByType: gainByType, bestPerformers: bestPerformers, rhythm: rhythm, profitDist: profitDist, velocity: velocity, gainsEngine: gainsEngine, exposure: exposure };
 })();
 </script>
 
