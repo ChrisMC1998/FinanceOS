@@ -11,7 +11,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="fos-integrity" content="8589f7d00891835a49380e335ca9c837a3293db42661c0318a2c27e82e183c61">
+<meta name="fos-integrity" content="aa19fff12ea682aa89ea06cf2a6a1d37faffaefd5e4c34ebd7c1009a3bb0447c">
 <script id="fos-tamper-guard">
 /*! \u00a9 2026 MC Enterprise. Integrity check: detects a copy of this file that no longer matches the
     official release and locks it with a notice. This checks the FILE as served, not live memory --
@@ -9011,6 +9011,8 @@ function passAppLockGate() {
     <div class="sidebar-footer-collapsed">
   <div class="collapsed-icon-btn" onclick="openExportModal()" title="Export"><i class="fas fa-file-csv"></i></div>
   <div class="collapsed-icon-btn" onclick="openBackupModal()" title="Backup" style="color:var(--c-inc)"><i class="fas fa-database"></i></div>
+  <div class="collapsed-icon-btn" onclick="rfOpen()" title="Live prices" style="color:#a78bfa"><i class="fas fa-bolt"></i></div>
+  <div class="collapsed-icon-btn" onclick="openSettingsModal()" title="Settings" style="color:var(--c-mf)"><i class="fas fa-cog"></i></div>
   <div class="collapsed-icon-btn" onclick="handleLogout()" title="Log Out" style="color:#ef4444"><i class="fas fa-sign-out-alt"></i></div>
 </div>
   </div>
@@ -50084,7 +50086,7 @@ body.light-mode .iz-review { background:#fffbeb; }
 .fj-card::before { content:''; position:absolute; left:-30px; top:50%; width:150px; height:150px; transform:translateY(-50%); border-radius:50%; background:radial-gradient(circle, color-mix(in srgb, var(--c) 22%, transparent), transparent 70%); pointer-events:none; }
 .fj-card:hover, .fj-card:focus-visible { transform:translateY(-2px); border-color:color-mix(in srgb, var(--c) 40%, transparent); box-shadow:0 10px 28px color-mix(in srgb, var(--c) 14%, transparent), inset 0 1px 0 rgba(255,255,255,.06); outline:none; }
 .fj-ico { position:relative; flex:0 0 auto; width:68px; height:68px; display:grid; place-items:center; border-radius:16px; background:color-mix(in srgb, var(--c) 9%, transparent); border:1px solid color-mix(in srgb, var(--c) 22%, transparent); }
-.fj-ico canvas { width:56px; height:56px; image-rendering:pixelated; image-rendering:crisp-edges; display:block; }
+.fj-ico canvas { width:56px; height:56px; display:block; }
 .fj-body { position:relative; min-width:0; flex:1 1 auto; }
 .fj-val { display:flex; align-items:baseline; gap:8px; min-width:0; }
 .fj-num { font:800 1.9rem/1 var(--font-display,'DM Sans',sans-serif); color:var(--text-main); letter-spacing:-.02em; font-variant-numeric:tabular-nums; white-space:nowrap; }
@@ -50219,76 +50221,151 @@ body.light-mode .fj-tl li::before { background:#fff; }
   var dstr = function (s) { if (!s) return ''; var p = String(s).slice(0, 10).split('-').map(Number); return new Date(p[0], p[1] - 1, p[2]).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' }); };
   var reduce = window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches;
 
-  // ═════════ pixel icons (16×16, canvas) — shared 5 s dissolve/reappear cycle ═════════
-  var ART = {
-    flame: { pal: { r: '#ef4444', o: '#fb923c', y: '#fde047', w: '#fff7ed' }, f: [[
-      '................', '.......r........', '......rr........', '......rro.......', '.....rroo...r...', '.....roooo..rr..', '....rrooyo.rrr..', '...rrooyyoorro..',
-      '...roooyyyoooo..', '..rrooyyyyyooor.', '..rooyyywyyyoor.', '..rooyywwwyyoor.', '..rrooyywwyyorr.', '...rrooyyyyorr..', '....rrrooorrr...', '......rrrrr.....'], [
-      '................', '........r.......', '.......rr.......', '......ror....r..', '......roo...rr..', '.....rrooo..ror.', '....rrooyo.rrr..', '...rrooyyoorro..',
-      '...roooyyyoooo..', '..rrooyyyyyooor.', '..rooyyyywyyoor.', '..rooyywwwyyoor.', '..rrooyywwyyorr.', '...rrooyyyyorr..', '....rrrooorrr...', '......rrrrr.....']] },
-    trophy: { pal: { y: '#d97706', Y: '#fbbf24', w: '#fef3c7', d: '#92400e', s: '#ffffff' }, f: [[
-      '................', '...yyyyyyyyyy...', '.yyyYYYYYYYYyyy.', '.y.yYYwYYYYYy.y.', '.y.yYYwYYYYYy.y.', '.y.yYwYYYYYYy.y.', '..yyYYYYYYYYyy..', '....yYYYYYYy....',
-      '.....yYYYYy.....', '......yYYy......', '.......yy.......', '.......yy.......', '......dyyd......', '.....dddddd.....', '....dddddddd....', '................']] }
-  };
-  function bitmap(name, frame) {
-    var a = ART[name], rows = a.f[frame % a.f.length], px = [];
-    for (var y = 0; y < 16; y++) for (var x = 0; x < 16; x++) { var ch = rows[y][x]; px.push(ch === '.' ? null : a.pal[ch]); }
-    return px;
-  }
-  function targetBitmap(t) {   // concentric rings + a dot that travels to the centre
-    var px = [], ring = ['#f43f5e', '#e2e8f0', '#f43f5e', '#e2e8f0', '#f43f5e'];
-    for (var y = 0; y < 16; y++) for (var x = 0; x < 16; x++) {
-      var d = Math.hypot(x - 7.5, y - 7.5), i = d < 1.6 ? 4 : d < 3.1 ? 3 : d < 4.6 ? 2 : d < 6.1 ? 1 : d < 7.6 ? 0 : -1;
-      px.push(i < 0 ? null : ring[i]);
+  // ═════════ icons: clean animated vector art; every 5 s they pixelate, scatter and reform (shared clock) ═════════
+  var CYCLE = 5000, P_PIX = 3700, P_SCAT = 4050, P_BACK = 4400, P_UNPIX = 4750;
+  var icons = [], visible = true, rafId = 0, lastDraw = 0;
+  var clamp = function (v) { return v < 0 ? 0 : v > 1 ? 1 : v; };
+  var easeIO = function (p) { return p < 0.5 ? 4 * p * p * p : 1 - Math.pow(-2 * p + 2, 3) / 2; };
+  function rrect(g, x, y, w, h, r) { g.beginPath(); g.moveTo(x + r, y); g.arcTo(x + w, y, x + w, y + h, r); g.arcTo(x + w, y + h, x, y + h, r); g.arcTo(x, y + h, x, y, r); g.arcTo(x, y, x + w, y, r); g.closePath(); }
+  // all drawings use a 100 × 100 box
+  function drawFlame(g, t) {
+    var ph = t / 1000 * Math.PI * 2 * 1.4, w1 = Math.sin(ph) * 3.5, w2 = Math.sin(ph * 1.7 + 1) * 2.5, br = 1 + Math.sin(ph * 0.9) * 0.025;
+    g.save(); g.translate(50, 94); g.scale(1 / br, br); g.translate(-50, -94);
+    g.save(); g.shadowColor = 'rgba(251,146,60,.55)'; g.shadowBlur = 14;
+    g.beginPath(); g.moveTo(50, 94);
+    g.bezierCurveTo(25, 94, 16, 74, 25, 55); g.bezierCurveTo(30, 44, 37, 39, 36, 27 + w2);
+    g.bezierCurveTo(45, 33, 48, 41, 49, 46); g.bezierCurveTo(50, 30, 56, 18, 53 + w1, 5);
+    g.bezierCurveTo(69, 18, 83, 36, 81, 60); g.bezierCurveTo(80, 80, 68, 94, 50, 94); g.closePath();
+    var o = g.createRadialGradient(50, 80, 4, 50, 70, 56); o.addColorStop(0, '#fde68a'); o.addColorStop(0.35, '#fb923c'); o.addColorStop(0.72, '#f43f5e'); o.addColorStop(1, '#be123c');
+    g.fillStyle = o; g.fill(); g.restore();
+    g.beginPath(); g.moveTo(50, 90);
+    g.bezierCurveTo(37, 90, 33, 78, 39, 66); g.bezierCurveTo(43, 58, 47, 55, 48, 46 + w2 * 0.6);
+    g.bezierCurveTo(55, 55, 65, 64, 63, 76); g.bezierCurveTo(62, 86, 57, 90, 50, 90); g.closePath();
+    var i = g.createRadialGradient(50, 84, 2, 50, 76, 22); i.addColorStop(0, '#fffbeb'); i.addColorStop(0.45, '#fef08a'); i.addColorStop(1, '#fbbf24');
+    g.fillStyle = i; g.fill(); g.restore();
+    for (var k = 0; k < 3; k++) {                               // rising embers
+      var q = (t / 1100 + k / 3) % 1, x = 50 + Math.sin(q * 6 + k * 2) * 10 + (k - 1) * 9, y = 30 - q * 26;
+      g.globalAlpha = (1 - q) * 0.9; g.fillStyle = k === 1 ? '#fde047' : '#fb923c'; g.beginPath(); g.arc(x, y, 2.2 - q, 0, Math.PI * 2); g.fill();
     }
-    var k = Math.min(1, t / 0.7), e = 1 - Math.pow(1 - k, 3), cx = Math.round(15 - e * 7.5), cy = Math.round(0 + e * 7.5);
-    var put = function (x, y, c) { if (x >= 0 && x < 16 && y >= 0 && y < 16) px[y * 16 + x] = c; };
-    if (k < 1) { put(cx + 1, cy - 1, 'rgba(34,211,238,.45)'); put(cx + 2, cy - 2, 'rgba(34,211,238,.2)'); }
-    put(cx, cy, '#22d3ee'); put(cx + (k < 1 ? 0 : 1), cy, '#22d3ee');
-    if (k >= 1 && t < 0.78) { put(6, 7, '#a5f3fc'); put(9, 8, '#a5f3fc'); put(7, 6, '#a5f3fc'); put(8, 9, '#a5f3fc'); }
-    return px;
+    g.globalAlpha = 1;
   }
-  function rgba(c) { if (c[0] === '#') return [parseInt(c.substr(1, 2), 16), parseInt(c.substr(3, 2), 16), parseInt(c.substr(5, 2), 16), 255]; var m = c.match(/[\d.]+/g); return [+m[0], +m[1], +m[2], Math.round(+m[3] * 255)]; }
-  var CACHE = {};
-  function col(c) { return CACHE[c] || (CACHE[c] = rgba(c)); }
-  var icons = [], visible = true, rafId = 0, lastDraw = 0, CYCLE = 5000;
-  function seedNoise(n, s) { var a = [], x = s; for (var i = 0; i < n; i++) { x = (x * 9301 + 49297) % 233280; a.push(x / 233280); } return a; }
+  function drawTrophy(g, t) {
+    var gold = g.createLinearGradient(26, 0, 74, 0);
+    gold.addColorStop(0, '#b45309'); gold.addColorStop(0.32, '#fbbf24'); gold.addColorStop(0.5, '#fef3c7'); gold.addColorStop(0.68, '#f59e0b'); gold.addColorStop(1, '#a16207');
+    g.save(); g.shadowColor = 'rgba(251,191,36,.45)'; g.shadowBlur = 12;
+    g.lineWidth = 5; g.lineCap = 'round'; g.strokeStyle = '#f59e0b';
+    g.beginPath(); g.moveTo(30, 22); g.bezierCurveTo(13, 20, 13, 45, 34, 47); g.stroke();      // handles
+    g.beginPath(); g.moveTo(70, 22); g.bezierCurveTo(87, 20, 87, 45, 66, 47); g.stroke();
+    g.beginPath(); g.moveTo(27, 15); g.lineTo(73, 15); g.lineTo(71, 38); g.bezierCurveTo(69, 56, 59, 63, 50, 63); g.bezierCurveTo(41, 63, 31, 56, 29, 38); g.closePath();
+    g.fillStyle = gold; g.fill(); g.restore();
+    g.save(); g.beginPath(); g.moveTo(27, 15); g.lineTo(73, 15); g.lineTo(71, 38); g.bezierCurveTo(69, 56, 59, 63, 50, 63); g.bezierCurveTo(41, 63, 31, 56, 29, 38); g.closePath(); g.clip();
+    var sx = -40 + ((t % 2600) / 2600) * 180, sh = g.createLinearGradient(sx, 0, sx + 22, 0);   // moving shine
+    sh.addColorStop(0, 'rgba(255,255,255,0)'); sh.addColorStop(0.5, 'rgba(255,255,255,.65)'); sh.addColorStop(1, 'rgba(255,255,255,0)');
+    g.translate(50, 40); g.rotate(-0.35); g.translate(-50, -40); g.fillStyle = sh; g.fillRect(sx, 0, 22, 100); g.restore();
+    rrect(g, 23, 10, 54, 7, 3.5); g.fillStyle = '#fcd34d'; g.fill();                              // rim
+    g.fillStyle = 'rgba(255,255,255,.9)'; star(g, 50, 36, 8, 3.4);                                // emblem
+    var st = g.createLinearGradient(0, 62, 0, 76); st.addColorStop(0, '#d97706'); st.addColorStop(1, '#fbbf24');
+    g.fillStyle = st; g.fillRect(45, 62, 10, 13);                                                // stem
+    rrect(g, 33, 74, 34, 8, 3); g.fillStyle = '#f59e0b'; g.fill();
+    rrect(g, 28, 82, 44, 9, 3); g.fillStyle = '#92400e'; g.fill();
+    rrect(g, 40, 84.5, 20, 4, 1.5); g.fillStyle = 'rgba(253,230,138,.7)'; g.fill();               // plaque
+    var sp = 0.5 + 0.5 * Math.sin(t / 260);                                                       // twinkle
+    g.globalAlpha = sp; g.fillStyle = '#fff'; star(g, 80, 12, 6 * (0.6 + sp * 0.4), 1.4); g.globalAlpha = 1;
+  }
+  function star(g, x, y, R, r) { g.beginPath(); for (var i = 0; i < 8; i++) { var a = i * Math.PI / 4 - Math.PI / 2, d = i % 2 ? r : R; g.lineTo(x + Math.cos(a) * d, y + Math.sin(a) * d); } g.closePath(); g.fill(); }
+  function drawTarget(g, t) {
+    var cx = 48, cy = 54, rings = [[40, '#f43f5e'], [31, '#f8fafc'], [22, '#f43f5e'], [13, '#f8fafc'], [6, '#e11d48']];
+    g.save(); g.shadowColor = 'rgba(244,63,94,.35)'; g.shadowBlur = 12;
+    rings.forEach(function (r, i) { g.beginPath(); g.arc(cx, cy, r[0], 0, Math.PI * 2); g.fillStyle = r[1]; g.fill(); if (i === 0) g.shadowBlur = 0; });
+    g.restore();
+    var sh = g.createRadialGradient(cx - 14, cy - 16, 2, cx, cy, 42); sh.addColorStop(0, 'rgba(255,255,255,.28)'); sh.addColorStop(1, 'rgba(0,0,0,.12)');
+    g.beginPath(); g.arc(cx, cy, 40, 0, Math.PI * 2); g.fillStyle = sh; g.fill();
+    var FLY = 650, k = easeIO(clamp(t / FLY)), tipX = 98 + (cx + 1 - 98) * k, tipY = 2 + (cy - 1 - 2) * k;
+    var hitT = t - FLY;
+    if (hitT > 0 && hitT < 520) { var q = hitT / 520; g.globalAlpha = (1 - q) * 0.7; g.strokeStyle = '#38bdf8'; g.lineWidth = 2.5; g.beginPath(); g.arc(cx, cy, 6 + q * 30, 0, Math.PI * 2); g.stroke(); g.globalAlpha = 1; }
+    var wob = hitT > 0 ? Math.sin(hitT / 38) * 0.12 * Math.exp(-hitT / 260) : 0;
+    g.save(); g.translate(tipX, tipY); g.rotate(-Math.PI / 4 + wob);
+    g.lineCap = 'round'; g.strokeStyle = '#e2e8f0'; g.lineWidth = 3.4; g.beginPath(); g.moveTo(3, 0); g.lineTo(38, 0); g.stroke();    // shaft (tail up-right)
+    g.fillStyle = '#38bdf8'; g.beginPath(); g.moveTo(-1, 0); g.lineTo(9, -5.5); g.lineTo(9, 5.5); g.closePath(); g.fill();            // head
+    g.fillStyle = '#22d3ee'; g.beginPath(); g.moveTo(30, 0); g.lineTo(40, -8); g.lineTo(44, -8); g.lineTo(36, 0); g.closePath(); g.fill();
+    g.beginPath(); g.moveTo(30, 0); g.lineTo(40, 8); g.lineTo(44, 8); g.lineTo(36, 0); g.closePath(); g.fill();
+    g.restore();
+    if (k < 1) { g.globalAlpha = 0.35 * (1 - k); g.strokeStyle = '#7dd3fc'; g.lineWidth = 1.5; g.beginPath(); g.moveTo(tipX + 12, tipY - 12); g.lineTo(tipX + 26, tipY - 26); g.stroke(); g.globalAlpha = 1; }
+  }
+  var DRAW = { flame: drawFlame, trophy: drawTrophy, target: drawTarget };
+  function render(ic, g, t) { g.setTransform(1, 0, 0, 1, 0, 0); g.clearRect(0, 0, ic.W, ic.W); g.setTransform(ic.W / 100, 0, 0, ic.W / 100, 0, 0); DRAW[ic.kind](g, t); g.setTransform(1, 0, 0, 1, 0, 0); }
+  function snapshot(ic, t) { render(ic, ic.off, t); return ic.off.getImageData(0, 0, ic.W, ic.W).data; }
+  function blockColor(d, W, x, y, b) {   // average colour of a b×b block (premultiplied by alpha so edges stay soft)
+    var r = 0, gg = 0, bl = 0, a = 0, n = 0;
+    for (var yy = y; yy < Math.min(W, y + b); yy += 2) for (var xx = x; xx < Math.min(W, x + b); xx += 2) { var i = (yy * W + xx) * 4, al = d[i + 3]; r += d[i] * al; gg += d[i + 1] * al; bl += d[i + 2] * al; a += al; n++; }
+    if (!a) return null; return [Math.round(r / a), Math.round(gg / a), Math.round(bl / a), a / n / 255];
+  }
+  function mosaic(ic, d, b) {
+    var g = ic.ctx, W = ic.W; g.setTransform(1, 0, 0, 1, 0, 0); g.clearRect(0, 0, W, W);
+    for (var y = 0; y < W; y += b) for (var x = 0; x < W; x += b) { var c = blockColor(d, W, x, y, b); if (!c || c[3] < 0.04) continue; g.fillStyle = 'rgba(' + c[0] + ',' + c[1] + ',' + c[2] + ',' + c[3].toFixed(3) + ')'; g.fillRect(x, y, b, b); }
+  }
+  function buildBlocks(ic) {               // fixed grid of blocks carrying the outgoing (A) and incoming (B) colours
+    var W = ic.W, b = ic.cell, A = snapshot(ic, P_PIX), B = snapshot(ic, 0), out = [];
+    for (var y = 0; y < W; y += b) for (var x = 0; x < W; x += b) {
+      var ca = blockColor(A, W, x, y, b), cb = blockColor(B, W, x, y, b); if (!ca && !cb) continue;
+      var dx = x + b / 2 - W / 2, dy = y + b / 2 - W / 2, ang = Math.atan2(dy, dx) + (ic.rnd() - 0.5) * 0.9, dist = W * (0.08 + ic.rnd() * 0.2);
+      out.push({ x: x, y: y, a: ca, b: cb, tx: Math.cos(ang) * dist, ty: Math.sin(ang) * dist - W * 0.03, lag: ic.rnd() * 0.25, spin: (ic.rnd() - 0.5) * 2.4 });
+    }
+    ic.blocks = out; ic.A = A; ic.B = B;
+  }
+  function scatter(ic, e, useB) {
+    var g = ic.ctx, b = ic.cell; g.setTransform(1, 0, 0, 1, 0, 0); g.clearRect(0, 0, ic.W, ic.W);
+    for (var i = 0; i < ic.blocks.length; i++) {
+      var q = ic.blocks[i], c = useB ? q.b : q.a; if (!c || c[3] < 0.04) continue;
+      var k = clamp((e - q.lag) / (1 - q.lag)), ke = easeIO(k), s = b * (1 - ke * 0.3);
+      g.globalAlpha = c[3] * (1 - ke * 0.55);
+      g.fillStyle = 'rgb(' + c[0] + ',' + c[1] + ',' + c[2] + ')';
+      g.save(); g.translate(q.x + b / 2 + q.tx * ke, q.y + b / 2 + q.ty * ke); g.rotate(q.spin * ke); g.fillRect(-s / 2, -s / 2, s, s); g.restore();
+    }
+    g.globalAlpha = 1;
+  }
   function paintIcon(ic, now) {
-    var p = (now % CYCLE) / CYCLE, show = 1;                // 0–0.8 shown · 0.8–0.9 dissolve · 0.9–1 reappear
-    if (!reduce) { if (p >= 0.8 && p < 0.9) show = 1 - (p - 0.8) / 0.1; else if (p >= 0.9) show = (p - 0.9) / 0.1; }
-    var px = ic.kind === 'target' ? targetBitmap(reduce ? 1 : p) : bitmap(ic.kind, reduce ? 0 : Math.floor(now / 180));
-    if (ic.kind === 'trophy' && !reduce) { var g = Math.floor(p * 40) % 20; if (g < 12) { var gx = 3 + g; for (var yy = 2; yy < 8; yy++) { var ix = yy * 16 + gx - (yy - 2); if (px[ix] && px[ix] !== ART.trophy.pal.y) px[ix] = ART.trophy.pal.s; } } }
-    var d = ic.img.data;
-    for (var i = 0; i < 256; i++) {
-      var c = px[i] && ic.noise[i] < show ? col(px[i]) : null, o = i * 4;
-      if (c) { d[o] = c[0]; d[o + 1] = c[1]; d[o + 2] = c[2]; d[o + 3] = c[3]; } else d[o + 3] = 0;
-    }
-    ic.ctx.putImageData(ic.img, 0, 0);
+    if (reduce) { render(ic, ic.ctx, ic.kind === 'target' ? 2200 : 900); return; }
+    var t = now % CYCLE, cycleNo = Math.floor(now / CYCLE);
+    if (t < P_PIX) { render(ic, ic.ctx, t); return; }
+    if (ic.cycleNo !== cycleNo || !ic.blocks) { ic.cycleNo = cycleNo; buildBlocks(ic); }
+    var maxB = ic.cell, minB = Math.max(2, Math.round(ic.W / 56));
+    if (t < P_SCAT) { var p = easeIO((t - P_PIX) / (P_SCAT - P_PIX)); mosaic(ic, ic.A, Math.max(minB, Math.round(minB + (maxB - minB) * p))); }
+    else if (t < P_BACK) scatter(ic, (t - P_SCAT) / (P_BACK - P_SCAT), false);
+    else if (t < P_UNPIX) scatter(ic, 1 - (t - P_BACK) / (P_UNPIX - P_BACK), true);
+    else { var u = easeIO((t - P_UNPIX) / (CYCLE - P_UNPIX)); if (u > 0.92) render(ic, ic.ctx, 0); else mosaic(ic, ic.B, Math.max(minB, Math.round(maxB - (maxB - minB) * u))); }
   }
   function loop(now) {
     rafId = 0;
     if (!visible || document.hidden || reduce) return;
-    if (now - lastDraw > 60) { lastDraw = now; icons.forEach(function (ic) { if (ic.cv.isConnected) paintIcon(ic, now); }); }   // ~16 fps is plenty for pixel art
+    if (now - lastDraw > 30) { lastDraw = now; icons.forEach(function (ic) { if (ic.cv.isConnected) paintIcon(ic, now); }); }
     rafId = requestAnimationFrame(loop);
   }
   function kick() { if (!rafId && !reduce) rafId = requestAnimationFrame(loop); }
+  function sizeIcon(ic) {
+    var r = ic.cv.getBoundingClientRect(), css = Math.round(r.width) || 56, dpr = Math.min(2, window.devicePixelRatio || 1), W = Math.round(css * dpr);
+    if (ic.W === W) return; ic.W = W; ic.cv.width = W; ic.cv.height = W; ic.offCv.width = W; ic.offCv.height = W; ic.cell = Math.max(4, Math.round(W / 14)); ic.blocks = null;
+  }
   function mountIcons() {
     icons = [];
     document.querySelectorAll('#fj canvas[data-fj]').forEach(function (cv, n) {
       var ctx = cv.getContext && cv.getContext('2d'); if (!ctx) return;
-      var ic = { cv: cv, ctx: ctx, kind: cv.getAttribute('data-fj'), img: ctx.createImageData(16, 16), noise: seedNoise(256, 17 + n * 31) };
-      icons.push(ic); paintIcon(ic, reduce ? 0 : performance.now());
+      var off = document.createElement('canvas'), seed = 7 + n * 13;
+      var ic = { cv: cv, ctx: ctx, kind: cv.getAttribute('data-fj'), W: 0, rnd: function () { seed = (seed * 9301 + 49297) % 233280; return seed / 233280; } };
+      ic.offCv = off; ic.off = off.getContext('2d', { willReadFrequently: true });
+      sizeIcon(ic); icons.push(ic); paintIcon(ic, reduce ? 0 : performance.now());
     });
     var root = $('fj');
     if (root && 'IntersectionObserver' in window) { new IntersectionObserver(function (es) { visible = es[0].isIntersecting; if (visible) kick(); }).observe(root); }
     document.addEventListener('visibilitychange', function () { if (!document.hidden) kick(); });
+    window.addEventListener('resize', function () { icons.forEach(function (ic) { sizeIcon(ic); paintIcon(ic, performance.now()); }); });
     kick();
   }
 
   // ═════════ dashboard cards ═════════
   function card(id, color, kind, title) {
     return '<div class="fj-card" id="fj-' + id + '" style="--c:' + color + '" role="button" tabindex="0" aria-label="' + title + ' — open details" data-tab="' + ({ streak: 'savings', badges: 'gallery', mile: 'milestones' })[id] + '">'
-      + '<div class="fj-ico"><canvas width="16" height="16" data-fj="' + kind + '" aria-hidden="true"></canvas></div>'
+      + '<div class="fj-ico"><canvas width="112" height="112" data-fj="' + kind + '" aria-hidden="true"></canvas></div>'
       + '<div class="fj-body"><div class="fj-val"><span class="fj-num" id="fj-' + id + '-v">—</span><span class="fj-lbl" id="fj-' + id + '-l">' + title + '</span></div>'
       + '<div class="fj-bar" role="progressbar" aria-valuemin="0" aria-valuemax="100" id="fj-' + id + '-pb"><i id="fj-' + id + '-b"></i></div>'
       + '<div class="fj-next" id="fj-' + id + '-n"></div></div></div>';
@@ -50582,6 +50659,70 @@ body.light-mode .fj-tl li::before { background:#fff; }
   } catch (e) { }
 
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', paintSettings); else paintSettings();
+})();
+</script>
+
+<style id="fos-sb-flip-css">
+.sidebar.fos-sb-flip, .port-sidebar.fos-sb-flip { transition:none !important; }
+.fos-sb-spacer { flex:0 0 auto; align-self:stretch; pointer-events:none; }
+</style>
+<script id="fos-sb-flip">
+/* Smooth sidebar collapse/expand.
+   The old version animated the sidebar's width, which re-laid-out the whole page (charts included) on every frame.
+   Now the page is laid out once at its final size; the sidebar shrinks/grows on its own (taken out of the row for
+   200 ms, so only its own contents move) and the content beside it slides into place with a GPU transform. */
+(function () {
+  'use strict';
+  var D = 220, EASE = 'cubic-bezier(0.32,0.72,0,1)', busy = {};
+  function plain() {
+    try { if (matchMedia('(prefers-reduced-motion: reduce)').matches) return true; } catch (e) { }
+    return window.innerWidth <= 900 || document.body.classList.contains('fos-no-sidebar-anim');
+  }
+  function resizeCharts() { try { Object.values(charts || {}).forEach(function (c) { if (c && typeof c.resize === 'function') c.resize(); }); } catch (e) { } }
+  function flow(el) { var st = getComputedStyle(el); return st.display !== 'none' && st.position !== 'fixed' && st.position !== 'absolute'; }
+  function toggle(id, iconId, key) {
+    var S = document.getElementById(id), icon = document.getElementById(iconId); if (!S) return;
+    var set = function () {
+      S.classList.toggle('collapsed');
+      var c = S.classList.contains('collapsed');
+      if (icon) icon.className = c ? 'fas fa-chevron-right' : 'fas fa-chevron-left';
+      try { localStorage.setItem(key, c); } catch (e) { }
+    };
+    if (busy[id]) return;
+    if (plain() || !S.animate) { set(); requestAnimationFrame(resizeCharts); return; }
+    busy[id] = true;
+    var sibs = [], n = S.nextElementSibling; for (; n; n = n.nextElementSibling) if (flow(n)) sibs.push(n);
+    var r0 = S.getBoundingClientRect(), w0 = S.offsetWidth, L0 = sibs.map(function (e) { return e.getBoundingClientRect().left; });
+    var cs = getComputedStyle(S), expanding = S.classList.contains('collapsed');
+    S.classList.add('fos-sb-flip');   // (not on <body>: another module re-renders the dashboard on body class changes)
+    set();
+    var w1 = S.offsetWidth;                                   // one layout at the final width
+    var sp = document.createElement('div'); sp.className = 'fos-sb-spacer';
+    sp.style.width = w1 + 'px'; sp.style.marginLeft = cs.marginLeft; sp.style.marginRight = cs.marginRight;
+    S.parentNode.insertBefore(sp, S);
+    var keep = S.getAttribute('style') || '';
+    S.style.position = 'absolute'; S.style.left = (r0.left + window.scrollX) + 'px'; S.style.top = (r0.top + window.scrollY) + 'px';
+    S.style.margin = '0'; S.style.height = r0.height + 'px'; S.style.boxSizing = 'border-box'; S.style.width = w0 + 'px';
+    var anims = [S.animate([{ width: w0 + 'px' }, { width: w1 + 'px' }], { duration: D, easing: EASE, fill: 'forwards' })];
+    sibs.forEach(function (e, i) {
+      var dx = L0[i] - e.getBoundingClientRect().left;
+      if (Math.abs(dx) > 0.5) anims.push(e.animate([{ transform: 'translate3d(' + dx + 'px,0,0)' }, { transform: 'translate3d(0,0,0)' }], { duration: D, easing: EASE }));
+    });
+    if (expanding) S.querySelectorAll('.nav-label, .nav-section-label, .welcome-msg, .sidebar-footer-expanded, .port-brand-sub, .port-filter-box').forEach(function (el) {
+      try { el.animate([{ opacity: 0 }, { opacity: 0, offset: 0.45 }, { opacity: 1 }], { duration: D + 80, easing: 'ease-out' }); } catch (e) { }
+    });
+    var done = false;
+    var finish = function () {
+      if (done) return; done = true;
+      S.setAttribute('style', keep); if (!keep) S.removeAttribute('style');
+      anims[0].cancel(); sp.remove();
+      S.classList.remove('fos-sb-flip'); busy[id] = false;
+      requestAnimationFrame(resizeCharts);
+    };
+    anims[0].finished.then(finish, finish); setTimeout(finish, D + 400);
+  }
+  window.toggleFinanceSidebar = toggleFinanceSidebar = function () { toggle('finance-sidebar', 'finance-toggle-icon', 'fos_finance_sidebar_collapsed'); };
+  window.togglePortfolioSidebar = togglePortfolioSidebar = function () { toggle('portfolio-sidebar', 'portfolio-toggle-icon', 'fos_portfolio_sidebar_collapsed'); };
 })();
 </script>
 </body>
