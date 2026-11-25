@@ -11,7 +11,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="fos-integrity" content="0db2d3f83f024c64d4861a2fcec784560cc2d03e07502e6d2030c3d6eaec9879">
+<meta name="fos-integrity" content="926125651fdeb5a13742c6918d58ba4c1372deb4e95b9ede216832674580fd94">
 <script id="fos-tamper-guard">
 /*! \u00a9 2026 MC Enterprise. Integrity check: detects a copy of this file that no longer matches the
     official release and locks it with a notice. This checks the FILE as served, not live memory --
@@ -9288,7 +9288,7 @@ function passAppLockGate() {
           <div class="kpi-sub" id="kpi-savings-sub">of income saved</div>
         </div>
         <div class="kpi-card" style="border-color:rgba(249,115,22,0.2);background:rgba(249,115,22,0.04)">
-          <div class="kpi-label" style="color:#f97316">Credit Outstanding</div>
+          <div class="kpi-label" style="color:#f97316">Credit Outstanding <span class="kpi-cnt" id="kpi-credit-count" data-no-count hidden></span></div>
           <div class="kpi-value" id="kpi-credit-outstanding" style="color:#f97316">₹0</div>
           <div class="kpi-sub" id="kpi-credit-sub">total balance due</div>
         </div>
@@ -27604,6 +27604,7 @@ function renderDashCreditCharts() {
   if (el) {
     el.textContent = fmt(totalOutstanding);
     document.getElementById('kpi-credit-sub').textContent = `${activeCredit.length} active · ₹${Math.round(totalEmi).toLocaleString('en-IN')}/mo EMI`;
+    const cnt = document.getElementById('kpi-credit-count'); if (cnt) { cnt.textContent = activeCredit.length + ' active'; cnt.hidden = !activeCredit.length; cnt.title = activeCredit.length + ' active loans · ₹' + Math.round(totalEmi).toLocaleString('en-IN') + '/mo EMI'; }
   }
 
 // Outstanding by lender - Liquid Flow Bars
@@ -51106,5 +51107,17 @@ body.light-mode .pin-box { background:#f8fafc; border-color:#cbd5e1; color:#0f17
   }
 })();
 </script>
+
+<style id="fos-dash-kpi-trim">
+/* Dashboard key figures: just the label and the number — no explanation lines, equal compact tiles */
+#view-dashboard .kpi-grid:has(#kpi-balance) .kpi-sub { display:none !important; }
+#view-dashboard .kpi-grid:has(#kpi-balance) { grid-auto-rows:1fr; grid-template-columns:repeat(4, minmax(0,1fr)) !important; }
+@media (max-width:640px) { #view-dashboard .kpi-grid:has(#kpi-balance) { grid-template-columns:repeat(2, minmax(0,1fr)) !important; } }
+#view-dashboard .kpi-grid:has(#kpi-balance) .kpi-card { min-height:0 !important; display:flex; flex-direction:column; justify-content:center; padding-top:14px !important; padding-bottom:14px !important; }
+#view-dashboard .kpi-grid:has(#kpi-balance) .kpi-label { display:flex; align-items:center; gap:6px; flex-wrap:wrap; }
+#view-dashboard .kpi-grid:has(#kpi-balance) .kpi-card { position:relative; }
+#view-dashboard .kpi-grid:has(#kpi-balance) .kpi-cnt { position:absolute; right:12px; bottom:14px; }
+.kpi-cnt { font:700 .58rem 'DM Sans',sans-serif; letter-spacing:.04em; text-transform:none; padding:2px 7px; border-radius:99px; color:#f97316; background:rgba(249,115,22,.12); border:1px solid rgba(249,115,22,.3); white-space:nowrap; }
+</style>
 </body>
 </html>
