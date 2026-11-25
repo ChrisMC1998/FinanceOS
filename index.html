@@ -11,7 +11,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="fos-integrity" content="a165885b2511586ee425d8bae1b051d4c84dbd717631a7875c3893c4ea99d285">
+<meta name="fos-integrity" content="ad8de022a1048c7a97c6c8de6ec2f23989f25aa81e1eddd7fbecaa3ccd457532">
 <script id="fos-tamper-guard">
 /*! \u00a9 2026 MC Enterprise. Integrity check: detects a copy of this file that no longer matches the
     official release and locks it with a notice. This checks the FILE as served, not live memory --
@@ -3525,6 +3525,9 @@ body.light-mode .cin-pur select option { background:#fff; color:#0f172a; }
 
 
 /* ── LIVE MARKET PULSE ── */
+.mc-st { font-weight:700; white-space:nowrap; }
+.mc-st::before { content:''; display:inline-block; width:6px; height:6px; border-radius:50%; margin-right:5px; vertical-align:1px; background:currentColor; }
+.mc-st-live { color:#34d399; } .mc-st-saved { color:#38bdf8; } .mc-st-sample { color:#f59e0b; } .mc-st-fixed { color:var(--text-muted); }
 .market-pulse-grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(230px, 1fr));
@@ -9742,33 +9745,49 @@ function _passAppLockGateOnce() {
 <!-- SCENARIO VIEW -->
     <div id="view-scenario" class="view-section">
       <div class="glass-panel">
-        <div class="panel-title">SIP Investment Scenario</div>
-        <div class="modal-row">
-          <div class="input-group">
-            <label>Monthly Investment (₹)</label>
-            <input type="number" id="sc-monthly" class="input-field" value="10000" oninput="calcScenario()">
-          </div>
-          <div class="input-group">
-            <label>Expected Return (% p.a.)</label>
-            <input type="number" id="sc-returns" class="input-field" value="12" step="0.01" min="0" oninput="calcScenario()">
-            <div id="sc-return-note" style="font-size:0.66rem;color:var(--text-muted);margin-top:4px;opacity:0.85">Default planning assumption — editable</div>
-            <div id="sc-return-warning" style="font-size:0.66rem;color:#f59e0b;margin-top:3px;display:none"><i class="fas fa-triangle-exclamation" style="margin-right:4px"></i>High return assumption — results may be highly sensitive to this value.</div>
-          </div>
+        <div class="panel-title" style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap">
+          <span>Investment Scenario &amp; Forecast</span>
+          <button type="button" class="btn-secondary scn-mine" onclick="scnUseMyHoldings()" title="Start from what you already hold in this asset class"><i class="fas fa-briefcase" style="margin-right:6px"></i>Start from my holdings</button>
         </div>
-        <div class="modal-row">
-          <div class="input-group">
-            <label>Time Period (Years)</label>
-            <input type="number" id="sc-years" class="input-field" value="10" oninput="calcScenario()">
-          </div>
+        <div class="scn-grid">
           <div class="input-group">
             <label><i id="sc-asset-icon" class="fas fa-chart-pie" style="color:var(--c-mf);margin-right:5px;font-size:0.75rem"></i>Asset Type</label>
             <select id="sc-type" class="input-field" onchange="updateScenarioReturns()">
               <!-- Rendered by renderScenarioAssetOptions() from SCENARIO_ASSET_CONFIG -->
             </select>
+            <div id="sc-asset-desc" class="scn-hint"></div>
+          </div>
+          <div class="input-group">
+            <label>How you invest</label>
+            <select id="sc-mode" class="input-field" onchange="scnModeChanged()">
+              <option value="both">Starting amount + monthly</option>
+              <option value="sip">Monthly only (SIP)</option>
+              <option value="lump">One-time amount only</option>
+            </select>
+          </div>
+          <div class="input-group" id="sc-lump-wrap">
+            <label>Starting Amount (₹)</label>
+            <input type="number" id="sc-lump" class="input-field" value="0" min="0" oninput="calcScenario()">
+            <div id="sc-lump-note" class="scn-hint"></div>
+          </div>
+          <div class="input-group" id="sc-monthly-wrap">
+            <label>Monthly Investment (₹)</label>
+            <input type="number" id="sc-monthly" class="input-field" value="10000" min="0" oninput="calcScenario()">
+          </div>
+          <div class="input-group">
+            <label>Expected Return (% p.a.)</label>
+            <input type="number" id="sc-returns" class="input-field" value="12" step="0.01" min="0" oninput="calcScenario()">
+            <div id="sc-return-note" class="scn-hint">Default planning assumption — editable</div>
+            <div id="sc-return-warning" style="font-size:0.66rem;color:#f59e0b;margin-top:3px;display:none"><i class="fas fa-triangle-exclamation" style="margin-right:4px"></i>High return assumption — results may be highly sensitive to this value</div>
+          </div>
+          <div class="input-group">
+            <label>Time Period (Years)</label>
+            <input type="number" id="sc-years" class="input-field" value="10" min="1" max="60" oninput="calcScenario()">
           </div>
         </div>
+
         <div class="toggle-row">
-          <div class="toggle-label"><i class="fas fa-stairs" style="color:var(--accent);margin-right:6px"></i> Investment Step-up</div>
+          <div class="toggle-label"><i class="fas fa-stairs" style="color:var(--accent);margin-right:6px"></i> Increase the monthly amount over time (step-up)</div>
           <label class="toggle-switch">
             <input type="checkbox" id="sc-stepup-enabled" onchange="toggleScenarioStepup()">
             <span class="toggle-slider"></span>
@@ -9788,46 +9807,102 @@ function _passAppLockGateOnce() {
             </select>
           </div>
         </div>
-        <div style="font-size:0.66rem;color:var(--text-muted);opacity:0.75;margin-top:2px;margin-bottom:10px">
-          <i class="fas fa-circle-info" style="margin-right:4px"></i>Returns are illustrative assumptions for scenario modelling. Actual returns may vary.
+
+        <details class="scn-adv" open>
+          <summary><i class="fas fa-sliders-h" style="margin-right:6px;color:#a78bfa"></i>Advanced assumptions <span class="scn-hint" style="display:inline;margin-left:6px">pre-filled for the asset type, all editable</span></summary>
+          <div class="scn-grid">
+            <div class="input-group">
+              <label>Compounding</label>
+              <select id="sc-comp" class="input-field" onchange="calcScenario()">
+                <option value="monthly">Monthly</option>
+                <option value="quarterly">Quarterly (bank FD / RD)</option>
+                <option value="yearly">Yearly</option>
+              </select>
+            </div>
+            <div class="input-group">
+              <label>Ups and downs (volatility % p.a.)</label>
+              <input type="number" id="sc-vol" class="input-field" value="15" min="0" max="150" step="0.5" oninput="calcScenario()">
+              <div class="scn-hint">How much a typical year swings. 0 = guaranteed return.</div>
+            </div>
+            <div class="input-group">
+              <label>Inflation (% p.a.)</label>
+              <input type="number" id="sc-infl" class="input-field" value="6" min="0" max="30" step="0.1" oninput="calcScenario()">
+              <div class="scn-hint">Used for the "in today's money" figures.</div>
+            </div>
+            <div class="input-group">
+              <label>Yearly costs / fees (%)</label>
+              <input type="number" id="sc-fee" class="input-field" value="0" min="0" max="10" step="0.05" oninput="calcScenario()">
+              <div class="scn-hint">Fund expense ratio, storage, maintenance or platform fees.</div>
+            </div>
+            <div class="input-group">
+              <label>Tax on gains when you sell (%)</label>
+              <input type="number" id="sc-tax" class="input-field" value="12.5" min="0" max="50" step="0.5" oninput="calcScenario()">
+              <div id="sc-tax-note" class="scn-hint"></div>
+            </div>
+            <div class="input-group">
+              <label>Goal amount (₹, optional)</label>
+              <input type="number" id="sc-goal" class="input-field" value="" min="0" placeholder="e.g. 5000000" oninput="calcScenario()">
+              <div class="scn-hint">Shows when you reach it and what it takes.</div>
+            </div>
+          </div>
+        </details>
+
+        <div style="font-size:0.66rem;color:var(--text-muted);opacity:0.75;margin:10px 0">
+          <i class="fas fa-circle-info" style="margin-right:4px"></i>Returns are illustrative assumptions for scenario modelling. The range comes from 1,000 simulated markets with the volatility above. Actual returns may vary.
         </div>
-        <div class="calc-preview">
+        <div class="calc-preview scn-kpis">
           <div class="calc-item"><div class="calc-item-label">Total Invested</div><div class="calc-item-val" id="sc-invested">₹0</div></div>
           <div class="calc-item"><div class="calc-item-label">Estimated Gains</div><div class="calc-item-val" id="sc-gains">₹0</div></div>
           <div class="calc-item"><div class="calc-item-label">Total Value</div><div class="calc-item-val" id="sc-total">₹0</div></div>
+          <div class="calc-item"><div class="calc-item-label">After Fees &amp; Tax</div><div class="calc-item-val" id="sc-net">₹0</div></div>
+          <div class="calc-item"><div class="calc-item-label">In Today's Money</div><div class="calc-item-val" id="sc-real">₹0</div></div>
+          <div class="calc-item"><div class="calc-item-label">Likely Range</div><div class="calc-item-val" id="sc-range" style="font-size:.95rem">—</div></div>
         </div>
+        <div id="sc-insights" class="scn-insights"></div>
       </div>
 
       <!-- Growth Chart -->
       <div class="charts-row" style="margin-top:1.3rem;grid-template-columns:minmax(0,7fr) minmax(0,3fr)">
         <div class="glass-panel" style="margin-bottom:0">
           <div class="panel-title">Wealth Growth Over Time</div>
-          <div style="height:300px"><canvas id="sc-growth-chart"></canvas></div>
+          <div class="scn-hint" style="margin:-6px 0 8px">Shaded band = the middle 80% of simulated outcomes. Dashed line = the same value in today's money.</div>
+          <div style="height:320px"><canvas id="sc-growth-chart"></canvas></div>
         </div>
         <div class="glass-panel" style="margin-bottom:0">
-          <div class="panel-title">Invested vs Returns Breakdown</div>
-          <div style="height:300px"><canvas id="sc-donut-chart"></canvas></div>
+          <div class="panel-title">Where the Final Value Comes From</div>
+          <div style="height:320px"><canvas id="sc-donut-chart"></canvas></div>
         </div>
+      </div>
+
+      <!-- Compare asset types -->
+      <div class="glass-panel" style="margin-top:1.3rem">
+        <div class="panel-title">Same Plan, Different Asset Types</div>
+        <div class="scn-hint" style="margin:-6px 0 10px">Your amounts and years, each asset's default return, volatility, fees and tax. Bars show the middle (most likely) outcome after fees and tax; the thin line is the weak-to-strong market range. Tap one to switch to it.</div>
+        <div id="sc-compare"></div>
       </div>
 
       <!-- Yearly Breakdown Table -->
       <div class="glass-panel" style="margin-top:1.3rem">
         <div class="panel-title">Year-by-Year Breakdown</div>
+        <div style="overflow-x:auto">
         <table>
           <thead>
             <tr>
               <th>Year</th>
               <th style="text-align:right">Amount Invested</th>
-              <th style="text-align:right">Interest Earned</th>
+              <th style="text-align:right">Gains</th>
               <th style="text-align:right">Total Value</th>
+              <th style="text-align:right">In Today's Money</th>
+              <th style="text-align:right">Weak Market</th>
+              <th style="text-align:right">Strong Market</th>
               <th style="text-align:right">Growth %</th>
             </tr>
           </thead>
           <tbody id="sc-table-body"></tbody>
         </table>
+        </div>
       </div>
      </div>
-
     <!-- LIST VIEW -->
     <div id="view-list" class="view-section">
       <!-- TOTAL AMOUNT SUMMARY BAR -->
@@ -10049,8 +10124,9 @@ function _passAppLockGateOnce() {
       <div class="analytics-grid" style="margin-bottom:1.3rem">
         <div class="glass-panel" style="margin-bottom:0">
           <div class="panel-title">Monthly Net Worth Change</div>
-          <div class="nw-sub">How much net worth rose or fell each month</div>
-          <div style="height:240px"><canvas id="chart-nw-delta"></canvas></div>
+          <div class="nw-sub">How much your net worth rose or fell each month, and what drove it. Hover a month for the details.</div>
+          <div class="nwd-sum" id="nw-delta-sum" data-no-count></div>
+          <div style="height:260px"><canvas id="chart-nw-delta"></canvas></div>
         </div>
         <div class="glass-panel" style="margin-bottom:0">
           <div class="panel-title">Debt-to-Assets Over Time</div>
@@ -10139,11 +10215,13 @@ function _passAppLockGateOnce() {
       <div class="charts-row">
         <div class="glass-panel" style="margin-bottom:0">
           <div class="panel-title">Active vs Sold Holdings</div>
-          <div style="height:220px"><canvas id="port-status-donut"></canvas></div>
+          <div class="pst-sum" id="port-status-sum" data-no-count></div>
+          <div style="height:190px"><canvas id="port-status-donut"></canvas></div>
         </div>
         <div class="glass-panel" style="margin-bottom:0">
           <div class="panel-title">Unrealized vs Realized Gain/Loss</div>
-          <div style="height:220px"><canvas id="port-status-gain-bar"></canvas></div>
+          <div class="pst-sum" id="port-gain-sum" data-no-count></div>
+          <div id="port-gain-wrap" style="height:220px"><canvas id="port-status-gain-bar"></canvas></div>
         </div>
       </div>
 
@@ -10273,7 +10351,9 @@ function _passAppLockGateOnce() {
      <div class="analytics-grid" style="margin-bottom:1.3rem;grid-template-columns:minmax(0,4fr) minmax(0,6fr)">
         <div class="glass-panel" style="margin-bottom:0">
   <div class="panel-title">CAPITAL LIQUIDITY MATRIX <i class="fas fa-water" style="margin-left:6px; color:#3b82f6; font-size: 0.85rem;"></i></div>
-  <div style="height:320px"><canvas id="chart-port-liquidity"></canvas></div>
+  <div class="liq-sub">How quickly your holdings could become cash</div>
+  <div id="port-liq-ladder" data-no-count></div>
+  <div style="display:none"><canvas id="chart-port-liquidity"></canvas></div>
 </div>
        <div class="glass-panel" style="margin-bottom:0">
   <div class="panel-title">SYSTEMIC EXPOSURE (ACTUAL VS IDEAL) <i class="fas fa-crosshairs" style="margin-left:6px; color:#38bdf8; font-size: 0.85rem;"></i></div>
@@ -13359,7 +13439,7 @@ async function handleLogout() {
   // logout clears local data — so offer a JSON backup first.
   if (typeof isCloudTrackingOn === 'function' && !isCloudTrackingOn()) {
     if (confirm('You are in Manual JSON mode — your data is NOT saved in the cloud, and logging out clears it from this device.\n\nPress OK to download a JSON backup now, or Cancel to continue without one.')) {
-      downloadBackup();
+      await downloadBackup();
     }
   }
   if (!confirm('Log out of FinanceOS?')) return;
@@ -13569,7 +13649,7 @@ async function enableCloudTracking() {
           }
           finish('push');
       } },
-      { label: 'Use cloud data (replaces this device\u2019s data)', fn: () => { downloadBackup(); finish('pull'); } },
+      { label: 'Use cloud data (replaces this device\u2019s data)', fn: async () => { await downloadBackup(); finish('pull'); } },
       { label: 'Cancel — stay on Manual JSON' }
     ]
   });
@@ -13963,6 +14043,9 @@ function getPortFilteredAllStatus() {
   return data.filter(item => {
     const iY = item.date.slice(0,4), iM = item.date.slice(5,7);
     if (portFilterMode === 'only') {
+      // a holding sold in this period counts here too, even if it was bought earlier
+      const sd = String(item.status || '').toLowerCase() === 'sold' ? String(item.sellDate || '') : '';
+      if (sd && (fY === 'all' || sd.slice(0, 4) === fY) && (fM === 'all' || sd.slice(5, 7) === fM)) return true;
       if (fY !== 'all' && iY !== fY) return false;
       if (fM !== 'all' && iM !== fM) return false;
       return true;
@@ -14218,6 +14301,7 @@ function switchView(viewName, btn, group) {
   else if (viewName === 'ccutil') { setTimeout(initCCView, 50); }
   else if (viewName === 'roughboard') { setTimeout(initRoughBoard, 100); }
   else if (viewName === 'calculator') { setTimeout(initCalculator, 100); }
+  else if (viewName === 'scenario') { setTimeout(() => { try { scnModeChanged(); } catch (e) { console.error('Scenario failed:', e); } }, 60); }
   else if (viewName === 'insurance') { renderInsurance(); }
   else if (viewName === 'subscriptions') { renderSubscriptions(); }
   else if (viewName === 'notes') { renderNotesList(); }
@@ -19996,80 +20080,93 @@ function setChartEmpty(canvas, isEmpty, emptyHtml) {
   }
 }
 
+function portIsSold(e) { return String(e && e.status || '').toLowerCase() === 'sold'; }
 function renderPortStatusCharts() {
   const all = getPortFilteredAllStatus();
-  const activeItems = all.filter(e => e.status !== 'sold');
-  const soldItems   = all.filter(e => e.status === 'sold');
+  const activeItems = all.filter(e => !portIsSold(e));
+  const soldItems   = all.filter(e => portIsSold(e));
   const activeCalcs = activeItems.map(e => portCalc(e));
   const soldCalcs   = soldItems.map(e => portCalc(e));
-
   const activeVal = activeCalcs.reduce((a,c) => a + c.currentValue, 0);
   const soldVal   = soldCalcs.reduce((a,c) => a + c.currentValue, 0);
   const activeInv = activeCalcs.reduce((a,c) => a + c.totalInvestment, 0);
   const soldInv   = soldCalcs.reduce((a,c) => a + c.totalInvestment, 0);
-  const activeGain = activeCalcs.reduce((a,c) => a + c.gainLoss, 0);
-  const soldGain    = soldCalcs.reduce((a,c) => a + c.gainLoss, 0);
+  const activeGain = activeVal - activeInv, soldGain = soldVal - soldInv;
+  const isLight = document.body.classList.contains('light-mode');
+  const pct = (g, inv) => inv > 0 ? (g >= 0 ? '+' : '−') + Math.abs(g / inv * 100).toFixed(1) + '%' : '—';
+  const sgn = v => (v >= 0 ? '+' : '−') + fmt(Math.abs(v));
+  const K = v => { const a = Math.abs(v); return (v < 0 ? '−' : '') + '₹' + (a >= 1e7 ? (a / 1e7).toFixed(1) + 'Cr' : a >= 1e5 ? (a / 1e5).toFixed(1) + 'L' : a >= 1e3 ? Math.round(a / 1e3) + 'k' : Math.round(a)); };
+  const glow = (col) => ({ id: 'pstGlow', beforeDatasetsDraw: c => { if (isLight) return; c.ctx.save(); c.ctx.shadowColor = col; c.ctx.shadowBlur = 12; }, afterDatasetsDraw: c => { if (!isLight) c.ctx.restore(); } });
+  const tip = { backgroundColor: typeof fosTipBg === 'function' ? fosTipBg() : 'rgba(10,14,18,.95)', borderColor: 'rgba(45,212,191,.35)', borderWidth: 1, titleFont: { family: 'DM Sans', size: 12, weight: '700' }, bodyFont: { family: 'DM Mono', size: 11 } };
 
-  // 1. Summary — Active vs Sold count/value donut
+  // 1. Active vs Sold: for each group, what went in and what it's worth now (active) or what it sold for (sold)
+  const sumEl = document.getElementById('port-status-sum');
+  if (sumEl) sumEl.innerHTML = !all.length ? '' :
+    '<div class="pst-chip" style="--c:#34d399"><em>Active</em><b>' + activeItems.length + '</b><span>' + K(activeVal) + ' now · ' + pct(activeGain, activeInv) + '</span></div>' +
+    '<div class="pst-chip" style="--c:#a78bfa"><em>Sold</em><b>' + soldItems.length + '</b><span>' + K(soldVal) + ' received · ' + pct(soldGain, soldInv) + '</span></div>' +
+    '<div class="pst-chip" style="--c:#38bdf8"><em>Capital still invested</em><b>' + (activeInv + soldInv > 0 ? Math.round(activeInv / (activeInv + soldInv) * 100) : 0) + '%</b><span>of everything you ever put in</span></div>';
   const donutEl = document.getElementById('port-status-donut');
   if (donutEl) {
     destroyChart('port-status-donut');
     const empty = !activeItems.length && !soldItems.length;
     setChartEmpty(donutEl, empty, '<div class="empty-state" style="padding-top:2rem"><i class="fas fa-gem"></i><p>No portfolio data</p></div>');
     if (!empty) {
+      const g = donutEl.getContext('2d'), mk = (a, b) => { const x = g.createLinearGradient(0, 0, donutEl.clientWidth || 400, 0); x.addColorStop(0, a); x.addColorStop(1, b); return x; };
       charts['port-status-donut'] = new Chart(donutEl, {
-        type: 'doughnut',
+        type: 'bar',
         data: {
-          labels: [`Active (${activeItems.length})`, `Sold (${soldItems.length})`],
-          datasets: [{ data: [activeVal, soldVal], ...donutSliceStyle(donutEl, ['#34d399', '#94a3b8']) }]
+          labels: [`Active · ${activeItems.length}`, `Sold · ${soldItems.length}`],
+          datasets: [
+            { label: 'Put in', data: [activeInv, soldInv], backgroundColor: isLight ? 'rgba(100,116,139,.35)' : 'rgba(148,163,184,.28)', borderColor: 'rgba(148,163,184,.55)', borderWidth: 1, borderRadius: 7, barPercentage: .78, categoryPercentage: .7 },
+            { label: 'Worth now / sold for', data: [activeVal, soldVal], backgroundColor: [mk('rgba(45,212,191,.55)', '#34d399'), mk('rgba(139,92,246,.55)', '#a78bfa')], borderRadius: 7, barPercentage: .78, categoryPercentage: .7 }
+          ]
         },
+        plugins: [glow('rgba(52,211,153,.45)'), { id: 'pstEnd', afterDatasetsDraw: c => { const m = c.getDatasetMeta(1), ctx = c.ctx; ctx.save(); ctx.font = "700 11px 'DM Mono', monospace"; ctx.textBaseline = 'middle'; m.data.forEach((bar, i) => { const gl = i === 0 ? activeGain : soldGain, inv = i === 0 ? activeInv : soldInv; if (!inv) return; ctx.fillStyle = gl >= 0 ? '#4ade80' : '#f87171'; const t = (gl >= 0 ? '▲ ' : '▼ ') + K(Math.abs(gl)); ctx.textAlign = 'left'; ctx.fillText(t, Math.min(bar.x + 8, c.chartArea.right - ctx.measureText(t).width), bar.y); }); ctx.restore(); } }],
         options: {
-          responsive: true, maintainAspectRatio: false, cutout: '65%',
-          plugins: { legend: { position: 'bottom', labels: { color: chartTextColor(), font: { size: 11 } } },
-            tooltip: { callbacks: { label: (ctx) => `${ctx.label}: ${fmt(ctx.parsed)}` } } }
+          indexAxis: 'y', responsive: true, maintainAspectRatio: false, layout: { padding: { right: 62 } },
+          plugins: { legend: { position: 'bottom', labels: { color: chartTextColor(), boxWidth: 10, boxHeight: 10, usePointStyle: true, pointStyle: 'rectRounded', font: { size: 11 } } },
+            tooltip: Object.assign({}, tip, { callbacks: { label: c => ' ' + c.dataset.label + ': ' + fmt(c.parsed.x), footer: it => { const i = it[0].dataIndex, gl = i === 0 ? activeGain : soldGain, inv = i === 0 ? activeInv : soldInv; return (i === 0 ? 'Unrealized ' : 'Realized ') + sgn(gl) + ' (' + pct(gl, inv) + ')'; } } }) },
+          scales: { x: { ticks: { color: chartTextColor(), callback: v => K(v), maxTicksLimit: 5 }, grid: { color: chartGridColor() }, border: { display: false } }, y: { ticks: { color: chartTextColor(), font: { weight: '700' } }, grid: { display: false }, border: { display: false } } }
         }
       });
     }
   }
 
-  // 2. Summary — Unrealized (active) vs Realized (sold) gain/loss — gradient line
+  // 2. Unrealized vs Realized: gain or loss per asset type, on paper (still held) and locked in (sold)
   const gainBarEl = document.getElementById('port-status-gain-bar');
   if (gainBarEl) {
     destroyChart('port-status-gain-bar');
-    setChartEmpty(gainBarEl, false, '');
-    const gbCtx = gainBarEl.getContext('2d');
-    const gGain = gbCtx.createLinearGradient(0, 0, 0, 220);
-    gGain.addColorStop(0, 'rgba(52, 211, 153, 0.45)');
-    gGain.addColorStop(1, 'rgba(52, 211, 153, 0.0)');
-    const gLoss = gbCtx.createLinearGradient(0, 0, 0, 220);
-    gLoss.addColorStop(0, 'rgba(167, 139, 250, 0.45)');
-    gLoss.addColorStop(1, 'rgba(167, 139, 250, 0.0)');
-    charts['port-status-gain-bar'] = new Chart(gbCtx, {
-      type: 'line',
-      data: {
-        labels: ['Unrealized (Active)', 'Realized (Sold)'],
-        datasets: [{
-          label: 'Gain / Loss',
-          data: [activeGain, soldGain],
-          borderColor: '#34d399',
-          backgroundColor: gGain,
-          segment: { backgroundColor: ctx => ctx.p0DataIndex === 0 ? gGain : gLoss },
-          borderWidth: 3,
-          tension: 0.4,
-          fill: true,
-          pointRadius: 6,
-          pointBackgroundColor: ctx => (ctx.raw ?? 0) >= 0 ? '#34d399' : '#ef4444',
-          pointBorderColor: '#fff',
-          pointBorderWidth: 2,
-          pointHoverRadius: 8
-        }]
-      },
-      options: {
-        responsive: true, maintainAspectRatio: false,
-        plugins: { legend: { display: false }, tooltip: { callbacks: { label: (ctx) => fmt(ctx.parsed.y) } } },
-        scales: { x: { ticks: { color: chartTextColor() }, grid: { display: false } }, y: { ticks: { color: chartTextColor(), callback: v => fmt(v) }, grid: { color: chartGridColor() } } }
-      }
-    });
+    const byT = {};
+    activeItems.forEach((e, i) => { const t = normalizeAssetType(e.assetType), o = byT[t] || (byT[t] = { u: 0, r: 0 }); o.u += activeCalcs[i].gainLoss; });
+    soldItems.forEach((e, i) => { const t = normalizeAssetType(e.assetType), o = byT[t] || (byT[t] = { u: 0, r: 0 }); o.r += soldCalcs[i].gainLoss; });
+    const types = Object.keys(byT).sort((a, b) => Math.abs(byT[b].u + byT[b].r) - Math.abs(byT[a].u + byT[a].r));
+    const empty = !types.length;
+    setChartEmpty(gainBarEl, empty, '<div class="empty-state" style="padding-top:2rem"><i class="fas fa-scale-balanced"></i><p>No holdings yet</p></div>');
+    const gs = document.getElementById('port-gain-sum');
+    if (gs) gs.innerHTML = empty ? '' :
+      '<div class="pst-chip" style="--c:#2dd4bf"><em>Unrealized</em><b style="color:' + (activeGain >= 0 ? '#4ade80' : '#f87171') + '">' + sgn(activeGain) + '</b><span>on paper · ' + pct(activeGain, activeInv) + '</span></div>' +
+      '<div class="pst-chip" style="--c:#a78bfa"><em>Realized</em><b style="color:' + (soldGain >= 0 ? '#4ade80' : '#f87171') + '">' + sgn(soldGain) + '</b><span>locked in · ' + pct(soldGain, soldInv) + '</span></div>' +
+      '<div class="pst-chip" style="--c:#fbbf24"><em>Total</em><b style="color:' + (activeGain + soldGain >= 0 ? '#4ade80' : '#f87171') + '">' + sgn(activeGain + soldGain) + '</b><span>' + pct(activeGain + soldGain, activeInv + soldInv) + ' on all capital</span></div>';
+    const wrap = document.getElementById('port-gain-wrap'); if (wrap) wrap.style.height = Math.max(170, Math.min(420, 52 + types.length * 34)) + 'px';
+    if (!empty) {
+      const nameOf = t => (typeof assetTypeLabel === 'function' ? assetTypeLabel(t) : t) || t;
+      const col = (v, a, b) => v >= 0 ? a : b;
+      charts['port-status-gain-bar'] = new Chart(gainBarEl, {
+        type: 'bar',
+        data: { labels: types.map(nameOf), datasets: [
+          { label: 'Unrealized (held)', data: types.map(t => Math.round(byT[t].u)), backgroundColor: types.map(t => col(byT[t].u, 'rgba(45,212,191,.85)', 'rgba(248,113,113,.75)')), borderRadius: 5, barPercentage: .82, categoryPercentage: .78 },
+          { label: 'Realized (sold)', data: types.map(t => Math.round(byT[t].r)), backgroundColor: types.map(t => col(byT[t].r, 'rgba(167,139,250,.9)', 'rgba(244,114,182,.75)')), borderRadius: 5, barPercentage: .82, categoryPercentage: .78 }
+        ] },
+        plugins: [glow('rgba(45,212,191,.35)')],
+        options: {
+          indexAxis: 'y', responsive: true, maintainAspectRatio: false,
+          plugins: { legend: { position: 'bottom', labels: { color: chartTextColor(), boxWidth: 10, boxHeight: 10, usePointStyle: true, pointStyle: 'rectRounded', font: { size: 11 }, generateLabels: ch => [{ text: 'Unrealized (still held)', fillStyle: 'rgba(45,212,191,.85)', strokeStyle: 'transparent', fontColor: chartTextColor(), datasetIndex: 0, hidden: !ch.isDatasetVisible(0), pointStyle: 'rectRounded' }, { text: 'Realized (sold)', fillStyle: 'rgba(167,139,250,.9)', strokeStyle: 'transparent', fontColor: chartTextColor(), datasetIndex: 1, hidden: !ch.isDatasetVisible(1), pointStyle: 'rectRounded' }] } },
+            tooltip: Object.assign({}, tip, { filter: c => c.raw !== 0, callbacks: { label: c => ' ' + c.dataset.label + ': ' + sgn(c.raw) } }) },
+          scales: { x: { ticks: { color: chartTextColor(), callback: v => K(v), maxTicksLimit: 6 }, grid: { color: c => c.tick && c.tick.value === 0 ? (isLight ? 'rgba(15,23,42,.4)' : 'rgba(226,232,240,.4)') : chartGridColor() }, border: { display: false } },
+            y: { ticks: { color: chartTextColor(), font: { size: 11, weight: '600' } }, grid: { display: false }, border: { display: false } } }
+        }
+      });
+    }
   }
 
   // 3. Analytics — Sold holdings realized value by asset type
@@ -20914,148 +21011,40 @@ function renderPortAnalytics() {
        </div>`;
   }
 
-// 9. CAPITAL LIQUIDITY MATRIX - Glass Orbital Radar
+// 9. CAPITAL LIQUIDITY MATRIX — a ladder from "cash today" to "locked for years", with emergency cover
   destroyChart('portliquidity');
-  const liqCanvas = document.getElementById('chart-port-liquidity');
-
-  let liqWrap = document.getElementById('chart-port-liquidity-wrap');
-  if (liqWrap) {
-    const freshCanvas = document.createElement('canvas');
-    freshCanvas.id = 'chart-port-liquidity';
-    liqWrap.parentNode.replaceChild(freshCanvas, liqWrap);
-  }
-  const liqCtx = document.getElementById('chart-port-liquidity').getContext('2d');
-
-  let high = 0, med = 0, low = 0;
-  data.forEach(d => {
-    const t = normalizeAssetType(d.assetType);
-    const val = d.currentValue;
-    if (['MutualFund', 'Stocks', 'Crypto'].includes(t)) high += val;
-    else if (['Gold', 'Silver'].includes(t)) med += val;
-    else low += val;
-  });
-
-  const liqData = [high, med, low];
-  const liqLabels = ['High Liquidity', 'Medium Liquidity', 'Illiquid'];
-  const liqTotal = high + med + low || 1;
-  const isLightLiq = document.body.classList.contains('light-mode');
-
-  const liqGrad = liqCtx.createLinearGradient(0, 0, 0, liqCtx.canvas.height || 280);
-  liqGrad.addColorStop(0, 'rgba(56,189,248,0.45)');
-  liqGrad.addColorStop(0.55, 'rgba(56,189,248,0.18)');
-  liqGrad.addColorStop(1, 'rgba(56,189,248,0.02)');
-
-  // Glow + glass-ring plugin: outer halo, concentric depth rings, glowing stroke
-  const liqGlassPlugin = {
-    id: 'liqGlass',
-    beforeDraw: (chart) => {
-      const { ctx, chartArea } = chart;
-      if (!chartArea) return;
-      const cx = (chartArea.left + chartArea.right) / 2;
-      const cy = (chartArea.top + chartArea.bottom) / 2;
-      const r  = Math.min(chartArea.right - chartArea.left, chartArea.bottom - chartArea.top) / 2;
-      ctx.save();
-      const halo = ctx.createRadialGradient(cx, cy, r * 0.1, cx, cy, r * 1.1);
-      halo.addColorStop(0, isLightLiq ? 'rgba(56,189,248,0.08)' : 'rgba(56,189,248,0.14)');
-      halo.addColorStop(1, 'rgba(56,189,248,0)');
-      ctx.fillStyle = halo;
-      ctx.beginPath();
-      ctx.arc(cx, cy, r * 1.1, 0, Math.PI * 2);
-      ctx.fill();
-      ctx.restore();
-    },
-    beforeDatasetsDraw: (chart) => {
-      chart.ctx.save();
-      if (!isLightLiq) {
-        chart.ctx.shadowColor = 'rgba(56,189,248,0.65)';
-        chart.ctx.shadowBlur = 18;
-        chart.ctx.shadowOffsetY = 4;
-      }
-    },
-    afterDatasetsDraw: (chart) => { chart.ctx.restore(); }
-  };
-
-  // Center readout: dominant liquidity tier + its %
-  const liqCenterPlugin = {
-    id: 'liqCenter',
-    afterDatasetsDraw: (chart) => {
-      const { ctx, chartArea } = chart;
-      if (!chartArea) return;
-      const cx = (chartArea.left + chartArea.right) / 2;
-      const cy = (chartArea.top + chartArea.bottom) / 2;
-      const maxIdx = liqData.indexOf(Math.max(...liqData));
-      const pct = ((liqData[maxIdx] / liqTotal) * 100).toFixed(0);
-      ctx.save();
-      ctx.textAlign = 'center';
-      ctx.textBaseline = 'middle';
-      ctx.font = "800 18px 'DM Mono', monospace";
-      ctx.fillStyle = '#38bdf8';
-      ctx.fillText(pct + '%', cx, cy - 6);
-      ctx.font = "600 9px 'DM Sans', sans-serif";
-      ctx.fillStyle = isLightLiq ? '#475569' : '#94a3b8';
-      ctx.fillText(liqLabels[maxIdx].toUpperCase(), cx, cy + 11);
-      ctx.restore();
-    }
-  };
-
-  charts['portliquidity'] = new Chart(liqCtx, {
-    type: 'radar',
-    data: {
-      labels: liqLabels,
-      datasets: [{
-        label: 'Capital Distribution',
-        data: liqData,
-        fill: true,
-        backgroundColor: liqGrad,
-        borderColor: '#38bdf8',
-        borderWidth: 2.5,
-        pointRadius: 6,
-        pointBackgroundColor: isLightLiq ? '#ffffff' : '#0f172a',
-        pointBorderColor: '#38bdf8',
-        pointBorderWidth: 2.5,
-        pointHoverRadius: 9,
-        pointHoverBackgroundColor: '#38bdf8',
-        pointHoverBorderColor: '#fff',
-        pointHoverBorderWidth: 2,
-        tension: 0.15
-      }]
-    },
-    options: {
-      responsive: true,
-      maintainAspectRatio: false,
-      animation: { duration: 1000, easing: 'easeOutBack' },
-      scales: {
-        r: {
-          grid: { display: true, color: chartGridColor(), circular: true },
-          angleLines: { display: true, color: chartGridColor() },
-          pointLabels: {
-            color: chartTextColor(),
-            font: { family: 'DM Sans', size: 11, weight: '700' },
-            padding: 12
-          },
-          ticks: { display: false },
-          suggestedMin: 0
-        }
-      },
-      plugins: {
-        legend: { display: false },
-        tooltip: {
-          backgroundColor: fosTipBg(),
-          titleFont: { family:'DM Sans', size:12, weight:'700' },
-          bodyFont:  { family:'DM Mono', size:11 },
-          borderColor: 'rgba(56,189,248,0.4)',
-          borderWidth: 1,
-          callbacks: {
-            label: ctx => {
-              const pct = ((ctx.raw / liqTotal) * 100).toFixed(1);
-              return `  ₹${Math.round(ctx.raw).toLocaleString('en-IN')}  (${pct}%)`;
-            }
-          }
-        }
-      }
-    },
-    plugins: [liqGlassPlugin, liqCenterPlugin]
-  });
+  (function () {
+    const box = document.getElementById('port-liq-ladder'); if (!box) return;
+    const TIERS = [
+      { k: 'now',  n: 'Instant',          t: 'same day',               c: '#22d3ee', ic: 'fa-bolt',          types: ['Cash'] },
+      { k: 'days', n: 'Within a week',    t: 'sell and get paid in 1–7 days', c: '#34d399', ic: 'fa-gauge-high',    types: ['Stocks', 'MutualFund', 'ETFs', 'Crypto', 'International', 'DigitalAssets', 'FixedDeposit', 'RecurringDeposit'] },
+      { k: 'wks',  n: 'Weeks to months',  t: 'needs a buyer or a market', c: '#fbbf24', ic: 'fa-hourglass-half', types: ['Gold', 'Silver', 'Bonds', 'REITs', 'Commodities'] },
+      { k: 'lock', n: 'Locked / long-term', t: 'lock-in, sale process or penalties', c: '#f472b6', ic: 'fa-lock',        types: ['Retirement', 'RealEstate', 'Business', 'Collectibles', 'Alternatives'] },
+    ];
+    const tierOf = t => TIERS.find(x => x.types.includes(t)) || TIERS[3];
+    const agg = TIERS.map(x => ({ ...x, v: 0, by: {} }));
+    data.forEach(d => { const t = normalizeAssetType(d.assetType), tr = agg[TIERS.indexOf(tierOf(t))], v = Number(d.currentValue) || 0; tr.v += v; tr.by[t] = (tr.by[t] || 0) + v; });
+    const tot = agg.reduce((a, x) => a + x.v, 0);
+    if (!tot) { box.innerHTML = '<div class="empty-state" style="padding-top:2rem"><i class="fas fa-water"></i><p>No holdings to rate yet</p></div>'; return; }
+    // emergency cover: what could be cash within a week vs your average monthly spending (last 6 months)
+    let avgExp = 0;
+    try { const now = new Date(), from = localISO(new Date(now.getFullYear(), now.getMonth() - 6, 1)), to = localISO(new Date(now.getFullYear(), now.getMonth(), 1)); const ex = (db || []).filter(r => r && r.type === 'Expense' && String(r.date) >= from && String(r.date) < to).reduce((a, r) => a + (Number(r.amount) || 0), 0); avgExp = ex / 6; } catch (e) {}
+    const quick = agg[0].v + agg[1].v, months = avgExp > 0 ? quick / avgExp : null;
+    const K = v => { const a = Math.abs(v); return '₹' + (a >= 1e7 ? (a / 1e7).toFixed(2) + 'Cr' : a >= 1e5 ? (a / 1e5).toFixed(1) + 'L' : a >= 1e3 ? Math.round(a / 1e3) + 'k' : Math.round(a)); };
+    const nm = t => (typeof assetTypeLabel === 'function' ? assetTypeLabel(t) : t) || t;
+    const coverCol = months == null ? '#94a3b8' : months >= 6 ? '#34d399' : months >= 3 ? '#fbbf24' : '#f87171';
+    box.innerHTML =
+      '<div class="liq-bar">' + agg.map(x => x.v > 0 ? '<span style="width:' + (x.v / tot * 100) + '%;background:' + x.c + ';box-shadow:0 0 14px -2px ' + x.c + '" title="' + x.n + ': ' + K(x.v) + '"></span>' : '').join('') + '</div>' +
+      '<div class="liq-rows">' + agg.map(x => {
+        const items = Object.keys(x.by).sort((a, b) => x.by[b] - x.by[a]);
+        return '<div class="liq-row' + (x.v ? '' : ' off') + '" style="--c:' + x.c + '"><div class="liq-ic"><i class="fas ' + x.ic + '"></i></div>' +
+          '<div class="liq-main"><div class="liq-top"><b>' + x.n + '</b><span class="liq-v">' + K(x.v) + '<em>' + Math.round(x.v / tot * 100) + '%</em></span></div>' +
+          '<div class="liq-meter"><span style="width:' + (x.v / tot * 100) + '%"></span></div>' +
+          '<div class="liq-t">' + (items.length ? items.slice(0, 3).map(t => nm(t)).join(' · ') + (items.length > 3 ? ' +' + (items.length - 3) : '') : 'Nothing here') + ' <span>— ' + x.t + '</span></div></div></div>';
+      }).join('') + '</div>' +
+      '<div class="liq-cover" style="--c:' + coverCol + '"><i class="fas fa-life-ring"></i><div><b>' + K(quick) + '</b> could be cash within a week' +
+        (months != null ? ' — about <b style="color:' + coverCol + '">' + (months >= 24 ? Math.round(months) : months.toFixed(1)) + ' months</b> of your spending (' + K(avgExp) + '/month).' + (months < 3 ? ' Aim for at least 3–6 months.' : '') : '. Log a few months of expenses to see how many months that covers.') + '</div></div>';
+  })();
 
   renderPortStatusCharts();
 }
@@ -21698,69 +21687,53 @@ if (debtVal > 0 || assetsVal > 0) {
   let existing = document.getElementById('scale-container');
   if (existing) existing.remove();
 
-  const total = assetsVal + debtVal;
-  const ratio = total > 0 ? (assetsVal - debtVal) / total : 0;
-  const tiltAngle = -ratio * 15; 
-
-  const assetsColor = '#34d399'; 
-  const debtColor = '#ef4444';   
-  
-const statusText = assetsVal > debtVal*2 ? "Assets well ahead of debt" : assetsVal > debtVal ? "Assets cover your debt" : "Debt exceeds assets";
-  const statusColor = assetsVal > debtVal*2 ? '#34d399' : assetsVal > debtVal ? '#fbbf24' : '#ef4444';
-
+  // Coverage rings: the outer ring is what you own, the inner ring what you owe, both on the same scale
+  // (the larger of the two = one full turn). The gap between them is your cushion.
+  const base = Math.max(assetsVal, debtVal, 1);
+  const aFrac = assetsVal / base, dFrac = debtVal / base;
+  const dta = assetsVal > 0 ? debtVal / assetsVal * 100 : (debtVal > 0 ? Infinity : 0);
+  const cover = debtVal > 0 ? assetsVal / debtVal : Infinity;
+  const statusText = debtVal <= 0 ? 'Debt-free' : assetsVal > debtVal * 2 ? 'Assets well ahead of debt' : assetsVal > debtVal ? 'Assets cover your debt' : 'Debt exceeds assets';
+  const statusColor = debtVal <= 0 || assetsVal > debtVal * 2 ? '#34d399' : assetsVal > debtVal ? '#fbbf24' : '#ef4444';
+  const shortAmt = v => { const a = Math.abs(v); return (v < 0 ? '−' : '') + (a >= 1e7 ? '₹' + (a / 1e7).toFixed(2) + ' Cr' : a >= 1e5 ? '₹' + (a / 1e5).toFixed(2) + ' L' : a >= 1e3 ? '₹' + (a / 1e3).toFixed(1) + 'k' : '₹' + Math.round(a)); };
+  const R1 = 92, R2 = 70, C1 = 2 * Math.PI * R1, C2 = 2 * Math.PI * R2;
+  const ticks = Array.from({ length: 40 }, (_, k) => { const ang = k / 40 * 2 * Math.PI - Math.PI / 2, r0 = k % 5 ? 106 : 103, r1 = 110; return `<line x1="${120 + r0 * Math.cos(ang)}" y1="${120 + r0 * Math.sin(ang)}" x2="${120 + r1 * Math.cos(ang)}" y2="${120 + r1 * Math.sin(ang)}" class="dvr-tick${k % 5 ? '' : ' major'}"/>`; }).join('');
+  const capAng = dFrac * 2 * Math.PI - Math.PI / 2;
+  const dtaLabel = !isFinite(dta) ? 'No assets recorded' : debtVal <= 0 ? 'Nothing owed' : 'Debt is ' + (dta >= 10 ? Math.round(dta) : dta.toFixed(1)) + '% of assets';
+  const coverLabel = !isFinite(cover) ? 'No debt to cover' : cover >= 1 ? 'Assets cover debt ' + (cover >= 10 ? Math.round(cover) : cover.toFixed(1)) + '×' : 'Assets cover ' + Math.round(cover * 100) + '% of debt';
   const scaleHtml = `
-    <div id="scale-container" style="width: 100%; flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: space-between; padding: 10px 0 5px 0; min-height: 310px; cursor: crosshair;" title="Ratio: ${(assetsVal / (debtVal||1)).toFixed(2)}x Assets to Debt">
-      
-      <div style="width: 100%; display: flex; justify-content: space-between; padding: 0 10px; position: relative; z-index: 20;">
-        <div style="text-align: left;">
-           <div style="font-size:0.65rem; font-weight:700; color:${assetsColor}; letter-spacing:1px;">TOTAL ASSETS</div>
-           <div style="font-family:'DM Mono', monospace; font-size:1.15rem; font-weight:700; color:var(--text-main); text-shadow:var(--scale-text-shadow-assets); transition:color 0.2s, text-shadow 0.2s;">₹${assetsVal.toLocaleString('en-IN')}</div>
-        </div>
-        <div style="text-align: right;">
-           <div style="font-size:0.65rem; font-weight:700; color:${debtColor}; letter-spacing:1px;">TOTAL DEBT</div>
-           <div style="font-family:'DM Mono', monospace; font-size:1.15rem; font-weight:700; color:var(--text-main); text-shadow:var(--scale-text-shadow-debt); transition:color 0.2s, text-shadow 0.2s;">₹${debtVal.toLocaleString('en-IN')}</div>
-        </div>
+    <div id="scale-container" class="dvr" data-no-count role="img" aria-label="Assets ${shortAmt(assetsVal)}, debt ${shortAmt(debtVal)}. ${dtaLabel}.">
+      <div class="dvr-ring">
+      <svg class="dvr-svg" viewBox="0 0 240 240" aria-hidden="true">
+        <defs>
+          <linearGradient id="dvrA" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#5eead4"/><stop offset="1" stop-color="#22c55e"/></linearGradient>
+          <linearGradient id="dvrD" x1="1" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#fb7185"/><stop offset="1" stop-color="#f97316"/></linearGradient>
+          <filter id="dvrGlow" x="-30%" y="-30%" width="160%" height="160%"><feGaussianBlur stdDeviation="3.2" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
+          <radialGradient id="dvrCore" cx="50%" cy="50%" r="50%"><stop offset="0" stop-color="rgba(32,205,181,.16)"/><stop offset="1" stop-color="rgba(32,205,181,0)"/></radialGradient>
+        </defs>
+        <circle cx="120" cy="120" r="58" fill="url(#dvrCore)"/>
+        ${ticks}
+        <circle cx="120" cy="120" r="${R1}" class="dvr-track" stroke-width="12"/>
+        <circle cx="120" cy="120" r="${R2}" class="dvr-track" stroke-width="10"/>
+        <circle cx="120" cy="120" r="${R1}" class="dvr-arc" stroke="url(#dvrA)" stroke-width="12" filter="url(#dvrGlow)" stroke-dasharray="${C1}" stroke-dashoffset="${C1}" data-to="${C1 * (1 - aFrac)}" transform="rotate(-90 120 120)"/>
+        <circle cx="120" cy="120" r="${R2}" class="dvr-arc" stroke="url(#dvrD)" stroke-width="10" filter="url(#dvrGlow)" stroke-dasharray="${C2}" stroke-dashoffset="${C2}" data-to="${C2 * (1 - dFrac)}" transform="rotate(-90 120 120)"/>
+        ${debtVal > 0 ? `<circle cx="${120 + R2 * Math.cos(capAng)}" cy="${120 + R2 * Math.sin(capAng)}" r="4" fill="#fff" class="dvr-cap" filter="url(#dvrGlow)"/>` : ''}
+      </svg>
+      <div class="dvr-center">
+        <div class="dvr-k">Net position</div>
+        <div class="dvr-net" style="color:${assetsVal - debtVal >= 0 ? '#34d399' : '#f87171'}">${shortAmt(assetsVal - debtVal)}</div>
+        <div class="dvr-sub">${dtaLabel}</div>
       </div>
-
-      <div style="width: 240px; height: 130px; position: relative; margin: 18px 0 5px 0; transform: scale(1.55); transform-origin: center bottom;">
-        <div style="width: 100px; height: 16px; background: var(--scale-base-bg); border-radius: 50% 50% 10px 10px; border-top: 1px solid var(--scale-border-top); position: absolute; bottom: 0; left: 50%; transform: translateX(-50%); box-shadow: var(--scale-shadow-base); z-index: 4; transition:all 0.2s;"></div>
-        
-        <div style="width: 20px; height: 100px; background: var(--scale-pillar-bg); border-radius: 10px 10px 0 0; border-left: 1px solid var(--scale-border-side); border-right: 1px solid rgba(0,0,0,0.1); position: absolute; bottom: 10px; left: 50%; transform: translateX(-50%); z-index: 5; box-shadow: var(--scale-shadow-pillar); transition:all 0.2s;"></div>
-
-        <div style="width: 24px; height: 24px; border-radius: 50%; background: var(--scale-pivot-bg); border: 3px solid #64748b; position: absolute; bottom: 95px; left: 50%; transform: translateX(-50%); z-index: 10; box-shadow: var(--scale-shadow-pivot); transition:all 0.2s;"></div>
-        <div style="width: 6px; height: 6px; border-radius: 50%; background: #38bdf8; position: absolute; bottom: 104px; left: 50%; transform: translateX(-50%); z-index: 11; box-shadow: 0 0 10px #38bdf8;"></div>
-
-        <div style="width: 94%; height: 6px; background: linear-gradient(90deg, ${assetsColor}, ${debtColor}); position: absolute; bottom: 104px; left: 3%; border-radius: 6px; box-shadow: 0 0 15px rgba(255,255,255,0.2); transform-origin: center; transform: rotate(${tiltAngle}deg); transition: transform 1.2s cubic-bezier(0.34, 1.56, 0.64, 1); z-index: 8;">
-          
-          <div style="position: absolute; left: 0; top: 3px; transform-origin: top center; transform: translateX(-50%) rotate(${-tiltAngle}deg); transition: transform 1.2s cubic-bezier(0.34, 1.56, 0.64, 1); display: flex; flex-direction: column; align-items: center;">
-            <svg width="60" height="50" style="overflow:visible; filter:drop-shadow(0 0 2px ${assetsColor}80)">
-               <line x1="30" y1="0" x2="5" y2="50" stroke="${assetsColor}" stroke-width="1.5" stroke-dasharray="2,2"/>
-               <line x1="30" y1="0" x2="55" y2="50" stroke="${assetsColor}" stroke-width="1.5" stroke-dasharray="2,2"/>
-            </svg>
-            <div style="width: 70px; height: 16px; background: linear-gradient(to bottom, rgba(52,211,153,0.1), rgba(52,211,153,0.3)); border: 2px solid ${assetsColor}; border-radius: 0 0 35px 35px; box-shadow: 0 10px 20px -5px ${assetsColor}60, inset 0 -5px 10px ${assetsColor}40; display: flex; align-items: flex-end; justify-content: center; padding-bottom:4px; margin-top: -2px;">
-               <i class="fas fa-chart-line" style="color:${assetsColor}; font-size:1.1rem; text-shadow:0 0 8px ${assetsColor}; transform:translateY(-12px)"></i>
-            </div>
-          </div>
-
-          <div style="position: absolute; right: 0; top: 3px; transform-origin: top center; transform: translateX(50%) rotate(${-tiltAngle}deg); transition: transform 1.2s cubic-bezier(0.34, 1.56, 0.64, 1); display: flex; flex-direction: column; align-items: center;">
-            <svg width="60" height="50" style="overflow:visible; filter:drop-shadow(0 0 2px ${debtColor}80)">
-               <line x1="30" y1="0" x2="5" y2="50" stroke="${debtColor}" stroke-width="1.5" stroke-dasharray="2,2"/>
-               <line x1="30" y1="0" x2="55" y2="50" stroke="${debtColor}" stroke-width="1.5" stroke-dasharray="2,2"/>
-            </svg>
-            <div style="width: 70px; height: 16px; background: linear-gradient(to bottom, rgba(239,68,68,0.1), rgba(239,68,68,0.3)); border: 2px solid ${debtColor}; border-radius: 0 0 35px 35px; box-shadow: 0 10px 20px -5px ${debtColor}60, inset 0 -5px 10px ${debtColor}40; display: flex; align-items: flex-end; justify-content: center; padding-bottom:4px; margin-top: -2px;">
-               <i class="fas fa-credit-card" style="color:${debtColor}; font-size:1.1rem; text-shadow:0 0 8px ${debtColor}; transform:translateY(-12px)"></i>
-            </div>
-          </div>
-        </div>
       </div>
-
-      <div style="padding:4px 14px; background:var(--glass-bg); border:1px solid ${statusColor}40; border-radius:20px; font-size:0.7rem; color:${statusColor}; font-weight:700; box-shadow:0 0 12px ${statusColor}30; z-index:20; transition:all 0.2s;">
-        ${statusText}
+      <div class="dvr-legend">
+        <div><i style="background:linear-gradient(90deg,#5eead4,#22c55e)"></i><span>Assets</span><b>${shortAmt(assetsVal)}</b></div>
+        <div><i style="background:linear-gradient(90deg,#fb7185,#f97316)"></i><span>Debt</span><b>${shortAmt(debtVal)}</b></div>
       </div>
+      <div class="dvr-chip" style="color:${statusColor};border-color:${statusColor}55;box-shadow:0 0 14px -4px ${statusColor}">${statusText} · ${coverLabel}</div>
     </div>
   `;
-
   container.insertAdjacentHTML('beforeend', scaleHtml);
+  requestAnimationFrame(() => requestAnimationFrame(() => { document.querySelectorAll('#scale-container .dvr-arc').forEach(c => { c.style.strokeDashoffset = c.getAttribute('data-to'); }); }));
 } else {
   if (debtCanvas) debtCanvas.style.display = 'none';
   if (debtEmpty) {
@@ -29563,7 +29536,56 @@ function getAllSettingsToggles() {
   return out;
 }
 
-function downloadBackup() {
+/* Attachments (holding documents + note photos/voice/video) live in IndexedDB on this device.
+   The JSON backup carries them as base64 so a restore on any device brings them back. */
+function _fosBlobToData(b) { return new Promise(res => { try { const r = new FileReader(); r.onload = () => res(r.result); r.onerror = () => res(null); r.readAsDataURL(b); } catch (e) { res(null); } }); }
+function _fosDataToBlob(u) {
+  try { const i = u.indexOf(','), head = u.slice(0, i), type = (head.match(/^data:([^;]*)/) || [])[1] || '', bin = atob(u.slice(i + 1)), a = new Uint8Array(bin.length);
+    for (let j = 0; j < bin.length; j++) a[j] = bin.charCodeAt(j); return new Blob([a], { type }); } catch (e) { return null; }
+}
+function _fosNotesMediaDb() {
+  return new Promise((res, rej) => { if (!window.indexedDB) return rej(new Error('no IndexedDB'));
+    const q = indexedDB.open('fos_notes_media', 1);
+    q.onupgradeneeded = () => { if (!q.result.objectStoreNames.contains('files')) q.result.createObjectStore('files', { keyPath: 'id' }); };
+    q.onsuccess = () => res(q.result); q.onerror = () => rej(q.error); });
+}
+function _fosIdbAll(d, store) {
+  return new Promise(res => { const out = []; try { const tx = d.transaction(store, 'readonly'), rq = tx.objectStore(store).openCursor();
+    rq.onsuccess = () => { const c = rq.result; if (c) { out.push({ key: c.key, value: c.value }); c.continue(); } };
+    tx.oncomplete = () => res(out); tx.onerror = tx.onabort = () => res(out); } catch (e) { res(out); } });
+}
+async function fosCollectAttachments() {
+  const raw = { docs: [], notes: [] }; let bytes = 0;
+  try { const d = await _docDb(); raw.docs = (await _fosIdbAll(d, 'docs')).filter(r => r.value instanceof Blob).map(r => ({ id: r.key, blob: r.value })); d.close(); } catch (e) { }
+  try { const d = await _fosNotesMediaDb(); raw.notes = (await _fosIdbAll(d, 'files')).filter(r => r.value && r.value.blob instanceof Blob).map(r => ({ id: r.key, blob: r.value.blob })); d.close(); } catch (e) { }
+  raw.docs.concat(raw.notes).forEach(x => bytes += x.blob.size || 0);
+  return { raw, bytes, count: raw.docs.length + raw.notes.length };
+}
+async function fosRestoreAttachments(att) {
+  if (!att || typeof att !== 'object') return 0; let n = 0;
+  const docs = Array.isArray(att.docs) ? att.docs : [], notes = Array.isArray(att.notes) ? att.notes : [];
+  for (const x of docs) { const b = x && x.data && _fosDataToBlob(x.data); if (b && x.id != null) { try { await fosDocPut(x.id, b); n++; } catch (e) { } } }
+  if (notes.length) {
+    try { const d = await _fosNotesMediaDb();
+      await new Promise(res => { const tx = d.transaction('files', 'readwrite'), st = tx.objectStore('files');
+        notes.forEach(x => { const b = x && x.data && _fosDataToBlob(x.data); if (b && x.id != null) { st.put({ id: x.id, blob: b }); n++; } });
+        tx.oncomplete = tx.onerror = tx.onabort = () => res(); });
+      d.close(); } catch (e) { }
+  }
+  return n;
+}
+
+async function downloadBackup() {
+  let attachments;
+  try {
+    const A = await fosCollectAttachments();
+    let take = A.count > 0;
+    if (take && A.bytes > 60 * 1048576) take = confirm('Your attachments (holding documents and note media) total ' + (A.bytes / 1048576).toFixed(0) + ' MB.\n\nOK = include them in the backup (bigger file)\nCancel = back up data and settings only');
+    if (take) {
+      const enc = async l => { const o = []; for (const x of l) { const data = await _fosBlobToData(x.blob); if (data) o.push({ id: x.id, data }); } return o; };
+      attachments = { docs: await enc(A.raw.docs), notes: await enc(A.raw.notes) };
+    }
+  } catch (e) { console.warn('Attachments not included in backup', e); }
   const payload = {
     version: 5,
     exportedAt: new Date().toISOString(),
@@ -29596,6 +29618,7 @@ function downloadBackup() {
     lastPortfolioUpdate: localStorage.getItem('fos_last_portfolio_update') || '',
     ...fosExtraState()
   };
+  if (attachments) payload.attachments = attachments;
 
   const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' });
   const url  = URL.createObjectURL(blob);
@@ -29647,6 +29670,7 @@ function readRestoreFile(file) {
           ${(data.finaiGoals||[]).length} goals · 
           ${Object.keys(data.budgets||{}).length} budgets · 
           ${data.extraKeys ? Object.keys(data.extraKeys).filter(k => data.extraKeys[k] !== null).length + ' extra settings · ' : ''}
+          ${data.attachments ? ((data.attachments.docs||[]).length + (data.attachments.notes||[]).length) + ' attachments · ' : ''}
           v${data.version||1} · 
           Exported ${data.exportedAt ? new Date(data.exportedAt).toLocaleDateString() : 'unknown date'}
         </span>`;
@@ -29767,6 +29791,8 @@ async function confirmRestore() {
 
   // Tax overrides, Admin Panel rules, exchange-rate table, price-refresh and stress-test settings
   try { fosRestoreExtra(pendingRestoreData); } catch (e) { console.warn('Extra settings not restored', e); }
+  // Holding documents and note photos/voice/video
+  try { await fosRestoreAttachments(pendingRestoreData.attachments); } catch (e) { console.warn('Attachments not restored', e); }
 
   pendingRestoreData = null;
 
@@ -29796,33 +29822,38 @@ async function confirmRestore() {
 // ── INIT ───────────────────────────────────────────────────────────────────
 // ── AUTO-SYNC LIVE METALS TO PORTFOLIO ─────────────────────────────────────
 function syncMetalPricesToPortfolio(liveGold24, liveSilver) {
+  // liveGold24 / liveSilver are ₹ per gram of 24K gold / fine (999) silver.
+  // Each holding is priced at its own purity: 22K jewellery at 22/24 of the 24K rate, 18K at 18/24,
+  // SGBs, digital gold, coins and bars at 24K. Silver uses the purity entered (925 → 92.5%), default 999.
   let updated = false;
-  
+  const goldFactor = item => {
+    const m = item.meta || {}, p = String(m.purity || '').toUpperCase().replace(/\s/g, '');
+    const k = p.match(/^(\d{1,2})K$/); if (k) return Math.min(24, +k[1]) / 24;
+    const f = p.match(/^(\d{3})$/); if (f) return Math.min(999, +f[1]) / 999;
+    const sub = String(item.subType || '');
+    if (/sovereign|sgb|digital|coin|bar|accumulation/i.test(sub)) return 1;
+    return 22 / 24;   // jewellery and other physical gold without a purity: 22K
+  };
+  const silverFactor = item => {
+    const m = item.meta || {}, f = String(m.purity || '').match(/(\d{3})/);
+    return f ? Math.min(999, +f[1]) / 999 : 1;
+  };
+  const stamp = item => { item.priceSync = { src: 'Market Pulse', asOf: localISO(), at: new Date().toISOString() }; };
   portDb.forEach(item => {
+    if (!item || item.status === 'sold') return;
     const type = normalizeAssetType(item.assetType);
-    
-    // Update Gold (Force 22K price for all Gold holdings)
-    if (type === 'Gold' && liveGold24) {
-      // Always calculate and apply the 22K price (91.67% of 24K spot)
-      let appliedPrice = liveGold24 * (22/24);
-      
-      // Only trigger an update if the price changed by more than ₹1 to prevent micro-stutters
-      if (Math.abs(item.currentPrice - appliedPrice) > 1) {
-        item.currentPrice = appliedPrice;
-        updated = true;
-      }
+    if (type === 'Gold' && liveGold24 > 0) {
+      const applied = Math.round(liveGold24 * goldFactor(item) * 100) / 100;
+      if (Math.abs((Number(item.currentPrice) || 0) - applied) > 1) { item.currentPrice = applied; updated = true; }
+      stamp(item);
     }
-    
-    // Update Silver
-    if (type === 'Silver' && liveSilver) {
-      if (Math.abs(item.currentPrice - liveSilver) > 0.5) {
-        item.currentPrice = liveSilver;
-        updated = true;
-      }
+    if (type === 'Silver' && liveSilver > 0) {
+      const applied = Math.round(liveSilver * silverFactor(item) * 100) / 100;
+      if (Math.abs((Number(item.currentPrice) || 0) - applied) > 0.05) { item.currentPrice = applied; updated = true; }
+      stamp(item);
     }
   });
 
-  // If prices changed, save to localStorage and silently re-render the view
   if (updated) {
     scheduleSave();
     if (activeView === 'port-table') renderPortTable();
@@ -29830,46 +29861,70 @@ function syncMetalPricesToPortfolio(liveGold24, liveSilver) {
     if (activeView === 'port-analytics') renderPortAnalytics();
     if (activeView === 'dashboard') renderDashboardImmediate();
   }
+  return updated;
 }
 
 // ══════════════════════════════════════════════════════════════════════════════
-// LIVE MARKET PULSE ENGINE (OPTION A: GLOBAL API + 22K GOLD + ICON FIX)
+// LIVE MARKET PULSE ENGINE
+//   Gold & silver → CoinGecko (PAX Gold / Kinesis Silver, each backed by 1 troy oz), in ₹, plus the
+//                   India premium set in Live prices (import duty; default 6%). Falls back to Yahoo
+//                   gold/silver futures when a CORS proxy is set.
+//   USD/INR       → open.er-api.com
+//   Nifty, Sensex, crude → Yahoo Finance. Browsers block Yahoo (CORS) unless a proxy is set in Live prices.
+//   Petrol, diesel, LPG  → fixed Chennai retail rates (there is no free live feed).
+//   Every real price is saved on this device, so a reload shows the last real price, never a made-up one.
 // ══════════════════════════════════════════════════════════════════════════════
 const MarketEngine = {
   charts: {},
+  LS: 'fos_mkt_last_v1',
   assets: [
-    // Precious Metals
-    { id: 'gold24', name: '24K Gold', cat: 'Precious Metals', icon: 'fa-cubes', color: '#f59e0b', price: 7245.00, prefix: '₹', unit: '/ gram', fast: true, hist: [] },
-    { id: 'gold22', name: '22K Gold', cat: 'Precious Metals', icon: 'fa-cube', color: '#fbbf24', price: 6641.00, prefix: '₹', unit: '/ gram', fast: true, hist: [] },
-    { id: 'silver', name: 'Silver', cat: 'Precious Metals', icon: 'fa-coins', color: '#94a3b8', price: 85.50, prefix: '₹', unit: '/ gram', fast: true, hist: [] },
-    
-    // Markets & Indices
-    { id: 'nifty', name: 'Nifty 50', cat: 'Markets & Indices', icon: 'fa-chart-line', color: '#a855f7', price: 22453.20, prefix: '', unit: 'pts', fast: true, hist: [] },
-    { id: 'sensex', name: 'Sensex', cat: 'Markets & Indices', icon: 'fa-chart-area', color: '#8b5cf6', price: 73924.80, prefix: '', unit: 'pts', fast: true, hist: [] }, // Icon fixed here!
-    
-    // Currency
-    { id: 'usd', name: 'USD vs INR', cat: 'Currency', icon: 'fa-money-bill-transfer', color: '#10b981', price: 83.45, prefix: '₹', unit: '', fast: true, hist: [] },
-    
-    // Fuel & Energy
-    { id: 'crude', name: 'Crude Oil', cat: 'Fuel & Energy', icon: 'fa-oil-well', color: '#64748b', price: 6842.00, prefix: '₹', unit: '/ bbl', fast: true, hist: [] },
-    { id: 'petrol', name: 'Petrol', cat: 'Fuel & Energy', icon: 'fa-gas-pump', color: '#34d399', price: 102.65, prefix: '₹', unit: '/ L', fast: false, hist: [] },
-    { id: 'diesel', name: 'Diesel', cat: 'Fuel & Energy', icon: 'fa-truck-droplet', color: '#3b82f6', price: 94.25, prefix: '₹', unit: '/ L', fast: false, hist: [] },
-    { id: 'lpg', name: 'LPG Gas', cat: 'Fuel & Energy', icon: 'fa-fire-flame-simple', color: '#f97316', price: 805.50, prefix: '₹', unit: '/ cyl', fast: false, hist: [] }
+    { id: 'gold24', name: '24K Gold', cat: 'Precious Metals', icon: 'fa-cubes', color: '#f59e0b', price: 7245.00, prefix: '₹', unit: '/ gram', hist: [] },
+    { id: 'gold22', name: '22K Gold', cat: 'Precious Metals', icon: 'fa-cube', color: '#fbbf24', price: 6641.00, prefix: '₹', unit: '/ gram', hist: [] },
+    { id: 'silver', name: 'Silver', cat: 'Precious Metals', icon: 'fa-coins', color: '#94a3b8', price: 85.50, prefix: '₹', unit: '/ gram', hist: [] },
+    { id: 'nifty', name: 'Nifty 50', cat: 'Markets & Indices', icon: 'fa-chart-line', color: '#a855f7', price: 22453.20, prefix: '', unit: 'pts', hist: [] },
+    { id: 'sensex', name: 'Sensex', cat: 'Markets & Indices', icon: 'fa-chart-area', color: '#8b5cf6', price: 73924.80, prefix: '', unit: 'pts', hist: [] },
+    { id: 'usd', name: 'USD vs INR', cat: 'Currency', icon: 'fa-money-bill-transfer', color: '#10b981', price: 83.45, prefix: '₹', unit: '', hist: [] },
+    { id: 'crude', name: 'Crude Oil', cat: 'Fuel & Energy', icon: 'fa-oil-well', color: '#64748b', price: 6842.00, prefix: '₹', unit: '/ bbl', hist: [] },
+    { id: 'petrol', name: 'Petrol', cat: 'Fuel & Energy', icon: 'fa-gas-pump', color: '#34d399', price: 103.67, prefix: '₹', unit: '/ L', fixed: true, hist: [] },
+    { id: 'diesel', name: 'Diesel', cat: 'Fuel & Energy', icon: 'fa-truck-droplet', color: '#3b82f6', price: 95.25, prefix: '₹', unit: '/ L', fixed: true, hist: [] },
+    { id: 'lpg', name: 'LPG Gas', cat: 'Fuel & Energy', icon: 'fa-fire-flame-simple', color: '#f97316', price: 928.50, prefix: '₹', unit: '/ cyl', fixed: true, hist: [] }
   ],
+  store() { try { return JSON.parse(localStorage.getItem(this.LS) || '{}') || {}; } catch (e) { return {}; } },
+  save(a, src) {
+    const s = this.store(); s[a.id] = { p: a.price, at: Date.now(), src: src || '', hist: a.hist.slice(-15) };
+    try { localStorage.setItem(this.LS, JSON.stringify(s)); } catch (e) { }
+  },
+  premium() {   // % added to the world price to get the Indian price (import duty), set in Live prices
+    try { const c = JSON.parse(localStorage.getItem('fos_refresh_v1') || '{}') || {}; const v = Number(c.metalPrem); return isFinite(v) && v >= 0 && v <= 30 ? v : 6; } catch (e) { return 6; }
+  },
+  proxy() { try { const c = JSON.parse(localStorage.getItem('fos_refresh_v1') || '{}') || {}; return String(c.proxy || '').trim(); } catch (e) { return ''; } },
+  status: {},   // id → 'live' | 'saved' | 'sample' | 'fixed'
+  stamp(a) {
+    const el = document.getElementById('mc-time-' + a.id); if (!el) return;
+    const st = this.status[a.id], s = this.store()[a.id];
+    const t = s && s.at ? new Date(s.at) : null;
+    const hm = t ? t.toLocaleTimeString('en-IN', { hour: 'numeric', minute: '2-digit' }) : '';
+    const day = t && t.toDateString() !== new Date().toDateString() ? t.toLocaleDateString('en-IN', { day: 'numeric', month: 'short' }) + ' ' : '';
+    const map = {
+      live: ['mc-st-live', 'Live · ' + hm],
+      saved: ['mc-st-saved', 'Last real · ' + day + hm],
+      sample: ['mc-st-sample', 'Sample · not live yet'],
+      fixed: ['mc-st-fixed', 'Fixed rate · Chennai']
+    }[st || 'sample'];
+    el.className = 'mc-st ' + map[0]; el.textContent = map[1];
+    el.title = st === 'sample' ? (['nifty', 'sensex', 'crude'].indexOf(a.id) >= 0 ? 'Your browser blocks Yahoo Finance. Add a CORS proxy in Live prices to make this live.' : 'No real price has arrived yet on this device.') : (s && s.src ? 'Source: ' + s.src : '');
+  },
 
   init() {
     const grid = document.getElementById('market-pulse-grid');
     if (!grid) return;
-    
+    const saved = this.store();
     let html = '';
     this.assets.forEach(a => {
-      // Seed history for charts
-      let currentPrice = a.price;
-      for(let i=0; i<15; i++) {
-        a.hist.unshift(currentPrice);
-        currentPrice -= (currentPrice * (Math.random() * 0.004 - 0.002));
-      }
-
+      const s = saved[a.id];
+      if (a.fixed) { this.status[a.id] = 'fixed'; a.hist = new Array(15).fill(a.price); }
+      else if (s && s.p > 0) { a.price = s.p; a.hist = Array.isArray(s.hist) && s.hist.length ? s.hist.slice(-15) : [s.p]; this.status[a.id] = 'saved'; }
+      else { a.hist = new Array(15).fill(a.price); this.status[a.id] = 'sample'; }
       html += `
         <div class="market-card" id="mc-card-${a.id}" onclick="selectMarketCard('${a.id}')" style="cursor: pointer;">
           <div class="mc-header">
@@ -29882,7 +29937,7 @@ const MarketEngine = {
             </div>
           </div>
           <div class="mc-price-wrap">
-            <div class="mc-price" id="mc-price-${a.id}">${a.prefix}${a.price.toLocaleString('en-IN', {minimumFractionDigits: 2})}</div>
+            <div class="mc-price" id="mc-price-${a.id}" data-no-count>${a.prefix}${a.price.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</div>
             <div class="mc-unit">${a.unit}</div>
           </div>
           <div class="mc-change mc-neutral" id="mc-change-${a.id}">
@@ -29891,30 +29946,43 @@ const MarketEngine = {
           <div class="mc-spark"><canvas id="mc-spark-${a.id}"></canvas></div>
           <div class="mc-footer">
             <span id="mc-diff-${a.id}">Change: 0.00</span>
-            <span id="mc-time-${a.id}">Just now</span>
+            <span id="mc-time-${a.id}" class="mc-st"></span>
           </div>
         </div>
       `;
     });
     grid.innerHTML = html;
 
-    // Initialize Sparklines
     this.assets.forEach(a => {
-      const ctx = document.getElementById(`mc-spark-${a.id}`).getContext('2d');
-      const grad = ctx.createLinearGradient(0, 0, 0, 45);
-      grad.addColorStop(0, a.color + '60');
-      grad.addColorStop(1, 'transparent');
-
-      this.charts[a.id] = new Chart(ctx, {
-        type: 'line',
-        data: { labels: new Array(15).fill(''), datasets: [{ data: [...a.hist], borderColor: a.color, backgroundColor: grad, borderWidth: 2, fill: true, tension: 0.4, pointRadius: 0 }] },
-        options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false }, tooltip: { enabled: false } }, scales: { x: { display: false }, y: { display: false } }, animation: { duration: 0 } }
-      });
+      this.stamp(a); this.paintChange(a);
+      try {
+        const ctx = document.getElementById(`mc-spark-${a.id}`).getContext('2d');
+        const grad = ctx.createLinearGradient(0, 0, 0, 45);
+        grad.addColorStop(0, a.color + '60');
+        grad.addColorStop(1, 'transparent');
+        this.charts[a.id] = new Chart(ctx, {
+          type: 'line',
+          data: { labels: a.hist.map(() => ''), datasets: [{ data: [...a.hist], borderColor: a.color, backgroundColor: grad, borderWidth: 2, fill: true, tension: 0.4, pointRadius: 0 }] },
+          options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false }, tooltip: { enabled: false } }, scales: { x: { display: false }, y: { display: false } }, animation: { duration: 0 } }
+        });
+      } catch (e) { }
     });
 
-    // Start Loops
-    setInterval(() => { if (!document.hidden) this.fetchUpdates(true); }, 30000);   // was 8s — too frequent for CoinGecko's free rate limit, which then blocks the gold/silver feed
-    setInterval(() => { if (!document.hidden) this.fetchUpdates(false); }, 20000);
+    // First real prices right away, then every minute while the app is visible
+    setTimeout(() => this.fetchUpdates(true), 1200);
+    setInterval(() => { if (!document.hidden) this.fetchUpdates(true); }, 60000);
+    document.addEventListener('visibilitychange', () => { if (!document.hidden && Date.now() - (this._last || 0) > 55000) this.fetchUpdates(true); });
+  },
+
+  paintChange(a) {
+    const changeEl = document.getElementById(`mc-change-${a.id}`), diffEl = document.getElementById(`mc-diff-${a.id}`);
+    if (!changeEl || a.hist.length < 2) return;
+    const first = a.hist[0], diff = a.price - first, pct = first ? diff / first * 100 : 0;
+    if (Math.abs(diff) < 1e-9) return;
+    const up = diff >= 0;
+    changeEl.className = `mc-change ${up ? 'mc-up' : 'mc-down'}`;
+    changeEl.innerHTML = `<i class="fas ${up ? 'fa-arrow-trend-up' : 'fa-arrow-trend-down'}"></i> ${a.prefix}${Math.abs(diff).toFixed(2)} (${up ? '+' : ''}${pct.toFixed(2)}%)`;
+    if (diffEl) diffEl.innerHTML = `Change: <span style="color:${up ? '#34d399' : '#ef4444'}">${up ? '+' : '−'}${a.prefix}${Math.abs(diff).toFixed(2)}</span>`;
   },
 
   animateValue(element, start, end, prefix) {
@@ -29931,149 +29999,71 @@ const MarketEngine = {
     window.requestAnimationFrame(step);
   },
 
-  async fetchUpdates(isFastUpdate) {
-    const nowStr = new Date().toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', second: '2-digit' });
+  async getJSON(url, ms) {
+    const ctl = typeof AbortController === 'function' ? new AbortController() : null;
+    const t = ctl ? setTimeout(() => ctl.abort(), ms || 9000) : null;
+    try { const r = await fetch(url, ctl ? { signal: ctl.signal } : {}); if (!r.ok) throw new Error('HTTP ' + r.status); return await r.json(); }
+    finally { if (t) clearTimeout(t); }
+  },
+  async yahoo(sym) {
+    let url = 'https://query1.finance.yahoo.com/v8/finance/chart/' + encodeURIComponent(sym) + '?range=1d&interval=1d';
+    const px = this.proxy();
+    if (px) url = px.indexOf('{url}') >= 0 ? px.replace('{url}', encodeURIComponent(url)) : px + encodeURIComponent(url);
+    const j = await this.getJSON(url), m = j && j.chart && j.chart.result && j.chart.result[0] && j.chart.result[0].meta;
+    const p = m ? Number(m.regularMarketPrice) : 0;
+    if (!(p > 0)) throw new Error('no price for ' + sym);
+    return p;
+  },
 
-    const updateCardUI = (asset, newPrice) => {
-      if (asset.price === newPrice) return; 
+  update(asset, newPrice, src) {
+    if (!(newPrice > 0) || !isFinite(newPrice)) return;
+    const wasSample = this.status[asset.id] === 'sample';
+    this.status[asset.id] = 'live';
+    const oldPrice = asset.price;
+    asset.price = newPrice;
+    if (wasSample) asset.hist = [];   // the sample values were never real, so they do not count as history
+    asset.hist.push(newPrice); if (asset.hist.length > 15) asset.hist.shift();
+    this.save(asset, src);
+    const priceEl = document.getElementById(`mc-price-${asset.id}`), card = document.getElementById(`mc-card-${asset.id}`);
+    if (priceEl && oldPrice !== newPrice) this.animateValue(priceEl, oldPrice, newPrice, asset.prefix);
+    this.paintChange(asset); this.stamp(asset);
+    if (card && oldPrice !== newPrice) { card.classList.remove('update-flash'); void card.offsetWidth; card.classList.add('update-flash'); }
+    const ch = this.charts[asset.id];
+    if (ch) { ch.data.labels = asset.hist.map(() => ''); ch.data.datasets[0].data = [...asset.hist]; ch.update(); }
+  },
 
-      const oldPrice = asset.price;
-      asset.price = newPrice;
-      
-      const diff = asset.price - asset.hist[asset.hist.length-1]; 
-      const diffPct = (diff / asset.hist[asset.hist.length-1]) * 100;
+  // Returns { gold24, silver } in ₹ per gram (null when unavailable). Also used by Live prices › Refresh now.
+  async fetchUpdates() {
+    this._last = Date.now();
+    const A = id => this.assets.find(a => a.id === id);
+    const OZ = 31.1034768, prem = 1 + this.premium() / 100;
+    let usdInr = A('usd').price, gold24 = null, silver = null;
 
-      const card = document.getElementById(`mc-card-${asset.id}`);
-      const priceEl = document.getElementById(`mc-price-${asset.id}`);
-      const changeEl = document.getElementById(`mc-change-${asset.id}`);
-      
-      this.animateValue(priceEl, oldPrice, asset.price, asset.prefix);
-      
-      const isUp = diff >= 0;
-      changeEl.className = `mc-change ${isUp ? 'mc-up' : 'mc-down'}`;
-      changeEl.innerHTML = `<i class="fas ${isUp ? 'fa-arrow-trend-up' : 'fa-arrow-trend-down'}"></i> ${asset.prefix}${Math.abs(diff).toFixed(2)} (${isUp?'+':''}${diffPct.toFixed(2)}%)`;
-      
-      document.getElementById(`mc-diff-${asset.id}`).innerHTML = `Change: <span style="color:${isUp?'#34d399':'#ef4444'}">${isUp?'+':'-'}${asset.prefix}${Math.abs(oldPrice - asset.price).toFixed(2)}</span>`;
-      document.getElementById(`mc-time-${asset.id}`).textContent = nowStr;
+    try {
+      const fx = await this.getJSON('https://open.er-api.com/v6/latest/USD');
+      if (fx && fx.rates && fx.rates.INR > 0) { usdInr = fx.rates.INR; this.update(A('usd'), usdInr, 'open.er-api.com'); }
+    } catch (e) { }
 
-      card.classList.remove('update-flash');
-      void card.offsetWidth; 
-      card.classList.add('update-flash');
+    try {
+      const m = await this.getJSON('https://api.coingecko.com/api/v3/simple/price?ids=pax-gold,tether-gold,kinesis-silver&vs_currencies=inr');
+      const g = (m['pax-gold'] && m['pax-gold'].inr) || (m['tether-gold'] && m['tether-gold'].inr);
+      if (g > 0) gold24 = g / OZ * prem;
+      if (m['kinesis-silver'] && m['kinesis-silver'].inr > 0) silver = m['kinesis-silver'].inr / OZ * prem;
+      if (gold24) { this.update(A('gold24'), gold24, 'CoinGecko · PAX Gold +' + this.premium() + '% India premium'); this.update(A('gold22'), gold24 * 22 / 24, 'CoinGecko · 22/24 of 24K'); }
+      if (silver) this.update(A('silver'), silver, 'CoinGecko · Kinesis Silver +' + this.premium() + '% India premium');
+    } catch (e) { }
 
-      asset.hist.push(asset.price);
-      if(asset.hist.length > 15) asset.hist.shift();
-      this.charts[asset.id].data.datasets[0].data = [...asset.hist];
-      this.charts[asset.id].update();
-    };
+    // Yahoo Finance: indices, crude, and a second route for metals. Works only through a CORS proxy in most browsers.
+    const yq = async s => { try { return await this.yahoo(s); } catch (e) { return 0; } };
+    const [nifty, sensex, crude, gcf, sif] = await Promise.all(['^NSEI', '^BSESN', 'CL=F'].concat(gold24 && silver ? [] : ['GC=F', 'SI=F']).map(yq));
+    if (nifty) this.update(A('nifty'), nifty, 'Yahoo Finance');
+    if (sensex) this.update(A('sensex'), sensex, 'Yahoo Finance');
+    if (crude) this.update(A('crude'), crude * usdInr, 'Yahoo Finance · WTI × USD/INR');
+    if (!gold24 && gcf > 0) { gold24 = gcf * usdInr / OZ * prem; this.update(A('gold24'), gold24, 'Yahoo Finance · gold futures'); this.update(A('gold22'), gold24 * 22 / 24, 'Yahoo Finance · 22/24 of 24K'); }
+    if (!silver && sif > 0) { silver = sif * usdInr / OZ * prem; this.update(A('silver'), silver, 'Yahoo Finance · silver futures'); }
 
-    // ==========================================
-    // 1. FETCH REAL LIVE DATA (Fast Update Loop)
-    // ==========================================
-    if (isFastUpdate) {
-      try {
-        // Fetch Live USD to INR
-        const fxRes = await fetch('https://open.er-api.com/v6/latest/USD');
-        if (fxRes.ok) {
-          const fxData = await fxRes.json();
-          const liveUsdInr = fxData.rates.INR;
-          const usdAsset = this.assets.find(a => a.id === 'usd');
-          if (usdAsset) updateCardUI(usdAsset, liveUsdInr);
-        }
-
-        // Fetch Live Gold & Silver (Using PaxG and Kinesis-Silver proxies mapped to INR)
-        const metalsRes = await fetch('https://api.coingecko.com/api/v3/simple/price?ids=pax-gold,kinesis-silver&vs_currencies=inr');
-        if (metalsRes.ok) {
-          const metalsData = await metalsRes.json();
-          
-          // Apply ~18% Local Premium (15% Import Duty + 3% GST) to approximate local retail
-          const localPremium = 1.18; 
-          
-          let liveGold24 = null;
-          let liveSilver = null;
-
-          if (metalsData['pax-gold']) {
-            // 1 Troy Ounce = 31.1034768 grams
-            liveGold24 = (metalsData['pax-gold'].inr / 31.1034768) * localPremium;
-            
-            // Update 24K Gold Dashboard Card
-            const gold24Asset = this.assets.find(a => a.id === 'gold24');
-            if (gold24Asset) updateCardUI(gold24Asset, liveGold24);
-            
-            // Calculate and Update 22K Gold Dashboard Card (91.67% purity)
-            const liveGold22Inr = liveGold24 * (22 / 24);
-            const gold22Asset = this.assets.find(a => a.id === 'gold22');
-            if (gold22Asset) updateCardUI(gold22Asset, liveGold22Inr);
-          }
-
-          if (metalsData['kinesis-silver']) {
-            liveSilver = (metalsData['kinesis-silver'].inr / 31.1034768) * localPremium;
-            
-            // Update Silver Dashboard Card
-            const silverAsset = this.assets.find(a => a.id === 'silver');
-            if (silverAsset) updateCardUI(silverAsset, liveSilver);
-          }
-
-          // Trigger the Portfolio Sync!
-          syncMetalPricesToPortfolio(liveGold24, liveSilver);
-        }
-      } catch (err) {
-        console.warn("Live API fetch failed, falling back to cached state.", err);
-      }
-    }
-
-    // ==========================================
-    // 2. FETCH INDICES & CRUDE (Yahoo Finance Proxy)
-    // ==========================================
-    if (isFastUpdate) {
-      try {
-        const yfRes = await fetch('https://query1.finance.yahoo.com/v7/finance/quote?symbols=^NSEI,^BSESN,CL=F');
-        if (yfRes.ok) {
-          const yfData = await yfRes.json();
-          const quotes = yfData.quoteResponse.result;
-
-          quotes.forEach(quote => {
-            if (quote.symbol === '^NSEI') {
-              const niftyAsset = this.assets.find(a => a.id === 'nifty');
-              if (niftyAsset) updateCardUI(niftyAsset, quote.regularMarketPrice);
-            }
-            if (quote.symbol === '^BSESN') {
-              const sensexAsset = this.assets.find(a => a.id === 'sensex');
-              if (sensexAsset) updateCardUI(sensexAsset, quote.regularMarketPrice);
-            }
-            if (quote.symbol === 'CL=F') { // Crude Oil WTI (in USD)
-               const crudeAsset = this.assets.find(a => a.id === 'crude');
-               // Convert USD Crude to INR using the live exchange rate we just pulled
-               const usdAsset = this.assets.find(a => a.id === 'usd');
-               const currentUsdInr = usdAsset ? usdAsset.price : 83.45; // fallback
-               const crudeInr = quote.regularMarketPrice * currentUsdInr; 
-               if (crudeAsset) updateCardUI(crudeAsset, crudeInr);
-            }
-          });
-        }
-      } catch (err) {
-        console.warn("Stock Indices fetch failed.", err);
-      }
-    }
-
-    // ==========================================
-    // 3. CHENNAI LOCAL FUEL & LPG (Static Daily Rates)
-    // ==========================================
-    if (!isFastUpdate) { // Updates on the slow loop so it doesn't flash constantly
-      const chennaiRates = {
-        petrol: 103.67,
-        diesel: 95.25,
-        lpg: 928.50 
-      };
-
-      const petrolAsset = this.assets.find(a => a.id === 'petrol');
-      if (petrolAsset) updateCardUI(petrolAsset, chennaiRates.petrol);
-
-      const dieselAsset = this.assets.find(a => a.id === 'diesel');
-      if (dieselAsset) updateCardUI(dieselAsset, chennaiRates.diesel);
-
-      const lpgAsset = this.assets.find(a => a.id === 'lpg');
-      if (lpgAsset) updateCardUI(lpgAsset, chennaiRates.lpg);
-    }
+    if (gold24 || silver) { try { syncMetalPricesToPortfolio(gold24, silver); } catch (e) { console.warn('Metal price sync failed', e); } }
+    return { gold24, silver };
   }
 };
 
@@ -30115,16 +30105,25 @@ function selectMarketCard(assetId) {
 // asset class only means adding an entry here — dropdown, default-return lookup,
 // and icon all read from this one place.
 const SCENARIO_ASSET_CONFIG = [
-  { id:'gold',        name:'Gold',              icon:'fas fa-coins',               color:'var(--c-gold)',       defaultReturn:8,    category:'Physical',      description:'Precious metal, inflation hedge',            editableReturn:true },
-  { id:'silver',      name:'Silver',            icon:'fas fa-medal',               color:'var(--c-silver)',     defaultReturn:7,    category:'Physical',      description:'Precious metal, more volatile than gold',    editableReturn:true },
-  { id:'realestate',  name:'Real Estate',       icon:'fas fa-home',                color:'var(--c-realestate)', defaultReturn:8,    category:'Physical',      description:'Property appreciation, long-term hold',      editableReturn:true },
-  { id:'mutualfunds', name:'Mutual Funds',      icon:'fas fa-chart-pie',           color:'var(--c-mf)',         defaultReturn:12,   category:'Market-linked', description:'Diversified market-linked fund',             editableReturn:true },
-  { id:'bonds',       name:'Bonds',             icon:'fas fa-file-invoice-dollar', color:'var(--c-bonds)',      defaultReturn:8,    category:'Fixed-income',  description:'Fixed-income debt instrument',               editableReturn:true },
-  { id:'stocks',      name:'Stocks',            icon:'fas fa-chart-line',          color:'var(--c-stocks)',     defaultReturn:12,   category:'Market-linked', description:'Direct equity exposure',                     editableReturn:true },
-  { id:'crypto',      name:'Crypto',            icon:'fab fa-bitcoin',             color:'var(--c-crypto)',     defaultReturn:15,   category:'Market-linked', description:'Digital asset, high volatility',              editableReturn:true },
-  { id:'fd',          name:'Fixed Deposit',     icon:'fas fa-piggy-bank',          color:'#14b8a6',              defaultReturn:6.5,  category:'Fixed-income',  description:'Bank fixed deposit',                          editableReturn:true },
-  { id:'rd',          name:'Recurring Deposit', icon:'fas fa-sync-alt',            color:'#0ea5e9',              defaultReturn:6.5,  category:'Fixed-income',  description:'Bank recurring deposit',                      editableReturn:true },
-  { id:'custom',      name:'Custom',            icon:'fas fa-sliders-h',           color:'var(--text-muted)',   defaultReturn:null, category:'Custom',        description:'User-defined return assumption — no preset',  editableReturn:true },
+  // defaultReturn % p.a., vol = typical yearly swing %, fee = yearly cost %, tax = tax on gains %, comp = compounding, port = Portfolio OS asset type
+  { id:'gold',        name:'Gold',              icon:'fas fa-coins',               color:'var(--c-gold)',       defaultReturn:8,    vol:14, fee:0.2, tax:12.5, comp:'monthly',   port:['Gold'],                     category:'Physical',      description:'Precious metal, inflation hedge. Fee covers storage / ETF costs.' },
+  { id:'silver',      name:'Silver',            icon:'fas fa-medal',               color:'var(--c-silver)',     defaultReturn:7,    vol:24, fee:0.3, tax:12.5, comp:'monthly',   port:['Silver'],                   category:'Physical',      description:'Precious metal, more volatile than gold.' },
+  { id:'realestate',  name:'Real Estate',       icon:'fas fa-home',                color:'var(--c-realestate)', defaultReturn:8,    vol:9,  fee:1,   tax:12.5, comp:'yearly',    port:['RealEstate'],               category:'Physical',      description:'Price growth only. Fee covers upkeep; add rent to the return if you earn it.' },
+  { id:'mutualfunds', name:'Mutual Funds',      icon:'fas fa-chart-pie',           color:'var(--c-mf)',         defaultReturn:12,   vol:16, fee:1,   tax:12.5, comp:'monthly',   port:['MutualFund'],               category:'Market-linked', description:'Diversified equity fund. Fee is the expense ratio.' },
+  { id:'stocks',      name:'Stocks',            icon:'fas fa-chart-line',          color:'var(--c-stocks)',     defaultReturn:12,   vol:20, fee:0.1, tax:12.5, comp:'monthly',   port:['Stocks'],                   category:'Market-linked', description:'Direct equity. Swings more than a fund.' },
+  { id:'etfs',        name:'Index ETFs',        icon:'fas fa-layer-group',         color:'#06b6d4',              defaultReturn:11.5, vol:16, fee:0.15,tax:12.5, comp:'monthly',   port:['ETFs'],                     category:'Market-linked', description:'Low-cost index tracking.' },
+  { id:'intl',        name:'International',     icon:'fas fa-globe',               color:'#6366f1',              defaultReturn:11,   vol:17, fee:0.6, tax:12.5, comp:'monthly',   port:['International'],            category:'Market-linked', description:'Overseas equity; includes currency movement.' },
+  { id:'reits',       name:'REITs & InvITs',    icon:'fas fa-building',            color:'#d946ef',              defaultReturn:9,    vol:14, fee:0.3, tax:20,   comp:'quarterly', port:['REITs'],                    category:'Market-linked', description:'Rental income plus price growth.' },
+  { id:'crypto',      name:'Crypto',            icon:'fab fa-bitcoin',             color:'var(--c-crypto)',     defaultReturn:15,   vol:65, fee:0.5, tax:30,   comp:'monthly',   port:['Crypto','DigitalAssets'],   category:'Market-linked', description:'Digital asset, very high volatility. Taxed at 30% in India.' },
+  { id:'bonds',       name:'Bonds',             icon:'fas fa-file-invoice-dollar', color:'var(--c-bonds)',      defaultReturn:8,    vol:4,  fee:0.2, tax:30,   comp:'yearly',    port:['Bonds'],                    category:'Fixed-income',  description:'Fixed-income debt; interest taxed at your slab.' },
+  { id:'fd',          name:'Fixed Deposit',     icon:'fas fa-piggy-bank',          color:'#14b8a6',              defaultReturn:6.5,  vol:0,  fee:0,   tax:30,   comp:'quarterly', port:['FixedDeposit'],             category:'Fixed-income',  description:'Bank FD, compounded quarterly; interest taxed at your slab.' },
+  { id:'rd',          name:'Recurring Deposit', icon:'fas fa-sync-alt',            color:'#0ea5e9',              defaultReturn:6.5,  vol:0,  fee:0,   tax:30,   comp:'quarterly', port:['RecurringDeposit'],         category:'Fixed-income',  description:'Monthly bank deposit, compounded quarterly.' },
+  { id:'ppf',         name:'PPF / EPF',         icon:'fas fa-shield-alt',          color:'#f97316',              defaultReturn:7.1,  vol:0,  fee:0,   tax:0,    comp:'yearly',    port:['Retirement'],               category:'Retirement',    description:'Government-backed, tax-free interest, long lock-in.' },
+  { id:'nps',         name:'NPS',               icon:'fas fa-user-clock',          color:'#fb923c',              defaultReturn:10,   vol:12, fee:0.1, tax:0,    comp:'monthly',   port:[],                           category:'Retirement',    description:'Market-linked pension; 60% tax-free at maturity (tax left at 0 here).' },
+  { id:'savings',     name:'Savings / Liquid',  icon:'fas fa-wallet',              color:'#84cc16',              defaultReturn:4,    vol:0.5,fee:0,   tax:30,   comp:'monthly',   port:['Cash'],                     category:'Cash',          description:'Savings account or liquid fund.' },
+  { id:'commodities', name:'Commodities',       icon:'fas fa-oil-can',             color:'#92400e',              defaultReturn:7,    vol:25, fee:0.5, tax:30,   comp:'monthly',   port:['Commodities'],              category:'Alternative',   description:'Oil, metals and other raw materials.' },
+  { id:'alternatives',name:'Alternatives',      icon:'fas fa-gem',                 color:'#e11d48',              defaultReturn:10,   vol:20, fee:1.5, tax:12.5, comp:'yearly',    port:['Alternatives','Collectibles','Business'], category:'Alternative', description:'Private equity, collectibles, business stakes.' },
+  { id:'custom',      name:'Custom',            icon:'fas fa-sliders-h',           color:'var(--text-muted)',   defaultReturn:null, vol:null, fee:null, tax:null, comp:null, port:[],                           category:'Custom',        description:'Your own assumptions — nothing is pre-filled.' },
 ];
 
 function getScenarioAsset(id) {
@@ -30139,23 +30138,50 @@ function fmtScenarioRate(n) {
 function renderScenarioAssetOptions() {
   const sel = document.getElementById('sc-type');
   if (!sel) return;
-  sel.innerHTML = SCENARIO_ASSET_CONFIG.map(a => {
+  const cats = [];
+  SCENARIO_ASSET_CONFIG.forEach(a => { if (!cats.includes(a.category)) cats.push(a.category); });
+  sel.innerHTML = cats.map(c => '<optgroup label="' + c + '">' + SCENARIO_ASSET_CONFIG.filter(a => a.category === c).map(a => {
     const label = a.id === 'custom' ? 'Custom' : `${a.name} (${fmtScenarioRate(a.defaultReturn)}%)`;
     return `<option value="${a.id}">${label}</option>`;
-  }).join('');
+  }).join('') + '</optgroup>').join('');
   sel.value = 'mutualfunds'; // preserves the existing default (12%) scenario on first load
+  scnApplyAssetDefaults(getScenarioAsset('mutualfunds'));
+}
+
+function scnApplyAssetDefaults(asset) {
+  const set = (id, v) => { const el = document.getElementById(id); if (el && v != null) el.value = typeof v === 'number' ? fmtScenarioRate(v) : v; };
+  if (asset.id !== 'custom') { set('sc-returns', asset.defaultReturn); set('sc-vol', asset.vol); set('sc-fee', asset.fee); set('sc-tax', asset.tax); set('sc-comp', asset.comp); }
+  const d = document.getElementById('sc-asset-desc'); if (d) d.textContent = asset.description || '';
+  const ic = document.getElementById('sc-asset-icon'); if (ic) { ic.className = asset.icon; ic.style.color = asset.color; }
+  const ln = document.getElementById('sc-lump-note'); if (ln) ln.textContent = '';
 }
 
 function updateScenarioReturns() {
-  const asset = getScenarioAsset(document.getElementById('sc-type').value);
-  document.getElementById('sc-asset-icon').className = asset.icon;
-  document.getElementById('sc-asset-icon').style.color = asset.color;
+  scnApplyAssetDefaults(getScenarioAsset(document.getElementById('sc-type').value));
+  calcScenario();
+}
 
-  // Custom carries no preset — leave whatever return the user already has in place
-  // rather than assigning it a fixed default.
-  if (asset.id !== 'custom') {
-    document.getElementById('sc-returns').value = fmtScenarioRate(asset.defaultReturn);
-  }
+function scnModeChanged() {
+  const m = (document.getElementById('sc-mode') || {}).value || 'both';
+  const lw = document.getElementById('sc-lump-wrap'), mw = document.getElementById('sc-monthly-wrap'), su = document.getElementById('sc-stepup-enabled');
+  if (lw) lw.style.display = m === 'sip' ? 'none' : '';
+  if (mw) mw.style.display = m === 'lump' ? 'none' : '';
+  const tr = su && su.closest('.toggle-row'); if (tr) tr.style.display = m === 'lump' ? 'none' : '';
+  if (m === 'lump') { const r = document.getElementById('sc-stepup-row'); if (r) r.style.display = 'none'; }
+  else toggleScenarioStepupRow();
+  calcScenario();
+}
+
+// Fill the starting amount with the current value of what you already hold in this asset class (Portfolio OS)
+function scnUseMyHoldings() {
+  const asset = getScenarioAsset(document.getElementById('sc-type').value), note = document.getElementById('sc-lump-note');
+  let held = [];
+  try { held = (portDb || []).filter(e => e && e.status !== 'sold' && (asset.port || []).includes(normalizeAssetType(e.assetType))); } catch (e) {}
+  const val = held.length ? Math.round(portAggStats(held).totalVal) : 0;
+  if (!asset.port || !asset.port.length) { if (note) note.textContent = 'Pick an asset type that Portfolio OS tracks first.'; return; }
+  const modeSel = document.getElementById('sc-mode'); if (modeSel && modeSel.value === 'sip') { modeSel.value = 'both'; scnModeChanged(); }
+  document.getElementById('sc-lump').value = val;
+  if (note) note.textContent = held.length ? 'Your ' + held.length + ' ' + asset.name + ' holding' + (held.length > 1 ? 's are' : ' is') + ' worth ' + fmt(val) + ' today.' : 'You have no active ' + asset.name + ' holdings yet.';
   calcScenario();
 }
 
@@ -30165,160 +30191,187 @@ function updateScenarioReturnNote() {
   const noteEl = document.getElementById('sc-return-note');
   const warnEl = document.getElementById('sc-return-warning');
   if (!noteEl) return;
-
   const asset = getScenarioAsset(document.getElementById('sc-type').value);
-  const rawVal = document.getElementById('sc-returns').value;
-  const val = parseFloat(rawVal);
-
-  if (asset.id === 'custom') {
-    noteEl.textContent = 'Custom assumption';
-  } else if (!isNaN(val) && Math.abs(val - asset.defaultReturn) < 0.005) {
-    noteEl.textContent = 'Default planning assumption — editable';
-  } else {
-    noteEl.textContent = 'Custom assumption';
-  }
-
+  const val = parseFloat(document.getElementById('sc-returns').value);
+  if (asset.id === 'custom') noteEl.textContent = 'Custom assumption';
+  else if (!isNaN(val) && Math.abs(val - asset.defaultReturn) < 0.005) noteEl.textContent = 'Default planning assumption — editable';
+  else noteEl.textContent = 'Custom assumption';
   if (warnEl) warnEl.style.display = (!isNaN(val) && val > 25) ? 'block' : 'none';
 }
 
-
-function toggleScenarioStepup() {
-  const enabled = document.getElementById('sc-stepup-enabled').checked;
-  document.getElementById('sc-stepup-row').style.display = enabled ? 'flex' : 'none';
-  calcScenario();
+function toggleScenarioStepupRow() {
+  const el = document.getElementById('sc-stepup-enabled');
+  document.getElementById('sc-stepup-row').style.display = el && el.checked ? 'flex' : 'none';
 }
+function toggleScenarioStepup() { toggleScenarioStepupRow(); calcScenario(); }
 
-// Builds month-by-month invested/total arrays for the whole tenure.
-// When stepUp is disabled this produces results identical to the original flat-SIP formula.
+// Kept for anything else that still calls it: flat or step-up SIP, monthly compounding, contributions at the start of each month.
 function buildScenarioMonthlySeries(monthly, annualRatePct, totalMonths, stepUpEnabled, stepUpPct, stepUpFreq) {
-  const r = annualRatePct / 100 / 12;
-  const invSeries = [];   // cumulative invested, indexed by month (1-based via array index = month-1)
-  const totSeries = [];   // cumulative value, same indexing
-
-  if (!stepUpEnabled) {
-    // Original flat-SIP closed-form path, computed per-month for table/chart granularity
-    let invested = 0, total = 0;
-    for (let m = 1; m <= totalMonths; m++) {
-      invested = monthly * m;
-      total = r > 0 ? monthly * ((Math.pow(1 + r, m) - 1) / r) * (1 + r) : invested;
-      invSeries.push(invested);
-      totSeries.push(total);
-    }
-    return { invSeries, totSeries };
-  }
-
-  // Step-up SIP: contribution increases by stepUpPct% at each step interval.
-  const stepEveryMonths = stepUpFreq === 'monthly' ? 1 : (stepUpFreq === 'quarterly' ? 3 : 12);
-  let currentContribution = monthly;
-  let cumInvested = 0;
-  let cumValue = 0;
-
-  for (let m = 1; m <= totalMonths; m++) {
-    // Step up the contribution at the start of every interval after the first
-    if (m > 1 && (m - 1) % stepEveryMonths === 0) {
-      currentContribution = currentContribution * (1 + stepUpPct / 100);
-    }
-    cumValue = cumValue * (1 + r) + currentContribution;
-    cumInvested += currentContribution;
-    invSeries.push(cumInvested);
-    totSeries.push(cumValue);
-  }
-  return { invSeries, totSeries };
+  const r = scnSim({ lump: 0, monthly, rate: annualRatePct, months: totalMonths, stepPct: stepUpEnabled ? stepUpPct : 0, stepFreq: stepUpFreq, comp: 'monthly', vol: 0, fee: 0, infl: 0, tax: 0, paths: 0 });
+  return { invSeries: r.inv, totSeries: r.val };
 }
+
+// ── Forecast engine ──────────────────────────────────────────────────────
+// Month by month: the starting amount goes in at month 0, the monthly amount at the start of each month (stepping
+// up if chosen), growth is added at the compounding frequency's effective monthly rate, then yearly fees come off.
+// With volatility > 0 it also runs `paths` simulated markets (same average return, lognormal monthly swings) and
+// returns the 10th / 50th / 90th percentile value for each year, plus how often the goal is reached.
+function scnRng(seed) { return function () { seed |= 0; seed = seed + 0x6D2B79F5 | 0; let t = Math.imul(seed ^ seed >>> 15, 1 | seed); t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296; }; }
+function scnSim(o) {
+  const months = Math.max(1, Math.round(o.months)), R = Math.max(-0.99, o.rate / 100);
+  const n = o.comp === 'quarterly' ? 4 : o.comp === 'yearly' ? 1 : 12;
+  const eff = Math.pow(1 + R / n, n) - 1, rm = Math.pow(1 + eff, 1 / 12) - 1;
+  const feeM = 1 - Math.pow(1 - Math.min(0.99, (o.fee || 0) / 100), 1 / 12);
+  const stepEvery = o.stepFreq === 'monthly' ? 1 : o.stepFreq === 'quarterly' ? 3 : 12;
+  const contrib = new Array(months + 1).fill(0);
+  let c = o.monthly || 0;
+  for (let m = 1; m <= months; m++) { if (m > 1 && o.stepPct && (m - 1) % stepEvery === 0) c *= 1 + o.stepPct / 100; contrib[m] = c; }
+  const inv = [], val = [], real = [], fees = [];
+  let bal = o.lump || 0, put = o.lump || 0, feeSum = 0;
+  for (let m = 1; m <= months; m++) {
+    bal += contrib[m]; put += contrib[m];
+    bal *= 1 + rm;
+    const f = bal * feeM; bal -= f; feeSum += f;
+    inv.push(put); val.push(bal); fees.push(feeSum); real.push(bal / Math.pow(1 + (o.infl || 0) / 100, m / 12));
+  }
+  const out = { inv, val, real, fees, months, years: [], p10: [], p50: [], p90: [], goalChance: null };
+  const yrs = Math.ceil(months / 12);
+  if (o.paths && o.vol > 0) {
+    const sig = o.vol / 100 / Math.sqrt(12), mu = Math.log(1 + rm) - sig * sig / 2, rnd = scnRng(o.seed || 7);
+    const at = Array.from({ length: yrs }, () => new Float64Array(o.paths)); let hit = 0;
+    for (let p = 0; p < o.paths; p++) {
+      let b = o.lump || 0;
+      for (let m = 1; m <= months; m++) {
+        let u1 = rnd(), u2 = rnd(); if (u1 < 1e-12) u1 = 1e-12;
+        const z = Math.sqrt(-2 * Math.log(u1)) * Math.cos(2 * Math.PI * u2);
+        b = (b + contrib[m]) * Math.exp(mu + sig * z); b -= b * feeM;
+        if (m % 12 === 0 || m === months) at[Math.ceil(m / 12) - 1][p] = b;
+      }
+      if (o.goal > 0) { const g = b - Math.max(0, b - (o.lump || 0) - contrib.reduce((s, x) => s + x, 0)) * (o.tax || 0) / 100; if (g >= o.goal) hit++; }
+    }
+    at.forEach(a => { const s = Array.from(a).sort((x, y) => x - y), q = k => s[Math.min(s.length - 1, Math.floor(k * s.length))]; out.p10.push(q(0.1)); out.p50.push(q(0.5)); out.p90.push(q(0.9)); });
+    if (o.goal > 0) out.goalChance = hit / o.paths;
+  } else {
+    for (let y = 1; y <= yrs; y++) { const v = val[Math.min(y * 12, months) - 1]; out.p10.push(v); out.p50.push(v); out.p90.push(v); }
+    if (o.goal > 0) out.goalChance = null;
+  }
+  return out;
+}
+function scnInputs() {
+  const g = id => { const el = document.getElementById(id); return el ? el.value : ''; };
+  const num = (id, d) => { const v = parseFloat(g(id)); return isNaN(v) ? d : v; };
+  const mode = g('sc-mode') || 'both', stepOn = !!(document.getElementById('sc-stepup-enabled') || {}).checked && mode !== 'lump';
+  const years = Math.min(60, Math.max(1, num('sc-years', 10)));
+  return {
+    mode, years, months: Math.round(years * 12),
+    lump: mode === 'sip' ? 0 : Math.max(0, num('sc-lump', 0)),
+    monthly: mode === 'lump' ? 0 : Math.max(0, num('sc-monthly', 0)),
+    rate: Math.max(0, num('sc-returns', 0)), vol: Math.max(0, num('sc-vol', 0)), fee: Math.max(0, num('sc-fee', 0)),
+    infl: Math.max(0, num('sc-infl', 0)), tax: Math.min(100, Math.max(0, num('sc-tax', 0))), goal: Math.max(0, num('sc-goal', 0)),
+    comp: g('sc-comp') || 'monthly', stepPct: stepOn ? num('sc-stepup-pct', 0) : 0, stepFreq: g('sc-stepup-freq') || 'yearly',
+  };
+}
+function scnAfterTax(value, invested, tax) { return value - Math.max(0, value - invested) * tax / 100; }
+function scnShort(v) { const a = Math.abs(v); if (a >= 1e7) return '₹' + (v / 1e7).toFixed(a >= 1e9 ? 0 : 2) + ' Cr'; if (a >= 1e5) return '₹' + (v / 1e5).toFixed(2) + ' L'; if (a >= 1e3) return '₹' + (v / 1e3).toFixed(1) + 'k'; return '₹' + Math.round(v); }
 
 function calcScenario() {
   updateScenarioReturnNote();
+  const I = scnInputs();
+  const S = scnSim(Object.assign({ paths: 1000, seed: 42 }, I));
+  const last = I.months - 1, invested = S.inv[last] || 0, total = S.val[last] || 0, gains = total - invested;
+  const net = scnAfterTax(total, invested, I.tax), taxAmt = total - net, feesPaid = S.fees[last] || 0;
+  const realNet = net / Math.pow(1 + I.infl / 100, I.years);
+  const p10 = S.p10[S.p10.length - 1], p90 = S.p90[S.p90.length - 1];
+  const setT = (id, t) => { const el = document.getElementById(id); if (el) el.textContent = t; };
+  setT('sc-invested', fmt(invested)); setT('sc-gains', fmt(gains)); setT('sc-total', fmt(total));
+  setT('sc-net', fmt(net)); setT('sc-real', fmt(realNet));
+  setT('sc-range', I.vol > 0 ? scnShort(scnAfterTax(p10, invested, I.tax)) + ' – ' + scnShort(scnAfterTax(p90, invested, I.tax)) : 'Fixed: ' + scnShort(net));
+  const tn = document.getElementById('sc-tax-note'); if (tn) tn.textContent = taxAmt > 0 ? 'About ' + fmt(taxAmt) + ' in tax at the end.' : 'No tax on these gains.';
 
-  const monthly = parseFloat(document.getElementById('sc-monthly').value) || 0;
-  const rate    = Math.max(0, parseFloat(document.getElementById('sc-returns').value) || 0);
-  const years   = parseFloat(document.getElementById('sc-years').value) || 0;
-  const months  = Math.max(1, Math.round(years * 12));
-
-  const stepUpEnabled = document.getElementById('sc-stepup-enabled') ? document.getElementById('sc-stepup-enabled').checked : false;
-  const stepUpPct  = stepUpEnabled ? (parseFloat(document.getElementById('sc-stepup-pct').value) || 0) : 0;
-  const stepUpFreq = stepUpEnabled ? (document.getElementById('sc-stepup-freq').value || 'yearly') : 'yearly';
-
-  const { invSeries, totSeries } = buildScenarioMonthlySeries(monthly, rate, months, stepUpEnabled, stepUpPct, stepUpFreq);
-
-  const invested = invSeries[invSeries.length - 1] || 0;
-  const total    = totSeries[totSeries.length - 1] || 0;
-  const gains    = total - invested;
-
-  document.getElementById('sc-invested').textContent = fmt(invested);
-  document.getElementById('sc-gains').textContent    = fmt(gains);
-  document.getElementById('sc-total').textContent    = fmt(total);
-
-  // Build yearly data
-  const yearLabels = [], invData = [], totalData = [], gainData = [];
-  const tbody = document.getElementById('sc-table-body');
-  if (!tbody) return;
-  tbody.innerHTML = '';
-
-  const totalYears = Math.max(1, Math.round(years));
-  for (let y = 1; y <= totalYears; y++) {
-    const m = Math.min(y * 12, months);
-    const inv = invSeries[m - 1] || 0;
-    const tot = totSeries[m - 1] || 0;
-    const gain = tot - inv;
-    const growthPct = inv > 0 ? ((gain / inv) * 100).toFixed(1) : '0.0';
-    yearLabels.push('Year ' + y);
-    invData.push(Math.round(inv));
-    totalData.push(Math.round(tot));
-    gainData.push(Math.round(gain));
-
-    const gainColor = gain >= 0 ? 'var(--c-inc)' : 'var(--danger)';
-    tbody.innerHTML += `<tr>
-      <td style="font-weight:600">Year ${y}</td>
-      <td style="text-align:right;font-family:'DM Mono',monospace">${fmt(inv)}</td>
-      <td style="text-align:right;font-family:'DM Mono',monospace;color:var(--c-inv)">${fmt(gain)}</td>
-      <td style="text-align:right;font-family:'DM Mono',monospace;color:var(--c-inc);font-weight:700">${fmt(tot)}</td>
-      <td style="text-align:right;font-family:'DM Mono',monospace;color:${gainColor}">${growthPct}%</td>
-    </tr>`;
+  // insights
+  const ins = [];
+  const cagr = invested > 0 && I.mode === 'lump' ? (Math.pow(net / invested, 1 / I.years) - 1) * 100 : null;
+  const multiple = invested > 0 ? net / invested : 0;
+  ins.push(['fa-arrow-trend-up', '#34d399', 'You put in <b>' + fmt(invested) + '</b> and could have <b>' + fmt(net) + '</b> after fees and tax, <b>' + multiple.toFixed(1) + '×</b> your money' + (cagr != null ? ' (' + cagr.toFixed(1) + '% a year after costs)' : '') + '.']);
+  if (I.infl > 0) ins.push(['fa-scale-balanced', '#fbbf24', 'With ' + fmtScenarioRate(I.infl) + '% inflation that buys what <b>' + fmt(realNet) + '</b> buys today. ' + (realNet < invested ? '<span style="color:#f87171">That is less than you put in, so this plan loses buying power.</span>' : 'Real growth: <b>' + fmt(realNet - invested) + '</b>.')]);
+  if (feesPaid > 1) ins.push(['fa-receipt', '#f472b6', 'Yearly costs of ' + fmtScenarioRate(I.fee) + '% take about <b>' + fmt(feesPaid) + '</b> over ' + I.years + ' years, including the growth that money would have made.']);
+  if (I.vol > 0) ins.push(['fa-wave-square', '#60a5fa', 'In a weak market (1 in 10) you would end near <b>' + fmt(scnAfterTax(p10, invested, I.tax)) + '</b>; in a strong one near <b>' + fmt(scnAfterTax(p90, invested, I.tax)) + '</b>.' + (scnAfterTax(p10, invested, I.tax) < invested ? ' A weak market could leave you below what you put in.' : '')]);
+  if (I.goal > 0) {
+    let yr = null; for (let m = 0; m < I.months; m++) { if (scnAfterTax(S.val[m], S.inv[m], I.tax) >= I.goal) { yr = m + 1; break; } }
+    // monthly amount needed to reach the goal in this period (binary search on the deterministic path)
+    let lo = 0, hi = Math.max(1000, I.goal / I.months * 2), need = null;
+    const reach = mo => { const r = scnSim(Object.assign({}, I, { monthly: mo, mode: 'both', paths: 0 })); return scnAfterTax(r.val[I.months - 1], r.inv[I.months - 1], I.tax); };
+    if (reach(0) >= I.goal) need = 0; else { while (reach(hi) < I.goal && hi < 1e10) hi *= 2; for (let k = 0; k < 40; k++) { const mid = (lo + hi) / 2; if (reach(mid) >= I.goal) hi = mid; else lo = mid; } need = Math.ceil(hi / 100) * 100; }
+    const chance = S.goalChance != null ? ' Chance of getting there in ' + I.years + ' years: <b>' + Math.round(S.goalChance * 100) + '%</b>.' : '';
+    ins.push(['fa-flag-checkered', '#a78bfa', (yr ? 'You reach your goal of <b>' + fmt(I.goal) + '</b> in about <b>' + (yr / 12 >= 1 ? (yr / 12).toFixed(1) + ' years' : yr + ' months') + '</b>.' : 'You don\'t reach <b>' + fmt(I.goal) + '</b> in ' + I.years + ' years.') + chance + (need != null && need !== Math.round(I.monthly) ? ' To reach it in ' + I.years + ' years you would need about <b>' + fmt(need) + '/month</b>' + (I.lump ? ' alongside the starting amount' : '') + '.' : '')]);
   }
+  const insEl = document.getElementById('sc-insights');
+  if (insEl) insEl.innerHTML = ins.map(x => '<div class="scn-ins"><i class="fas ' + x[0] + '" style="color:' + x[1] + '"></i><span>' + x[2] + '</span></div>').join('');
 
-  // Growth line chart
+  // year table + chart data
+  const tbody = document.getElementById('sc-table-body'); if (!tbody) return;
+  const labels = [], invD = [], valD = [], realD = [], loD = [], hiD = [];
+  let rows = '';
+  const years = Math.ceil(I.months / 12);
+  if (I.lump > 0) { labels.push('Now'); invD.push(Math.round(I.lump)); valD.push(Math.round(I.lump)); realD.push(Math.round(I.lump)); loD.push(Math.round(I.lump)); hiD.push(Math.round(I.lump)); }
+  for (let y = 1; y <= years; y++) {
+    const m = Math.min(y * 12, I.months) - 1, inv = S.inv[m], tot = S.val[m], gain = tot - inv;
+    labels.push('Year ' + y); invD.push(Math.round(inv)); valD.push(Math.round(tot)); realD.push(Math.round(S.real[m])); loD.push(Math.round(S.p10[y - 1])); hiD.push(Math.round(S.p90[y - 1]));
+    const gp = inv > 0 ? (gain / inv * 100).toFixed(1) : '0.0';
+    rows += `<tr><td style="font-weight:600;white-space:nowrap">Year ${y}</td><td style="text-align:right;font-family:'DM Mono',monospace">${fmt(inv)}</td>` +
+      `<td style="text-align:right;font-family:'DM Mono',monospace;color:var(--c-inv)">${fmt(gain)}</td>` +
+      `<td style="text-align:right;font-family:'DM Mono',monospace;color:var(--c-inc);font-weight:700">${fmt(tot)}</td>` +
+      `<td style="text-align:right;font-family:'DM Mono',monospace;color:#fbbf24">${fmt(S.real[m])}</td>` +
+      `<td style="text-align:right;font-family:'DM Mono',monospace;color:#f87171">${I.vol > 0 ? fmt(S.p10[y - 1]) : '—'}</td>` +
+      `<td style="text-align:right;font-family:'DM Mono',monospace;color:#60a5fa">${I.vol > 0 ? fmt(S.p90[y - 1]) : '—'}</td>` +
+      `<td style="text-align:right;font-family:'DM Mono',monospace;color:${gain >= 0 ? 'var(--c-inc)' : 'var(--danger)'}">${gp}%</td></tr>`;
+  }
+  tbody.innerHTML = rows;
+
   destroyChart('sc-growth');
   const gcCanvas = document.getElementById('sc-growth-chart');
-  if (gcCanvas) {
-    const gcCtx = gcCanvas.getContext('2d');
-    const gInv = gcCtx.createLinearGradient(0, 0, 0, 300);
-    gInv.addColorStop(0, 'rgba(167,139,250,0.4)');
-    gInv.addColorStop(1, 'rgba(167,139,250,0.0)');
-    const gTot = gcCtx.createLinearGradient(0, 0, 0, 300);
-    gTot.addColorStop(0, 'rgba(52,211,153,0.4)');
-    gTot.addColorStop(1, 'rgba(52,211,153,0.0)');
-
-    charts['sc-growth'] = new Chart(gcCtx, {
-      type: 'line',
-      data: {
-        labels: yearLabels,
-        datasets: [
-          { label: 'Total Invested', data: invData, borderColor: '#a78bfa', backgroundColor: gInv, borderWidth: 3, fill: true, tension: 0.4, pointRadius: 4, pointBackgroundColor: '#a78bfa' },
-          { label: 'Total Value',    data: totalData, borderColor: '#34d399', backgroundColor: gTot, borderWidth: 3, fill: true, tension: 0.4, pointRadius: 4, pointBackgroundColor: '#34d399' }
-        ]
-      },
-      options: {
-        ...cOpts(true),
-        interaction: { mode: 'index', intersect: false },
-        scales: {
-          y: { grid: { color: chartGridColor() }, ticks: { color: chartTextColor(), callback: v => '₹' + (v/1000).toFixed(0) + 'k' } },
-          x: { grid: { display: false }, ticks: { color: chartTextColor() } }
-        }
-      }
+  if (gcCanvas && typeof Chart !== 'undefined') {
+    const ctx = gcCanvas.getContext('2d');
+    const gTot = ctx.createLinearGradient(0, 0, 0, 320); gTot.addColorStop(0, 'rgba(52,211,153,0.35)'); gTot.addColorStop(1, 'rgba(52,211,153,0)');
+    const gInv = ctx.createLinearGradient(0, 0, 0, 320); gInv.addColorStop(0, 'rgba(167,139,250,0.22)'); gInv.addColorStop(1, 'rgba(167,139,250,0)');
+    const ds = [];
+    if (I.vol > 0) {
+      ds.push({ label: 'Strong market', data: hiD, borderColor: 'rgba(96,165,250,0.35)', borderWidth: 1, pointRadius: 0, fill: false, tension: 0.35, order: 5 });
+      ds.push({ label: 'Weak market', data: loD, borderColor: 'rgba(248,113,113,0.35)', borderWidth: 1, pointRadius: 0, backgroundColor: 'rgba(96,165,250,0.10)', fill: '-1', tension: 0.35, order: 5 });
+    }
+    ds.push({ label: 'Total Value', data: valD, borderColor: '#34d399', backgroundColor: gTot, borderWidth: 3, fill: I.vol > 0 ? false : 'origin', tension: 0.35, pointRadius: labels.length > 25 ? 0 : 3, pointBackgroundColor: '#34d399', order: 1 });
+    ds.push({ label: 'Total Invested', data: invD, borderColor: '#a78bfa', backgroundColor: gInv, borderWidth: 2, fill: 'origin', tension: 0.2, pointRadius: 0, order: 3 });
+    if (I.infl > 0) ds.push({ label: "In today's money", data: realD, borderColor: '#fbbf24', borderDash: [6, 5], borderWidth: 2, pointRadius: 0, fill: false, tension: 0.35, order: 2 });
+    if (I.goal > 0) ds.push({ label: 'Goal', data: labels.map(() => I.goal), borderColor: 'rgba(244,114,182,0.8)', borderDash: [2, 4], borderWidth: 1.5, pointRadius: 0, fill: false, order: 4 });
+    charts['sc-growth'] = new Chart(ctx, {
+      type: 'line', data: { labels, datasets: ds },
+      options: { ...cOpts(true), interaction: { mode: 'index', intersect: false },
+        plugins: { ...cOpts(true).plugins, tooltip: { ...(cOpts(true).plugins || {}).tooltip, callbacks: { label: c => ' ' + c.dataset.label + ': ' + fmt(c.parsed.y) } } },
+        scales: { y: { grid: { color: chartGridColor() }, ticks: { color: chartTextColor(), callback: v => scnShort(v) } }, x: { grid: { display: false }, ticks: { color: chartTextColor(), maxTicksLimit: 12 } } } }
     });
   }
-
-  // Donut chart
   destroyChart('sc-donut');
-  const sdCanvas = document.getElementById('sc-donut-chart');
-  if (sdCanvas && gains >= 0) {
-    charts['sc-donut'] = makeDonut(
-      'sc-donut-chart',
-      ['Amount Invested', 'Returns Earned'],
-      [Math.round(invested), Math.round(gains)],
-      ['#a78bfa', '#34d399']
-    );
+  if (document.getElementById('sc-donut-chart') && typeof Chart !== 'undefined') {
+    const parts = [['You put in', invested, '#a78bfa'], ['Your gains (kept)', Math.max(0, gains - taxAmt), '#34d399'], ['Tax', taxAmt, '#f87171'], ['Fees paid', feesPaid, '#f472b6']].filter(x => x[1] > 0.5);
+    charts['sc-donut'] = makeDonut('sc-donut-chart', parts.map(x => x[0]), parts.map(x => Math.round(x[1])), parts.map(x => x[2]));
   }
+  scnRenderCompare(I);
+}
+
+function scnRenderCompare(I) {
+  const box = document.getElementById('sc-compare'); if (!box) return;
+  const cur = (document.getElementById('sc-type') || {}).value;
+  const rows = SCENARIO_ASSET_CONFIG.filter(a => a.id !== 'custom').map(a => {
+    const r = scnSim(Object.assign({}, I, { rate: a.defaultReturn, vol: a.vol, fee: a.fee, tax: a.tax, comp: a.comp, paths: a.vol > 0 ? 300 : 0, seed: 9 }));
+    const inv = r.inv[I.months - 1], y = r.p10.length - 1;
+    return { a, inv, mid: scnAfterTax(a.vol > 0 ? r.p50[y] : r.val[I.months - 1], inv, a.tax), lo: scnAfterTax(r.p10[y], inv, a.tax), hi: scnAfterTax(r.p90[y], inv, a.tax) };
+  }).sort((x, y) => y.mid - x.mid);
+  const max = Math.max(...rows.map(r => r.hi), 1), invX = rows.length ? rows[0].inv / max * 100 : 0;
+  box.innerHTML = '<div class="scn-cmp">' + rows.map(r => '<button type="button" class="scn-cmp-row' + (r.a.id === cur ? ' on' : '') + '" onclick="document.getElementById(\'sc-type\').value=\'' + r.a.id + '\';updateScenarioReturns();">' +
+    '<span class="scn-cmp-n"><i class="' + r.a.icon + '" style="color:' + r.a.color + '"></i>' + r.a.name + '<em>' + fmtScenarioRate(r.a.defaultReturn) + '%</em></span>' +
+    '<span class="scn-cmp-t"><span class="scn-cmp-rng" style="left:' + (r.lo / max * 100) + '%;width:' + Math.max(0.6, (r.hi - r.lo) / max * 100) + '%"></span><span class="scn-cmp-bar" style="width:' + (r.mid / max * 100) + '%;background:' + r.a.color + '"></span><span class="scn-cmp-inv" style="left:' + invX + '%"></span></span>' +
+    '<span class="scn-cmp-v">' + scnShort(r.mid) + '</span></button>').join('') +
+    '</div><div class="scn-hint" style="margin-top:8px"><span class="scn-cmp-key"></span> white tick = what you put in (' + scnShort(rows.length ? rows[0].inv : 0) + ')</div>';
 }
 
 window.onload = () => {
@@ -30331,8 +30384,8 @@ window.onload = () => {
   // 2. Start the Live Market Engine
   MarketEngine.init();
 
-  // Draw the TradingView chart on load
-  renderTradingViewChart();
+  // Draw the TradingView chart on load (if its script was blocked or failed, carry on loading the rest of the app)
+  try { renderTradingViewChart(); } catch (e) { console.warn('TradingView chart unavailable:', e); }
 
   // Build the dropdown HTML options FIRST
   buildFilterDropdowns();
@@ -30392,7 +30445,7 @@ window.onload = () => {
   }
 
   renderDashboard();
-  applyStoredTheme();
+  if (typeof applyStoredTheme === 'function') applyStoredTheme();   // (was undefined, which stopped the rest of start-up below from running)
   updateNotifBadge();
 
   // Ctrl+K / Cmd+K to open search
@@ -30404,7 +30457,10 @@ window.onload = () => {
     if (e.key === 'Escape') closeSearch();
   });
 
+  // click outside a pop-up closes it, except the entry forms, so a stray click never loses what you typed
+  const _keepOpen = ['modal', 'port-modal', 'credit-modal', 'budget-modal', 'cc-edit-modal', 'insurance-modal', 'subscription-modal', 'settings-modal'];
   document.querySelectorAll('.modal-overlay').forEach(m => {
+    if (_keepOpen.includes(m.id)) return;
     m.addEventListener('click', e => {
       if (e.target === m) m.style.display = 'none';
     });
@@ -36258,6 +36314,16 @@ body.light-mode .txa-badge.det{color:#6d28d9}
     if (!named.length) { host.innerHTML = '<div class="txa-muted-empty">' + (rows.length ? 'No payees recorded in this period — add a Payee when you save a transaction to see where your money goes.' : 'No expense data for this period') + '</div>'; return; }
     var freq = named.slice().sort(function (a, b) { return b.count - a.count || b.total - a.total; })[0];
     var top5 = named.slice(0, 5).reduce(function (s, g) { return s + g.total; }, 0), top = named[0];
+    // No single month/year picked (e.g. All time): compare one month with the month before it, chosen right here.
+    var cmp = null;
+    if (!prev) {
+      var mset = {}; rows.forEach(function (r) { var k = String(r.date || '').slice(0, 7); if (/^\d{4}-\d{2}$/.test(k)) mset[k] = 1; });
+      var mk = Object.keys(mset).sort();
+      if (mk.length) {
+        var cm = PCMP.m && mset[PCMP.m] ? PCMP.m : mk[mk.length - 1], cd = new Date(+cm.slice(0, 4), +cm.slice(5, 7) - 2, 1), pm = cd.getFullYear() + '-' + String(cd.getMonth() + 1).padStart(2, '0');
+        cmp = { m: cm, pm: pm, keys: mk, cur: rows.filter(function (r) { return String(r.date || '').slice(0, 7) === cm; }), prev: rows.filter(function (r) { return String(r.date || '').slice(0, 7) === pm; }) };
+      }
+    }
     var pmap = {}; if (prev) txGroup(prev, 'p', maps).forEach(function (g) { pmap[g.key] = g; });
     function mainCat(g) { var c = txGroup(g.items, 'c', maps)[0]; return c ? c.name : ''; }
     function kpi(ic, col, lb, v, sub, noV, noS) { return '<div class="txa-kpi" style="--k:' + col + '"><div class="txa-kpi-top"><div class="txa-kpi-ico"><i class="fas ' + ic + '"></i></div><span class="txa-lbl">' + lb + '</span></div><div class="txa-kpi-val"' + (noV ? ' data-no-count' : '') + ' title="' + esc(v) + '">' + esc(v) + '</div><div class="txa-kpi-sub"' + (noS ? ' data-no-count' : '') + '>' + sub + '</div></div>'; }
@@ -36277,10 +36343,30 @@ body.light-mode .txa-badge.det{color:#6d28d9}
       var neu = named.filter(function (g) { return !pmap[g.key]; });
       mv = '<div class="txa-lbl" style="margin:0 0 6px">Biggest increases vs previous period</div>' + (inc.length ? inc.map(function (x) { return '<div class="txa-mv"><span class="nm" title="' + esc(x.g.name) + '">' + esc(x.g.name) + '</span><span class="v">' + fmt(x.pt) + ' → ' + fmt(x.g.total) + '</span>' + delta(x.g.total, x.pt) + '</div>'; }).join('') : '<div class="txa-muted-empty" style="padding:8px">No payee spending increased.</div>') +
         '<div class="txa-lbl" style="margin:12px 0 6px">New payees this period</div>' + (neu.length ? '<div class="txa-note"><b>' + neu.length + '</b> new: ' + neu.slice(0, 5).map(function (g) { return esc(g.name) + ' (' + fmt(g.total) + ')'; }).join(', ') + (neu.length > 5 ? ' …' : '') + '</div>' : '<div class="txa-note">None — every payee was also used in the previous period.</div>');
-    } else mv = '<div class="txa-note">Pick a month (or a year) with the “Only” filter to compare payees with the previous period.</div>';
+    } else if (cmp) {
+      var ML = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'], lab = function (k) { return ML[+k.slice(5, 7) - 1] + ' ' + k.slice(0, 4); };
+      var cg = txGroup(cmp.cur, 'p', maps).filter(function (g) { return !g.none; }), pg2 = {}; txGroup(cmp.prev, 'p', maps).forEach(function (g) { if (!g.none) pg2[g.key] = g; });
+      var ct = sum(cmp.cur), pt2 = sum(cmp.prev), seen = {};
+      var ch = cg.map(function (g) { seen[g.key] = 1; var q = pg2[g.key], v = q ? q.total : 0; return { n: g.name, a: v, b: g.total, d: g.total - v, isNew: !q }; });
+      Object.keys(pg2).forEach(function (k) { if (!seen[k]) ch.push({ n: pg2[k].name, a: pg2[k].total, b: 0, d: -pg2[k].total, gone: true }); });
+      var up = ch.filter(function (x) { return x.d > 0 && !x.isNew; }).sort(function (a, b) { return b.d - a.d; }).slice(0, 4);
+      var dn = ch.filter(function (x) { return x.d < 0; }).sort(function (a, b) { return a.d - b.d; }).slice(0, 4);
+      var nw = ch.filter(function (x) { return x.isNew; }).sort(function (a, b) { return b.b - a.b; });
+      var line = function (x) { return '<div class="txa-mv"><span class="nm" title="' + esc(x.n) + '">' + esc(x.n) + '</span><span class="v">' + fmt(x.a) + ' → ' + fmt(x.b) + '</span>' + delta(x.b, x.a) + '</div>'; };
+      var opts = cmp.keys.slice(-24).reverse().map(function (k) { return '<option value="' + k + '"' + (k === cmp.m ? ' selected' : '') + '>' + lab(k) + '</option>'; }).join('');
+      mv = '<div class="pcmp-head"><span class="txa-lbl" style="margin:0">Compare</span><select class="pcmp-sel" data-pcmp aria-label="Month to compare">' + opts + '</select><span class="txa-lbl" style="margin:0">with ' + lab(cmp.pm) + '</span></div>' +
+        '<div class="pcmp-tot"><div><span>' + lab(cmp.pm) + '</span><b>' + fmt(pt2) + '</b></div><i class="fas fa-arrow-right"></i><div><span>' + lab(cmp.m) + '</span><b>' + fmt(ct) + '</b></div>' + delta(ct, pt2) + '</div>' +
+        (cmp.prev.length ? '' : '<div class="txa-note" style="margin-bottom:8px">No expenses were logged in ' + lab(cmp.pm) + ', so everything shows as new.</div>') +
+        '<div class="txa-lbl" style="margin:10px 0 6px">Spent more</div>' + (up.length ? up.map(line).join('') : '<div class="txa-note">No payee went up.</div>') +
+        '<div class="txa-lbl" style="margin:12px 0 6px">Spent less</div>' + (dn.length ? dn.map(line).join('') : '<div class="txa-note">No payee went down.</div>') +
+        '<div class="txa-lbl" style="margin:12px 0 6px">New payees in ' + lab(cmp.m) + '</div>' + (nw.length ? '<div class="txa-note"><b>' + nw.length + '</b> new: ' + nw.slice(0, 5).map(function (x) { return esc(x.n) + ' (' + fmt(x.b) + ')'; }).join(', ') + (nw.length > 5 ? ' …' : '') + '</div>' : '<div class="txa-note">None — all familiar payees.</div>') +
+        '<div class="txa-note" style="margin-top:10px;opacity:.75">Tip: pick a month or year with the “Only” filter at the top to compare the whole page with the period before.</div>';
+    } else mv = '<div class="txa-note">Add a few expenses with a payee to compare months here.</div>';
     host.innerHTML = kp + '<div class="fxb-two"><div><div class="txa-lbl" style="margin:0 0 8px">Where your money goes — top payees <span class="fxb-hint">click to drill down</span></div><div class="txa-rank" data-no-count>' + list + '</div></div><div>' + mv + '</div></div>';
   }
 
+  var PCMP = { m: null };
+  document.addEventListener('change', function (e) { var t = e.target; if (t && t.matches && t.matches('[data-pcmp]')) { PCMP.m = t.value; payeePanel(); } });
   function renderAll() { render('dash'); render('ana'); payeePanel(); }
   window.fosExpBreakRender = function (p) { if (p === 'ana') { render('ana'); payeePanel(); } else render(p || 'dash'); };
 
@@ -38777,6 +38863,103 @@ try{init();paint()}catch(e){}
 .fosnw-row b{font-weight:600;color:var(--text-main)}.fosnw-row em{font-style:normal;color:var(--text-muted);font-size:.72rem;margin-left:6px}
 .fosnw-row.tot{font-weight:800;border-top:1px solid rgba(128,128,128,.4)}
 .fosnw-note{margin-top:8px;font-size:.72rem;color:var(--text-muted);line-height:1.55}
+/* Portfolio: Active vs Sold, Unrealized vs Realized, Capital Liquidity Matrix */
+.pst-sum { display:grid; grid-template-columns:repeat(auto-fit, minmax(130px, 1fr)); gap:8px; margin:-2px 0 10px; }
+.pst-sum:empty { display:none; }
+.pst-chip { position:relative; padding:8px 10px 8px 12px; border-radius:11px; background:rgba(255,255,255,.03); border:1px solid var(--glass-border); overflow:hidden; min-width:0; }
+.pst-chip::before { content:''; position:absolute; left:0; top:0; bottom:0; width:3px; background:var(--c); box-shadow:0 0 10px var(--c); }
+.pst-chip em { display:block; font-style:normal; font-size:.58rem; font-weight:800; letter-spacing:1px; text-transform:uppercase; color:var(--text-muted); }
+.pst-chip b { display:block; font-family:'DM Mono',monospace; font-size:.98rem; color:var(--text-main); margin:2px 0; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.pst-chip span { display:block; font-size:.64rem; color:var(--text-mid); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.liq-sub { font-size:.7rem; color:var(--text-muted); margin:-6px 0 12px; }
+.liq-bar { display:flex; height:12px; border-radius:6px; overflow:hidden; gap:2px; background:rgba(255,255,255,.04); margin-bottom:14px; }
+.liq-bar span { display:block; height:100%; border-radius:3px; }
+.liq-rows { display:grid; gap:10px; }
+.liq-row { display:grid; grid-template-columns:30px minmax(0,1fr); gap:10px; align-items:start; }
+.liq-row.off { opacity:.45; }
+.liq-ic { width:30px; height:30px; border-radius:9px; display:flex; align-items:center; justify-content:center; color:var(--c); background:color-mix(in srgb, var(--c) 14%, transparent); border:1px solid color-mix(in srgb, var(--c) 35%, transparent); font-size:.78rem; }
+.liq-top { display:flex; justify-content:space-between; align-items:baseline; gap:8px; font-size:.8rem; }
+.liq-top b { color:var(--text-main); }
+.liq-v { font-family:'DM Mono',monospace; font-size:.8rem; color:var(--text-main); white-space:nowrap; }
+.liq-v em { font-style:normal; color:var(--c); margin-left:6px; font-size:.72rem; }
+.liq-meter { height:4px; border-radius:2px; background:rgba(255,255,255,.05); margin:5px 0 4px; overflow:hidden; }
+.liq-meter span { display:block; height:100%; background:var(--c); box-shadow:0 0 8px var(--c); border-radius:2px; }
+.liq-t { font-size:.66rem; color:var(--text-mid); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.liq-t span { color:var(--text-muted); }
+.liq-cover { display:flex; gap:10px; align-items:flex-start; margin-top:14px; padding:10px 12px; border-radius:12px; border:1px solid color-mix(in srgb, var(--c) 35%, transparent); background:color-mix(in srgb, var(--c) 7%, transparent); font-size:.74rem; color:var(--text-mid); line-height:1.5; }
+.liq-cover i { color:var(--c); margin-top:3px; }
+.liq-cover b { color:var(--text-main); font-family:'DM Mono',monospace; }
+body.light-mode .pst-chip, body.light-mode .liq-bar, body.light-mode .liq-meter { background:#f1f5f9; }
+/* Net Worth: monthly change summary chips */
+.nwd-sum { display:flex; flex-wrap:wrap; gap:6px; margin:8px 0 10px; align-items:center; }
+.nwd-chip { display:inline-flex; align-items:baseline; gap:6px; padding:4px 10px; border-radius:999px; background:rgba(255,255,255,.035); border:1px solid var(--glass-border); font-size:.7rem; }
+.nwd-chip em { font-style:normal; color:var(--text-muted); }
+.nwd-chip b { font-family:'DM Mono',monospace; font-size:.74rem; }
+.nwd-live { font-size:.66rem; color:var(--text-muted); margin-left:4px; }
+body.light-mode .nwd-chip { background:#f8fafc; }
+/* Analytics: Debt vs Assets coverage rings */
+.dvr { width:100%; flex:1; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:10px; padding:6px 0 4px; position:relative; min-height:310px; }
+.dvr-ring { position:relative; width:min(250px, 78%); }
+.dvr-svg { width:100%; height:auto; overflow:visible; display:block; }
+.dvr-track { fill:none; stroke:rgba(255,255,255,.05); }
+.dvr-arc { fill:none; stroke-linecap:round; transition:stroke-dashoffset 1.3s cubic-bezier(.22,1,.36,1); }
+.dvr-tick { stroke:rgba(148,163,184,.22); stroke-width:1; }
+.dvr-tick.major { stroke:rgba(148,163,184,.5); stroke-width:1.4; }
+.dvr-cap { animation:dvrPulse 2.4s ease-in-out infinite; }
+@keyframes dvrPulse { 0%,100% { opacity:1; } 50% { opacity:.45; } }
+.dvr-center { position:absolute; top:50%; left:50%; transform:translate(-50%, -50%); text-align:center; pointer-events:none; width:140px; }
+.dvr-k { font-size:.6rem; font-weight:800; letter-spacing:1.4px; text-transform:uppercase; color:var(--text-muted); }
+.dvr-net { font-family:'DM Mono',monospace; font-size:1.25rem; font-weight:700; margin:2px 0; text-shadow:0 0 18px currentColor; }
+.dvr-sub { font-size:.66rem; color:var(--text-mid); line-height:1.35; }
+.dvr-legend { display:flex; gap:18px; flex-wrap:wrap; justify-content:center; font-size:.74rem; }
+.dvr-legend > div { display:flex; align-items:center; gap:6px; color:var(--text-mid); }
+.dvr-legend i { width:16px; height:6px; border-radius:3px; display:inline-block; }
+.dvr-legend b { font-family:'DM Mono',monospace; color:var(--text-main); }
+.dvr-chip { padding:4px 14px; border:1px solid; border-radius:20px; font-size:.7rem; font-weight:700; background:var(--glass-bg); text-align:center; }
+body.light-mode .dvr-track { stroke:rgba(15,23,42,.07); }
+body.light-mode .dvr-tick { stroke:rgba(15,23,42,.18); }
+body.light-mode .dvr-tick.major { stroke:rgba(15,23,42,.38); }
+body.light-mode .dvr-cap { fill:#0f172a; }
+@media (prefers-reduced-motion: reduce) { .dvr-arc { transition:none; } .dvr-cap { animation:none; } }
+/* Payee Insights: month-vs-previous comparison */
+#ana-payee-insights .pcmp-head { display:flex; align-items:center; gap:8px; flex-wrap:wrap; margin-bottom:10px; }
+#ana-payee-insights .pcmp-sel { background:rgba(255,255,255,.04); color:var(--text-main); border:1px solid var(--glass-border); border-radius:8px; padding:5px 8px; font:inherit; font-size:.78rem; cursor:pointer; }
+body.light-mode #ana-payee-insights .pcmp-sel { background:#fff; }
+#ana-payee-insights .pcmp-tot { display:flex; align-items:center; gap:12px; flex-wrap:wrap; padding:10px 12px; border:1px solid var(--glass-border); border-radius:12px; background:rgba(255,255,255,.02); }
+#ana-payee-insights .pcmp-tot > div { display:flex; flex-direction:column; gap:2px; }
+#ana-payee-insights .pcmp-tot span { font-size:.66rem; color:var(--text-muted); text-transform:uppercase; letter-spacing:.8px; font-weight:700; }
+#ana-payee-insights .pcmp-tot b { font-family:'DM Mono',monospace; font-size:1rem; color:var(--text-main); }
+#ana-payee-insights .pcmp-tot > i { color:var(--text-muted); font-size:.75rem; }
+/* Scenario forecaster */
+#view-scenario .scn-grid { display:grid; grid-template-columns:repeat(auto-fill, minmax(230px, 1fr)); gap:4px 16px; }
+#view-scenario .scn-hint { font-size:.66rem; color:var(--text-muted); margin-top:4px; opacity:.85; line-height:1.45; }
+#view-scenario .scn-adv { margin:10px 0 4px; border:1px solid var(--glass-border); border-radius:12px; padding:10px 14px; background:rgba(167,139,250,.03); }
+#view-scenario .scn-adv > summary { cursor:pointer; font-size:.8rem; font-weight:700; color:var(--text-main); list-style:none; padding:2px 0 8px; }
+#view-scenario .scn-adv > summary::-webkit-details-marker { display:none; }
+#view-scenario .scn-kpis { display:grid !important; grid-template-columns:repeat(auto-fit, minmax(150px, 1fr)); gap:10px; }
+#view-scenario .scn-mine { font-size:.72rem; padding:6px 12px; }
+#view-scenario #sc-range { white-space:nowrap; }
+#view-scenario #sc-table-body td { white-space:nowrap; }
+#view-scenario .scn-insights { display:grid; gap:8px; margin-top:14px; }
+#view-scenario .scn-ins { display:flex; gap:10px; align-items:flex-start; font-size:.8rem; line-height:1.55; color:var(--text-mid); padding:10px 12px; border-radius:10px; background:rgba(255,255,255,.025); border:1px solid var(--glass-border); }
+#view-scenario .scn-ins i { margin-top:3px; width:16px; text-align:center; flex:none; }
+#view-scenario .scn-ins b { color:var(--text-main); }
+#view-scenario .scn-cmp { display:grid; gap:6px; }
+#view-scenario .scn-cmp-row { display:grid; grid-template-columns:minmax(130px, 180px) 1fr 84px; align-items:center; gap:12px; background:none; border:1px solid transparent; border-radius:9px; padding:6px 8px; cursor:pointer; color:var(--text-mid); font:inherit; text-align:left; }
+#view-scenario .scn-cmp-row:hover { background:rgba(255,255,255,.03); }
+#view-scenario .scn-cmp-row.on { border-color:rgba(var(--brand-rgb),.45); background:rgba(var(--brand-rgb),.06); }
+#view-scenario .scn-cmp-n { font-size:.78rem; font-weight:600; display:flex; align-items:center; gap:8px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+#view-scenario .scn-cmp-n em { font-style:normal; font-size:.66rem; color:var(--text-muted); font-family:'DM Mono',monospace; }
+#view-scenario .scn-cmp-t { position:relative; height:14px; border-radius:7px; background:rgba(255,255,255,.04); }
+#view-scenario .scn-cmp-bar { position:absolute; left:0; top:3px; height:8px; border-radius:4px; opacity:.85; box-shadow:0 0 12px -2px currentColor; }
+#view-scenario .scn-cmp-rng { position:absolute; top:6px; height:2px; background:rgba(255,255,255,.35); border-radius:1px; }
+#view-scenario .scn-cmp-inv { position:absolute; top:0; width:2px; height:14px; background:#fff; opacity:.75; border-radius:1px; }
+#view-scenario .scn-cmp-key { display:inline-block; width:2px; height:10px; background:#fff; opacity:.75; vertical-align:middle; margin-right:4px; }
+#view-scenario .scn-cmp-v { font-family:'DM Mono',monospace; font-size:.78rem; text-align:right; color:var(--text-main); font-weight:700; }
+body.light-mode #view-scenario .scn-cmp-inv, body.light-mode #view-scenario .scn-cmp-key { background:#0f172a; }
+body.light-mode #view-scenario .scn-cmp-rng { background:rgba(15,23,42,.35); }
+body.light-mode #view-scenario .scn-ins { background:rgba(15,23,42,.02); }
+@media (max-width:640px) { #view-scenario .scn-cmp-row { grid-template-columns:110px 1fr 64px; gap:8px; } #view-scenario .charts-row { grid-template-columns:minmax(0,1fr) !important; } }
 /* Shortcuts: settings list and the ? cheat sheet */
 #sc-list .sc-grid { display:grid; grid-template-columns:1fr 1fr; gap:4px 18px; }
 @media (max-width:700px) { #sc-list .sc-grid { grid-template-columns:1fr; } }
@@ -43201,7 +43384,7 @@ body.light-mode .tx-bar select option,body.light-mode .tx-cls option{color:#111}
 
   /* ════════════════════ 1. LIVE PRICE REFRESH ════════════════════ */
   const RK = 'fos_refresh_v1';
-  const RDEF = { on: false, mins: 60, fx: true, mf: true, crypto: true, stocks: true, prov: 'yahoo', avKey: '', proxy: '', avCur: 0, last: 0, run: null };
+  const RDEF = { on: false, mins: 60, fx: true, mf: true, crypto: true, stocks: true, prov: 'yahoo', avKey: '', proxy: '', avCur: 0, last: 0, run: null, metalPrem: 6 };
   const rcfg = () => { const o = jget(RK, null); return Object.assign({}, RDEF, o && typeof o === 'object' ? o : {}); };
   const rsave = c => jset(RK, c);
   let busy = false;
@@ -43454,10 +43637,9 @@ body.light-mode .tx-bar select option,body.light-mode .tx-cls option{color:#111}
     if (T.metals && typeof MarketEngine !== 'undefined' && MarketEngine.fetchUpdates) {
       const mets = activeHoldings().filter(e => ['Gold', 'Silver'].indexOf(typeOf(e)) >= 0), before = mets.map(e => num(e.currentPrice));
       try {
-        await MarketEngine.fetchUpdates(true);
+        const got = await MarketEngine.fetchUpdates(true) || {};
         const n = mets.filter((e, i) => Math.abs(num(e.currentPrice) - before[i]) > 0.0001).length;
-        let reached = true, why = '';
-        if (!n) { try { const j = await getJSON('https://api.coingecko.com/api/v3/simple/price?ids=pax-gold&vs_currencies=inr'); reached = !!(j && j['pax-gold']); if (!reached) why = 'unexpected reply'; } catch (e3) { reached = false; why = errMsg(e3); } }
+        const reached = !!(got.gold24 || got.silver), why = reached ? '' : 'CoinGecko did not answer — rate-limited, blocked or offline';
         res.push({ src: 'Gold & silver · Market Pulse', ok: n > 0 || reached, msg: n ? n + ' of ' + mets.length + ' updated' : reached ? '0 of ' + mets.length + ' updated — the price feed answered and your holdings already match it' : 'price feed unreachable (' + why + ') — holdings keep their last prices' });
       } catch (err) { res.push({ src: 'Gold & silver · Market Pulse', ok: false, msg: errMsg(err) }); }
     }
@@ -43493,6 +43675,8 @@ body.light-mode .tx-bar select option,body.light-mode .tx-cls option{color:#111}
       ${tog('mf', 'Mutual fund NAV', 'api.mfapi.in · needs the AMFI scheme code and your units on the holding')}
       ${tog('crypto', 'Crypto prices', 'CoinGecko · needs the coin id (for example bitcoin) and your quantity')}
       ${tog('stocks', 'Stocks, ETFs, REITs, international & commodities', 'Needs the ticker (and exchange) on the holding and your quantity. Tickers are sent to the source you pick.')}
+      <div class="rf-row"><div>Gold &amp; silver · India premium<small>Always on. World price from CoinGecko, plus this % for import duty (6% since July 2024). Raise it to match your jeweller's rate. Holdings are priced at their purity (22K = 22/24 of 24K).</small></div>
+        <span style="display:flex;align-items:center;gap:4px"><input class="rf-sel" style="width:64px" type="number" min="0" max="30" step="0.5" value="${esc(c.metalPrem)}" onchange="rfSet('metalPrem',Math.max(0,Math.min(30,+this.value||0)));try{MarketEngine.fetchUpdates(true)}catch(e){}">%</span></div>
       <div class="rf-row"><div>Price source<small>${c.prov === 'av' ? 'Alpha Vantage · free key from alphavantage.co (25 requests a day, so holdings rotate)' : 'Yahoo Finance · no key. Some browsers block it (CORS): if so, add a proxy or use Alpha Vantage'}</small></div>
         <select class="rf-sel" onchange="rfSet('prov',this.value)"><option value="yahoo"${c.prov !== 'av' ? ' selected' : ''}>Yahoo Finance</option><option value="av"${c.prov === 'av' ? ' selected' : ''}>Alpha Vantage</option></select></div>
       ${c.prov === 'av'
@@ -43730,9 +43914,12 @@ body.light-mode .tx-bar select option,body.light-mode .tx-cls option{color:#111}
   /* ════════════════════ 3. BACKUP: settings that live outside the data arrays ════════════════════ */
   /* Data & settings added by later features. Every key here is saved into the JSON backup (and the linked-drive file) and put back on restore. */
   const XK_DATA = ['fos_finai_score_history', 'fos_notif_dismissed', 'fos_port_customsubs_v1', 'fos_port_targets_v1', 'fos_port_tgtband', 'fos_port_tgtnew', 'fos_pi_bench',
-    'fos_remind_v1', 'fos_reminders_v1', 'fos_lh_unlocked', 'fos_academy_v1', 'fos_loan_asof'];
+    'fos_remind_v1', 'fos_reminders_v1', 'fos_lh_unlocked', 'fos_academy_v1', 'fos_loan_asof',
+    'fos_finai_layout_v1', 'fos_finai_insights_v1', 'pol_views_v1', 'pol_ms_seen',
+    'fos_admin_formulas_v1', 'fos_admin_charts_v1', 'fos_admin_rules_v1', 'fos_admin_badges_v1', 'fos_admin_theme_v1', 'fos_admin_flags_v1', 'fos_admin_dev_v1', 'fos_admin_snapshots_v1',
+    'fos_idle_lock_v1'];
   const XK_UI = ['fos_sidebar_category_finance_collapsed', 'fos_sidebar_category_tools_collapsed', 'fos_sidebar_category_playbook_collapsed', 'fos_sidebar_category_insights_collapsed',
-    'fos_sidebar_category_my_zone_collapsed', 'pos_sidebar_by_asset_collapsed', 'pos_sidebar_intel_collapsed', 'fos_cc_bank_collapsed', 'fos_tv_minimized', 'fos_rem_minimized'];
+    'fos_sidebar_category_my_zone_collapsed', 'pos_sidebar_by_asset_collapsed', 'pos_sidebar_intel_collapsed', 'fos_cc_bank_collapsed', 'fos_tv_minimized', 'fos_rem_minimized', 'fos_mobile_full_view', 'pol_me_collapsed'];
   window.fosExtraState = function () {
     const keys = {};
     XK_DATA.concat(XK_UI).forEach(k => {
@@ -43743,7 +43930,7 @@ body.light-mode .tx-bar select option,body.light-mode .tx-cls option{color:#111}
     return {
       taxOverrides: jget('fos_tax_cls_v1', {}), taxSlab: localStorage.getItem('fos_tax_slab') || '', taxFy: localStorage.getItem('fos_tax_fy') || '',
       adminConfig: jget('fos_admin_config_v1', null), fxRates: jget('fos_fx_v1', {}),
-      refreshSettings: jget(RK, null), stressSettings: jget(SK, null),
+      refreshSettings: (() => { const r = jget(RK, null); if (r && typeof r === 'object') { const o = Object.assign({}, r); delete o.avKey; delete o.run; return o; } return r; })(), stressSettings: jget(SK, null),
       extraKeys: keys, profileStore: jget('fos_profile_v1', {})
     };
   };
@@ -43752,7 +43939,8 @@ body.light-mode .tx-bar select option,body.light-mode .tx-cls option{color:#111}
     const set = (k, v) => { try { if (v === null || v === undefined || v === '') return; localStorage.setItem(k, typeof v === 'string' ? v : JSON.stringify(v)); } catch (e) { } };
     set('fos_tax_cls_v1', d.taxOverrides); set('fos_tax_slab', d.taxSlab); set('fos_tax_fy', d.taxFy);
     set('fos_admin_config_v1', d.adminConfig); set('fos_fx_v1', d.fxRates);
-    set(RK, d.refreshSettings); set(SK, d.stressSettings);
+    if (d.refreshSettings && typeof d.refreshSettings === 'object') { const cur = jget(RK, {}) || {}; const keep = cur.avKey ? { avKey: cur.avKey } : {}; set(RK, Object.assign({}, d.refreshSettings, keep)); }
+    set(SK, d.stressSettings);
     // Newer data & settings: a backup that carries this block is restored exactly (a key that was empty at backup time is cleared again).
     if (d.extraKeys && typeof d.extraKeys === 'object') {
       XK_DATA.concat(XK_UI).forEach(k => {
@@ -48100,7 +48288,7 @@ const CCX_TIPS = [
       const o = baseOpts(); o.indexAxis = 'y'; o.interaction = { mode: 'nearest', intersect: true, axis: 'y' };
       o.scales = { x: { min: 0, max: 100, ticks: { color: tc(), callback: v => v + '%', stepSize: 25 }, grid: { color: gridC() }, border: { display: false } }, y: { ticks: { color: tc(), font: { size: 11, weight: '600' } }, grid: { display: false }, border: { display: false } } };
       o.plugins.tooltip = Object.assign({}, o.plugins.tooltip, { callbacks: { label: ctx => { const r = rows[ctx.dataIndex]; return [' ' + r.P.toFixed(1) + '% · ' + risk(r.P).label, ' ' + inr(r.U) + ' of ' + inr(r.L) + (r.n ? ' · ' + r.n + ' card' + (r.n > 1 ? 's' : '') : '')]; } } });
-      return new Chart(el, { type: 'bar', options: o, data: { labels: rows.map(r => r.name.length > 22 ? r.name.slice(0, 21) + '…' : r.name), datasets: [{ data: rows.map(r => +r.P.toFixed(1)), backgroundColor: rows.map((r, i) => highlight == null || highlight === i ? risk(r.P).color : risk(r.P).color + '66'), borderRadius: 6, barThickness: 18 }] } });
+      return new Chart(el, { type: 'bar', options: o, data: { labels: rows.map(r => { const n = String(r.name || 'Card'); return n.length > 22 ? n.slice(0, 21) + '…' : n; }), datasets: [{ data: rows.map(r => +r.P.toFixed(1)), backgroundColor: rows.map((r, i) => highlight == null || highlight === i ? risk(r.P).color : risk(r.P).color + '66'), borderRadius: 6, barThickness: 18 }] } });
     };
     const bk = $('ccx-ch-bank'); if (bk) CH.bank = hbar(bk, bankRows, null);
     const cd = $('ccx-ch-card');
@@ -48373,6 +48561,21 @@ body:has(#notifications-modal.fos-drawer-in) #fos-toast-stack { opacity:0; point
   padding:14px 22px calc(env(safe-area-inset-bottom, 0px) + 22px); scrollbar-width:none; }
 #notifications-modal .notif-scroll::-webkit-scrollbar { display:none; }
 #notifications-modal .notif-head.scrolled { box-shadow:0 8px 18px -10px rgba(0,0,0,.6); }
+/* Floating panel (like the rest of the app's cards) instead of a full-height side drawer */
+#notifications-modal.modal-overlay { padding:16px !important; align-items:flex-start !important; }
+#notifications-modal .modal-box { height:auto !important; max-height:min(760px, calc(100dvh - 32px)) !important; border-radius:22px !important;
+  border:1px solid rgba(251,191,36,.22) !important; border-right:1px solid rgba(251,191,36,.22) !important;
+  box-shadow:0 30px 80px -20px rgba(0,0,0,.7), 0 0 0 1px rgba(255,255,255,.03), 0 0 50px -18px rgba(251,191,36,.35) !important;
+  transform:translateY(-14px) scale(.97); opacity:0; transform-origin:top right;
+  transition:transform .38s cubic-bezier(.22,1,.36,1), opacity .25s ease !important; }
+#notifications-modal.fos-drawer-in .modal-box { transform:none; opacity:1; }
+#notifications-modal .modal-box > div.notif-head:first-child { padding-top:18px !important; }
+@media (max-width:900px) {
+  #notifications-modal.modal-overlay { padding:calc(env(safe-area-inset-top, 0px) + 10px) 10px calc(env(safe-area-inset-bottom, 0px) + 10px) !important; align-items:stretch !important; }
+  #notifications-modal .modal-box { width:100% !important; max-width:560px !important; margin:0 auto !important; max-height:none !important; height:100% !important; border-radius:20px !important; transform-origin:top center; }
+  #notifications-modal .modal-box > div.notif-head:first-child { padding-top:16px !important; }
+}
+@media (prefers-reduced-motion: reduce) { #notifications-modal .modal-box { transition:none !important; } }
 body.light-mode #notifications-modal .notif-head.scrolled { box-shadow:0 8px 16px -12px rgba(15,23,42,.35); }
 @media (max-width:900px) {
   #notifications-modal .modal-box > div.notif-head:first-child { padding:calc(env(safe-area-inset-top, 0px) + 16px) 16px 12px !important; }
@@ -49493,10 +49696,10 @@ html body.light-mode #finance-sidebar .nav-item.active .nav-icon i { filter:none
 #view-analytics .ana-bs-liabs { border-top:2px solid rgba(248,113,113,.55); }
 #view-analytics .ana-bs-mid { border-top:2px solid rgba(56,189,248,.45); }
 #view-analytics .ana-bs-mid { container-type:inline-size; }
-#view-analytics .ana-bs-mid #scale-container > div:nth-child(2) { transform:scale(1.1) !important; }
-@container (max-width:360px) { #view-analytics .ana-bs-mid #scale-container > div:nth-child(2) { transform:scale(.92) !important; margin:28px 0 18px !important; } }
-@container (max-width:310px) { #view-analytics .ana-bs-mid #scale-container > div:nth-child(2) { transform:scale(.82) !important; margin:22px 0 14px !important; } }
-@container (max-width:270px) { #view-analytics .ana-bs-mid #scale-container > div:nth-child(2) { transform:scale(.72) !important; margin:18px 0 10px !important; } }
+#view-analytics .ana-bs-mid #scale-container:not(.dvr) > div:nth-child(2) { transform:scale(1.1) !important; }
+@container (max-width:360px) { #view-analytics .ana-bs-mid #scale-container:not(.dvr) > div:nth-child(2) { transform:scale(.92) !important; margin:28px 0 18px !important; } }
+@container (max-width:310px) { #view-analytics .ana-bs-mid #scale-container:not(.dvr) > div:nth-child(2) { transform:scale(.82) !important; margin:22px 0 14px !important; } }
+@container (max-width:270px) { #view-analytics .ana-bs-mid #scale-container:not(.dvr) > div:nth-child(2) { transform:scale(.72) !important; margin:18px 0 10px !important; } }
 #view-analytics .ana-bs-card .ana-col h5, #view-analytics .ana-bs-h { margin:0 0 12px; font-size:.68rem; font-weight:800; letter-spacing:.9px; text-transform:uppercase; display:flex; justify-content:space-between; gap:8px; }
 #view-analytics .ana-bs-h { color:#7dd3fc; }
 #view-analytics .ana-bs-kpis { margin-bottom:var(--fxl-tile, 16px); }
@@ -49506,8 +49709,8 @@ html body.light-mode #finance-sidebar .nav-item.active .nav-icon i { filter:none
 #view-analytics .ana-bs-detail:empty { display:none; }
 body.light-mode #view-analytics .ana-bs-card { background:#f8fafc; border-color:rgba(15,23,42,.08); }
 /* the scale's own totals repeat the columns beside it, and its 1.55× zoom spilled into the list */
-#view-analytics #scale-container > div:first-child { display:none !important; }
-#view-analytics #scale-container > div:nth-child(2) { transform:scale(1.08) !important; margin:34px 0 22px !important; }
+#view-analytics #scale-container:not(.dvr) > div:first-child { display:none !important; }
+#view-analytics #scale-container:not(.dvr) > div:nth-child(2) { transform:scale(1.08) !important; margin:34px 0 22px !important; }
 #view-analytics #scale-container { min-height:270px !important; cursor:default !important; justify-content:center !important; gap:6px; }
 .ana-kpis { display:grid; grid-template-columns:repeat(3, minmax(0,1fr)); gap:12px; margin-bottom:16px; }
 .ana-kpi { padding:12px 14px; border-radius:13px; background:rgba(255,255,255,.03); border:1px solid rgba(180,220,218,.08); min-width:0; }
@@ -49706,10 +49909,10 @@ body.light-mode .ana-kpi { background:#f8fafc; border-color:rgba(15,23,42,.08); 
     var cum = 0, cumInv = 0, pts = [];
     ks.forEach(function (k) {
       var o = byM[k] || { inc: 0, exp: 0, inv: 0, emi: 0 }; cum += o.inc - o.exp - o.inv - o.emi; cumInv += o.inv;
-      if (k === now) { pts.push({ k: k, assets: N.assets, debt: N.debt, net: N.net, live: true }); return; }
+      if (k === now) { pts.push({ k: k, assets: N.assets, debt: N.debt, net: N.net, live: true, f: o, c: N.cash, h: N.portfolio }); return; }
       var h = useHold ? hold.filter(function (x) { return !x.m || x.m <= k; }).reduce(function (s, x) { return s + x.cost; }, 0) : cumInv;
       var debt = 0; try { debt = fosNW.histDebt(k); } catch (e) { }
-      var assets = Math.max(0, cum) + h; pts.push({ k: k, assets: assets, debt: debt, net: assets - debt });
+      var assets = Math.max(0, cum) + h; pts.push({ k: k, assets: assets, debt: debt, net: assets - debt, f: o, c: Math.max(0, cum), h: h });
     });
     return { N: N, pts: pts };
   }
@@ -49731,14 +49934,50 @@ body.light-mode .ana-kpi { background:#f8fafc; border-color:rgba(15,23,42,.08); 
         { label: 'Liabilities', data: pts.map(function (p) { return Math.round(p.debt); }), borderColor: '#f87171', borderDash: [5, 4], borderWidth: 1.6, tension: .3, pointRadius: 0, fill: false }
       ] } });
     }
-    // 2. monthly change as +/- bars
-    var deltas = pts.map(function (p) { var i = all.indexOf(p); return i > 0 ? p.net - all[i - 1].net : null; });
+    // 2. monthly change, split into what drove it: cash kept, money invested, debt paid down, and the rest
+    //    (market value of holdings, interest building up, card dues). The white marker is the net change.
+    var drv = pts.map(function (p) {
+      var i = all.indexOf(p); if (i <= 0) return null;
+      var q = all[i - 1], f = p.f || { inc: 0, exp: 0, inv: 0, emi: 0 }, d = p.net - q.net;
+      var cash = (p.c != null && q.c != null) ? p.c - q.c : f.inc - f.exp - f.inv - f.emi, inv = (p.h != null && q.h != null && !p.live) ? p.h - q.h : f.inv, debt = q.debt - p.debt, other = d - cash - inv - debt;
+      return { d: d, cash: cash, inv: inv, debt: debt, other: Math.abs(other) < 1 ? 0 : other, live: !!p.live, k: p.k };
+    });
     var c2 = kill('chart-nw-delta');
     if (c2) {
-      var o2 = opts();
-      o2.plugins.tooltip = Object.assign({}, o2.plugins.tooltip, { callbacks: { label: function (x) { return x.raw == null ? ' first month on record' : ' ' + (x.raw >= 0 ? '+' : '−') + F(Math.abs(x.raw)); }, footer: function (it) { return pts[it[0].dataIndex].live ? 'Includes unrealised gains on your holdings' : ''; } } });
-      o2.scales = { x: { ticks: { color: tc(), font: { size: 10 }, maxRotation: 0, autoSkip: true }, grid: { display: false }, border: { display: false } }, y: { ticks: { color: tc(), callback: function (v) { return K(v); }, maxTicksLimit: 5 }, grid: { color: grid() }, border: { display: false } } };
-      new Chart(c2, { type: 'bar', options: o2, data: { labels: labels, datasets: [{ data: deltas, backgroundColor: deltas.map(function (v) { return v == null ? 'transparent' : v >= 0 ? 'rgba(74,222,128,.75)' : 'rgba(248,113,113,.8)'; }), borderRadius: 6, maxBarThickness: 34 }] } });
+      var o2 = opts(), dl2 = function (key) { return drv.map(function (x) { return x ? Math.round(x[key]) : null; }); };
+      o2.plugins.legend = { display: true, position: 'bottom', labels: { color: tc(), boxWidth: 9, boxHeight: 9, usePointStyle: true, pointStyle: 'rectRounded', font: { size: 10 }, padding: 10 } };
+      o2.plugins.tooltip = Object.assign({}, o2.plugins.tooltip, {
+        filter: function (x) { return x.raw != null && x.raw !== 0; },
+        callbacks: {
+          title: function (it) { var x = drv[it[0].dataIndex]; return labels[it[0].dataIndex] + (x && x.live ? ' (so far, at today’s prices)' : ''); },
+          label: function (x) { var v = x.raw; return ' ' + x.dataset.label + ': ' + (v >= 0 ? '+' : '−') + F(Math.abs(v)); },
+          footer: function (it) { var x = drv[it[0].dataIndex]; if (!x) return 'First month on record'; var i = it[0].dataIndex, p = pts[i], q = all[all.indexOf(p) - 1]; return 'Net worth ' + F(q.net) + ' → ' + F(p.net); }
+        }
+      });
+      o2.scales = { x: { stacked: true, ticks: { color: tc(), font: { size: 10 }, maxRotation: 0, autoSkip: true }, grid: { display: false }, border: { display: false } },
+        y: { stacked: true, ticks: { color: tc(), callback: function (v) { return K(v); }, maxTicksLimit: 5 }, grid: { color: function (c) { return c.tick && c.tick.value === 0 ? (document.body.classList.contains('light-mode') ? 'rgba(15,23,42,.35)' : 'rgba(226,232,240,.35)') : grid(); } }, border: { display: false } } };
+      var liveCol = function (col) { return function (c) { var x = drv[c.dataIndex]; return x && x.live ? col.replace(/[\d.]+\)$/, '0.38)') : col; }; };
+      var glow = { id: 'nwdGlow', beforeDatasetsDraw: function (ch) { if (document.body.classList.contains('light-mode')) return; ch.ctx.save(); ch.ctx.shadowColor = 'rgba(45,212,191,.35)'; ch.ctx.shadowBlur = 10; }, afterDatasetsDraw: function (ch) { ch.ctx.restore(); } };
+      new Chart(c2, { type: 'bar', plugins: [glow], options: o2, data: { labels: labels, datasets: [
+        { label: 'Cash kept', data: dl2('cash'), backgroundColor: liveCol('rgba(45,212,191,.85)'), borderRadius: 4, maxBarThickness: 34, stack: 's' },
+        { label: 'Invested', data: dl2('inv'), backgroundColor: liveCol('rgba(167,139,250,.85)'), borderRadius: 4, maxBarThickness: 34, stack: 's' },
+        { label: 'Debt (− means more owed)', data: dl2('debt'), backgroundColor: liveCol('rgba(251,191,36,.85)'), borderRadius: 4, maxBarThickness: 34, stack: 's' },
+        { label: 'Market & other', data: dl2('other'), backgroundColor: liveCol('rgba(96,165,250,.8)'), borderRadius: 4, maxBarThickness: 34, stack: 's' },
+        { type: 'line', label: 'Net change', data: dl2('d'), borderColor: 'rgba(226,232,240,.55)', borderWidth: 1.2, borderDash: [3, 3], pointStyle: 'rectRot', pointRadius: 5, pointHoverRadius: 7, pointBackgroundColor: drv.map(function (x) { return x && x.d < 0 ? '#f87171' : '#f8fafc'; }), pointBorderColor: 'rgba(15,23,42,.6)', fill: false, tension: 0, order: -1 }
+      ] } });
+      var sumEl = $('nw-delta-sum');
+      if (sumEl) {
+        var done = drv.filter(function (x) { return x && !x.live; });
+        if (!done.length) sumEl.innerHTML = 'Each bar shows how much your net worth rose or fell in a month, and why.';
+        else {
+          var avg = done.reduce(function (a, x) { return a + x.d; }, 0) / done.length, ups = done.filter(function (x) { return x.d >= 0; }).length;
+          var best = done.reduce(function (a, x) { return x.d > a.d ? x : a; }), worst = done.reduce(function (a, x) { return x.d < a.d ? x : a; });
+          var chip = function (l, v, col) { return '<span class="nwd-chip"><em>' + l + '</em><b style="color:' + col + '">' + v + '</b></span>'; };
+          sumEl.innerHTML = chip('Average month', (avg >= 0 ? '+' : '−') + K(Math.abs(avg)), avg >= 0 ? '#4ade80' : '#f87171') + chip('Months up', ups + ' of ' + done.length, 'var(--text-main)') +
+            chip('Best', label(best.k) + ' ' + (best.d >= 0 ? '+' : '−') + K(Math.abs(best.d)), '#4ade80') + chip('Worst', label(worst.k) + ' ' + (worst.d >= 0 ? '+' : '−') + K(Math.abs(worst.d)), worst.d < 0 ? '#f87171' : '#fbbf24') +
+            (drv[drv.length - 1] && drv[drv.length - 1].live ? '<span class="nwd-live">Faded bar = this month so far</span>' : '');
+        }
+      }
     }
     // 3. debt-to-assets over time with 50% / 100% guides
     var ratio = pts.map(function (p) { return p.assets > 0 ? +(p.debt / p.assets * 100).toFixed(1) : null; });
