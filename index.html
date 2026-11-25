@@ -11,7 +11,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="fos-integrity" content="c5bd20a1cf930b40d688f0aa629e4befa16eae17f17db46a71a58018ad741b79">
+<meta name="fos-integrity" content="13446a8ea233ec2f6285ee79d681fd2cbb8e4447820d8d796fdb73beaa3d21cf">
 <script id="fos-tamper-guard">
 /*! \u00a9 2026 MC Enterprise. Integrity check: detects a copy of this file that no longer matches the
     official release and locks it with a notice. This checks the FILE as served, not live memory --
@@ -1704,7 +1704,7 @@ function fosBrandRgba(a){return 'rgba('+fosBrandRgb()+','+a+')';}
     { id: 'bar-load', g: 'bar', t: 'Capsule bars grow on load', d: 'Cash Flow Snapshot, Top 3 Holdings, Outstanding by Lender, portfolio capsules.', s: '[data-bar-fill]|[style*="transition:width"]|[style*="transition: width"]' },
     { id: 'bar-hover', g: 'bar', t: 'Capsule bars re-run on hover', d: 'The running capsule that refills from zero when you hover it.' },
     { id: 'bar-stacked', g: 'bar', t: 'Stacked bars run segment by segment', d: 'Month-end forecast and other multi-colour bars.' },
-    { id: 'bar-progress', g: 'bar', t: 'Progress bars', d: 'Budgets, credit utilisation, EMI load, quiz and score bars.', s: '.finai-bar span|.cc-util-fill|.budget-progress-fill|.pins-bar>div|.txa-bar i|.fcs-stack i|.fa-bar i|#fos-tour .ft-bar i' },
+    { id: 'bar-progress', g: 'bar', t: 'Progress bars', d: 'Budgets, credit utilisation, EMI load and score bars.', s: '.finai-bar span|.cc-util-fill|.budget-progress-fill|.pins-bar>div|.txa-bar i|.fcs-stack i|.fa-bar i|#fos-tour .ft-bar i' },
 
     { id: 'ring-load', g: 'ring', t: 'Rings fill on load', d: 'Debt Health gauge, credit card rings, FinAI score ring, health arcs.', s: '.finai-ring-progress|.cc-face-ring-fill|.cin-gauge .arc|.progress-ring-fill|.fhs-arc|svg circle[style*="stroke-dashoffset"]' },
     { id: 'ring-hover', g: 'ring', t: 'Rings re-run on hover', d: 'Rings and gauges refill from zero when hovered.' },
@@ -5517,8 +5517,8 @@ body.light-mode .recv-row { border-top-color:rgba(15,23,42,0.1); }
      LOGIN OVERLAY — shown before the dashboard loads
 ═══════════════════════════════════════════════════════ -->
 <style>
-/* While the sign-in / app-lock / splash screen is up, nothing may pop over it (quiz, notification & toast pop-ups) */
-body.fos-gate-closed #fos-toast-stack, body.fos-gate-closed .fq-pop, body.fos-gate-closed .fq-ov, body.fos-gate-closed #notifications-modal { display: none !important; }
+/* While the sign-in / app-lock / splash screen is up, nothing may pop over it (notification & toast pop-ups) */
+body.fos-gate-closed #fos-toast-stack, body.fos-gate-closed #notifications-modal { display: none !important; }
 #login-overlay {
   position: fixed; inset: 0; z-index: 99999;
   background: linear-gradient(135deg, #121214 0%, #000000 100%);
@@ -7304,7 +7304,7 @@ let activeDataUid = null;
 let cloudDataReady = false;      // true only after this sign-in's cloud↔local load finished
 // ── App gate ─────────────────────────────────────────────────────────────────
 // true only once the person is really inside the app: sign-in screen, app-lock screen and splash are all gone.
-// Every automatic pop-up (notifications, FinAI quiz, reminders, toasts, push) checks this first, so a new or signed-out
+// Every automatic pop-up (notifications, reminders, toasts, push) checks this first, so a new or signed-out
 // visitor never sees them on the sign-in page.
 function fosAppGateOpen() {
   try {
@@ -7323,7 +7323,6 @@ function fosAppGateOpen() {
     if (open && was === false) { // just signed in / unlocked: run the alert checks again against the real data
       setTimeout(function () {
         try { if (typeof checkAlerts === 'function') checkAlerts(); } catch (e) { }
-        try { if (window.finaiQuizCheck) window.finaiQuizCheck(); } catch (e) { }
       }, 1500);
     }
     was = open;
@@ -10777,138 +10776,84 @@ function passAppLockGate() {
     </div>
 
     <div id="view-finai" class="view-section">
-      <div class="finai-wrap">
+      <div class="fai-page">
 
-        <div class="finai-top-row">
-          <div class="finai-score-card">
-            <div class="finai-score-ring-wrap">
-              <svg viewBox="0 0 120 120" class="finai-score-ring">
-                <circle cx="60" cy="60" r="52" class="finai-ring-track"></circle>
-                <circle cx="60" cy="60" r="52" class="finai-ring-progress" id="finai-ring-progress"></circle>
-              </svg>
-              <div class="finai-score-num" id="finai-score-num">--</div>
-            </div>
-            <div class="finai-score-meta">
-              <div class="finai-score-label">Financial Health Score</div>
-              <div class="finai-score-sub" id="finai-score-sub">Analyzing your data…</div>
-              <div class="finai-score-tags" id="finai-score-tags"></div>
-              <div id="finai-dq"></div>
-            </div>
-          </div>
-
-          <div class="finai-stats-mini">
-            <div class="finai-mini-stat">
-              <span class="finai-mini-label">Savings Rate</span>
-              <span class="finai-mini-val" id="finai-mini-savings">--</span>
-            </div>
-            <div class="finai-mini-stat">
-              <span class="finai-mini-label">Top Spend Category</span>
-              <span class="finai-mini-val" id="finai-mini-topcat">--</span>
-            </div>
-            <div class="finai-mini-stat">
-              <span class="finai-mini-label">Debt-to-Income</span>
-              <span class="finai-mini-val" id="finai-mini-dti">--</span>
-            </div>
-            <div class="finai-mini-stat">
-              <span class="finai-mini-label">Portfolio P/L</span>
-              <span class="finai-mini-val" id="finai-mini-port">--</span>
-            </div>
-            <div class="finai-mini-stat">
-              <span class="finai-mini-label">Credit Card Usage</span>
-              <span class="finai-mini-val" id="finai-mini-ccutil">--</span>
-            </div>
-            <div class="finai-mini-stat">
-              <span class="finai-mini-label">Insurance Cover</span>
-              <span class="finai-mini-val" id="finai-mini-insurance">--</span>
-            </div>
-          </div>
-        </div>
-
-        <div class="finai-two-col">
-          <div>
-            <div class="finai-section-head" style="margin-bottom:10px">
-              <div><i class="fas fa-calendar-check"></i> Coming Up</div>
-              <div class="finai-tabs" id="finai-coming-tabs">
-                <button class="finai-tab" data-tab="today" onclick="finaiSetComingTab('today')">Today</button>
-                <button class="finai-tab active" data-tab="week" onclick="finaiSetComingTab('week')">This Week</button>
-                <button class="finai-tab" data-tab="month" onclick="finaiSetComingTab('month')">This Month</button>
+        <!-- CHAT (primary) -->
+        <section class="fai-box fai-chat" data-fai-box="chat" aria-labelledby="fai-title">
+          <header class="fai-head">
+            <div class="fai-id">
+              <span class="fai-avatar"><svg class="fos-ai" viewBox="0 0 24 24" width="22" height="22" aria-hidden="true"><use href="#fos-ai"/></svg></span>
+              <div>
+                <h2 class="fai-title" id="fai-title">Fin AI</h2>
+                <div class="fai-status"><i></i> Reads only your Finverse records · works on this device</div>
               </div>
             </div>
-            <div class="finai-panel" id="finai-coming-list"></div>
-          </div>
-          <div>
-            <div class="finai-section-head" style="margin-bottom:10px">
-              <div><i class="fas fa-chart-line"></i> 30-Day Forecast</div>
+            <div class="fai-head-acts">
+              <button type="button" class="fai-hbtn" id="fai-ins-btn" onclick="openNotificationsPanel()" title="AI Insights" aria-label="Open AI Insights"><i class="fas fa-wand-magic-sparkles"></i><span>Insights</span><b id="fai-ins-count" hidden></b></button>
+              <button type="button" class="fai-hbtn" onclick="faiNewChat()" title="Start a new conversation" aria-label="New chat"><i class="fas fa-pen-to-square"></i><span>New chat</span></button>
+              <button type="button" class="fai-collapse" data-fai-toggle="chat" title="Collapse" aria-label="Collapse chat" aria-expanded="true"><i class="fas fa-compress"></i></button>
             </div>
-            <div class="finai-panel" id="finai-forecast"></div>
-          </div>
-        </div>
+          </header>
+          <div class="fai-body"><div class="fai-body-in">
+            <div class="fai-thread" id="fai-thread" role="log" aria-live="polite" aria-label="Conversation with Fin AI"></div>
+            <div id="finai-scenario-host" class="fai-scenario"></div>
+            <div class="fai-chips" id="fai-chips" aria-label="Suggested questions">
+              <button type="button" class="fai-chip" data-q="How was my spending this month?">This month's spending</button>
+              <button type="button" class="fai-chip" data-q="Am I spending too much?">Am I overspending?</button>
+              <button type="button" class="fai-chip" data-q="Where can I cut back?">Where can I cut back?</button>
+              <button type="button" class="fai-chip" data-q="Which loan should I prioritise?">Which debt first?</button>
+              <button type="button" class="fai-chip" data-q="Can I afford a major purchase?">Can I afford a big purchase?</button>
+              <button type="button" class="fai-chip" data-q="How can I improve my savings?">Improve my savings</button>
+            </div>
+            <form class="fai-compose" onsubmit="event.preventDefault(); finaiAsk();">
+              <textarea id="finai-ask-input" rows="1" maxlength="600" placeholder="Ask anything about your money — e.g. “Can I afford a new phone?”" aria-label="Message Fin AI"></textarea>
+              <button type="submit" class="fai-send" id="fai-send" aria-label="Send" title="Send (Enter)"><i class="fas fa-paper-plane"></i></button>
+            </form>
+            <div class="fai-fine">Answers use only your recorded data and are general guidance, not regulated financial advice. Nothing you ask changes your records.</div>
+          </div></div>
+        </section>
 
-        <div class="finai-two-col">
-          <div>
-            <div class="finai-section-head" style="margin-bottom:10px">
-              <div><i class="fas fa-fire"></i> Debt Command Center</div>
-              <label class="finai-extra"><span>Extra / month</span><input type="number" id="finai-debt-extra" min="0" step="500" value="5000" oninput="finaiSetDebtExtra(this.value)"></label>
-            </div>
-            <div class="finai-panel" id="finai-debt-panel"></div>
-          </div>
-          <div>
-            <div class="finai-section-head" style="margin-bottom:10px">
-              <div><i class="fas fa-bullseye"></i> Goals</div>
-            </div>
-            <div class="finai-panel">
-              <div id="finai-goal-list"></div>
-              <div class="finai-goal-form">
-                <div class="finai-goal-form-title" id="fg-title">Add a goal</div>
-                <div class="finai-goal-grid">
-                  <input id="fg-name" class="finai-ask-input full" type="text" placeholder="Goal name, e.g. Emergency fund">
-                  <input id="fg-target" class="finai-ask-input" type="number" min="0" placeholder="Target amount">
-                  <input id="fg-saved" class="finai-ask-input" type="number" min="0" placeholder="Saved so far (outside holdings)">
-                  <input id="fg-monthly" class="finai-ask-input" type="number" min="0" placeholder="Monthly contribution">
-                  <input id="fg-date" class="finai-ask-input" type="date" title="Target date (optional)">
-                  <label class="full" style="grid-column:1/-1;font-size:.74rem;display:flex;gap:8px;align-items:center;flex-wrap:wrap"><span><input id="fg-auto" type="checkbox"> Track automatically — saved = income − expenses − loans − investments since</span><input id="fg-since" class="finai-ask-input" type="date" title="Blank = from when the goal is created" style="max-width:150px"><span style="opacity:.7">“Saved so far” counts as a starting balance.</span></label>
+        <!-- PLANNING TOOLS: Debt Command Center + Goals collapse together -->
+        <section class="fai-box fai-plan" data-fai-box="plan" aria-labelledby="fai-plan-title">
+          <header class="fai-head">
+            <div class="fai-id"><span class="fai-ic"><i class="fas fa-compass-drafting"></i></span><div><h2 class="fai-title" id="fai-plan-title">Planning tools</h2><div class="fai-status">Debt Command Center and goals</div></div></div>
+            <div class="fai-head-acts"><button type="button" class="fai-collapse" data-fai-toggle="plan" title="Collapse" aria-label="Collapse planning tools" aria-expanded="true"><i class="fas fa-compress"></i></button></div>
+          </header>
+          <div class="fai-body"><div class="fai-body-in">
+            <div class="fai-plan-grid">
+              <div class="fai-sub">
+                <div class="finai-section-head" style="margin-bottom:10px">
+                  <div><i class="fas fa-fire"></i> Debt Command Center</div>
+                  <label class="finai-extra"><span>Extra / month</span><input type="number" id="finai-debt-extra" min="0" step="500" value="5000" oninput="finaiSetDebtExtra(this.value)"></label>
                 </div>
-                <div class="finai-goal-form-row">
-                  <button class="btn-add" id="fg-save" style="background:rgba(56,189,248,0.85)" onclick="finaiGoalSave()">Add goal</button>
-                  <button class="sec" id="fg-cancel" style="display:none" onclick="finaiGoalCancelEdit()">Cancel</button>
+                <div class="finai-panel" id="finai-debt-panel"></div>
+              </div>
+              <div class="fai-sub">
+                <div class="finai-section-head" style="margin-bottom:10px">
+                  <div><i class="fas fa-bullseye"></i> Goals</div>
+                </div>
+                <div class="finai-panel">
+                  <div id="finai-goal-list"></div>
+                  <div class="finai-goal-form">
+                    <div class="finai-goal-form-title" id="fg-title">Add a goal</div>
+                    <div class="finai-goal-grid">
+                      <input id="fg-name" class="finai-ask-input full" type="text" placeholder="Goal name, e.g. Emergency fund">
+                      <input id="fg-target" class="finai-ask-input" type="number" min="0" placeholder="Target amount">
+                      <input id="fg-saved" class="finai-ask-input" type="number" min="0" placeholder="Saved so far (outside holdings)">
+                      <input id="fg-monthly" class="finai-ask-input" type="number" min="0" placeholder="Monthly contribution">
+                      <input id="fg-date" class="finai-ask-input" type="date" title="Target date (optional)">
+                      <label class="full" style="grid-column:1/-1;font-size:.74rem;display:flex;gap:8px;align-items:center;flex-wrap:wrap"><span><input id="fg-auto" type="checkbox"> Track automatically — saved = income − expenses − loans − investments since</span><input id="fg-since" class="finai-ask-input" type="date" title="Blank = from when the goal is created" style="max-width:150px"><span style="opacity:.7">“Saved so far” counts as a starting balance.</span></label>
+                    </div>
+                    <div class="finai-goal-form-row">
+                      <button class="btn-add" id="fg-save" style="background:rgba(56,189,248,0.85)" onclick="finaiGoalSave()">Add goal</button>
+                      <button class="sec" id="fg-cancel" style="display:none" onclick="finaiGoalCancelEdit()">Cancel</button>
+                    </div>
+                  </div>
                 </div>
               </div>
             </div>
-          </div>
-        </div>
-
-        <div id="finai-quiz-host"></div>
-
-        <div class="finai-section-head">
-          <div><i class="fas fa-wand-magic-sparkles"></i> AI Suggestions</div>
-          <button class="notes-icon-btn" onclick="renderFinAI()" title="Re-analyze"><i class="fas fa-rotate-right"></i></button>
-        </div>
-
-        <div class="finai-insights-grid" id="finai-insights-grid"></div>
-
-        <div class="finai-empty" id="finai-empty" style="display:none">
-          <svg class="fos-ai" viewBox="0 0 24 24" width="46" height="46" aria-hidden="true" style="display:block;margin:0 auto 10px;opacity:0.45"><use href="#fos-ai"/></svg>
-          Not enough data yet. Add a few transactions and I'll start giving you real suggestions.
-        </div>
-
-        <div class="finai-chip-row">
-          <button class="finai-chip" onclick="finaiAskChip('This month\'s spend')">This month's spend</button>
-          <button class="finai-chip" onclick="finaiAskChip('Am I overspending?')">Am I overspending?</button>
-          <button class="finai-chip" onclick="finaiAskChip('Where can I cut back?')">Where can I cut back?</button>
-          <button class="finai-chip" onclick="finaiAskChip('Which debt should I pay first?')">Debt priority</button>
-          <button class="finai-chip" onclick="finaiAskChip('Compare this month vs last month')">vs last month</button>
-          <button class="finai-chip" onclick="finaiAskChip('What\'s my 30 day forecast?')">30-day forecast</button>
-          <button class="finai-chip" onclick="finaiAskChip('What will six months look like?')">6-month outlook</button>
-          <button class="finai-chip" onclick="finaiAskChip('Find 5k of savings')">Find ₹5k savings</button>
-          <button class="finai-chip" onclick="finaiAskChip('Pay 10k extra')">Pay ₹10k extra</button>
-        </div>
-        <div class="finai-chip-row" id="finai-pv-chips"></div>
-        <div id="finai-scenario-host"></div>
-        <div class="finai-ask-row">
-          <input type="text" id="finai-ask-input" class="finai-ask-input" placeholder="Ask about your finances… e.g. 'how much did I spend on food this month?'" onkeydown="if(event.key==='Enter')finaiAsk()">
-          <button class="btn-add" style="background:rgba(56,189,248,0.85)" onclick="finaiAsk()"><i class="fas fa-paper-plane"></i> Ask</button>
-        </div>
-        <div class="finai-ask-answer" id="finai-ask-answer" style="display:none"></div>
+          </div></div>
+        </section>
 
       </div>
     </div>
@@ -12329,13 +12274,6 @@ function passAppLockGate() {
             </div>
           </div>
 
-          <div class="set-row">
-            <div class="set-label-block">
-              <div class="set-lbl readable-white" style="font-size:0.8rem">Quiz &amp; assessment reminders</div>
-              <div class="set-desc">Push a notification when a FinAI quiz session (1st &amp; 15th) is ready.</div>
-            </div>
-            <label class="toggle-switch"><input type="checkbox" id="tog-push-quiz" onchange="fosPushToggle('push-quiz','Quiz Push Notifications',this)"><span class="toggle-slider"></span></label>
-          </div>
 
           <div class="set-row">
             <div class="set-label-block">
@@ -13923,7 +13861,6 @@ async function doAutoSave() {
         notesDb: notesDb,
         subscriptionsDb: subscriptionsDb,
         finaiGoals: finaiGoals,
-        finaiQuiz: JSON.parse(localStorage.getItem('fos_finai_quiz_v1') || '{}'),
         budgets: budgets,
         ccCards: ccCards,
         notifications: notifications,
@@ -18439,7 +18376,7 @@ function addNotification(id, icon, color, title, message, type) {
   // NEW: Play sound whenever a new notification is added (muted during Admin Panel quiet hours)
   let _q = false; try { _q = FOS_CONFIG.quiet(); } catch (e) {}
   if (!_q && _gate) playNotificationSound();   // no sound / system push until the app is actually open
-  try { if (_gate && type !== 'finai' && type !== 'reminder') fosPushNotify('push-alerts', title, message, 'fos-' + id, _q); } catch (e) {}   // system push (quiz has its own toggle; reminders push themselves)
+  try { if (_gate && type !== 'finai' && type !== 'reminder') fosPushNotify('push-alerts', title, message, 'fos-' + id, _q); } catch (e) {}   // system push (reminders push themselves)
   try { if (typeof fosNotifPopup === 'function') fosNotifPopup(notifications[0]); } catch (e) {}   // in-app pop-up, bottom-right
 }
 
@@ -29591,7 +29528,6 @@ function downloadBackup() {
     notesDb,
     subscriptionsDb,
     finaiGoals,
-    finaiQuiz: JSON.parse(localStorage.getItem('fos_finai_quiz_v1') || '{}'),
     ccCards,
     master: fosM(),
     notifications,
@@ -29689,7 +29625,6 @@ async function confirmRestore() {
   if (pendingRestoreData.insuranceDb) { insuranceDb = pendingRestoreData.insuranceDb; localStorage.setItem('fos_insurance_v1', JSON.stringify(insuranceDb)); }
   if (pendingRestoreData.notesDb) { notesDb = pendingRestoreData.notesDb; localStorage.setItem('fos_notes_v1', JSON.stringify(notesDb)); }
   if (pendingRestoreData.subscriptionsDb) { subscriptionsDb = pendingRestoreData.subscriptionsDb; localStorage.setItem('fos_subscriptions_v1', JSON.stringify(subscriptionsDb)); }
-  if (pendingRestoreData.finaiQuiz && pendingRestoreData.finaiQuiz.r) { localStorage.setItem('fos_finai_quiz_v1', JSON.stringify(pendingRestoreData.finaiQuiz)); }
   if (Array.isArray(pendingRestoreData.finaiGoals)) { finaiGoals = pendingRestoreData.finaiGoals; localStorage.setItem('fos_finai_goals_v1', JSON.stringify(finaiGoals)); }
   if (pendingRestoreData.budgets)  { budgets  = pendingRestoreData.budgets; localStorage.setItem('fos_budgets', JSON.stringify(budgets)); }
 
@@ -45077,165 +45012,6 @@ body.light-mode .fa-fl{background:#fff}
   html #settings-modal#settings-modal .adm-pv{ position:static !important; order:-1; }
 }
 </style>
-<script id="finai-quiz">
-(function () {
-  var KEY = 'fos_finai_quiz_v1', START = [2026, 10, 15], SESSIONS = 12, PER = 20, MARKS = 2, S, Q = null;
-  var B = [
-'F|Ideal emergency fund size?|3-6 months of essential expenses|1 month of salary|1 year of income|Equal to one EMI|Covers job loss or medical shocks without loans.',
-'F|In the 50/30/20 rule, the 20 is for?|Savings and debt repayment|Wants|Needs|Taxes|',
-'F|Idle cash in a drawer mainly suffers from?|Inflation|Compounding|Diversification|Liquidity premium|Prices rise, so the same money buys less.',
-'F|A SIP helps mainly through?|Rupee-cost averaging|Guaranteed returns|Zero risk|Tax-free gains|You buy more units when prices dip.',
-'F|A healthy credit-card utilisation is below about?|30%|60%|80%|100%|',
-'F|Which CIBIL score is generally considered good?|750+|450|550|600|',
-'F|Paying only the minimum due on a card means?|Interest keeps building on the rest|Dues are cleared|No interest is charged|Score jumps|',
-'F|Debt avalanche means paying first the?|Highest-interest debt|Smallest balance|Oldest loan|Lowest EMI|Saves the most interest.',
-'F|Debt snowball means paying first the?|Smallest balance|Highest interest|Newest loan|Biggest EMI|Quick wins build momentum.',
-'F|PPF lock-in period?|15 years|3 years|5 years|10 years|',
-'F|Section 80C deduction limit (old regime)?|Rs 1.5 lakh|Rs 50,000|Rs 3 lakh|Rs 5 lakh|',
-'F|Term insurance is meant for?|Protecting dependants|Investment returns|Tax-free income|Maturity bonus|',
-'F|Diversification means?|Spreading money across assets|All-in on one winner|Only FDs|Timing the market|',
-'F|Compounding works best when you?|Start early and stay invested|Withdraw yearly|Invest only big sums|Avoid long horizons|',
-'F|Which is most liquid?|Savings account|Real estate|PPF|5-year tax-saver FD|',
-'F|Expense ratio is?|A mutual fund annual fee|A tax|An entry penalty|A credit score|',
-'F|Which is usually bad (high-interest) debt?|Unpaid credit-card balance|Home loan|Education loan|Gold loan at 9%|',
-'F|Net worth equals?|Assets minus liabilities|Income minus expenses|Assets plus liabilities|Savings minus tax|',
-'F|Savings rate equals?|(Income - expenses) / income|Expenses / income|Income / expenses|Investments / expenses|',
-'F|An EMI is made of?|Principal plus interest|Only principal|Only interest|Tax plus fee|',
-'F|Early in a loan, most of each EMI goes to?|Interest|Principal|Insurance|Fees|',
-'F|Asset allocation should mainly follow?|Goals, horizon and risk comfort|Latest news|Friends tips|One hot stock|',
-'F|Health insurance mainly protects?|Savings from big medical bills|Wealth growth|Tax-free income|Rent|',
-'F|Pay yourself first means?|Save or invest before spending|Spend first|Borrow to invest|Skip budgeting|',
-'F|Lifestyle inflation is?|Spending rising as income rises|Price inflation|Loan interest|A market fall|',
-'F|Opportunity cost is?|The value of the best alternative given up|A broker fee|A tax|Loan processing charge|',
-'F|FD interest is taxed?|As income at your slab|Never|At 12.5% flat|Only after 5 years|',
-'F|An index fund?|Tracks an index at low cost|Picks stocks actively|Guarantees returns|Holds only debt|',
-'D|Fin AI health score starts at (default)?|50|0|75|100|',
-'D|Savings rate for the biggest score bonus (default)?|30% or more|10%|20%|50%|',
-'D|Default savings-rate target?|20%|10%|30%|40%|',
-'D|EMI load counts as high from (default)?|50% of income|20%|70%|10%|',
-'D|High-interest debt starts at (default)?|24% a year|12%|36%|8%|',
-'D|Card utilisation is critical from (default)?|75%|30%|50%|100%|',
-'D|A spending spike is by default?|40% above a category usual month|10% above|100% above|Any increase|',
-'D|A charge is recurring if seen in at least (default)?|3 months|1 month|6 months|12 months|',
-'D|Forecast treats a purchase as a lump if it is?|5x median expense and at least Rs 5,000|Any expense|Above Rs 1,000|Double last month|',
-'D|The forecast learns from how many past months (default)?|3|1|12|24|',
-'D|Weekly Pulse streak needs?|4 weeks in a row with 2+ entries|1 week|12 months|30 days|',
-'D|Year in Review needs?|12 months in a row|6 months|3 months|24 months|',
-'D|A streak-freeze token?|Keeps your streak alive after a short gap|Doubles points|Locks budgets|Hides data|',
-'D|Data Tracking Mode choices?|Cloud or Manual JSON|Email or SMS|Free or Paid|Dark or Light|',
-'D|Logging out in Manual JSON mode?|Clears local data, so back up first|Uploads silently|Changes nothing|Keeps data for all users|',
-'D|Net worth in FinanceOS is?|Cash plus portfolio value minus what you owe|Income minus expenses|Portfolio only|Loans only|',
-'D|Admin Panel lives in?|Settings, below About|Dashboard header|Notes|Portfolio Tax|',
-'D|Which view stress-tests a portfolio?|Portfolio Stress Test|Net Worth Tracker|Notes|Rough Board|',
-'D|Quiet hours do what?|Mute alert sound only|Block all alerts|Delete alerts|Lock the app|',
-'D|Default yearly exempt long-term equity gain?|Rs 1,25,000|Rs 1,00,000|Rs 50,000|Rs 2,50,000|',
-'D|Listed equity becomes long-term after (default)?|12 months|6 months|24 months|36 months|',
-'D|Crypto tax default in the Tax view?|Flat 30%, no loss set-off|12.5%|Your slab|0%|',
-'D|Fin AI Coming Up tabs?|Today, This Week, This Month|Past, Future|Paid, Due|Day, Year|',
-'D|Debt Command Center lets you?|Model paying extra per month|File returns|Buy insurance|Add notes|',
-'D|With Investing counts as saving ON, savings equal?|Income - expenses - EMIs|Zero|Investments only|EMIs only|',
-'D|Which tile is on the Fin AI page?|Debt-to-Income|Weather|Gold rate|Rent index|'
-  ];
-  function rng(s) { return function () { s |= 0; s = s + 0x6D2B79F5 | 0; var t = Math.imul(s ^ s >>> 15, 1 | s); t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296; }; }
-  function shuf(a, r) { a = a.slice(); for (var i = a.length - 1; i > 0; i--) { var j = Math.floor(r() * (i + 1)); var t = a[i]; a[i] = a[j]; a[j] = t; } return a; }
-  function f(n) { return Number(n).toLocaleString('en-IN'); }
-  function pick(a, r) { return a[Math.floor(r() * a.length)]; }
-  function mk(t, q, ans, wrong, r, w) { var o = [ans]; wrong.forEach(function (x) { if (o.indexOf(x) < 0) o.push(x); }); var k = 1; while (o.length < 4) o.push(String(ans) + ' ' + (k++)); o = shuf(o, r); return { t: t, q: q, o: o, a: o.indexOf(ans), w: w || '' }; }
-  function nums(r) {
-    var I = pick([40, 50, 60, 80, 100, 120], r) * 1000, s = pick([10, 15, 20, 25, 30, 35, 40], r), q = [];
-    q.push(mk('F', 'Income Rs ' + f(I) + '; expenses + EMIs Rs ' + f(I * (100 - s) / 100) + '. Savings rate?', s + '%', [(s + 10) + '%', (s + 5) + '%', (100 - s) + '%'], r, 'Savings rate = (income - spending) / income.'));
-    var L = pick([50, 100, 150, 200, 300], r) * 1000, u = pick([10, 20, 40, 50, 60, 80], r);
-    q.push(mk('F', 'Card limit Rs ' + f(L) + ', balance Rs ' + f(L * u / 100) + '. Utilisation?', u + '%', [(u + 20) + '%', Math.max(5, u - 10) + '%', (100 - u) + '%'], r, 'Utilisation = balance / limit.'));
-    var e = pick([15, 20, 25, 35, 45, 55], r);
-    q.push(mk('F', 'EMIs Rs ' + f(I * e / 100) + ' on income Rs ' + f(I) + ' is what share of income?', e + '%', [(e + 10) + '%', Math.max(5, e - 10) + '%', (e * 2) + '%'], r, 'The score treats 30%+ as moderate and 50%+ as high.'));
-    var rt = pick([6, 8, 9, 12, 18], r), y = 72 / rt;
-    q.push(mk('F', 'By the rule of 72, money at ' + rt + '% a year doubles in about?', y + ' years', [(y + 3) + ' years', (y * 2) + ' years', Math.max(1, y - 2) + ' years'], r, '72 / rate.'));
-    var P = pick([10, 20, 50, 100], r) * 1000, R = pick([5, 6, 8, 10], r), T = pick([2, 3, 4, 5], r), si = P * R * T / 100;
-    q.push(mk('F', 'Simple interest on Rs ' + f(P) + ' at ' + R + '% for ' + T + ' years?', 'Rs ' + f(si), ['Rs ' + f(si * 2), 'Rs ' + f(si + P / 10), 'Rs ' + f(P * R / 100)], r, 'P x R x T / 100.'));
-    var X = pick([20, 25, 30, 40, 50], r) * 1000, m = pick([3, 6], r);
-    q.push(mk('F', 'Essentials cost Rs ' + f(X) + ' a month. A ' + m + '-month emergency fund needs?', 'Rs ' + f(X * m), ['Rs ' + f(X * (m + 3)), 'Rs ' + f(X), 'Rs ' + f(X * m * 2)], r, 'Essentials x months.'));
-    return q;
-  }
-  function sessions() { var out = [], y = START[0], m = START[1], d = START[2]; for (var i = 0; i < SESSIONS; i++) { out.push(y + '-' + ('0' + (m + 1)).slice(-2) + '-' + ('0' + d).slice(-2)); if (d === 15) { d = 1; m++; if (m > 11) { m = 0; y++; } } else d = 15; } return out; }
-  function today() { var d = new Date(); return d.getFullYear() + '-' + ('0' + (d.getMonth() + 1)).slice(-2) + '-' + ('0' + d.getDate()).slice(-2); }
-  function build(date) {
-    var k = sessions().indexOf(date), r = rng(Number(date.replace(/-/g, '')));
-    var bank = shuf(B, rng(2026)), qs = [], n = PER - 6;
-    for (var i = 0; i < n; i++) { var p = bank[(k * n + i) % bank.length].split('|'); var o = shuf([p[2], p[3], p[4], p[5]], r); qs.push({ t: p[0], q: p[1], o: o, a: o.indexOf(p[2]), w: p[6] || '' }); }
-    return shuf(qs.concat(nums(r)), r);
-  }
-  function load() { try { var s = JSON.parse(localStorage.getItem(KEY)); if (s && s.r) return s; } catch (e) { } return { r: {}, n: {}, b: {} }; }
-  function save() { try { localStorage.setItem(KEY, JSON.stringify(S)); } catch (e) { } try { scheduleSave(); } catch (e) { } }
-  function grade(p) { return p >= 90 ? ['A+', 'Money Master', '#34d399'] : p >= 80 ? ['A', 'Sharp', '#34d399'] : p >= 70 ? ['B', 'Solid', '#38bdf8'] : p >= 60 ? ['C', 'Getting there', '#fbbf24'] : p >= 50 ? ['D', 'Needs revision', '#fb923c'] : ['E', 'Keep practising', '#ef4444']; }
-  function status() { S = load(); var t = today(), all = sessions(), due = [], next = null; all.forEach(function (d) { if (S.r[d]) return; if (d <= t) due.push(d); else if (!next) next = d; }); return { t: t, all: all, due: due, next: next }; }
-  function dl(d) { var x = d.split('-'); return new Date(+x[0], +x[1] - 1, +x[2]).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' }); }
-  var css = '<style id="fq-css">.fq-card{background:rgba(255,255,255,.02);border:1px solid rgba(255,255,255,.06);border-radius:16px;padding:1rem 1.1rem}body.light-mode .fq-card{background:#fff;border-color:#e2e8f0}.fq-row{display:flex;gap:12px;flex-wrap:wrap;align-items:center;justify-content:space-between}.fq-btn{background:rgba(56,189,248,.85);color:#04121a;border:0;border-radius:10px;padding:8px 16px;font-weight:700;font-size:.8rem;cursor:pointer}.fq-btn.sec{background:rgba(255,255,255,.07);color:var(--text-main)}body.light-mode .fq-btn.sec{background:#eef2f7}.fq-mut{font-size:.76rem;color:var(--text-muted)}.fq-hist{display:grid;gap:6px;margin-top:10px}.fq-h{display:flex;justify-content:space-between;gap:8px;font-size:.78rem;padding:7px 10px;border-radius:10px;background:rgba(255,255,255,.025)}body.light-mode .fq-h{background:#f8fafc}.fq-ov{position:fixed;inset:0;z-index:99999;background:rgba(0,0,0,.6);display:flex;align-items:center;justify-content:center;padding:12px}.fq-box{width:min(620px,100%);max-height:92vh;overflow:auto;background:var(--bg-card,#0b1114);color:var(--text-main);border:1px solid rgba(255,255,255,.1);border-radius:18px;padding:1.2rem}body.light-mode .fq-box{background:#fff}.fq-opt{display:block;width:100%;text-align:left;margin:8px 0;padding:11px 13px;border-radius:12px;border:1px solid rgba(255,255,255,.12);background:transparent;color:var(--text-main);font-size:.86rem;cursor:pointer}body.light-mode .fq-opt{border-color:#cbd5e1}.fq-opt.ok{border-color:#34d399;background:rgba(52,211,153,.15)}.fq-opt.no{border-color:#ef4444;background:rgba(239,68,68,.15)}.fq-bar{height:6px;border-radius:6px;background:rgba(255,255,255,.08);overflow:hidden}.fq-bar i{display:block;height:100%;background:#38bdf8}.fq-pop{position:fixed;right:14px;bottom:14px;z-index:99998;width:min(320px,calc(100% - 28px));background:var(--bg-card,#0b1114);color:var(--text-main);border:1px solid rgba(56,189,248,.5);border-radius:14px;padding:12px 14px;box-shadow:0 8px 30px rgba(0,0,0,.4)}body.light-mode .fq-pop{background:#fff}</style>';
-  function render() {
-    var host = document.getElementById('finai-quiz-host'); if (!host) return;
-    if (!document.getElementById('fq-css')) document.head.insertAdjacentHTML('beforeend', css);
-    var st = status(), done = Object.keys(S.r).sort(), tot = PER * MARKS, last = done.length ? S.r[done[done.length - 1]] : null;
-    var avg = done.length ? Math.round(done.reduce(function (a, d) { return a + S.r[d].s / S.r[d].t * 100; }, 0) / done.length) : null;
-    var best = done.length ? Math.max.apply(null, done.map(function (d) { return S.r[d].s; })) : null;
-    var lg = last ? grade(last.s / last.t * 100) : null, cur = st.due[0];
-    var h = '<div class="finai-section-head"><div><i class="fas fa-graduation-cap"></i> FinAI Quiz</div><div class="fq-mut">' + PER + ' questions &middot; ' + MARKS + ' marks each &middot; ' + tot + ' total &middot; 1st &amp; 15th</div></div><div class="fq-card" style="margin-top:10px"><div class="fq-row"><div>';
-    h += cur ? '<div style="font-weight:800;font-size:1rem">Session ' + dl(cur) + ' is ready' + (cur < st.t ? ' <span class="fq-mut">(late)</span>' : '') + '</div><div class="fq-mut">' + (st.due.length > 1 ? st.due.length + ' sessions waiting. ' : '') + 'Takes about 8 minutes.</div>' : '<div style="font-weight:800;font-size:1rem">' + (st.next ? 'Next session: ' + dl(st.next) : 'All sessions complete') + '</div><div class="fq-mut">You are up to date.</div>';
-    h += '</div><div style="display:flex;gap:8px;flex-wrap:wrap">' + (cur ? '<button class="fq-btn" onclick="finaiQuizStart(\'' + cur + '\')">Start quiz</button>' : '') + '<button class="fq-btn sec" onclick="finaiQuizAlerts()">Enable alerts</button><button class="fq-btn sec" onclick="finaiQuizIcs()">Add to calendar</button></div></div>';
-    h += '<div class="fq-row" style="margin-top:12px">' + (last ? '<div><span style="font-size:1.6rem;font-weight:800;color:' + lg[2] + '">' + last.s + '/' + last.t + '</span> <span class="fq-mut">Grade ' + lg[0] + ' &middot; ' + lg[1] + '</span></div>' : '<div class="fq-mut">No attempts yet. Your first score will show here.</div>') + '<div class="fq-mut">' + (done.length ? 'Average ' + avg + '% &middot; Best ' + best + '/' + tot + ' &middot; ' + done.length + '/' + st.all.length + ' done' : '') + '</div></div><div class="fq-hist">';
-    st.all.forEach(function (d) { var r = S.r[d], tag = r ? (r.s + '/' + r.t + ' &middot; ' + grade(r.s / r.t * 100)[0] + (r.late ? ' (late)' : '')) : d <= st.t ? (d === cur ? 'Due' : 'Missed - take now') : 'Upcoming'; h += '<div class="fq-h"><span>' + dl(d) + '</span><span' + (r ? ' style="font-weight:700"' : '') + '>' + tag + '</span></div>'; });
-    host.innerHTML = h + '</div></div>';
-  }
-  function modal(html) { var o = document.getElementById('fq-ov'); if (!o) { o = document.createElement('div'); o.id = 'fq-ov'; o.className = 'fq-ov'; document.body.appendChild(o); } o.innerHTML = '<div class="fq-box">' + html + '</div>'; }
-  function close() { var o = document.getElementById('fq-ov'); if (o) o.remove(); Q = null; render(); }
-  function show() {
-    var q = Q.qs[Q.i], pk = Q.p[Q.i], n = Q.qs.length;
-    var h = '<div class="fq-row"><b>FinAI Quiz &middot; ' + dl(Q.d) + '</b><span class="fq-mut">Q ' + (Q.i + 1) + '/' + n + '</span></div><div class="fq-bar" style="margin:10px 0"><i style="width:' + (Q.i / n * 100) + '%"></i></div><div class="fq-mut">' + (q.t === 'D' ? 'FinanceOS know-how' : 'Money knowledge') + '</div><div style="font-weight:700;margin:6px 0 4px;line-height:1.45">' + q.q + '</div>';
-    q.o.forEach(function (o, i) { var c = pk == null ? '' : i === q.a ? ' ok' : i === pk ? ' no' : ''; h += '<button class="fq-opt' + c + '"' + (pk == null ? ' onclick="finaiQuizPick(' + i + ')"' : ' disabled') + '>' + o + '</button>'; });
-    if (pk != null) h += '<div class="fq-mut" style="margin:6px 0">' + (pk === q.a ? 'Correct, +' + MARKS + ' marks. ' : 'Not quite. Answer: ' + q.o[q.a] + '. ') + (q.w || '') + '</div><button class="fq-btn" onclick="finaiQuizNext()">' + (Q.i === n - 1 ? 'Finish' : 'Next') + '</button>';
-    modal(h + '<div style="margin-top:12px"><button class="fq-btn sec" onclick="finaiQuizQuit()">Quit (progress is lost)</button></div>');
-  }
-  function result() {
-    var sc = 0, ts = { F: [0, 0], D: [0, 0] }; Q.qs.forEach(function (q, i) { var ok = Q.p[i] === q.a; if (ok) sc += MARKS; ts[q.t][1]++; if (ok) ts[q.t][0]++; });
-    var tot = Q.qs.length * MARKS, g = grade(sc / tot * 100); S = load(); S.r[Q.d] = { s: sc, t: tot, at: new Date().toISOString(), late: Q.d < today(), F: ts.F, D: ts.D }; save();
-    var prev = Object.keys(S.r).sort().filter(function (d) { return d < Q.d; }).pop(), dv = prev ? sc - S.r[prev].s : null;
-    var h = '<div style="text-align:center"><div style="font-size:2.4rem;font-weight:800;color:' + g[2] + '">' + sc + '/' + tot + '</div><div style="font-weight:700">Grade ' + g[0] + ' &middot; ' + g[1] + '</div>' + (dv == null ? '' : '<div class="fq-mut">' + (dv > 0 ? 'Up ' + dv + ' marks from last session' : dv < 0 ? 'Down ' + (-dv) + ' marks from last session' : 'Same as last session') + '</div>') + '</div><div class="fq-hist"><div class="fq-h"><span>Money knowledge</span><span>' + ts.F[0] + '/' + ts.F[1] + '</span></div><div class="fq-h"><span>FinanceOS know-how</span><span>' + ts.D[0] + '/' + ts.D[1] + '</span></div></div><div class="fq-mut" style="margin:10px 0 4px">Review the ones you missed:</div>';
-    Q.qs.forEach(function (q, i) { if (Q.p[i] !== q.a) h += '<div class="fq-h" style="display:block;margin-bottom:6px"><b>' + q.q + '</b><br><span style="color:#34d399">' + q.o[q.a] + '</span> ' + (q.w ? '<span class="fq-mut">' + q.w + '</span>' : '') + '</div>'; });
-    modal(h + '<div style="margin-top:12px"><button class="fq-btn" onclick="finaiQuizClose()">Done</button></div>');
-    try { removeNotification('finai-quiz-' + Q.d); } catch (e) { }
-  }
-  window.finaiQuizStart = function (d) { var p = document.getElementById('fq-pop'); if (p) p.remove(); try { if (typeof switchView === 'function' && !document.getElementById('view-finai').classList.contains('active')) switchView('finai'); } catch (e) { } Q = { d: d, qs: build(d), i: 0, p: [] }; show(); };
-  window.finaiQuizPick = function (i) { if (Q.p[Q.i] == null) { Q.p[Q.i] = i; show(); } };
-  window.finaiQuizNext = function () { if (Q.i === Q.qs.length - 1) result(); else { Q.i++; show(); } };
-  window.finaiQuizQuit = function () { if (confirm('Quit this quiz? Your answers so far will be lost.')) close(); };
-  window.finaiQuizClose = close;
-  window.finaiQuizAlerts = function () { fosPushEnable().then(function (ok) { if (ok) { localStorage.setItem('fos_set_push-quiz', 'true'); var t = document.getElementById('tog-push-quiz'); if (t) t.checked = true; alert('Quiz alerts on. You will get a notification when a session is due while FinanceOS is open or running in the background. Also tap Add to calendar for reminders when the app is fully closed.'); } }); };
-  window.finaiQuizIcs = function () {
-    var ev = function (u, start, rule, name) { return 'BEGIN:VEVENT\r\nUID:' + u + '@financeos\r\nDTSTAMP:20261114T000000Z\r\nDTSTART:' + start + '\r\nRRULE:' + rule + '\r\nSUMMARY:' + name + '\r\nDESCRIPTION:20 questions, 40 marks. Open FinanceOS > Fin AI.\r\nBEGIN:VALARM\r\nACTION:DISPLAY\r\nDESCRIPTION:FinAI quiz\r\nTRIGGER:PT0S\r\nEND:VALARM\r\nEND:VEVENT\r\n'; };
-    var t = 'BEGIN:VCALENDAR\r\nVERSION:2.0\r\nPRODID:-//FinanceOS//FinAI Quiz//EN\r\n' + ev('q15', '20261115T090000', 'FREQ=MONTHLY;BYMONTHDAY=15;COUNT=7', 'FinAI Quiz') + ev('q01', '20261201T090000', 'FREQ=MONTHLY;BYMONTHDAY=1;COUNT=6', 'FinAI Quiz') + 'END:VCALENDAR\r\n';
-    var a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([t], { type: 'text/calendar' })); a.download = 'finai-quiz.ics'; document.body.appendChild(a); a.click(); a.remove();
-  };
-  function check() {
-    if (!fosAppGateOpen()) return;   // no quiz pop-up / notification on the sign-in page
-    try { var ready = true; try { ready = !cloudSession || cloudDataReady; } catch (e) { } if (!ready || typeof db === 'undefined') return; } catch (e) { return; }
-    var st = status(); if (!st.due.length) return; var d = st.due[0];
-    try { addNotification('finai-quiz-' + d, 'fa-graduation-cap', '#38bdf8', 'FinAI quiz is ready', 'Session ' + dl(d) + ': ' + PER + ' questions, ' + (PER * MARKS) + ' marks.', 'finai'); } catch (e) { }
-    if (!S.b[d] && localStorage.getItem('fos_set_push-quiz') === 'true' && 'Notification' in window && Notification.permission === 'granted') {
-      S.b[d] = 1; save(); var o = { body: 'Your ' + dl(d) + ' session is ready. ' + PER + ' questions, ' + (PER * MARKS) + ' marks.', tag: 'finai-quiz-' + d };
-      try { fosPushShow('FinAI quiz is ready', o.body, o.tag); } catch (e) { }
-    }
-    if (S.n[d] !== st.t && !Q && !document.getElementById('fq-pop')) {
-      var p = document.createElement('div'); p.id = 'fq-pop'; p.className = 'fq-pop';
-      p.innerHTML = '<div style="font-weight:800">FinAI quiz is ready</div><div class="fq-mut" style="margin:4px 0 10px">Session ' + dl(d) + ' &middot; ' + PER + ' questions &middot; ' + (PER * MARKS) + ' marks</div><button class="fq-btn" onclick="finaiQuizStart(\'' + d + '\')">Start now</button> <button class="fq-btn sec" onclick="finaiQuizLater(\'' + d + '\')">Later</button>';
-      document.body.appendChild(p);
-    }
-  }
-  window.finaiQuizCheck = check;
-  window.finaiQuizReload = function () { S = load(); try { var p = document.getElementById('fq-pop'); if (p) p.remove(); } catch (e) { } render(); };
-  window.finaiQuizLater = function (d) { S = load(); S.n[d] = today(); save(); var p = document.getElementById('fq-pop'); if (p) p.remove(); };
-  var _r = window.renderFinAI; if (typeof _r === 'function') window.renderFinAI = function () { var x = _r.apply(this, arguments); try { render(); } catch (e) { } return x; };
-  window.addEventListener('load', function () { setTimeout(check, 3000); setInterval(check, 60000); render(); });
-  document.addEventListener('visibilitychange', function () { if (!document.hidden) setTimeout(check, 500); });
-})();
-</script>
 <script>
 /* ── PUSH NOTIFICATIONS (system tray via service worker) ── */
 function fosPushState() {
@@ -45312,7 +45088,7 @@ async function fosPushSync() {
     var key = fosB64ToU8(FOS_VAPID_PUBLIC_KEY), sub = await reg.pushManager.getSubscription();
     if (!sub) { try { sub = await reg.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: key }); } catch (e) { fosBgStatus('Could not subscribe this device: ' + (e && e.message || e)); return false; } }
     var j = sub.toJSON(), k = j.keys || {};
-    var res = await sb.from('push_subscriptions').upsert({ user_id: uid, endpoint: sub.endpoint, p256dh: k.p256dh, auth: k.auth, quiz: fosPushOn('push-quiz'), alerts: fosPushOn('push-alerts'), user_agent: navigator.userAgent.slice(0, 200), updated_at: new Date().toISOString() }, { onConflict: 'user_id,endpoint' });
+    var res = await sb.from('push_subscriptions').upsert({ user_id: uid, endpoint: sub.endpoint, p256dh: k.p256dh, auth: k.auth, quiz: false, alerts: fosPushOn('push-alerts'), user_agent: navigator.userAgent.slice(0, 200), updated_at: new Date().toISOString() }, { onConflict: 'user_id,endpoint' });
     if (res.error) { fosBgStatus('Could not save this device to the cloud: ' + res.error.message); return false; }
     try { if (window.fosPushDeviceInfo) window.fosPushDeviceInfo(sub.endpoint); } catch (e) { }
     fosBgStatus('Active. Alerts will arrive even when the app is closed.');
@@ -45321,12 +45097,12 @@ async function fosPushSync() {
 }
 /* push preferences follow your account; only the browser permission must be granted once per device */
 function fosPushApplySynced() {
-  [['tog-push-quiz', 'push-quiz'], ['tog-push-alerts', 'push-alerts']].forEach(function (p) { var c = document.getElementById(p[0]); if (c) c.checked = fosPushOn(p[1]); });
+  [['tog-push-alerts', 'push-alerts']].forEach(function (p) { var c = document.getElementById(p[0]); if (c) c.checked = fosPushOn(p[1]); });
   fosPushRefreshUI(); fosPushPrompt(); if (fosPushState() === 'granted') fosPushSync();
 }
 function fosPushPrompt() {
   try {
-    if (fosPushState() !== 'default' || !(fosPushOn('push-quiz') || fosPushOn('push-alerts'))) return;
+    if (fosPushState() !== 'default' || !fosPushOn('push-alerts')) return;
     if (typeof cloudSession === 'undefined' || !cloudSession) return;
     if (sessionStorage.getItem('fos_push_prompt_off') || document.getElementById('fos-push-prompt') || typeof window.fosToast !== 'function') return;
     var off = function () { sessionStorage.setItem('fos_push_prompt_off', '1'); };
@@ -45338,7 +45114,7 @@ setInterval(fosPushPrompt, 10000);
 function fosPushRefreshUI() {
   var st = fosPushState(), el = document.getElementById('push-perm-status'), b = document.getElementById('push-enable-btn'), t = document.getElementById('push-test-btn');
   if (!el) return;
-  var wanted = fosPushOn('push-quiz') || fosPushOn('push-alerts');
+  var wanted = fosPushOn('push-alerts');
   var msg = { unsupported: 'Not supported in this browser. On iPhone, install the app to the Home Screen first.', 'default': wanted ? 'Turned on for your account. Tap Enable once to allow notifications on this device.' : 'Not enabled yet. Tap Enable to allow notifications on this device.', granted: 'Allowed on this device.', denied: 'Blocked. Allow notifications for this app in your browser or phone settings.' }[st];
   el.textContent = msg;
   if (st !== 'granted') fosBgStatus('Enable notifications on this device first.');
@@ -45353,9 +45129,9 @@ function fosPushRefreshUI() {
 })();
 </script>
 <script>
-/* ── CROSS-DEVICE SYNC OF APP STATE (quiz, goals, settings, lists, etc.) via Supabase table user_kv ── */
+/* ── CROSS-DEVICE SYNC OF APP STATE (goals, settings, lists, etc.) via Supabase table user_kv ── */
 (function () {
-  var SYNC = ['fos_finai_quiz_v1','fos_game_stats','fos_finai_goals_v1','fos_finai_score_history','fos_master_v1','fos_custom_tags','fos_shortcuts',
+  var SYNC = ['fos_game_stats','fos_finai_layout_v1','fos_finai_insights_v1','fos_finai_goals_v1','fos_finai_score_history','fos_master_v1','fos_custom_tags','fos_shortcuts',
     'fos_currency','fos_number_system','fos_time','fos_date','financeOS_roughboard_v1','fos_remind_v1','fos_port_customsubs_v1','fos_port_targets_v1',
     'fos_port_tgtband','fos_port_tgtnew','fos_pi_bench','fos_tax_cls_v1','fos_tax_slab','fos_tax_fy','fos_notif_dismissed','fos_reminders_v1','fos_onboarding_goal',
     'fos_last_nw_milestone','fos_last_portfolio_update','fos_lh_unlocked','fos_academy_v1','fos_stress_v1'];
@@ -45372,17 +45148,6 @@ function fosPushRefreshUI() {
 
   /* per-key merge so two devices never overwrite each other's progress */
   var MERGE = {
-    fos_finai_quiz_v1: function (l, c) {
-      l = parse(l) || {}; c = parse(c) || {}; var o = { r: {}, n: {}, b: {} };
-      ['r', 'n', 'b'].forEach(function (k) {
-        var a = l[k] || {}, b = c[k] || {};
-        Object.keys(a).concat(Object.keys(b)).forEach(function (d) {
-          if (k === 'r') { var x = a[d], y = b[d]; o.r[d] = !x ? y : !y ? x : ((x.at || '') >= (y.at || '') ? x : y); }
-          else o[k][d] = a[d] != null ? a[d] : b[d];
-        });
-      });
-      return JSON.stringify(o);
-    },
     fos_notif_dismissed: function (l, c) {
       l = parse(l) || {}; c = parse(c) || {}; var o = {};
       Object.keys(l).concat(Object.keys(c)).forEach(function (id) { o[id] = Math.max(Number(l[id]) || 0, Number(c[id]) || 0); });
@@ -45470,8 +45235,7 @@ function fosPushRefreshUI() {
     changed.forEach(function (k) {
       try {
         var v = origGet.call(localStorage, k);
-        if (k === 'fos_finai_quiz_v1') { if (window.finaiQuizReload) window.finaiQuizReload(); }
-        else if (k === 'fos_notif_dismissed') { /* nothing to redraw */ }
+        if (k === 'fos_notif_dismissed') { /* nothing to redraw */ }
         else if (k === 'fos_reminders_v1') { if (window.fosRemReload) window.fosRemReload(); }
         else if (k === 'fos_game_stats') { gameStats = JSON.parse(v) || {}; if (typeof renderGameStats === 'function') renderGameStats(); }
         else if (k === 'fos_finai_goals_v1') { finaiGoals = JSON.parse(v) || []; if (activeView === 'finai' && typeof renderFinAI === 'function') renderFinAI(); }
@@ -45664,8 +45428,8 @@ body.light-mode #fos-privacy-shield .fps-t{color:#25363d}
 <script>
 /* ── NOTIFICATION CENTRE (server push preferences, history, devices, test) + notification deep links ── */
 (function () {
-  var CATS = [['spending','Spending alerts','Large or unusual transactions'],['daily','Daily summary','Income, spending and savings recap'],['bills','Bill & loan reminders','EMI and payment due dates'],['budget','Budget alerts','50%, 75%, 90%, 100% and over'],['portfolio','Portfolio updates','Weekly investment summary'],['goals','Goal achievements','Savings milestones'],['sync','Sync & backup alerts','Essential: data-loss warnings'],['reminders','General reminders','Your own reminders'],['quiz','Financial quizzes','Daily questions and challenges'],['security','Security notifications','Essential: account safety']];
-  var DEF = { master: true, categories: { spending:true,daily:true,bills:true,budget:true,portfolio:true,goals:true,sync:true,reminders:true,quiz:false,security:true }, quiet_enabled: false, quiet_start: '22:00', quiet_end: '07:00', daily_time: '21:00', hide_amounts: true, thresholds: { single_txn: 10000, month_spend: null } };
+  var CATS = [['spending','Spending alerts','Large or unusual transactions'],['daily','Daily summary','Income, spending and savings recap'],['bills','Bill & loan reminders','EMI and payment due dates'],['budget','Budget alerts','50%, 75%, 90%, 100% and over'],['portfolio','Portfolio updates','Weekly investment summary'],['goals','Goal achievements','Savings milestones'],['sync','Sync & backup alerts','Essential: data-loss warnings'],['reminders','General reminders','Your own reminders'],['security','Security notifications','Essential: account safety']];
+  var DEF = { master: true, categories: { spending:true,daily:true,bills:true,budget:true,portfolio:true,goals:true,sync:true,reminders:true,security:true }, quiet_enabled: false, quiet_start: '22:00', quiet_end: '07:00', daily_time: '21:00', hide_amounts: true, thresholds: { single_txn: 10000, month_spend: null } };
   var P = null, root = null;
   function esc(s) { return String(s == null ? '' : s).replace(/[&<>"]/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]; }); }
   function uid() { return (typeof cloudSession !== 'undefined' && cloudSession && cloudSession.user) ? cloudSession.user.id : null; }
@@ -45766,7 +45530,7 @@ body.light-mode #fos-privacy-shield .fps-t{color:#25363d}
   window.addEventListener('online', function () { try { var p = JSON.parse(localStorage.getItem(PEND) || 'null'); if (p && Date.now() - p.at < 864e5) report(p.kind); } catch (e) { } });
 
   /* Tapping a notification: go to the right section, but only after sign-in and the app lock have been cleared */
-  var ROUTE = { overview: ['dashboard', 'finance'], spend: ['transactions', 'finance'], budget: ['dashboard', 'finance'], bills: ['credit', 'finance'], portfolio: ['port-overview', 'portfolio'], goals: ['finai', 'finance'], quiz: ['finai', 'finance'] };
+  var ROUTE = { overview: ['dashboard', 'finance'], spend: ['transactions', 'finance'], budget: ['dashboard', 'finance'], bills: ['credit', 'finance'], portfolio: ['port-overview', 'portfolio'], goals: ['finai', 'finance'] };
   function open(target) {
     var m = /#n=([a-z]+)/.exec(String(target || '')); if (!m) return;
     var tries = 0, t = setInterval(function () {
@@ -48622,6 +48386,953 @@ body.pdf-export-mode .view-section .fxr { opacity:1 !important; transform:none !
     var a = document.querySelector('.view-section.active'); if (a) setTimeout(function () { arm(a); }, 900);
   }
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', watchViews); else watchViews();
+})();
+</script>
+<script id="fos-finai-brain">
+/* ═══════════════════════════════════════════════════════════════════════════
+   FIN AI — REASONING LAYER
+   Sits in front of the existing understanding layer and router (finaiAnswerQuestion).
+   Handles conversation (greetings, thanks, follow-ups) and whole-picture questions
+   ("what's my situation", "biggest problems", "left after EMIs", "which loan first",
+   "why is my savings rate falling", "can I invest more" …). Everything is computed
+   from the signed-in user's records; nothing is invented, nothing is written.
+   The same issue detector feeds the proactive AI Insights in the notification panel.
+   ═══════════════════════════════════════════════════════════════════════════ */
+(function () {
+  'use strict';
+  if (typeof finaiAnswerQuestion !== 'function' || typeof finaiBuildAnalysis !== 'function') return;
+
+  // ── formatting ─────────────────────────────────────────────────────────────
+  var R = function (n) { return Math.round(Number(n) || 0); };
+  var M = function (n) { try { return fmt(R(n)); } catch (e) { return '₹' + R(n).toLocaleString('en-IN'); } };
+  var P = function (n, d) { return (Number(n) || 0).toFixed(d == null ? 0 : d) + '%'; };
+  var esc = function (s) { try { return finaiEscapeHtml(String(s)); } catch (e) { return String(s); } };
+  var chip = function (label, q) { return '<a href="#" class="finai-chip" onclick="finaiChipAsk(\'' + String(q).replace(/'/g, "\\'") + '\');return false">' + esc(label) + '</a>'; };
+  var chips = function (list) { return list && list.length ? '<div class="fai-follow">' + list.map(function (c) { return chip(c[0], c[1]); }).join('') + '</div>' : ''; };
+  var calc = function (rows, title) { return rows && rows.length ? '<details class="fai-calc"><summary>' + (title || 'How I worked this out') + '</summary><div>' + rows.map(function (r) { return '<div class="fai-calc-r"><span>' + r[0] + '</span><b>' + r[1] + '</b></div>'; }).join('') + '</div></details>' : ''; };
+  var basis = function (facts, assumptions) {
+    return '<div class="fai-basis">' + (facts ? '<span><i class="fas fa-database"></i> ' + facts + '</span>' : '') + (assumptions ? '<span><i class="fas fa-circle-info"></i> ' + assumptions + '</span>' : '') + '</div>';
+  };
+  var bullets = function (arr) { arr = arr.filter(Boolean); return arr.length ? '<ul class="fai-ul">' + arr.map(function (x) { return '<li>' + x + '</li>'; }).join('') + '</ul>' : ''; };
+  var lead = function (s) { return '<p class="fai-lead">' + s + '</p>'; };
+  var monthName = function (k) { try { var p = k.split('-'); return new Date(+p[0], +p[1] - 1, 1).toLocaleString('en-IN', { month: 'long' }); } catch (e) { return k; } };
+
+  // ── one consistent snapshot of the user's money ─────────────────────────────
+  var cache = null, cacheAt = 0;
+  function snapshot(force) {
+    if (!force && cache && Date.now() - cacheAt < 4000) return cache;
+    var a = finaiBuildAnalysis(), now = new Date();
+    var cur = localMonthKey(now), prevK = localMonthKey(new Date(now.getFullYear(), now.getMonth() - 1, 1));
+    var hist = fosLedgerHistory(6);                                  // completed months only (oldest → newest)
+    var curL = fosLedger(cur), day = now.getDate(), dim = new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate();
+    var base = hist.slice(-3), withInc = base.filter(function (h) { return h.income > 0; });
+    var avg = function (arr, f) { return arr.length ? arr.reduce(function (s, h) { return s + f(h); }, 0) / arr.length : null; };
+    var rows = (typeof dbNow === 'function' ? dbNow() : db) || [];
+    // spending by month × category (expenses only)
+    var byMC = {}, emiAsExpense = {};
+    rows.forEach(function (r) {
+      if (!r || r.type !== 'Expense') return; var k = finaiMonthKey(r.date); if (!k) return;
+      var c = String(r.sub || r.category || 'Other').trim() || 'Other', amt = Number(r.amount) || 0;
+      (byMC[k] = byMC[k] || {})[c] = (byMC[k][c] || 0) + amt;
+      if (/\bemi\b|loan\s*(repay|payment|instal)/i.test(c + ' ' + (r.name || ''))) emiAsExpense[k] = (emiAsExpense[k] || 0) + amt;
+    });
+    var loans = (creditDb || []).filter(function (c) { return c && c.status === 'Active'; }).map(function (c) {
+      return { name: c.lenderName || c.type || 'Loan', type: c.type, emi: Number(c.monthlyEmi) || 0, bal: Number(c.outstandingBalance) || 0, rate: Number(c.interestRate) || 0, due: c.dueDate };
+    });
+    var schedEmi = loans.reduce(function (s, l) { return s + l.emi; }, 0);
+    var ledEmiAvg = avg(base, function (h) { return h.emi; }) || 0;
+    // monthly baseline (completed months; never the half-finished current month)
+    var incAvg = withInc.length ? avg(withInc, function (h) { return h.income; }) : null;
+    var expAvgRaw = base.length ? avg(base, function (h) { return h.expense; }) : null;
+    var emiInExpAvg = base.length ? avg(base, function (h) { return emiAsExpense[h.month] || 0; }) : 0;
+    var emiUsed = schedEmi > 0 ? schedEmi : ledEmiAvg;
+    // if EMIs are logged as expenses AND scheduled on loans, count them once
+    var expAvg = expAvgRaw == null ? null : (schedEmi > 0 && emiInExpAvg > 0 ? Math.max(0, expAvgRaw - emiInExpAvg) : expAvgRaw);
+    var invAvg = base.length ? avg(base, function (h) { return h.invest; }) : 0;
+    var partial = false;
+    if (!base.length && curL.n > 0) { partial = true; incAvg = curL.income > 0 ? curL.income : null; expAvg = curL.expense; invAvg = curL.invest; }
+    var leftover = incAvg != null && expAvg != null ? incAvg - expAvg - emiUsed : null;
+    // liquid savings that could act as an emergency fund
+    var liquid = 0, liquidKnown = false;
+    try {
+      (portDb || []).forEach(function (r) {
+        if (!r || r.status === 'sold') return; var t = normalizeAssetType(r.assetType);
+        if (t === 'Cash' || t === 'FixedDeposit' || t === 'RecurringDeposit') { liquidKnown = true; liquid += Number(portCalc(r).currentValue) || 0; }
+      });
+    } catch (e) { }
+    // essential monthly spend (for emergency months)
+    var essAvg = null;
+    try {
+      var essBy = {}; rows.forEach(function (r) { if (r && r.type === 'Expense') { var k = finaiMonthKey(r.date); if (base.some(function (h) { return h.month === k; }) && finaiClassifyExpense(r) === 'essential') essBy[k] = (essBy[k] || 0) + (Number(r.amount) || 0); } });
+      var ks = Object.keys(essBy); if (ks.length) essAvg = ks.reduce(function (s, k) { return s + essBy[k]; }, 0) / base.length;
+    } catch (e) { }
+    var monthlyNeed = (essAvg && essAvg > 0 ? essAvg : expAvg || 0) + emiUsed;
+    var lastTxn = rows.reduce(function (m, r) { var d = String(r && r.date || ''); return /^\d{4}-\d{2}-\d{2}/.test(d) && d > m ? d : m; }, '');
+    cache = {
+      a: a, now: now, cur: cur, prevK: prevK, hist: hist, curL: curL, day: day, dim: dim, byMC: byMC, loans: loans, schedEmi: schedEmi, ledEmiAvg: ledEmiAvg,
+      emiUsed: emiUsed, incAvg: incAvg, expAvgRaw: expAvgRaw, expAvg: expAvg, emiInExpAvg: emiInExpAvg, invAvg: invAvg, leftover: leftover,
+      liquid: liquid, liquidKnown: liquidKnown, essAvg: essAvg, monthlyNeed: monthlyNeed, months: hist.length, baseN: base.length, partial: partial,
+      emergencyMonths: liquidKnown && monthlyNeed > 0 ? liquid / monthlyNeed : null, lastTxn: lastTxn, hasData: rows.length > 0,
+      cards: (a.ccAnalysis || []), ccUtil: a.overallCCUtilPct, ccUsed: a.totalCCUsed || 0, ccLimit: a.totalCCLimit || 0
+    };
+    cacheAt = Date.now();
+    return cache;
+  }
+  function catAvg(S, cat, n) {
+    var ks = S.hist.slice(-(n || 3)).map(function (h) { return h.month; });
+    if (!ks.length) return null;
+    return ks.reduce(function (s, k) { return s + ((S.byMC[k] || {})[cat] || 0); }, 0) / ks.length;
+  }
+  function staleNote(S) {
+    if (!S.lastTxn) return '';
+    var days = Math.floor((S.now - new Date(S.lastTxn + 'T00:00:00')) / 86400000);
+    return days > 20 ? 'Your latest recorded transaction is from ' + days + ' days ago, so recent spending may be missing.' : '';
+  }
+  function needIncome(S) {
+    if (S.incAvg != null) return '';
+    return lead("I can't see any income in your records yet, so I can't work out what's left over.") +
+      '<p>Add your salary (or other income) as an <b>Income</b> transaction, or tell me for this chat, e.g. <i>“my income is 80k a month”</i>. I won’t save that to your records.</p>';
+  }
+
+  // ── session assumptions the user tells us in chat (never saved) ─────────────
+  var assume = {};
+  function applyAssumptions(S) {
+    if (assume.income && S.incAvg == null) { S = Object.assign({}, S, { incAvg: assume.income, assumedIncome: true }); S.leftover = S.expAvg != null ? S.incAvg - S.expAvg - S.emiUsed : null; }
+    return S;
+  }
+
+  // ── ISSUE DETECTOR (shared with the notification centre) ────────────────────
+  // priority: 3 high · 2 medium · 1 low. Each issue explains what / why / effect / action.
+  function issues(S) {
+    S = S || snapshot(); var a = S.a, out = [];
+    var add = function (o) { out.push(o); };
+    if (!S.hasData) return out;
+    var inc = S.incAvg;
+    // 1. little or nothing left after commitments
+    if (inc && S.leftover != null) {
+      var lr = S.leftover / inc * 100;
+      if (S.leftover < 0) add({ key: 'cashflow-negative', p: 3, icon: 'fa-scale-unbalanced', color: '#ef4444', title: 'You are spending more than you earn',
+        what: 'A typical month brings in ' + M(inc) + ' but ' + M(S.expAvg) + ' goes on spending and ' + M(S.emiUsed) + ' on EMIs — a shortfall of ' + M(-S.leftover) + '.',
+        why: 'A monthly shortfall has to be covered from savings, a credit card or new borrowing, so the gap compounds.',
+        effect: 'At this rate you fall about ' + M(-S.leftover * 12) + ' behind over a year.',
+        action: 'Cut discretionary spending by at least ' + M(-S.leftover) + ' a month, starting with the categories that grew recently.',
+        calc: [['Typical income', M(inc)], ['− Typical spending', M(S.expAvg)], ['− EMIs', M(S.emiUsed)], ['= Left over', M(S.leftover)]], ask: 'Where can I cut back?' });
+      else if (lr < 10) add({ key: 'cashflow-thin', p: 2, icon: 'fa-gauge-high', color: '#f59e0b', title: 'Very little is left over each month',
+        what: 'After spending and EMIs you keep about ' + M(S.leftover) + ' of ' + M(inc) + ' (' + P(lr) + ').',
+        why: 'With under 10% left over, one unexpected bill can push you onto a credit card.',
+        effect: 'Saving and investing goals will move slowly until this margin grows.',
+        action: 'Aim to free up ' + M(inc * 0.2 - S.leftover) + ' a month to reach a 20% margin — review your top two discretionary categories first.',
+        calc: [['Typical income', M(inc)], ['− Typical spending', M(S.expAvg)], ['− EMIs', M(S.emiUsed)], ['= Left over', M(S.leftover) + ' (' + P(lr) + ')']], ask: 'Where can I cut back?' });
+    }
+    // 2. EMI burden
+    if (inc && S.emiUsed > 0) {
+      var er = S.emiUsed / inc * 100;
+      if (er >= 30) add({ key: 'emi-load', p: er >= 40 ? 3 : 2, icon: 'fa-building-columns', color: er >= 40 ? '#ef4444' : '#f59e0b', title: 'EMIs take ' + P(er) + ' of your income',
+        what: 'You pay ' + M(S.emiUsed) + ' a month in EMIs against a typical income of ' + M(inc) + '.',
+        why: 'Lenders usually want total EMIs under about 40% of income; above that, new loans get harder and there is little room for shocks.',
+        effect: 'This leaves ' + M(inc - S.emiUsed) + ' a month for everything else, including saving.',
+        action: er >= 40 ? 'Avoid new loans and put any spare cash toward the highest-interest loan until the ratio is under 40%.' : 'Hold off on new EMIs; prepaying the highest-rate loan brings the ratio down fastest.',
+        calc: [['Monthly EMIs', M(S.emiUsed)], ['÷ Typical income', M(inc)], ['= EMI ratio', P(er)]], ask: 'Which loan should I prioritise?' });
+    }
+    // 3. credit cards
+    if (S.ccUtil != null && S.ccLimit > 0) {
+      if (S.ccUtil > 30) add({ key: 'cc-util', p: S.ccUtil > 70 ? 3 : 2, icon: 'fa-credit-card', color: S.ccUtil > 70 ? '#ef4444' : '#f59e0b', title: 'Credit card utilisation is ' + P(S.ccUtil),
+        what: 'You are using ' + M(S.ccUsed) + ' of your ' + M(S.ccLimit) + ' combined card limit.',
+        why: 'Utilisation above 30% weighs on your credit score, and any balance carried past the due date attracts interest of roughly 36–45% a year.',
+        effect: 'Bringing it under 30% means paying down about ' + M(S.ccUsed - S.ccLimit * 0.3) + '.',
+        action: 'Pay the full statement balance by the due date, and pay down ' + M(S.ccUsed - S.ccLimit * 0.3) + ' before the next statement if you can.',
+        calc: [['Cards used', M(S.ccUsed)], ['÷ Total limit', M(S.ccLimit)], ['= Utilisation', P(S.ccUtil)]], ask: 'How are my credit cards?' });
+    }
+    // 4. emergency fund (only when liquid savings are recorded)
+    if (S.emergencyMonths != null && S.monthlyNeed > 0 && S.emergencyMonths < 3)
+      add({ key: 'emergency-low', p: S.emergencyMonths < 1 ? 3 : 2, icon: 'fa-life-ring', color: '#f59e0b', title: 'Emergency savings cover ' + S.emergencyMonths.toFixed(1) + ' months',
+        what: 'Your recorded cash, FDs and RDs total ' + M(S.liquid) + ', against essential costs and EMIs of about ' + M(S.monthlyNeed) + ' a month.',
+        why: 'Three to six months of essential costs lets you handle a job loss or medical bill without borrowing.',
+        effect: 'Reaching 3 months needs another ' + M(S.monthlyNeed * 3 - S.liquid) + '.',
+        action: S.leftover > 0 ? 'Set aside ' + M(Math.min(S.leftover * 0.5, S.monthlyNeed * 3 - S.liquid)) + ' a month into a liquid FD or savings account until you reach 3 months.' : 'Free up monthly cash first, then build this buffer before increasing investments.',
+        calc: [['Cash + FD + RD', M(S.liquid)], ['÷ Monthly essentials + EMIs', M(S.monthlyNeed)], ['= Months covered', S.emergencyMonths.toFixed(1)]], ask: 'How is my emergency fund?' });
+    // 5. savings rate falling three months in a row
+    var sr = S.hist.filter(function (h) { return h.savingsRate != null; }).slice(-3);
+    if (sr.length === 3 && sr[0].savingsRate > sr[1].savingsRate && sr[1].savingsRate > sr[2].savingsRate && sr[0].savingsRate - sr[2].savingsRate >= 5)
+      add({ key: 'savings-falling', p: 2, icon: 'fa-arrow-trend-down', color: '#f59e0b', title: 'Your savings rate has fallen 3 months in a row',
+        what: 'It went from ' + P(sr[0].savingsRate) + ' in ' + monthName(sr[0].month) + ' to ' + P(sr[2].savingsRate) + ' in ' + monthName(sr[2].month) + '.',
+        why: 'A steady decline usually means spending is creeping up faster than income.',
+        effect: 'Each point of savings rate is about ' + M((S.incAvg || 0) / 100) + ' a month.',
+        action: 'Ask me “why is my savings rate decreasing?” to see exactly which categories drove it.',
+        calc: sr.map(function (h) { return [monthName(h.month), P(h.savingsRate)]; }), ask: 'Why is my savings rate decreasing?' });
+    // 6. category jumps vs the previous 3 months (this month, pace-adjusted only once a third of the month is gone)
+    if (S.hist.length >= 2) {
+      var last = S.hist[S.hist.length - 1], prev3 = S.hist.slice(-4, -1);
+      if (prev3.length >= 1) {
+        var lm = S.byMC[last.month] || {};
+        Object.keys(lm).forEach(function (c) {
+          var p3 = prev3.reduce(function (s, h) { return s + ((S.byMC[h.month] || {})[c] || 0); }, 0) / prev3.length;
+          var v = lm[c], d = v - p3;
+          if (p3 >= 1000 && d >= 1000 && v / p3 >= 1.25) add({ key: 'cat-up:' + c.toLowerCase() + ':' + last.month, p: d >= 5000 ? 2 : 1, icon: 'fa-arrow-up-right-dots', color: '#f97316',
+            title: c + ' spending rose ' + P((v / p3 - 1) * 100) + ' in ' + monthName(last.month),
+            what: 'You spent ' + M(v) + ' on ' + c + ' in ' + monthName(last.month) + ', compared with an average of ' + M(p3) + ' over the previous ' + prev3.length + ' month' + (prev3.length > 1 ? 's' : '') + '.',
+            why: 'Increases in everyday categories tend to stick once they become a habit.',
+            effect: 'If it stays at this level it costs about ' + M(d * 12) + ' more a year.',
+            action: 'Set a monthly ' + c + ' budget around ' + M(p3 * 1.1) + ' to keep it close to your usual level.',
+            calc: [[monthName(last.month), M(v)], ['Previous average', M(p3)], ['Difference', '+' + M(d)]], ask: 'How much did I spend on ' + c + ' last month?' });
+        });
+      }
+    }
+    // 7. investment contributions shrinking for 3 months
+    var iv = S.hist.slice(-3);
+    if (iv.length === 3 && iv[0].invest > 0 && iv[0].invest > iv[1].invest && iv[1].invest > iv[2].invest && iv[2].invest < iv[0].invest * 0.75)
+      add({ key: 'invest-down', p: 1, icon: 'fa-seedling', color: '#38bdf8', title: 'Investment contributions have dropped for 3 months',
+        what: 'You invested ' + M(iv[0].invest) + ' in ' + monthName(iv[0].month) + ', ' + M(iv[1].invest) + ' in ' + monthName(iv[1].month) + ' and ' + M(iv[2].invest) + ' in ' + monthName(iv[2].month) + '.',
+        why: 'Regular contributions matter more for long-term wealth than timing the market.',
+        effect: 'You are investing ' + M(iv[0].invest - iv[2].invest) + ' a month less than three months ago.',
+        action: 'If the drop wasn’t planned, check whether a SIP was paused or whether spending is squeezing it out.',
+        calc: iv.map(function (h) { return [monthName(h.month), M(h.invest)]; }), ask: 'Can I start investing more?' });
+    // 8. budgets exceeded repeatedly
+    (a.budgetOverruns || []).slice(0, 3).forEach(function (b) {
+      add({ key: 'budget-over:' + String(b.cat).toLowerCase() + ':' + S.cur, p: b.pct >= 25 ? 2 : 1, icon: 'fa-sliders', color: '#f59e0b', title: 'Over your ' + b.cat + ' budget this month',
+        what: 'You have spent ' + M(b.spent) + ' against a budget of ' + M(b.limit) + ' — ' + M(b.overBy) + ' over.',
+        why: 'Budgets only work if overruns are caught early in the month.', effect: 'That ' + M(b.overBy) + ' has to come out of savings or another category.',
+        action: 'Pause ' + b.cat + ' spending for the rest of the month, or raise the budget if it was unrealistic.', calc: [['Spent', M(b.spent)], ['Budget', M(b.limit)], ['Over by', M(b.overBy)]], ask: 'Am I spending too much?' });
+    });
+    // 9. upcoming EMIs within 5 days
+    (a.upcomingEmis || []).filter(function (u) { return u.daysUntil != null && u.daysUntil >= 0 && u.daysUntil <= 5; }).slice(0, 3).forEach(function (u) {
+      add({ key: 'emi-due:' + String(u.lender).toLowerCase() + ':' + S.cur, p: 1, icon: 'fa-calendar-day', color: '#38bdf8', title: u.lender + ' EMI due ' + (u.daysUntil === 0 ? 'today' : 'in ' + u.daysUntil + ' day' + (u.daysUntil === 1 ? '' : 's')),
+        what: 'An EMI of ' + M(u.emi) + ' is due ' + (u.daysUntil === 0 ? 'today' : 'in ' + u.daysUntil + ' day' + (u.daysUntil === 1 ? '' : 's')) + '.',
+        why: 'A missed EMI brings late fees and is reported to credit bureaus.', effect: 'Keep at least ' + M(u.emi) + ' in the linked account.',
+        action: 'Check the account balance today, or set up auto-debit if you haven’t.', calc: [['EMI', M(u.emi)]], ask: 'How much money will I have left after paying my EMIs?' });
+    });
+    // 10. insurance renewals and gaps (gaps only when some policies are recorded)
+    (a.expiringPolicies || []).slice(0, 3).forEach(function (pol) {
+      var days = Math.max(0, Math.ceil((new Date(pol.endDate) - S.now) / 86400000));
+      add({ key: 'policy-renew:' + (pol.id || pol.provider || pol.insType), p: days <= 7 ? 2 : 1, icon: 'fa-shield-heart', color: '#38bdf8', title: (pol.provider || pol.insType || 'A policy') + ' renews in ' + days + ' day' + (days === 1 ? '' : 's'),
+        what: 'This policy ends on ' + pol.endDate + '.', why: 'A lapse can mean losing waiting-period credit or no-claim benefits.',
+        effect: pol.premium ? 'Plan for a premium of about ' + M(pol.premium) + '.' : 'Plan for the renewal premium.', action: 'Renew before the end date and compare cover while you’re at it.', calc: [], ask: 'What are my biggest financial problems right now?' });
+    });
+    if (a.hasPolicies && !a.hasHealthCover) add({ key: 'no-health-cover', p: 2, icon: 'fa-notes-medical', color: '#f59e0b', title: 'No health insurance recorded',
+      what: 'You have insurance policies recorded, but none of them is health or medical cover.', why: 'A single hospital stay can cost several months of income.',
+      effect: 'Medical costs would come straight out of savings or debt.', action: 'Consider a family floater health policy; check whether your employer cover is enough.', calc: [], ask: 'What should I do to improve my finances?' });
+    // 11. investing while carrying expensive debt
+    if (a.investingWhileHighInterestDebt) {
+      var hi = S.loans.filter(function (l) { return l.rate >= 12; }).sort(function (x, y) { return y.rate - x.rate; })[0];
+      if (hi) add({ key: 'invest-vs-debt', p: 1, icon: 'fa-scale-balanced', color: '#38bdf8', title: 'Investing while paying ' + P(hi.rate, 1) + ' interest',
+        what: 'You are investing about ' + M(S.invAvg) + ' a month while ' + esc(hi.name) + ' charges ' + P(hi.rate, 1) + ' on ' + M(hi.bal) + '.',
+        why: 'Paying off a ' + P(hi.rate, 1) + ' loan is a guaranteed ' + P(hi.rate, 1) + ' return; few investments reliably beat that.',
+        effect: 'Prepaying saves roughly ' + M(hi.bal * hi.rate / 100 / 12) + ' of interest in the first month alone at the current balance.',
+        action: 'Keep essential SIPs, but consider sending extra cash to this loan first.', calc: [['Balance', M(hi.bal)], ['Rate', P(hi.rate, 1)], ['Interest this month ≈', M(hi.bal * hi.rate / 100 / 12)]], ask: 'Which loan should I prioritise?' });
+    }
+    return out.sort(function (x, y) { return y.p - x.p; });
+  }
+
+  // ── answers ────────────────────────────────────────────────────────────────
+  var A = {};
+  A.greet = function (S, q) {
+    var h = S.now.getHours(), hello = h < 12 ? 'Good morning' : h < 17 ? 'Good afternoon' : 'Good evening';
+    var how = /how (are|r) (you|u|ya)|how('s| is) it going|what'?s up|how do you do/.test(q);
+    var line = '';
+    if (S.hasData && S.curL.expense > 0) {
+      var typical = S.expAvg, pace = typical ? S.curL.expense / typical * 100 : null;
+      line = 'So far this month you’ve spent ' + M(S.curL.expense) + (typical ? ' — about ' + P(pace) + ' of a typical month, with ' + (S.dim - S.day) + ' days to go.' : '.');
+    } else if (!S.hasData) line = 'Once you add a few transactions I can tell you how your month is going.';
+    var top = issues(S)[0];
+    return lead((how ? hello + '! I’m doing well, thanks for asking.' : hello + '!') + ' ' + line) +
+      (top ? '<p>One thing worth a look: <b>' + esc(top.title) + '</b>.</p>' : '') +
+      '<p>What would you like to look at?</p>' + chips([['My financial situation', 'What\'s my current financial situation?'], ['This month\'s spending', 'How was my spending this month?'], ['Biggest problems', 'What are my biggest financial problems right now?']]);
+  };
+  A.thanks = function () { return lead('You’re welcome! Anything else you’d like to check?') + chips([['Am I overspending?', 'Am I spending too much?'], ['Improve my savings', 'How can I improve my savings?']]); };
+  A.bye = function () { return lead('Talk soon. Your alerts will keep watch in the notification bell in the meantime.'); };
+  A.identity = function () {
+    return lead('I’m Fin AI, your personal finance assistant inside Finverse.') +
+      '<p>I read only the records in your account — transactions, budgets, loans, cards, investments and insurance — and work things out on this device. Nothing you ask is sent anywhere, and I never change your records.</p>' +
+      chips([['My financial situation', 'What\'s my current financial situation?'], ['What can you do?', 'help']]);
+  };
+
+  A.situation = function (S) {
+    if (!S.hasData) return lead('I don’t have any records to look at yet.') + '<p>Add your income and a few expenses and I’ll give you a full picture.</p>';
+    var ni = needIncome(S); if (ni && !S.assumedIncome) return ni;
+    var list = issues(S), high = list.filter(function (i) { return i.p >= 3; }), med = list.filter(function (i) { return i.p === 2; });
+    var verdict = high.length ? 'Your finances need attention — ' + high.length + ' serious issue' + (high.length > 1 ? 's' : '') + ' to deal with.'
+      : med.length ? 'You’re broadly on track, with ' + med.length + ' thing' + (med.length > 1 ? 's' : '') + ' worth tightening.'
+      : 'You’re in good shape based on what’s recorded.';
+    var inc = S.incAvg, lr = inc ? S.leftover / inc * 100 : null;
+    var lines = [
+      '<b>Income:</b> ' + M(inc) + ' in a typical month' + (S.assumedIncome ? ' (the figure you gave me)' : ''),
+      '<b>Spending:</b> ' + M(S.expAvg) + ' a month' + (S.curL.expense > 0 ? '; ' + M(S.curL.expense) + ' so far this month (day ' + S.day + ' of ' + S.dim + ')' : ''),
+      S.emiUsed > 0 ? '<b>EMIs:</b> ' + M(S.emiUsed) + ' a month (' + P(S.emiUsed / inc * 100) + ' of income), ' + M(S.a.totalOutstandingDebt) + ' still owed' : '<b>Loans:</b> none active',
+      '<b>Left over:</b> ' + M(S.leftover) + ' a month (' + P(lr) + ' of income)' + (S.invAvg > 0 ? ', of which you invest about ' + M(S.invAvg) : ''),
+      S.ccLimit > 0 ? '<b>Credit cards:</b> ' + P(S.ccUtil) + ' of limits used (' + M(S.ccUsed) + ')' : '',
+      S.emergencyMonths != null ? '<b>Emergency savings:</b> ' + S.emergencyMonths.toFixed(1) + ' months of essential costs' : '<b>Emergency savings:</b> no cash, FD or RD holdings recorded, so I can’t judge this',
+      S.a.portInvested > 0 ? '<b>Investments:</b> ' + M(S.a.portCurrent) + ' (' + (S.a.portPL >= 0 ? '+' : '') + P(S.a.portPLPct, 1) + ' on ' + M(S.a.portInvested) + ' invested)' : '',
+      S.a.hasPolicies ? '<b>Insurance:</b> ' + (S.a.hasHealthCover ? 'health ✓' : 'no health cover') + ', ' + (S.a.hasLifeCover ? 'life ✓' : 'no life cover') : ''
+    ];
+    var top = list[0];
+    return lead(verdict) + bullets(lines) +
+      (top ? '<p><b>Top priority:</b> ' + esc(top.title) + '. ' + top.action + '</p>' : '') +
+      calc([['Typical income', M(inc)], ['− Typical spending', M(S.expAvg)], ['− EMIs', M(S.emiUsed)], ['= Left over', M(S.leftover)]].concat(S.emiInExpAvg > 0 && S.schedEmi > 0 ? [['Note', 'EMI-like expenses (' + M(S.emiInExpAvg) + '/mo) counted once, not twice']] : [])) +
+      basis((S.partial ? 'Based on this month so far (no full month recorded yet), so figures will change' : 'Based on ' + S.baseN + ' completed month' + (S.baseN === 1 ? '' : 's') + ' of records') + (staleNote(S) ? '. ' + staleNote(S) : '') + '.', S.assumedIncome ? 'Income is the figure you told me in this chat.' : '') +
+      chips([['Biggest problems', 'What are my biggest financial problems right now?'], ['How can I improve?', 'What should I do to improve my finances?'], ['Left after EMIs', 'How much money will I have left after paying my EMIs?']]);
+  };
+
+  A.problems = function (S) {
+    if (!S.hasData) return lead('There’s nothing recorded yet, so I can’t spot problems.') + '<p>Add your income, expenses and any loans and I’ll check them.</p>';
+    var list = issues(S);
+    var missing = [];
+    if (S.incAvg == null) missing.push('income');
+    if (!S.liquidKnown) missing.push('cash / FD savings (needed to judge your emergency fund)');
+    if (!S.a.hasPolicies) missing.push('insurance policies');
+    if (!list.length) return lead('I don’t see any serious problems in your records right now. 👍') +
+      (missing.length ? '<p>I can’t check everything though — nothing recorded for: ' + missing.join(', ') + '.</p>' : '') + chips([['Can I invest more?', 'Can I start investing more?']]);
+    var top = list.slice(0, 4);
+    return lead('Here ' + (top.length === 1 ? 'is the main issue' : 'are the ' + top.length + ' biggest issues') + ', most important first:') +
+      '<ol class="fai-ol">' + top.map(function (i) { return '<li><b>' + esc(i.title) + '.</b> ' + i.what + ' <span class="fai-why">' + i.why + '</span> <span class="fai-act">→ ' + i.action + '</span></li>'; }).join('') + '</ol>' +
+      (list.length > top.length ? '<p class="fai-muted">' + (list.length - top.length) + ' smaller item' + (list.length - top.length > 1 ? 's are' : ' is') + ' in your notification bell under AI Insights.</p>' : '') +
+      (missing.length ? basis('', 'Not checked because nothing is recorded: ' + missing.join(', ') + '.') : '') +
+      chips(top.slice(0, 3).map(function (i) { return [i.title.length > 34 ? i.title.slice(0, 32) + '…' : i.title, i.ask]; }).filter(function (c) { return c[1]; }));
+  };
+
+  A.overspending = function (S) {
+    var ni = needIncome(S); if (ni && !S.assumedIncome) return ni;
+    var inc = S.incAvg, ratio = (S.expAvg + S.emiUsed) / inc * 100, lr = S.leftover / inc * 100;
+    var last = S.hist[S.hist.length - 1], lastM = last ? S.byMC[last.month] || {} : {};
+    // needs vs wants for the last completed month
+    var need = 0, want = 0, unk = 0;
+    try { ((typeof dbNow === 'function' ? dbNow() : db) || []).forEach(function (r) { if (r && r.type === 'Expense' && last && finaiMonthKey(r.date) === last.month) { var k = finaiClassifyExpense(r), v = Number(r.amount) || 0; if (k === 'essential') need += v; else if (k === 'discretionary') want += v; else unk += v; } }); } catch (e) { }
+    var wantPct = last && last.income > 0 ? want / last.income * 100 : null;
+    var verdict = S.leftover < 0 ? 'Yes — you’re spending more than you earn.'
+      : lr < 10 ? 'Yes, a little: there’s very little left after spending and EMIs.'
+      : wantPct != null && wantPct > 30 ? 'Somewhat: your total is manageable, but “wants” are above the usual 30% guideline.'
+      : lr < 20 ? 'Not overspending, but it’s tight — only ' + P(lr) + ' of your income is left after spending and EMIs (20% is a healthy target).'
+      : 'No — your spending is within a healthy range, with ' + P(lr) + ' of income left over.';
+    var movers = Object.keys(lastM).map(function (c) { var av = catAvg({ hist: S.hist.slice(0, -1), byMC: S.byMC }, c, 3); return { c: c, v: lastM[c], d: av != null ? lastM[c] - av : 0 }; }).filter(function (x) { return x.d >= 500; }).sort(function (x, y) { return y.d - x.d; }).slice(0, 3);
+    return lead(verdict) + bullets([
+      'Spending and EMIs take <b>' + P(ratio) + '</b> of a typical month’s income (' + M(S.expAvg + S.emiUsed) + ' of ' + M(inc) + '), leaving ' + M(S.leftover) + '.',
+      wantPct != null ? 'In ' + monthName(last.month) + ', essentials were ' + M(need) + ' and wants ' + M(want) + ' (' + P(wantPct) + ' of income)' + (unk > 0 ? '; ' + M(unk) + ' I couldn’t classify' : '') + '.' : '',
+      movers.length ? 'Biggest increases vs your usual: ' + movers.map(function (m) { return esc(m.c) + ' +' + M(m.d); }).join(', ') + '.' : ''
+    ]) + calc([['Typical income', M(inc)], ['Spending', M(S.expAvg)], ['EMIs', M(S.emiUsed)], ['Share of income', P(ratio)], ['Guideline', 'wants ≤ 30% · save ≥ 20%']]) +
+      basis('Based on your last ' + S.baseN + ' completed month' + (S.baseN === 1 ? '' : 's') + '.', '“Essentials” and “wants” come from category names; you can relabel categories in Transactions.') +
+      chips([['Where can I cut back?', 'Where can I cut back?'], ['This month so far', 'How was my spending this month?']]);
+  };
+
+  A.monthReview = function (S, which) {
+    var isLast = which === 'last', k = isLast ? (S.hist[S.hist.length - 1] || {}).month : S.cur;
+    if (!k) return lead('I don’t have a completed month on record yet.');
+    var L = isLast ? S.hist[S.hist.length - 1] : S.curL, cats = S.byMC[k] || {};
+    var top = Object.keys(cats).sort(function (x, y) { return cats[y] - cats[x]; }).slice(0, 4);
+    if (!L.expense) return lead('No spending recorded for ' + (isLast ? monthName(k) : 'this month') + ' yet.') + chips([['Last month instead', 'How was my spending last month?']]);
+    var typical = S.expAvg, part = !isLast;
+    var pacePct = typical ? L.expense / typical * 100 : null, dayPct = S.day / S.dim * 100;
+    var leadTxt = part
+      ? 'You’ve spent ' + M(L.expense) + ' so far this month (day ' + S.day + ' of ' + S.dim + ')' + (typical ? ' — ' + P(pacePct) + ' of a typical month’s ' + M(typical) + ', with ' + P(dayPct) + ' of the month gone.' : '.')
+      : 'In ' + monthName(k) + ' you spent ' + M(L.expense) + (typical ? ', ' + (L.expense > typical * 1.05 ? 'above' : L.expense < typical * 0.95 ? 'below' : 'in line with') + ' your 3-month average of ' + M(typical) + '.' : '.');
+    var tone = part && typical ? (pacePct > dayPct + 15 ? '<p>You’re spending <b>faster than usual</b>. Large fixed bills like rent early in the month can explain part of that.</p>' : pacePct < dayPct - 15 ? '<p>You’re <b>comfortably under</b> your usual pace.</p>' : '<p>That’s <b>roughly on track</b> with a normal month.</p>') : '';
+    return lead(leadTxt) + tone + bullets(top.map(function (c) { var av = catAvg({ hist: isLast ? S.hist.slice(0, -1) : S.hist, byMC: S.byMC }, c, 3); return esc(c) + ': ' + M(cats[c]) + (av ? ' <span class="fai-muted">(usually ' + M(av) + ')</span>' : ''); })) +
+      (L.income > 0 ? '<p>Income recorded: ' + M(L.income) + (L.emi > 0 ? ', EMIs paid: ' + M(L.emi) : '') + (L.savingsRate != null ? ', savings rate ' + P(L.savingsRate) + (part ? ' so far' : '') : '') + '.</p>' : '') +
+      basis(part ? 'This month isn’t finished, so totals will rise.' : '', '') +
+      chips(isLast ? [['This month so far', 'How was my spending this month?'], ['Am I overspending?', 'Am I spending too much?']] : [['Last month', 'How was my spending last month?'], ['Am I overspending?', 'Am I spending too much?'], ['Where can I cut back?', 'Where can I cut back?']]);
+  };
+
+  A.leftover = function (S) {
+    var ni = needIncome(S); if (ni && !S.assumedIncome) return ni;
+    var inc = S.incAvg;
+    var after = inc - S.emiUsed, free = S.leftover, afterInv = free - S.invAvg;
+    return lead('After your EMIs you have about <b>' + M(after) + '</b> a month; after your usual spending, roughly <b>' + M(free) + '</b> is left.') +
+      bullets([
+        'Typical income ' + M(inc) + ' − EMIs ' + M(S.emiUsed) + ' = ' + M(after) + ' for everything else.',
+        'Typical spending is ' + M(S.expAvg) + ', which leaves ' + M(free) + ' (' + P(free / inc * 100) + ' of income).',
+        S.invAvg > 0 ? 'You’ve been investing about ' + M(S.invAvg) + ' a month, so ' + M(afterInv) + ' is truly unallocated.' : '',
+        free < 0 ? '<b>That’s a shortfall</b> — it’s being covered by savings or credit.' : ''
+      ]) + calc([['Typical income (' + S.baseN + '-month avg)', M(inc)], ['− Scheduled EMIs', M(S.emiUsed)], ['= After EMIs', M(after)], ['− Typical spending', M(S.expAvg)], ['= Left over', M(free)]].concat(S.invAvg > 0 ? [['− Investments', M(S.invAvg)], ['= Unallocated', M(afterInv)]] : []).concat(S.emiInExpAvg > 0 && S.schedEmi > 0 ? [['Note', 'EMIs also logged as expenses were counted once']] : [])) +
+      basis('EMIs come from your active loans' + (S.schedEmi ? '' : ' (from logged loan payments, since no active loans have an EMI set)') + '; income and spending from completed months.', S.assumedIncome ? 'Income is the figure you told me.' : 'Credit card balances aren’t monthly costs, so they aren’t subtracted here.') +
+      chips([['Can I invest more?', 'Can I start investing more?'], ['Which loan first?', 'Which loan should I prioritise?']]);
+  };
+
+  A.debtPriority = function (S) {
+    var L = S.loans.filter(function (l) { return l.bal > 0; });
+    var cardBal = S.ccUsed;
+    if (!L.length && !cardBal) return lead('You don’t have any active loans or card balances recorded, so there’s nothing to prioritise. 🎉') + chips([['Can I invest more?', 'Can I start investing more?']]);
+    var byRate = L.slice().sort(function (x, y) { return y.rate - x.rate || x.bal - y.bal; }), first = byRate[0];
+    var smallest = L.slice().sort(function (x, y) { return x.bal - y.bal; })[0];
+    var rows = byRate.map(function (l) { return esc(l.name) + ': ' + M(l.bal) + ' at ' + (l.rate ? P(l.rate, 1) : 'rate not set') + ' — about ' + M(l.bal * l.rate / 100 / 12) + ' interest this month'; });
+    var cardNote = cardBal > 0 ? '<p><b>Credit cards first, if you carry a balance:</b> you have ' + M(cardBal) + ' on cards. If any of it is past the due date, card interest (typically 36–45% a year) beats every loan above — clear that before prepaying loans.</p>' : '';
+    var extra = S.leftover > 0 ? Math.floor(S.leftover * 0.4 / 500) * 500 : 0;
+    return lead(first && first.rate ? 'Prioritise <b>' + esc(first.name) + '</b> — it has the highest interest rate (' + P(first.rate, 1) + ').' : 'Your loans don’t have interest rates recorded, so I can only rank them by balance.') +
+      cardNote + bullets(rows) +
+      (smallest && first && smallest !== first ? '<p>If you’d rather build momentum, clearing the smallest balance first (<b>' + esc(smallest.name) + '</b>, ' + M(smallest.bal) + ') frees up its ' + M(smallest.emi) + ' EMI sooner — but costs more interest overall.</p>' : '') +
+      (extra > 0 ? '<p>Based on what’s left over each month, an extra <b>' + M(extra) + '</b> a month toward ' + esc(first ? first.name : 'the top loan') + ' looks manageable. The <b>Debt Command Center</b> below shows exactly how much interest and time that saves.</p>' : '') +
+      calc([['Method', 'Highest interest rate first (“avalanche”)'], ['Monthly interest ≈', 'balance × rate ÷ 12']].concat(byRate.map(function (l) { return [esc(l.name), M(l.bal) + ' × ' + P(l.rate, 1) + ' ÷ 12 = ' + M(l.bal * l.rate / 100 / 12)]; }))) +
+      basis('Balances and rates from your Credit Tracker.', 'Interest is an estimate on today’s balance; your lender’s exact figure can differ slightly.') +
+      chips([['Pay 5k extra?', 'pay 5k extra every month'], ['Left after EMIs', 'How much money will I have left after paying my EMIs?']]);
+  };
+
+  A.savingsWhy = function (S) {
+    var h = S.hist.filter(function (x) { return x.income > 0; }).slice(-4);
+    if (h.length < 2) return lead('I need at least two completed months with income to compare your savings rate.') + chips([['This month so far', 'How was my spending this month?']]);
+    var f = h[0], l = h[h.length - 1], drop = (f.savingsRate || 0) - (l.savingsRate || 0);
+    if (drop <= 1) return lead('Your savings rate isn’t actually falling: it was ' + P(f.savingsRate) + ' in ' + monthName(f.month) + ' and ' + P(l.savingsRate) + ' in ' + monthName(l.month) + '.') +
+      bullets(h.map(function (x) { return monthName(x.month) + ': ' + P(x.savingsRate); })) + chips([['Can I invest more?', 'Can I start investing more?']]);
+    var dInc = l.income - f.income, dExp = l.expense - f.expense, dEmi = l.emi - f.emi;
+    var cf = S.byMC[f.month] || {}, cl = S.byMC[l.month] || {};
+    var movers = Object.keys(Object.assign({}, cf, cl)).map(function (c) { return { c: c, d: (cl[c] || 0) - (cf[c] || 0) }; }).filter(function (x) { return x.d >= 300; }).sort(function (x, y) { return y.d - x.d; }).slice(0, 4);
+    var main = dExp > Math.max(0, -dInc) && dExp >= dEmi ? 'rising spending' : -dInc > dExp ? 'lower income' : 'higher EMI payments';
+    return lead('Your savings rate fell from ' + P(f.savingsRate) + ' in ' + monthName(f.month) + ' to ' + P(l.savingsRate) + ' in ' + monthName(l.month) + ', mainly because of <b>' + main + '</b>.') +
+      bullets([
+        'Income: ' + M(f.income) + ' → ' + M(l.income) + ' (' + (dInc >= 0 ? '+' : '−') + M(Math.abs(dInc)) + ')',
+        'Spending: ' + M(f.expense) + ' → ' + M(l.expense) + ' (' + (dExp >= 0 ? '+' : '−') + M(Math.abs(dExp)) + ')',
+        dEmi ? 'EMIs paid: ' + M(f.emi) + ' → ' + M(l.emi) : '',
+        movers.length ? 'Categories that grew most: ' + movers.map(function (m) { return esc(m.c) + ' +' + M(m.d); }).join(', ') : ''
+      ]) +
+      '<p><b>What to do:</b> ' + (movers.length ? 'bringing ' + esc(movers[0].c) + ' back to ' + M(cf[movers[0].c] || 0) + ' would recover about ' + P(movers[0].d / l.income * 100, 1) + ' of savings rate.' : 'look at the months side by side in Analytics to see which spends crept up.') + '</p>' +
+      calc(h.map(function (x) { return [monthName(x.month), '(' + M(x.income) + ' − ' + M(x.expense) + ' − ' + M(x.emi) + ') ÷ ' + M(x.income) + ' = ' + P(x.savingsRate)]; }), 'Savings rate by month') +
+      basis('Savings rate = (income − spending − EMIs) ÷ income, from completed months.', '') +
+      chips([['Where can I cut back?', 'Where can I cut back?'], ['Am I overspending?', 'Am I spending too much?']]);
+  };
+
+  A.improve = function (S) {
+    if (!S.hasData) return lead('Let’s start with the basics: add your income and a month of expenses, and I’ll build a plan from them.');
+    var list = issues(S).slice(0, 3), steps = list.map(function (i) { return '<b>' + esc(i.title) + ':</b> ' + i.action; });
+    if (!steps.length) {
+      steps = [];
+      if (S.leftover > 0) steps.push('<b>Automate saving:</b> move ' + M(Math.floor(S.leftover * 0.5 / 500) * 500) + ' (half of what’s left each month) to savings or a SIP on payday.');
+      if (S.emergencyMonths == null) steps.push('<b>Record your cash and FDs</b> in Portfolio so I can check your emergency fund.');
+      else if (S.emergencyMonths < 6) steps.push('<b>Grow your emergency fund</b> from ' + S.emergencyMonths.toFixed(1) + ' to 6 months (' + M(S.monthlyNeed * 6) + ').');
+      if (!S.a.hasPolicies) steps.push('<b>Add your insurance policies</b> so I can check for coverage gaps.');
+    }
+    return lead(list.length ? 'Here’s what would make the biggest difference, in order:' : 'You’re doing well. To keep improving:') +
+      '<ol class="fai-ol">' + steps.map(function (s) { return '<li>' + s + '</li>'; }).join('') + '</ol>' +
+      (S.leftover != null && S.incAvg ? '<p class="fai-muted">For reference: you keep about ' + M(S.leftover) + ' a month (' + P(S.leftover / S.incAvg * 100) + ' of income). A common target is 20% or more.</p>' : '') +
+      chips([['Biggest problems', 'What are my biggest financial problems right now?'], ['Where can I cut back?', 'Where can I cut back?'], ['Can I invest more?', 'Can I start investing more?']]);
+  };
+
+  A.investMore = function (S) {
+    var ni = needIncome(S); if (ni && !S.assumedIncome) return ni;
+    var blockers = [], free = S.leftover - S.invAvg;
+    if (S.leftover <= 0) blockers.push('there’s no money left after spending and EMIs (' + M(S.leftover) + ' a month)');
+    if (S.emergencyMonths != null && S.emergencyMonths < 3) blockers.push('your emergency savings cover only ' + S.emergencyMonths.toFixed(1) + ' months');
+    var hiLoan = S.loans.filter(function (l) { return l.rate >= 12 && l.bal > 0; }).sort(function (x, y) { return y.rate - x.rate; })[0];
+    if (S.ccUtil != null && S.ccUtil > 50) blockers.push('credit cards are ' + P(S.ccUtil) + ' used');
+    var suggest = free > 0 ? Math.floor(free * 0.5 / 500) * 500 : 0;
+    var yes = !blockers.length && suggest > 0;
+    return lead(yes ? 'Yes — you have room to invest more. Around <b>' + M(suggest) + ' extra a month</b> looks comfortable.' : blockers.length ? 'Not yet — first sort out: ' + blockers.join('; ') + '.' : 'Only a little: almost everything left over is already being invested.') +
+      bullets([
+        'Left after spending and EMIs: ' + M(S.leftover) + ' a month; you already invest about ' + M(S.invAvg) + ', leaving ' + M(free) + ' unallocated.',
+        yes ? 'Investing half of that (' + M(suggest) + ') keeps a cushion for irregular costs.' : '',
+        S.emergencyMonths == null ? 'I can’t see any cash or FD savings in Portfolio, so I couldn’t check your emergency fund — make sure you have 3–6 months set aside first.' : '',
+        hiLoan ? esc(hiLoan.name) + ' charges ' + P(hiLoan.rate, 1) + '. Prepaying it is a guaranteed saving at that rate, so weigh it against investing.' : ''
+      ]) +
+      calc([['Left over each month', M(S.leftover)], ['− Already investing', M(S.invAvg)], ['= Unallocated', M(free)], ['Suggested extra (50%)', M(suggest)]]) +
+      basis('', 'This is general guidance based on your records, not regulated investment advice. Market-linked returns are never guaranteed.') +
+      chips([['Which loan first?', 'Which loan should I prioritise?'], ['My emergency fund', 'How is my emergency fund?']]);
+  };
+
+  A.emergency = function (S) {
+    if (S.emergencyMonths == null) return lead('I can’t see any cash, savings, FD or RD holdings in your Portfolio, so I can’t measure your emergency fund.') +
+      '<p>Add them under Portfolio → Cash &amp; Equivalents or Fixed Deposit. A good target is ' + (S.monthlyNeed > 0 ? M(S.monthlyNeed * 3) + '–' + M(S.monthlyNeed * 6) + ' (3–6 months of essentials and EMIs).' : '3–6 months of essential costs.') + '</p>';
+    var m = S.emergencyMonths, target = S.monthlyNeed * 6;
+    return lead('Your emergency savings cover about <b>' + m.toFixed(1) + ' months</b> of essential costs — ' + (m >= 6 ? 'that’s a solid buffer.' : m >= 3 ? 'enough for the basics; 6 months is safer.' : 'below the recommended 3–6 months.')) +
+      calc([['Cash + FD + RD', M(S.liquid)], ['Monthly essentials + EMIs', M(S.monthlyNeed)], ['Months covered', m.toFixed(1)], ['6-month target', M(target)], ['Still needed', M(Math.max(0, target - S.liquid))]]) +
+      basis('Essentials are classified from your category names.', '') + chips([['Can I invest more?', 'Can I start investing more?']]);
+  };
+
+  A.cards = function (S) {
+    if (!S.cards.length) return lead('No credit cards are saved yet. Add them in CC Utilization and I’ll track them.');
+    return lead('Across ' + S.cards.length + ' card' + (S.cards.length > 1 ? 's' : '') + ' you’re using <b>' + P(S.ccUtil) + '</b> of your limits (' + M(S.ccUsed) + ' of ' + M(S.ccLimit) + ').') +
+      bullets(S.cards.slice().sort(function (x, y) { return y.pct - x.pct; }).map(function (c) { return esc(c.nickname || c.bankName) + ': ' + P(c.pct) + ' (' + M(c.used) + ' of ' + M(c.limit) + ')' + (c.pct > 70 ? ' — <b>high</b>' : ''); })) +
+      (S.ccUtil > 30 ? '<p>Paying down ' + M(S.ccUsed - S.ccLimit * 0.3) + ' would bring you under the 30% mark lenders like to see.</p>' : '<p>That’s within the healthy range (under 30%).</p>');
+  };
+
+  A.capabilities = function () {
+    return lead('Just ask me in your own words. For example:') + chips([['My financial situation', 'What\'s my current financial situation?'], ['Am I overspending?', 'Am I spending too much?'], ['Can I afford a phone?', 'Can I afford a 30k phone?'], ['Left after EMIs', 'How much money will I have left after paying my EMIs?'], ['Which debt first?', 'Which loan should I prioritise?'], ['Why are savings falling?', 'Why is my savings rate decreasing?'], ['Can I invest more?', 'Can I start investing more?'], ['Biggest problems', 'What are my biggest financial problems right now?']]) +
+      '<p class="fai-muted">Follow-ups like “why?”, “tell me more” or “what about last month?” work too.</p>';
+  };
+
+  A.more = function (S, last) {
+    if (!last) return null;
+    if (last.topic === 'problems' || last.topic === 'situation' || last.topic === 'improve') {
+      var i = issues(S)[0]; if (!i) return lead('There isn’t anything pressing to dig into — your records look healthy.');
+      return lead('Taking the top item — <b>' + esc(i.title) + '</b>:') + bullets(['<b>What happened:</b> ' + i.what, '<b>Why it matters:</b> ' + i.why, '<b>Effect on your finances:</b> ' + i.effect, '<b>What to do:</b> ' + i.action]) + calc(i.calc) + (i.ask ? chips([[i.ask, i.ask]]) : '');
+    }
+    var fn = A[last.topic]; return fn ? fn(S, last.arg) : null;
+  };
+
+  // ── intent detection (natural phrasing + typo-tolerant normalisation) ───────
+  var INT = [
+    ['greet', /^(hi+|hey+|hello+|hii+|yo|hiya|namaste|good (morning|afternoon|evening|day)|howdy|sup|hola)\b[\s\w,!?.']{0,40}$|^(how (are|r) (you|u|ya)|how('s| is) it going|what'?s up|how do you do)\b/],
+    ['thanks', /^(thanks?|thank (you|u)|thx|ty|cheers|great,? thanks|awesome|perfect|nice one|cool,? thanks)\b[\s!.]*$/],
+    ['bye', /^(bye|goodbye|see (you|ya)|later|gn|good night)\b[\s!.]*$/],
+    ['identity', /\b(who are you|what are you|are you (a )?(bot|human|real|ai))\b/],
+    ['capabilities', /\b(what can you do|what (can|should) i ask|how do (i use|you work)|what do you know)\b/],
+    ['problems', /\b(biggest|main|top|key|major|real|serious)\s+(financial |money )?(problems?|issues?|concerns?|risks?|red flags?|weak (spots?|points?)|weaknesses|mistakes?)\b|\b(any|my|the) (financial |money )?(problems|issues|red flags|concerns|weak spots)\b|\bwhat('?s| is) (wrong|going wrong) with my (finances|money|spending)\b|\bwhat should i (be )?worr(y|ied) about\b|\bwhere am i going wrong\b/],
+    ['situation', /\b(financial|money|overall|current|whole)\s+(situation|position|picture|health|standing|status|state|condition|summary|snapshot|overview)\b|\bhow am i doing\b|\bhow are my finances\b|\bwhere do i stand\b|\bhow('?s| is) my (money|financial health|financial life)\b|\b(give me|show me) (an? )?(overview|summary)\b|\bam i (doing )?(ok|okay|fine|alright|good) (financially|with money)\b/],
+    ['savingsWhy', /\bwhy\b.*\bsav(ing|ings)\b|\bsav(ing|ings)( rate)?\b.*\b(decreas|dropp|falling|fell|going down|declin|lower|reduc|shrink)/],
+    ['leftover', /\b(left|leftover|left over|remain|remaining|spare|free|disposable|in hand)\b.*\b(after|once)\b.*\b(emis?|loans?|bills|expenses|commitments|paying)\b|\bhow much (money )?(do|will|would) i (have|keep)( left)?\b.*\b(after|month)\b|\bfree cash ?flow\b|\bdisposable income\b/],
+    ['debtPriority', /\b(which|what)\b.*\b(loan|debt|emi|card)s?\b.*\b(first|prioriti[sz]e|priority|pay off|clear|close|focus)\b|\bprioriti[sz]e\b.*\b(loans?|debts?|emis?)\b|\b(avalanche|snowball)\b|\bdebt (priority|strategy|plan)\b|\bpay off (my )?(loans?|debts?) (first|faster)\b/],
+    ['overspending', /\b(spending|spend|spent) (too much|a lot|more than i should|excessively)\b|\bover ?spend(ing)?\b|\bam i spending\b|\bis my spending (too high|ok|okay|normal|bad)\b|\bspending habits?\b/],
+    ['investMore', /\b(start|begin|increase|more|extra|bigger|step up)\b.*\binvest(ing|ment|ments)?\b|\binvest(ing)? more\b|\b(can|should|could) i (start )?invest\b|\bhow much (can|should) i invest\b|\b(increase|raise|start|top up) (my )?sips?\b/],
+    ['improve', /\b(improve|fix|sort out|get (on track|better)|strengthen|boost|better)\b.*\b(finances?|financial|money|situation|budget|position|savings)\b|\bwhat should i do( next)?\b(?!.*\d)|\b(any )?(advice|tips|suggestions)( for me)?\b(?!.*\d)|\bhow (can|do) i (save more|get richer|build wealth)\b/],
+    ['emergency', /\bemergency (fund|savings|corpus|buffer)\b|\brainy day\b|\bsafety net\b/],
+    ['cards', /\b(how are|how('?s| is)) my (credit )?cards?\b|\bcredit card (usage|utili[sz]ation|status)\b(?!.*\d)/],
+    ['monthReview', /\bhow (was|is|did|has|were) my (spending|expenses|month)\b|\bspending (summary|review|recap)\b|\b(review|recap|summari[sz]e) (my )?(spending|month)\b|\bhow much have i spent (so far )?this month\b/]
+  ];
+  var FOLLOW_MORE = /^(why\??|how( come)?\??|tell me more|more( details| info)?|explain( that| more)?|go on|details?|elaborate|and\??|what else\??|say more|expand|break it down)[\s?.!]*$/;
+  var FOLLOW_LAST = /^(and |what about |how about |what of )?(last|previous|the previous) month\??$/;
+  var INCOME_SET = /\b(my )?(monthly |take[- ]home |net )?(income|salary|pay|take[- ]home)( is| of| =|:)\s*(₹|rs\.?|inr)?\s*[\d.,]+\s*(k|l|lakh|lakhs|lac|lacs)?\b/;
+
+  function norm(q) {
+    var t = String(q || '').toLowerCase().replace(/[’`]/g, "'").replace(/\s+/g, ' ').trim();
+    var n = t; try { n = finaiNluNormalize(t).text || t; } catch (e) { }
+    return { raw: t, n: n };
+  }
+  function detect(q) {
+    var t = norm(q), hit = null, social = { greet: 1, thanks: 1, bye: 1 };
+    for (var i = 0; i < INT.length && !hit; i++) if (!social[INT[i][0]] && (INT[i][1].test(t.raw) || INT[i][1].test(t.n))) hit = INT[i][0];
+    if (!hit && !/\d/.test(t.raw) && t.raw.length <= 48) for (var j = 0; j < INT.length && !hit; j++) if (social[INT[j][0]] && INT[j][1].test(t.raw)) hit = INT[j][0];
+    // a spending question about a specific category, amount or purchase belongs to the existing router
+    if (hit === 'monthReview' && /\b(on|for) [a-z]/.test(t.raw) && !/\bon (the|this|my)\b/.test(t.raw)) hit = null;
+    if ((hit === 'overspending' || hit === 'improve') && /\d/.test(t.raw)) hit = null;
+    if (hit === 'monthReview' && /\blast month\b/.test(t.raw)) return { intent: 'monthReview', arg: 'last' };
+    return hit ? { intent: hit } : null;
+  }
+
+  var last = null;
+  function remember(topic, arg) { last = { topic: topic, arg: arg, at: Date.now(), seq: (window.finaiQSeq || 0) }; }
+  function answer(q) {
+    var t = norm(q); if (!t.raw) return null;
+    // the classic engine asked a question: a short reply ("30k", "yes") is its answer; a clearly new question moves on
+    try { if (typeof finaiConv !== 'undefined' && finaiConv && finaiConv.pending) { if (!detect(q) || t.raw.split(' ').length <= 3) return null; finaiConv.pending = null; try { finaiPurchaseCtx = null; } catch (e) { } } } catch (e) { }
+    var S = applyAssumptions(snapshot(true));
+    // "my income is 80k" → remember for this chat only
+    if (INCOME_SET.test(t.raw)) {
+      var amt = null; try { amt = finaiAmt(q); } catch (e) { }
+      if (amt && amt > 0) {
+        assume.income = amt;
+        if (S.incAvg != null && !S.assumedIncome) return lead('Noted — but your records already show a typical income of ' + M(S.incAvg) + ', so I’ll keep using that. If it has changed, add the new salary as an Income transaction.');
+        S = applyAssumptions(snapshot(true));
+        return lead('Got it — I’ll use ' + M(amt) + ' a month as your income for this chat (it isn’t saved to your records).') + (S.expAvg != null ? '<p>With that, you’d keep about ' + M(S.leftover) + ' a month after spending and EMIs.</p>' : '') + chips([['My financial situation', 'What\'s my current financial situation?']]);
+      }
+    }
+    var fresh = last && Date.now() - last.at < 15 * 60000;
+    if (fresh && FOLLOW_MORE.test(t.raw)) { var r = A.more(S, last); if (r) return r; }
+    if (fresh && FOLLOW_LAST.test(t.raw) && last.topic === 'monthReview') { remember('monthReview', 'last'); return A.monthReview(S, 'last'); }
+    var d = detect(q); if (!d) return null;
+    var fn = A[d.intent]; if (!fn) return null;
+    var out = fn(S, d.arg || t.raw);
+    if (out) remember(d.intent, d.arg);
+    return out;
+  }
+
+  // ── plug in front of the existing engine ───────────────────────────────────
+  var base = finaiAnswerQuestion;
+  window.finaiAnswerQuestion = finaiAnswerQuestion = function (q) {
+    var r = null;
+    try { r = answer(q); } catch (e) { console.error('Fin AI reasoning layer failed, using the classic engine:', e); r = null; }
+    if (r) { try { finaiQSeq++; } catch (e) { } return '<div class="fai-ans">' + r + '</div>'; }
+    last = null;   // the classic engine answered: its own follow-up memory takes over
+    return base(q);
+  };
+  var baseReset = window.finaiResetConversation;
+  if (typeof baseReset === 'function') window.finaiResetConversation = finaiResetConversation = function () { last = null; assume = {}; cache = null; return baseReset.apply(this, arguments); };
+
+  window.FinAIBrain = { snapshot: snapshot, issues: issues, detect: detect, answer: answer, reset: function () { last = null; assume = {}; cache = null; } };
+})();
+</script>
+<style id="fos-finai-ui">
+/* ════════════════════════════════════════════════════════════════════
+   FIN AI — chat-first page, collapsible containers, AI Insights centre
+   ════════════════════════════════════════════════════════════════════ */
+.fai-page { display:flex; flex-direction:column; gap:var(--fxl-gap, 20px); min-width:0; }
+.fai-box { background:var(--t-card-bg, linear-gradient(160deg, rgba(16,23,25,.96), rgba(11,16,18,.96))); border:1px solid var(--glass-border); border-radius:20px;
+  box-shadow:var(--t-card-shadow, 0 6px 22px rgba(0,0,0,.38)); min-width:0; display:flex; flex-direction:column; }
+body.light-mode .fai-box { background:#fff; border-color:rgba(15,23,42,.1); box-shadow:0 1px 2px rgba(15,23,42,.05), 0 10px 28px -14px rgba(15,23,42,.16); }
+.fai-head { display:flex; align-items:center; justify-content:space-between; gap:12px; padding:14px 18px; border-bottom:1px solid rgba(180,220,218,.07); }
+body.light-mode .fai-head { border-bottom-color:rgba(15,23,42,.07); }
+.fai-id { display:flex; align-items:center; gap:12px; min-width:0; }
+.fai-avatar, .fai-ic { width:40px; height:40px; border-radius:13px; flex-shrink:0; display:flex; align-items:center; justify-content:center;
+  background:linear-gradient(135deg, rgba(var(--brand-rgb),.28), rgba(var(--brand-rgb),.08)); color:rgb(var(--brand-rgb)); box-shadow:inset 0 0 0 1px rgba(var(--brand-rgb),.3); }
+.fai-ic { background:rgba(249,115,22,.12); color:#f97316; box-shadow:inset 0 0 0 1px rgba(249,115,22,.25); }
+.fai-title { margin:0; font-size:1rem; font-weight:700; color:var(--text-main); }
+.fai-status { font-size:.7rem; color:var(--text-muted); display:flex; align-items:center; gap:6px; margin-top:2px; }
+.fai-status i { width:7px; height:7px; border-radius:50%; background:#34d399; box-shadow:0 0 0 3px rgba(52,211,153,.18); display:inline-block; }
+.fai-head-acts { display:flex; align-items:center; gap:8px; flex-shrink:0; }
+.fai-hbtn { display:inline-flex; align-items:center; gap:7px; height:34px; padding:0 12px; border-radius:10px; cursor:pointer; font:600 .74rem 'DM Sans',sans-serif;
+  color:var(--text-main); background:rgba(255,255,255,.04); border:1px solid var(--glass-border); transition:background .16s, border-color .16s; position:relative; }
+.fai-hbtn:hover { background:rgba(var(--brand-rgb),.1); border-color:rgba(var(--brand-rgb),.35); }
+.fai-hbtn i { color:rgb(var(--brand-rgb)); }
+.fai-hbtn b { min-width:18px; height:18px; padding:0 5px; border-radius:9px; background:#ef4444; color:#fff; font-size:.6rem; display:inline-flex; align-items:center; justify-content:center; }
+.fai-hbtn b[hidden] { display:none; }
+.fai-collapse { width:34px; height:34px; border-radius:10px; cursor:pointer; color:var(--text-muted); background:transparent; border:1px solid var(--glass-border); display:inline-flex; align-items:center; justify-content:center; transition:color .16s, background .16s, transform .3s; }
+.fai-collapse:hover { color:var(--text-main); background:rgba(255,255,255,.06); }
+.fai-collapse:focus-visible, .fai-hbtn:focus-visible, .fai-chip:focus-visible, .fai-send:focus-visible { outline:2px solid rgb(var(--brand-rgb)); outline-offset:2px; }
+body.light-mode .fai-hbtn, body.light-mode .fai-collapse { background:#f6f8fa; border-color:rgba(15,23,42,.1); }
+/* collapse: one smooth height animation per container */
+.fai-body { display:grid; grid-template-rows:1fr; transition:grid-template-rows .36s cubic-bezier(.22,1,.36,1); }
+.fai-body-in { min-height:0; overflow:hidden; display:flex; flex-direction:column; }
+.fai-box.is-collapsed .fai-body { grid-template-rows:0fr; }
+.fai-box.is-collapsed .fai-head { border-bottom-color:transparent; }
+.fai-box.is-collapsed .fai-body-in { visibility:hidden; transition:visibility 0s linear .36s; }
+
+/* chat */
+.fai-chat .fai-body-in { height:min(74vh, 860px); min-height:440px; }
+.fai-box.is-collapsed.fai-chat .fai-body-in { min-height:0; }
+.fai-thread { flex:1; min-height:0; overflow-y:auto; padding:22px clamp(14px, 3vw, 36px) 10px; display:flex; flex-direction:column; gap:16px; overscroll-behavior:contain; scroll-behavior:smooth;
+  scrollbar-width:thin; scrollbar-color:rgba(180,220,218,.2) transparent; }
+.fai-msg { display:flex; gap:10px; max-width:min(780px, 92%); animation:faiIn .32s cubic-bezier(.22,1,.36,1); }
+@keyframes faiIn { from { opacity:0; transform:translateY(8px); } }
+.fai-msg.me { align-self:flex-end; flex-direction:row-reverse; }
+.fai-bub { padding:12px 15px; border-radius:16px; font-size:.86rem; line-height:1.6; color:var(--text-main); min-width:0; overflow-wrap:anywhere; }
+.fai-msg.me .fai-bub { background:linear-gradient(135deg, rgba(var(--brand-rgb),.9), rgba(var(--brand-rgb),.72)); color:#04201c; border-bottom-right-radius:6px; font-weight:500; }
+.fai-msg.ai .fai-bub { background:rgba(255,255,255,.035); border:1px solid rgba(180,220,218,.08); border-top-left-radius:6px; }
+body.light-mode .fai-msg.ai .fai-bub { background:#f6f8fa; border-color:rgba(15,23,42,.08); }
+body.light-mode .fai-msg.me .fai-bub { color:#fff; }
+.fai-mav { width:30px; height:30px; border-radius:10px; flex-shrink:0; display:flex; align-items:center; justify-content:center; background:rgba(var(--brand-rgb),.14); color:rgb(var(--brand-rgb)); margin-top:2px; }
+.fai-msg.me .fai-mav { display:none; }
+.fai-bub p { margin:0 0 8px; } .fai-bub p:last-child { margin-bottom:0; }
+.fai-bub .fai-lead { font-size:.92rem; font-weight:600; }
+.fai-ul, .fai-ol { margin:6px 0 10px; padding-left:20px; } .fai-ul li, .fai-ol li { margin:3px 0; }
+.fai-ol li { margin:7px 0; }
+.fai-why { color:var(--text-muted); } .fai-act { display:block; color:rgb(var(--brand-rgb)); margin-top:2px; }
+.fai-muted { color:var(--text-muted); font-size:.78rem; }
+.fai-calc { margin:8px 0; border-radius:10px; background:rgba(0,0,0,.18); border:1px solid rgba(180,220,218,.08); }
+body.light-mode .fai-calc { background:#fff; border-color:rgba(15,23,42,.08); }
+.fai-calc summary { cursor:pointer; padding:7px 11px; font-size:.74rem; font-weight:700; color:var(--text-muted); list-style:none; }
+.fai-calc summary::before { content:'\f1ec'; font-family:'Font Awesome 6 Free','Font Awesome 5 Free'; font-weight:900; margin-right:7px; color:rgb(var(--brand-rgb)); }
+.fai-calc[open] summary { border-bottom:1px solid rgba(180,220,218,.08); }
+.fai-calc > div { padding:6px 11px 9px; }
+.fai-calc-r { display:flex; justify-content:space-between; gap:14px; font-size:.76rem; padding:3px 0; color:var(--text-muted); }
+.fai-calc-r b { color:var(--text-main); font-family:'DM Mono',monospace; font-weight:600; text-align:right; }
+.fai-basis { display:flex; flex-direction:column; gap:3px; margin-top:8px; font-size:.7rem; color:var(--text-muted); }
+.fai-basis i { margin-right:4px; opacity:.8; }
+.fai-follow { display:flex; flex-wrap:wrap; gap:6px; margin-top:10px; }
+.fai-bub .finai-chip { display:inline-flex; margin:0; font-size:.72rem; padding:5px 11px; }
+.fai-typing .fai-bub { display:flex; gap:5px; padding:15px 16px; }
+.fai-typing .fai-bub span { width:7px; height:7px; border-radius:50%; background:var(--text-muted); animation:faiDot 1s infinite ease-in-out; }
+.fai-typing .fai-bub span:nth-child(2) { animation-delay:.15s; } .fai-typing .fai-bub span:nth-child(3) { animation-delay:.3s; }
+@keyframes faiDot { 0%,80%,100% { opacity:.25; transform:translateY(0); } 40% { opacity:1; transform:translateY(-3px); } }
+.fai-hello { margin:auto; text-align:center; max-width:460px; padding:24px 8px; }
+.fai-hello .fai-avatar { width:56px; height:56px; border-radius:18px; margin:0 auto 14px; }
+.fai-hello h3 { margin:0 0 6px; font-size:1.15rem; color:var(--text-main); }
+.fai-hello p { margin:0; font-size:.82rem; color:var(--text-muted); line-height:1.6; }
+.fai-chips { display:flex; gap:8px; padding:6px clamp(14px, 3vw, 36px) 10px; overflow-x:auto; scrollbar-width:none; flex-shrink:0; }
+.fai-chips::-webkit-scrollbar { display:none; }
+.fai-chip { flex-shrink:0; height:32px; padding:0 13px; border-radius:999px; cursor:pointer; font:600 .74rem 'DM Sans',sans-serif; white-space:nowrap;
+  color:var(--text-main); background:rgba(var(--brand-rgb),.08); border:1px solid rgba(var(--brand-rgb),.25); transition:background .16s, border-color .16s; }
+.fai-chip:hover { background:rgba(var(--brand-rgb),.16); border-color:rgba(var(--brand-rgb),.5); }
+.fai-compose { display:flex; align-items:flex-end; gap:10px; margin:0 clamp(14px, 3vw, 36px); padding:8px 8px 8px 16px; border-radius:16px;
+  background:rgba(255,255,255,.04); border:1px solid rgba(180,220,218,.14); transition:border-color .16s, box-shadow .16s; flex-shrink:0; }
+.fai-compose:focus-within { border-color:rgba(var(--brand-rgb),.55); box-shadow:0 0 0 3px rgba(var(--brand-rgb),.13); }
+body.light-mode .fai-compose { background:#f6f8fa; border-color:rgba(15,23,42,.12); }
+.fai-compose textarea { flex:1; min-width:0; resize:none; border:0; outline:none; background:transparent; color:var(--text-main); font:500 .9rem/1.5 'DM Sans',sans-serif; padding:7px 0; max-height:140px; }
+.fai-compose textarea::placeholder { color:var(--text-muted); opacity:.75; }
+html body .fai-compose textarea, html body .fai-compose textarea:focus, html body .fai-compose textarea:focus-visible { border:0 !important; outline:none !important; box-shadow:none !important; background:transparent !important; border-radius:0 !important; padding:7px 0 !important; min-height:0 !important; }
+.fai-bub a.finai-chip { text-decoration:none !important; height:28px; align-items:center; border-radius:999px; color:var(--text-main) !important; background:rgba(var(--brand-rgb),.08); border:1px solid rgba(var(--brand-rgb),.28); font-weight:600; }
+.fai-bub a.finai-chip:hover { background:rgba(var(--brand-rgb),.16); }
+.fai-chips { -webkit-mask-image:linear-gradient(90deg, #000 calc(100% - 40px), transparent); mask-image:linear-gradient(90deg, #000 calc(100% - 40px), transparent); padding-right:40px !important; }
+.fai-send { width:40px; height:40px; border-radius:12px; border:0; cursor:pointer; flex-shrink:0; color:#04201c; background:rgb(var(--brand-rgb)); transition:transform .16s, opacity .16s; }
+.fai-send:disabled { opacity:.35; cursor:default; }
+.fai-send:not(:disabled):hover { transform:translateY(-1px); }
+.fai-fine { font-size:.66rem; color:var(--text-muted); text-align:center; padding:8px 16px 14px; opacity:.85; }
+.fai-scenario { padding:0 clamp(14px, 3vw, 36px); flex-shrink:0; }
+.fai-scenario:empty { display:none; }
+
+/* planning tools */
+.fai-plan-grid { display:grid; grid-template-columns:minmax(0,1fr) minmax(0,1fr); gap:var(--fxl-gap, 20px); padding:16px 18px 18px; }
+.fai-sub { min-width:0; }
+#finai-debt-panel { overflow-x:auto; -webkit-overflow-scrolling:touch; }
+@media (max-width:900px) {
+  .fai-plan-grid { grid-template-columns:minmax(0,1fr); }
+  .fai-chat .fai-body-in { height:calc(100dvh - 230px); min-height:420px; }
+  .fai-hbtn span { display:none; }
+  .fai-msg { max-width:96%; }
+}
+@media (max-width:640px) {
+  .fai-head { padding:12px 14px; }
+  .fai-status { display:none; }
+  .fai-thread { padding:16px 12px 8px; }
+  .fai-chips, .fai-scenario { padding-left:12px; padding-right:12px; }
+  .fai-compose { margin:0 12px; }
+}
+
+/* ── AI Insights inside the notification side panel ── */
+.fai-ins { margin:4px 0 16px; }
+.fai-ins-head { display:flex; align-items:center; justify-content:space-between; gap:10px; margin:2px 0 10px; }
+.fai-ins-head h4 { margin:0; font-size:.82rem; font-weight:800; color:var(--text-main); display:flex; align-items:center; gap:8px; }
+.fai-ins-head h4 i { color:rgb(var(--brand-rgb)); }
+.fai-ins-head h4 em { font-style:normal; font-size:.62rem; font-weight:800; padding:2px 7px; border-radius:999px; background:#ef4444; color:#fff; }
+.fai-ins-tools { display:flex; gap:6px; }
+.fai-seg { display:inline-flex; padding:2px; border-radius:9px; background:rgba(255,255,255,.05); border:1px solid rgba(180,220,218,.1); }
+.fai-seg button { border:0; background:transparent; color:var(--text-muted); font:700 .66rem 'DM Sans',sans-serif; padding:5px 9px; border-radius:7px; cursor:pointer; }
+.fai-seg button[aria-pressed="true"] { background:rgba(var(--brand-rgb),.18); color:var(--text-main); }
+.fai-ins-link { background:none; border:0; color:rgb(var(--brand-rgb)); font:700 .66rem 'DM Sans',sans-serif; cursor:pointer; padding:4px 2px; }
+.fai-it { border-radius:13px; border:1px solid rgba(180,220,218,.08); background:rgba(255,255,255,.03); margin-bottom:8px; overflow:hidden; transition:background .16s, border-color .16s, opacity .2s; }
+.fai-it.unread { border-color:rgba(var(--brand-rgb),.3); background:rgba(var(--brand-rgb),.05); }
+.fai-it.ack { opacity:.6; }
+.fai-it-row { display:flex; gap:11px; align-items:flex-start; padding:11px 12px; cursor:pointer; width:100%; text-align:left; background:none; border:0; color:inherit; font:inherit; }
+.fai-it-ic { width:34px; height:34px; border-radius:10px; flex-shrink:0; display:flex; align-items:center; justify-content:center; font-size:.85rem; position:relative; }
+.fai-it.unread .fai-it-ic::after { content:''; position:absolute; top:-2px; right:-2px; width:9px; height:9px; border-radius:50%; background:rgb(var(--brand-rgb)); border:2px solid #0b1012; }
+.fai-it-main { flex:1; min-width:0; }
+.fai-it-top { display:flex; align-items:center; gap:7px; flex-wrap:wrap; }
+.fai-it-t { font-size:.8rem; font-weight:700; color:var(--text-main); }
+.fai-pri { font-size:.56rem; font-weight:800; letter-spacing:.6px; text-transform:uppercase; padding:2px 7px; border-radius:999px; }
+.fai-pri.p3 { background:rgba(239,68,68,.16); color:#f87171; } .fai-pri.p2 { background:rgba(245,158,11,.16); color:#fbbf24; } .fai-pri.p1 { background:rgba(56,189,248,.14); color:#7dd3fc; }
+.fai-it-s { font-size:.72rem; color:var(--text-muted); line-height:1.5; margin-top:3px; }
+.fai-it-a { font-size:.7rem; color:rgb(var(--brand-rgb)); margin-top:4px; }
+.fai-it-chev { color:var(--text-muted); font-size:.7rem; margin-top:4px; transition:transform .25s; }
+.fai-it.open .fai-it-chev { transform:rotate(180deg); }
+.fai-it-d { display:grid; grid-template-rows:0fr; transition:grid-template-rows .3s cubic-bezier(.22,1,.36,1); }
+.fai-it.open .fai-it-d { grid-template-rows:1fr; }
+.fai-it-d > div { min-height:0; overflow:hidden; }
+.fai-it-d dl { margin:0; padding:0 12px 4px 57px; display:grid; gap:6px; }
+.fai-it-d dt { font-size:.6rem; font-weight:800; text-transform:uppercase; letter-spacing:.7px; color:var(--text-muted); }
+.fai-it-d dd { margin:0 0 4px; font-size:.74rem; line-height:1.5; color:var(--text-main); }
+.fai-it-d .fai-calc { margin:4px 12px 4px 57px; }
+.fai-it-acts { display:flex; gap:6px; flex-wrap:wrap; padding:6px 12px 12px 57px; }
+.fai-it-acts button { height:28px; padding:0 10px; border-radius:8px; font:700 .68rem 'DM Sans',sans-serif; cursor:pointer; border:1px solid rgba(180,220,218,.14); background:rgba(255,255,255,.04); color:var(--text-main); }
+.fai-it-acts button.pri { background:rgb(var(--brand-rgb)); color:#04201c; border-color:transparent; }
+.fai-it-acts button:hover { border-color:rgba(var(--brand-rgb),.45); }
+.fai-ins-empty { font-size:.74rem; color:var(--text-muted); padding:12px; border:1px dashed rgba(180,220,218,.14); border-radius:12px; text-align:center; }
+.fai-ins-sep { font-size:.62rem; font-weight:800; letter-spacing:.8px; text-transform:uppercase; color:var(--text-muted); margin:12px 0 8px; }
+.fai-notif-h { font-size:.82rem; font-weight:800; color:var(--text-main); margin:6px 0 10px; display:flex; align-items:center; gap:8px; }
+.fai-notif-h i { color:#fbbf24; }
+body.light-mode .fai-it { background:#f8fafc; border-color:rgba(15,23,42,.08); }
+body.light-mode .fai-it.unread { background:rgba(var(--brand-rgb),.06); }
+body.light-mode .fai-it.unread .fai-it-ic::after { border-color:#fff; }
+body.light-mode .fai-pri.p3 { color:#b91c1c; } body.light-mode .fai-pri.p2 { color:#b45309; } body.light-mode .fai-pri.p1 { color:#0369a1; }
+@media (prefers-reduced-motion:reduce) { .fai-msg, .fai-typing .fai-bub span { animation:none !important; } .fai-body, .fai-it-d, .fai-it-chev { transition:none !important; } .fai-thread { scroll-behavior:auto; } }
+</style>
+<script id="fos-finai-ui-js">
+(function () {
+  'use strict';
+  var $ = function (id) { return document.getElementById(id); };
+  var esc = function (s) { try { return finaiEscapeHtml(String(s)); } catch (e) { return String(s); } };
+  function reduced() { try { if (matchMedia('(prefers-reduced-motion: reduce)').matches) return true; } catch (e) { } try { return !!(window.FosMotion && FosMotion.master && !FosMotion.master()); } catch (e) { return false; } }
+  function owner() { try { return finaiConvOwner(); } catch (e) { return 'local'; } }
+  function store(k, v) { try { if (v === undefined) return JSON.parse(localStorage.getItem(k) || 'null'); localStorage.setItem(k, JSON.stringify(v)); } catch (e) { return null; } }
+
+  /* ── cleanup after removing the Fin AI quiz (also re-run by the monitor, in case old alerts sync in) ── */
+  function quizCleanup() { try {
+    if (typeof notifications !== 'undefined' && Array.isArray(notifications) && notifications.some(function (n) { return /^finai-quiz-/.test(n.id) || /FinAI quiz/i.test(n.title || ''); })) {
+      notifications = notifications.filter(function (n) { return !/^finai-quiz-/.test(n.id) && !/FinAI quiz/i.test(n.title || ''); });
+      if (typeof saveNotifications === 'function') saveNotifications();
+    }
+    localStorage.removeItem('fos_finai_quiz_v1'); localStorage.removeItem('fos_set_push-quiz');
+    var fqp = document.getElementById('fq-pop'); if (fqp) fqp.remove();
+  } catch (e) { } }
+  quizCleanup();
+
+  /* ════════════════ conversation thread ════════════════ */
+  var KEY = function () { return 'fai_thread_v1:' + owner(); };
+  var thread = []; try { thread = JSON.parse(sessionStorage.getItem(KEY()) || '[]') || []; } catch (e) { thread = []; }
+  function saveThread() { try { sessionStorage.setItem(KEY(), JSON.stringify(thread.slice(-80))); } catch (e) { } }
+  var avatar = '<span class="fai-mav"><svg class="fos-ai" viewBox="0 0 24 24" width="17" height="17" aria-hidden="true"><use href="#fos-ai"/></svg></span>';
+  function msgHTML(m) {
+    return m.me ? '<div class="fai-msg me"><div class="fai-bub">' + esc(m.t) + '</div></div>'
+      : '<div class="fai-msg ai">' + avatar + '<div class="fai-bub">' + m.t + '</div></div>';
+  }
+  function hello() {
+    var name = ''; try { var u = JSON.parse(localStorage.getItem('fos_current_user') || '{}'); name = (u.name || u.full_name || '').split(' ')[0] || ''; } catch (e) { }
+    return '<div class="fai-hello"><div class="fai-avatar"><svg class="fos-ai" viewBox="0 0 24 24" width="28" height="28" aria-hidden="true"><use href="#fos-ai"/></svg></div>' +
+      '<h3>Hi' + (name ? ' ' + esc(name) : '') + ', what would you like to know?</h3><p>Ask about your spending, savings, loans, cards, investments or a purchase you’re planning — in your own words. I’ll answer from your records and show my working.</p></div>';
+  }
+  function renderThread(scroll) {
+    var box = $('fai-thread'); if (!box) return;
+    box.innerHTML = thread.length ? thread.map(msgHTML).join('') : hello();
+    if (scroll !== false) requestAnimationFrame(function () {
+      var lastAi = box.querySelector('.fai-msg.ai:last-child');
+      // long answers: show their start, short ones: stick to the bottom
+      if (lastAi && lastAi.offsetHeight > box.clientHeight * 0.7) box.scrollTop = lastAi.offsetTop - 12; else box.scrollTop = box.scrollHeight;
+    });
+  }
+  window.faiRenderThread = renderThread;
+  // every path that records an exchange (desktop chat, chips, purchase form, mobile Lite AI) lands in one thread
+  var basePush = window.finaiPushHistory;
+  window.finaiPushHistory = finaiPushHistory = function (q, a) {
+    try { if (typeof basePush === 'function') basePush(q, a); } catch (e) { }
+    thread.push({ me: 1, t: String(q || '') }, { t: String(a || '') }); saveThread();
+    renderThread();
+  };
+  window.faiNewChat = function () {
+    thread = []; saveThread();
+    try { if (typeof finaiResetConversation === 'function') finaiResetConversation(); } catch (e) { }
+    try { finaiChatHistory = []; } catch (e) { }
+    renderThread(); var i = $('finai-ask-input'); if (i) i.focus();
+  };
+  var busy = false;
+  window.finaiAsk = finaiAsk = function () {
+    var input = $('finai-ask-input'); if (!input || busy) return;
+    var q = input.value.trim(); if (!q) return;
+    input.value = ''; autosize(input); sync();
+    var box = $('fai-thread');
+    if (box) {   // show the question straight away, with a short typing beat
+      if (!thread.length) box.innerHTML = '';
+      box.insertAdjacentHTML('beforeend', msgHTML({ me: 1, t: q }) + (reduced() ? '' : '<div class="fai-msg ai fai-typing" id="fai-typing">' + avatar + '<div class="fai-bub"><span></span><span></span><span></span></div></div>'));
+      box.scrollTop = box.scrollHeight;
+    }
+    busy = true;
+    setTimeout(function () {
+      var a = '';
+      try { a = finaiAnswerQuestion(q); } catch (e) { console.error('Fin AI failed:', e); a = 'Sorry — something went wrong while working that out. Please try again.'; }
+      busy = false;
+      finaiPushHistory(q, a || 'I couldn’t find anything to say about that — try rephrasing?');
+      try { finaiRenderSuggestions(); } catch (e) { }
+    }, reduced() ? 0 : 420);
+  };
+  window.finaiAskChip = finaiAskChip = function (text) { var i = $('finai-ask-input'); if (i) { i.value = text; } finaiAsk(); };
+  function autosize(t) { if (!t) return; t.style.height = 'auto'; t.style.height = Math.min(140, t.scrollHeight) + 'px'; }
+  function sync() { var t = $('finai-ask-input'), b = $('fai-send'); if (t && b) b.disabled = !t.value.trim() || busy; }
+
+  /* ════════════════ page render (replaces the old dashboard-style render) ════════════════ */
+  window.renderFinAI = renderFinAI = function () {
+    try { finaiStateCache = finaiBuildState(); } catch (e) { }
+    try { finaiRenderDebt(); } catch (e) { console.error('FIN AI debt render failed:', e); }
+    try { finaiRenderGoals(); } catch (e) { console.error('FIN AI goals render failed:', e); }
+    var sc = $('finai-scenario-host'); if (sc && !sc.firstChild) { try { sc.innerHTML = finaiScenarioFormHtml('finai'); } catch (e) { } }
+    renderThread(false);
+    applyLayout(); updateBadge();
+  };
+
+  /* ════════════════ collapsible containers (state remembered, synced per account) ════════════════ */
+  var LAYOUT = 'fos_finai_layout_v1';
+  function applyLayout() {
+    var st = store(LAYOUT) || {};
+    document.querySelectorAll('[data-fai-box]').forEach(function (box) {
+      var k = box.getAttribute('data-fai-box'), c = !!st[k], b = box.querySelector('[data-fai-toggle]');
+      box.classList.toggle('is-collapsed', c);
+      if (b) { b.setAttribute('aria-expanded', String(!c)); b.title = c ? 'Expand' : 'Collapse'; var i = b.querySelector('i'); if (i) i.className = 'fas ' + (c ? 'fa-expand' : 'fa-compress'); }
+    });
+  }
+  document.addEventListener('click', function (e) {
+    var b = e.target.closest && e.target.closest('[data-fai-toggle]'); if (!b) return;
+    var st = store(LAYOUT) || {}, k = b.getAttribute('data-fai-toggle'); st[k] = !st[k]; store(LAYOUT, st); applyLayout();
+    if (!st[k] && k === 'chat') renderThread();
+  });
+
+  /* ════════════════ AI Insights: monitor → notification panel ════════════════ */
+  var IKEY = 'fos_finai_insights_v1', NOTIFY_SKIP = /^(budget-over|emi-due):/;   // those two are already posted by the regular alerts
+  var filter = 'unread';
+  function istate() { var s = store(IKEY); return s && typeof s === 'object' && s.items ? s : { items: {} }; }
+  function monitor() {
+    quizCleanup();
+    if (!window.FinAIBrain) return;
+    var list; try { list = FinAIBrain.issues(FinAIBrain.snapshot(true)); } catch (e) { console.error('AI insight monitor failed:', e); return; }
+    var st = istate(), now = Date.now(), seen = {}, fresh = [];
+    list.forEach(function (i) {
+      if (NOTIFY_SKIP.test(i.key)) return; seen[i.key] = 1;
+      var o = st.items[i.key];
+      var data = { title: i.title, what: i.what, why: i.why, effect: i.effect, action: i.action, calc: i.calc || [], ask: i.ask || '', icon: i.icon, color: i.color, p: i.p };
+      if (!o) { st.items[i.key] = Object.assign(data, { status: 'unread', first: now, pmax: i.p }); fresh.push(st.items[i.key]); }
+      else {
+        var up = i.p > (o.pmax || 0);
+        st.items[i.key] = Object.assign(o, data, { pmax: Math.max(o.pmax || 0, i.p), status: up && o.status !== 'dismissed' ? 'unread' : o.status });
+        if (up && o.status !== 'dismissed') fresh.push(st.items[i.key]);
+      }
+      st.items[i.key].seen = now;
+    });
+    Object.keys(st.items).forEach(function (k) { if (!seen[k]) delete st.items[k]; });   // resolved: if it comes back later it is a new alert
+    store(IKEY, st);
+    updateBadge(); if (isOpen()) renderInsights();
+    // a gentle pop-up only for brand-new high-priority insights, and only in the open app
+    try { var gate = typeof fosAppGateOpen === 'function' ? fosAppGateOpen() : true; if (gate && !isOpen()) fresh.filter(function (x) { return x.p >= 3; }).slice(0, 1).forEach(function (x) { if (typeof fosNotifPopup === 'function') fosNotifPopup({ icon: x.icon, color: x.color, title: x.title, message: x.what }); }); } catch (e) { }
+  }
+  function unreadCount() { var st = istate(); return Object.keys(st.items).filter(function (k) { return st.items[k].status === 'unread'; }).length; }
+  function isOpen() { var m = $('notifications-modal'); return !!(m && m.style.display === 'flex'); }
+  // bell badge = regular notifications + unread insights
+  var baseBadge = window.updateNotifBadge;
+  function updateBadge() {
+    try { if (typeof baseBadge === 'function') baseBadge(); } catch (e) { }
+    var n = 0; try { n = (notifications || []).length; } catch (e) { }
+    var u = unreadCount(), total = n + u;
+    var dot = $('notif-dot'), badge = $('notif-count-badge');
+    if (dot) dot.style.display = total > 0 ? 'block' : 'none';
+    if (badge) { badge.style.display = total > 0 ? 'inline-flex' : 'none'; badge.textContent = total > 99 ? '99+' : total; }
+    var fb = $('fai-ins-count'); if (fb) { fb.hidden = !u; fb.textContent = u; }
+  }
+  window.updateNotifBadge = updateNotifBadge = updateBadge;
+  window.faiInsightsMonitor = monitor;
+
+  function priLabel(p) { return p >= 3 ? 'High' : p === 2 ? 'Medium' : 'Low'; }
+  function itemHTML(k, i, open) {
+    var cls = 'fai-it ' + (i.status === 'unread' ? 'unread' : i.status === 'ack' ? 'ack' : '') + (open ? ' open' : '');
+    var calcRows = (i.calc || []).length ? '<details class="fai-calc"><summary>How this was worked out</summary><div>' + i.calc.map(function (r) { return '<div class="fai-calc-r"><span>' + esc(r[0]) + '</span><b>' + esc(r[1]) + '</b></div>'; }).join('') + '</div></details>' : '';
+    return '<div class="' + cls + '" data-k="' + esc(k) + '">' +
+      '<button type="button" class="fai-it-row" data-act="toggle" aria-expanded="' + !!open + '">' +
+        '<span class="fai-it-ic" style="background:' + i.color + '22;color:' + i.color + '"><i class="fas ' + esc(i.icon) + '"></i></span>' +
+        '<span class="fai-it-main"><span class="fai-it-top"><span class="fai-pri p' + i.p + '">' + priLabel(i.p) + '</span><span class="fai-it-t">' + esc(i.title) + '</span></span>' +
+        '<span class="fai-it-s" style="display:block">' + esc(i.what) + '</span>' +
+        '<span class="fai-it-a" style="display:block"><i class="fas fa-arrow-right"></i> ' + esc(i.action) + '</span></span>' +
+        '<i class="fas fa-chevron-down fai-it-chev" aria-hidden="true"></i></button>' +
+      '<div class="fai-it-d"><div><dl><dt>What happened</dt><dd>' + esc(i.what) + '</dd><dt>Why it matters</dt><dd>' + esc(i.why) + '</dd><dt>Effect on your finances</dt><dd>' + esc(i.effect) + '</dd><dt>What to consider</dt><dd>' + esc(i.action) + '</dd></dl>' + calcRows +
+        '<div class="fai-it-acts">' + (i.ask ? '<button type="button" class="pri" data-act="ask"><i class="fas fa-comments"></i> Ask Fin AI</button>' : '') +
+        (i.status !== 'ack' ? '<button type="button" data-act="ack"><i class="fas fa-check"></i> Got it</button>' : '') +
+        '<button type="button" data-act="dismiss"><i class="fas fa-eye-slash"></i> Dismiss</button></div></div></div></div>';
+  }
+  var openKey = null, sticky = {};   // read during this visit: stay in the Unread list until the panel closes
+  function renderInsights() {
+    var host = $('fai-ins'); if (!host) return;
+    var st = istate(), keys = Object.keys(st.items).sort(function (a, b) { var x = st.items[a], y = st.items[b]; return (y.p - x.p) || ((x.status === 'unread') ? -1 : 1); });
+    var unread = keys.filter(function (k) { return st.items[k].status === 'unread'; });
+    var active = keys.filter(function (k) { return st.items[k].status === 'unread' || st.items[k].status === 'read'; });
+    var acked = keys.filter(function (k) { return st.items[k].status === 'ack'; }), dismissed = keys.filter(function (k) { return st.items[k].status === 'dismissed'; });
+    var show = filter === 'unread' ? keys.filter(function (k) { return st.items[k].status === 'unread' || (sticky[k] && st.items[k].status === 'read'); }) : active;
+    host.innerHTML = '<div class="fai-ins-head"><h4><i class="fas fa-wand-magic-sparkles"></i> AI Insights' + (unread.length ? ' <em>' + unread.length + ' new</em>' : '') + '</h4>' +
+      '<div class="fai-ins-tools"><div class="fai-seg" role="group" aria-label="Filter insights"><button type="button" data-f="unread" aria-pressed="' + (filter === 'unread') + '">Unread</button><button type="button" data-f="all" aria-pressed="' + (filter === 'all') + '">All</button></div>' +
+      (unread.length ? '<button type="button" class="fai-ins-link" data-act="readall">Mark all read</button>' : '') + '</div></div>' +
+      (show.length ? show.map(function (k) { return itemHTML(k, st.items[k], k === openKey); }).join('')
+        : '<div class="fai-ins-empty">' + (keys.length ? (filter === 'unread' ? 'No new insights — you’re all caught up.' : 'Nothing active right now.') : 'No issues found in your records right now. I’ll let you know if something changes.') + '</div>') +
+      (filter === 'all' && acked.length ? '<div class="fai-ins-sep">Acknowledged</div>' + acked.map(function (k) { return itemHTML(k, st.items[k], k === openKey); }).join('') : '') +
+      (dismissed.length ? '<button type="button" class="fai-ins-link" data-act="undismiss" style="margin-top:4px">' + dismissed.length + ' dismissed · restore</button>' : '');
+  }
+  function setStatus(k, s) { var st = istate(); if (!st.items[k]) return; st.items[k].status = s; store(IKEY, st); updateBadge(); renderInsights(); }
+  function mountInsights() {
+    var m = $('notifications-modal'); if (!m || $('fai-ins')) return;
+    var box = m.querySelector('.modal-box'), rem = $('rem-panel'), list = $('notif-list-container'); if (!box || !list) return;
+    var sec = document.createElement('section'); sec.className = 'fai-ins'; sec.id = 'fai-ins'; sec.setAttribute('aria-label', 'AI Insights');
+    box.insertBefore(sec, rem || list);
+    var h = document.createElement('div'); h.className = 'fai-notif-h'; h.innerHTML = '<i class="fas fa-bell"></i> Notifications'; box.insertBefore(h, list);
+    sec.addEventListener('click', function (e) {
+      var f = e.target.closest('[data-f]'); if (f) { filter = f.getAttribute('data-f'); renderInsights(); return; }
+      var a = e.target.closest('[data-act]'); if (!a) return;
+      var act = a.getAttribute('data-act'), it = a.closest('[data-k]'), k = it && it.getAttribute('data-k');
+      if (act === 'readall') { var st = istate(); Object.keys(st.items).forEach(function (x) { if (st.items[x].status === 'unread') { st.items[x].status = 'read'; sticky[x] = 1; } }); store(IKEY, st); updateBadge(); renderInsights(); return; }
+      if (act === 'undismiss') { var s2 = istate(); Object.keys(s2.items).forEach(function (x) { if (s2.items[x].status === 'dismissed') s2.items[x].status = 'read'; }); store(IKEY, s2); filter = 'all'; renderInsights(); return; }
+      if (!k) return;
+      if (act === 'toggle') { openKey = openKey === k ? null : k; sticky[k] = 1; var s3 = istate(); if (s3.items[k] && s3.items[k].status === 'unread') { s3.items[k].status = 'read'; store(IKEY, s3); updateBadge(); } renderInsights(); return; }
+      if (act === 'ack') { openKey = null; setStatus(k, 'ack'); return; }
+      if (act === 'dismiss') { openKey = null; setStatus(k, 'dismissed'); return; }
+      if (act === 'ask') {
+        var q = (istate().items[k] || {}).ask; if (!q) return;
+        setStatus(k, 'read'); try { fosNotifClose(); } catch (e2) { }
+        try { switchView('finai', document.getElementById('fin-nav-finai') || document.querySelector('[onclick*="\'finai\'"]'), 'finance'); } catch (e3) { }
+        setTimeout(function () { finaiAskChip(q); }, 450);
+      }
+    });
+  }
+  var baseOpen = window.openNotificationsPanel;
+  window.openNotificationsPanel = openNotificationsPanel = function () { sticky = {}; openKey = null; mountInsights(); monitor(); renderInsights(); return baseOpen && baseOpen.apply(this, arguments); };
+
+  /* friendlier fallback wording for questions nobody could match */
+  var baseDYM = window.finaiDidYouMean;
+  if (typeof baseDYM === 'function') window.finaiDidYouMean = finaiDidYouMean = function (q) {
+    return String(baseDYM(q)).replace("I'm not sure what you mean. Did you mean one of these?", "I'm not sure I followed that. I can help with your spending, savings, loans, cards, investments and purchases — try one of these, or rephrase:");
+  };
+
+  /* ════════════════ wiring ════════════════ */
+  function wire() {
+    var t = $('finai-ask-input');
+    if (t && !t.__fai) {
+      t.__fai = 1;
+      t.addEventListener('input', function () { autosize(t); sync(); });
+      t.addEventListener('keydown', function (e) { if (e.key === 'Enter' && !e.shiftKey && !e.isComposing) { e.preventDefault(); finaiAsk(); } });
+      sync();
+    }
+    var c = $('fai-chips'); if (c && !c.__fai) { c.__fai = 1; c.addEventListener('click', function (e) { var b = e.target.closest('[data-q]'); if (b) finaiAskChip(b.getAttribute('data-q')); }); }
+    applyLayout(); renderThread(false); mountInsights(); updateBadge();
+  }
+  // re-check when data changes (debounced; the autosave loop runs every few seconds)
+  var sig = '', mt = 0;
+  function dataSig() { try { return [JSON.stringify(db).length, JSON.stringify(creditDb).length, JSON.stringify(ccCards).length, JSON.stringify(portDb).length, JSON.stringify(insuranceDb).length, JSON.stringify(budgets).length].join('|'); } catch (e) { return String(Math.random()); } }
+  function maybeMonitor() { var s = dataSig(); if (s !== sig) { sig = s; clearTimeout(mt); mt = setTimeout(monitor, 1500); } }
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', wire); else wire();
+  setTimeout(function () { sig = dataSig(); monitor(); }, 2500);
+  setInterval(maybeMonitor, 10000);
+  document.addEventListener('visibilitychange', function () { if (!document.hidden) maybeMonitor(); });
 })();
 </script>
 </body>
