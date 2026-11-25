@@ -1633,7 +1633,7 @@ function fosBrandRgba(a){return 'rgba('+fosBrandRgb()+','+a+')';}
   function arm(ch) {
     var cv = ch.canvas; if (!cv || cv.$fosArm) return; cv.$fosArm = 1;
     function hov() { var M = window.FosMotion; return !M || (M.on('num-hover') && M.on('num-chartlabel')); }
-    cv.addEventListener('mouseenter', function () { if (Date.now() - lastTouch > 900 && hov()) kick(ch); });
+    cv.addEventListener('mouseenter', function () { if (Date.now() - lastTouch > 900 && !(window.__fosScrollT && !(window.__fosMoveT > window.__fosScrollT)) && hov()) kick(ch); });
     cv.addEventListener('click', function () { if (hov()) kick(ch); });
     try {
       if (!cio) cio = new IntersectionObserver(function (list) {
@@ -1641,7 +1641,7 @@ function fosBrandRgba(a){return 'rgba('+fosBrandRgb()+','+a+')';}
           var c = en.target;
           if (!en.isIntersecting) { if (!c.$fosHid) c.$fosHid = Date.now(); return; }
           var hid = c.$fosHid; c.$fosHid = 0;
-          if (hid && Date.now() - hid > 800) kick(Chart.getChart(c));
+          /* scrolling back to a chart no longer replays its numbers */
         });
       });
       cio.observe(cv);
@@ -21914,8 +21914,7 @@ const statusText = assetsVal > debtVal*2 ? "Strong Position" : assetsVal > debtV
     tmDiv.style.gap = '12px';
     tmDiv.style.marginTop = '10px';
     // Expanded max-height to 265px to comfortably fit tiles and match the scale
-    tmDiv.style.maxHeight = '265px'; 
-    tmDiv.style.overflowY = 'auto';
+    // no inner scroll box: tiles were being cut off behind a hidden scrollbar
     tmDiv.style.padding = '4px 4px 10px 4px';
     
     // Hide scrollbar for an ultra-clean UI
@@ -46321,7 +46320,7 @@ body.light-mode #fos-anim-settings .fam-grp{border-color:rgba(15,23,42,.1)}
       var el = en.target;
       if (!en.isIntersecting) { if (!el.__cuHid) el.__cuHid = Date.now(); return; }
       var hid = el.__cuHid; el.__cuHid = 0;
-      if (el.__cuWait || (hid && Date.now() - hid > 800)) {
+      if (el.__cuWait) {                                   // first time on screen only — scrolling back never replays
         el.__cuWait = 0;
         var arr = []; for (var c = el.firstChild; c; c = c.nextSibling) if (c.nodeType === 3 && /\d/.test(c.nodeValue) && inScope(c)) arr.push([c, null]);
         playMany(arr, true, 'open');
@@ -46356,6 +46355,7 @@ body.light-mode #fos-anim-settings .fam-grp{border-color:rgba(15,23,42,.1)}
   document.addEventListener('pointerdown', function (e) { if (e.pointerType === 'touch' || e.pointerType === 'pen') lastTouch = Date.now(); }, true);
   document.addEventListener('mouseover', function (e) {
     if (Date.now() - lastTouch < 900) return;                     // ignore the mouse events a touch screen synthesises
+    if (window.__fosScrollT && !(window.__fosMoveT > window.__fosScrollT)) return;   // the page moved under a still cursor: not a hover until the mouse itself moves
     var c = containerOf(e.target); if (!c || (e.relatedTarget && c.contains(e.relatedTarget))) return;
     hit(e.target);
   }, true);
@@ -48207,6 +48207,117 @@ const CCX_TIPS = [
     renderCCCards();
   };
   try { if ($('view-ccutil') && $('view-ccutil').classList.contains('active')) initCCView(); } catch (e) { }
+})();
+</script>
+<style id="fos-premium-layout">
+/* ════════════════════════════════════════════════════════════════════
+   PREMIUM LAYOUT & SCROLL — one spacing system, clean scroll edges,
+   no hover effects or overlaps while scrolling. Loaded last on purpose.
+   ════════════════════════════════════════════════════════════════════ */
+:root { --fxl-gap:20px; --fxl-tile:16px; --fxl-edge:24px; }
+@media (max-width:1024px) { :root { --fxl-gap:16px; --fxl-tile:12px; } }
+@media (max-width:640px)  { :root { --fxl-gap:12px; --fxl-tile:10px; --fxl-edge:12px; } }
+
+/* 1 ── one spacing scale for every page-level grid (panels) and tile strip (KPI cards) */
+html body .view-section :is(.charts-3col, .charts-row, .analytics-grid, .fhs-side, .notes-wrap, #insights-container),
+html body .view-section :is(div, section):has(> .glass-panel ~ .glass-panel) { gap:var(--fxl-gap) !important; }
+html body .view-section :is(.kpi-grid, .gamification-strip, .market-pulse-grid, .sparkline-row, .pi-kpis, .finai-insights-grid, .credit-kpi-strip, .port-kpi-grid),
+html body .view-section :is(div, section):has(> :is(.insight-kpi-card, .kpi-card, .port-kpi-card, .credit-kpi-card, .spark-card, .market-card, .game-card, .ins-kpi-card, .ins-card, .ins-summary-card, .sub-card, .nw-card, .finai-card) ~ :is(.insight-kpi-card, .kpi-card, .port-kpi-card, .credit-kpi-card, .spark-card, .market-card, .game-card, .ins-kpi-card, .ins-card, .ins-summary-card, .sub-card, .nw-card, .finai-card)) { gap:var(--fxl-tile) !important; }
+#insights-container > * { margin:0 !important; }
+/* the same vertical rhythm between stacked blocks on every page */
+html body .view-section.active > :not(script):not(style):not(template):not(.modal-overlay),
+html body .view-section.active > :is(#tx-root, #pi-root, #st-root) > :not(script):not(style) { margin-top:0 !important; margin-bottom:var(--fxl-gap) !important; }
+html body .view-section.active > :not(script):not(style):last-child { margin-bottom:0 !important; }
+
+/* 2 ── scrolling: stable gutter (no width jump between pages), soft edge under the top bar instead of a hard cut */
+.scroll-area {
+  scrollbar-gutter:stable; scroll-padding-top:var(--fxl-edge); overscroll-behavior-y:contain;
+  -webkit-mask-image:linear-gradient(to bottom, transparent 0, #000 var(--fxl-edge), #000 calc(100% - 10px), transparent 100%);
+          mask-image:linear-gradient(to bottom, transparent 0, #000 var(--fxl-edge), #000 calc(100% - 10px), transparent 100%);
+  scrollbar-width:thin; scrollbar-color:rgba(180,220,218,.22) transparent;
+}
+.scroll-area::-webkit-scrollbar { width:8px; }
+.scroll-area::-webkit-scrollbar-thumb { background:rgba(180,220,218,.22); border-radius:8px; border:2px solid transparent; background-clip:padding-box; }
+body.light-mode .scroll-area { scrollbar-color:rgba(15,23,42,.22) transparent; }
+body.light-mode .scroll-area::-webkit-scrollbar-thumb { background-color:rgba(15,23,42,.22); }
+
+/* 3 ── no hover lift / glow / count replay while the page is moving under the cursor */
+@media (hover:hover) { html.fos-scrolling .scroll-area > * { pointer-events:none !important; } }
+/* large containers highlight their border on hover but never move, so they can't ride over a neighbour */
+html body .view-section :is(.glass-panel, .finai-panel, .cc-panel-box, .finai-score-card, .cca-panel, .p1-sec, .p1-sect, .notes-list-pane, .notes-editor-pane, .set-card, .cc-active-detail, .txa-card, .fa-hub, .pol-card, .ins-coverage-box, .sub-analytics-card, .ins-summary-card, .ccx-sec):not(.dragging):not([onmouseover]):hover { transform:none !important; }
+
+/* 4 ── numbers & tables: fixed-width digits so counting and sorting never jiggle a layout */
+.view-section { font-variant-numeric:tabular-nums; }
+.view-section table { border-collapse:separate; border-spacing:0; }
+.view-section table :is(td, th) { font-variant-numeric:tabular-nums; }
+.view-section table tbody tr { transition:background-color .15s ease; }
+
+/* 5 ── Expense Composition grows to fit its tiles instead of hiding them behind an inner scroller */
+#expense-treemap-container { max-height:none !important; overflow:visible !important; }
+
+/* 6 ── phones/tablets: the folding top bar floats over the content, so folding never moves the page underneath */
+@media (max-width:900px) {
+  html.fxl-tb .main { position:relative; }
+  html.fxl-tb .main > .topbar { position:absolute !important; top:var(--fxl-tb-top, 0px); left:0; right:0; z-index:40; }
+  html.fxl-tb .main > .scroll-area { padding-top:var(--fxl-sa-pt) !important; -webkit-mask-image:none; mask-image:none; }
+}
+@media (prefers-reduced-motion:reduce) { .view-section, .view-section * { scroll-behavior:auto !important; } }
+</style>
+<script id="fos-premium-layout-js">
+(function () {
+  'use strict';
+  /* scrolling state: a class on <html> while any scroller moves, and a timestamp the count-up and chart scripts check */
+  var t = 0, root = document.documentElement;
+  function onScroll() {
+    window.__fosScrollT = Date.now();
+    if (!root.classList.contains('fos-scrolling')) root.classList.add('fos-scrolling');
+    clearTimeout(t); t = setTimeout(function () { root.classList.remove('fos-scrolling'); }, 160);
+  }
+  document.addEventListener('scroll', onScroll, { passive: true, capture: true });
+  document.addEventListener('wheel', onScroll, { passive: true, capture: true });
+  /* real pointer movement (the browser's own post-scroll hover update has no movement) */
+  document.addEventListener('mousemove', function (e) { if (e.movementX || e.movementY) window.__fosMoveT = Date.now(); }, { passive: true, capture: true });
+
+  /* charts: drop repeated axis labels (e.g. ₹0 ₹0 ₹1 ₹1 when values round to the same label) */
+  function dedupe(scale) {
+    var seen = Object.create(null);
+    scale.ticks = (scale.ticks || []).filter(function (tk) { var k = Array.isArray(tk.label) ? tk.label.join(' ') : String(tk.label); if (seen[k]) return false; seen[k] = 1; return true; });
+  }
+  function patchCharts() {
+    if (!window.Chart || Chart.__fosDedupe) return; Chart.__fosDedupe = 1;
+    ['linear', 'logarithmic'].forEach(function (k) { try { var d = Chart.defaults.scales[k]; if (d && !d.afterTickToLabelConversion) d.afterTickToLabelConversion = dedupe; } catch (e) { } });
+  }
+  patchCharts(); window.addEventListener('load', patchCharts);
+
+  /* phones/tablets: measure the top bar once (expanded) and float it; the scroll area keeps a fixed top padding */
+  var mq = window.matchMedia('(max-width:900px)'), busy = false;
+  function float() {
+    var main = document.querySelector('.main'), tb = main && main.querySelector(':scope > .topbar'), sa = main && main.querySelector(':scope > .scroll-area');
+    if (!tb || !sa) return;
+    if (!mq.matches) { root.classList.remove('fxl-tb'); return; }
+    if (busy) return; busy = true;
+    var y = sa.scrollTop, compact = tb.classList.contains('tb-compact');
+    if (compact && root.classList.contains('fxl-tb')) { busy = false; return; }   // re-measure only while expanded
+    root.classList.remove('fxl-tb'); sa.style.removeProperty('padding-top');
+    var mr = main.getBoundingClientRect(), tr = tb.getBoundingClientRect(), cs = getComputedStyle(tb), ss = getComputedStyle(sa);
+    var top = tr.top - mr.top - parseFloat(cs.marginTop), bottom = tr.bottom - mr.top + parseFloat(cs.marginBottom);
+    root.style.setProperty('--fxl-tb-top', Math.max(0, top) + 'px');
+    var pt = parseFloat(ss.paddingTop);
+    root.style.setProperty('--fxl-sa-pt', (bottom + pt) + 'px');
+    root.classList.add('fxl-tb');
+    /* the scroll area may not start at the top of .main (e.g. below the fixed mobile header): subtract that offset */
+    var off = sa.getBoundingClientRect().top - mr.top;
+    if (off > 0) root.style.setProperty('--fxl-sa-pt', Math.max(pt, bottom - off + pt) + 'px');
+    sa.scrollTop = y; busy = false;
+  }
+  function initFloat() {
+    float();
+    var tb = document.querySelector('.main > .topbar');
+    if (tb && window.ResizeObserver) new ResizeObserver(function () { if (!tb.classList.contains('tb-compact')) requestAnimationFrame(float); }).observe(tb);
+    if (mq.addEventListener) mq.addEventListener('change', float);
+    window.addEventListener('orientationchange', function () { setTimeout(float, 200); });
+  }
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', initFloat); else initFloat();
 })();
 </script>
 </body>
