@@ -11,7 +11,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="fos-integrity" content="b1cdc4c4caee8b34af82a5cc9cb6907b792bc4ea2ab33f1a416f3ec567e7f0f8">
+<meta name="fos-integrity" content="a165885b2511586ee425d8bae1b051d4c84dbd717631a7875c3893c4ea99d285">
 <script id="fos-tamper-guard">
 /*! \u00a9 2026 MC Enterprise. Integrity check: detects a copy of this file that no longer matches the
     official release and locks it with a notice. This checks the FILE as served, not live memory --
@@ -7561,6 +7561,7 @@ async function handlePasskeyLogin(silent) {
       // Remember that passkey worked, so next time we skip straight to the
       // biometric prompt instead of making the person tap the button again.
       localStorage.setItem('fos_last_login_method', 'passkey');
+      _fosPasskeySignInAt = Date.now();
       await onCloudSignedIn(data.session);
       if (typeof passAppLockGate === 'function') await passAppLockGate();
       document.getElementById('login-overlay').classList.add('hidden');
@@ -8422,7 +8423,16 @@ function toggleDeviceLock() {
   if (enabled) disableDeviceLock(); else enableDeviceLock();
 }
 
-async function verifyDeviceLock() {
+// One Face ID prompt at a time: sign-in, the idle lock and the return-to-app cover can all ask at once,
+// and iOS / Android would otherwise show the system sheet twice in a row.
+let _dlVerifyPending = null, _dlVerifiedAt = 0;
+function verifyDeviceLock() {
+  if (Date.now() - _dlVerifiedAt < 4000) return Promise.resolve(true);
+  if (_dlVerifyPending) return _dlVerifyPending;
+  _dlVerifyPending = _verifyDeviceLockOnce().then(ok => { if (ok) _dlVerifiedAt = Date.now(); return ok; }).finally(() => { _dlVerifyPending = null; });
+  return _dlVerifyPending;
+}
+async function _verifyDeviceLockOnce() {
   const credId = localStorage.getItem('fos_biometric_cred_id');
   if (!credId) return true;
   try {
@@ -8734,7 +8744,16 @@ async function attemptPcLockUnlock() {
 // Called after every successful sign-in. Returns a Promise that resolves
 // once the applicable device lock (if any) has been cleared; resolves
 // immediately (true) when no lock is set up for this device.
+// Set when the person has just signed in with a passkey: that sign-in already asked for Face ID / fingerprint
+// on this device, so the app lock right after it doesn't ask a second time.
+let _fosPasskeySignInAt = 0;
+let _appLockGatePending = null;
 function passAppLockGate() {
+  if (_appLockGatePending) return _appLockGatePending;      // already showing: share it instead of prompting again
+  _appLockGatePending = _passAppLockGateOnce().finally(() => { _appLockGatePending = null; });
+  return _appLockGatePending;
+}
+function _passAppLockGateOnce() {
   return new Promise(async resolve => {
     if (typeof refreshDeviceLockFlagsFromCloud === 'function') await refreshDeviceLockFlagsFromCloud();
     const mobile = isMobileViewport();
@@ -8742,6 +8761,7 @@ function passAppLockGate() {
     const pcOn   = !mobile && localStorage.getItem('fos_pc_lock_enabled') === 'true' && localStorage.getItem('fos_pc_lock_hash');
 
     if (!bioOn && !pcOn) { resolve(true); return; }
+    if (bioOn && Date.now() - _fosPasskeySignInAt < 120000) { _fosPasskeySignInAt = 0; resolve(true); return; }
 
     _appLockResolve = resolve;
     const overlay  = document.getElementById('app-lock-overlay');
@@ -11201,7 +11221,7 @@ function passAppLockGate() {
     <div class="modal-row">
       <div class="input-group">
         <label>Balance Tenure (Months)</label>
-        <input type="number" id="cr-bal-tenure" class="input-field" placeholder="0">
+        <input type="number" id="cr-bal-tenure" class="input-field" placeholder="Auto">
       </div>
       <div class="input-group">
         <label>Status</label>
@@ -11222,6 +11242,7 @@ function passAppLockGate() {
         <input type="date" id="cr-enddate" class="input-field">
       </div>
     </div>
+    <div class="cr-auto-note" style="font-size:.74rem;color:var(--text-muted);line-height:1.5;margin:-4px 0 12px"><i class="fas fa-rotate" style="color:#fb923c;margin-right:5px"></i>Outstanding Balance and Balance Tenure go down on their own after each EMI due date. Leave Outstanding blank to work it out from the Principal and Start Date.</div>
 
     <div class="input-group">
       <label>What is this debt for? (helps judge Good / Bad / Unnecessary)</label>
@@ -12388,92 +12409,12 @@ function passAppLockGate() {
       </div>
 
       <div id="set-tab-shortcuts" class="set-tab-pane">
-        
-        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:0.2rem">
-           <div class="set-desc">Click any shortcut key below to customize it. Press <kbd style="background:rgba(255,255,255,0.1);padding:2px 4px;border-radius:3px">Esc</kbd> to cancel.</div>
+        <div style="display:flex; justify-content:space-between; align-items:center; gap:10px; flex-wrap:wrap; margin-bottom:0.2rem">
+           <div class="set-desc">Every page and main action has a key. Click a key to change it, then press the new key (<kbd style="background:rgba(255,255,255,0.1);padding:2px 4px;border-radius:3px">Esc</kbd> cancels). Shortcuts work when you are not typing in a box. Press <kbd style="background:rgba(255,255,255,0.1);padding:2px 4px;border-radius:3px">?</kbd> anywhere to see this list.</div>
            <button class="btn-secondary" onclick="resetShortcuts()" style="padding:4px 10px; font-size:0.7rem; border-color:var(--glass-border)"><i class="fas fa-undo"></i> Reset Defaults</button>
         </div>
-
-        <div class="set-card">
-          <div class="set-label-block" style="margin-bottom: 0.2rem;">
-            <div class="set-lbl readable-white" style="color:var(--accent) !important; font-size:0.75rem; text-transform:uppercase; letter-spacing:1px;">Global Actions</div>
-          </div>
-          <div class="set-row">
-            <div class="set-label-block"><div class="set-lbl readable-white" style="font-size:0.8rem">Search / Command Palette</div></div>
-            <button class="shortcut-btn" onclick="recordShortcut(this, 'search')">Ctrl + K</button>
-          </div>
-          <div class="set-row">
-            <div class="set-label-block"><div class="set-lbl readable-white" style="font-size:0.8rem">Toggle Sidebar</div></div>
-            <button class="shortcut-btn" onclick="recordShortcut(this, 'sidebar')">B</button>
-          </div>
-          <div class="set-row">
-            <div class="set-label-block"><div class="set-lbl readable-white" style="font-size:0.8rem">Help & Cheatsheet</div></div>
-            <button class="shortcut-btn" onclick="recordShortcut(this, 'help')">?</button>
-          </div>
-          <div class="set-row">
-            <div class="set-label-block"><div class="set-lbl readable-white" style="font-size:0.8rem">Close Modals / Overlays</div></div>
-            <button class="shortcut-btn" style="opacity:0.6; cursor:not-allowed;" title="System shortcut cannot be changed">Esc</button>
-          </div>
-        </div>
-
-        <div class="set-card">
-          <div class="set-label-block" style="margin-bottom: 0.2rem;">
-            <div class="set-lbl readable-white" style="color:var(--c-inc) !important; font-size:0.75rem; text-transform:uppercase; letter-spacing:1px;">Quick Entry</div>
-          </div>
-          <div class="set-row">
-            <div class="set-label-block"><div class="set-lbl readable-white" style="font-size:0.8rem">Add Finance Record</div></div>
-            <button class="shortcut-btn" onclick="recordShortcut(this, 'add_finance')">T</button>
-          </div>
-          <div class="set-row">
-            <div class="set-label-block"><div class="set-lbl readable-white" style="font-size:0.8rem">Add Portfolio Asset</div></div>
-            <button class="shortcut-btn" onclick="recordShortcut(this, 'add_portfolio')">A</button>
-          </div>
-        </div>
-
-        <div class="set-card">
-          <div class="set-label-block" style="margin-bottom: 0.2rem;">
-            <div class="set-lbl readable-white" style="color:var(--c-net) !important; font-size:0.75rem; text-transform:uppercase; letter-spacing:1px;">Navigation</div>
-          </div>
-          <div style="display:grid; grid-template-columns:1fr 1fr; gap:15px;">
-            <div class="set-row">
-              <div class="set-label-block"><div class="set-lbl readable-white" style="font-size:0.8rem">Dashboard</div></div>
-              <button class="shortcut-btn" onclick="recordShortcut(this, 'nav_dash')">D</button>
-            </div>
-            <div class="set-row">
-              <div class="set-label-block"><div class="set-lbl readable-white" style="font-size:0.8rem">Portfolio</div></div>
-              <button class="shortcut-btn" onclick="recordShortcut(this, 'nav_port')">P</button>
-            </div>
-            <div class="set-row">
-              <div class="set-label-block"><div class="set-lbl readable-white" style="font-size:0.8rem">Debt Tracker</div></div>
-              <button class="shortcut-btn" onclick="recordShortcut(this, 'nav_credit')">C</button>
-            </div>
-            <div class="set-row">
-              <div class="set-label-block"><div class="set-lbl readable-white" style="font-size:0.8rem">Loans & EMI</div></div>
-              <button class="shortcut-btn" onclick="recordShortcut(this, 'nav_loans')">L</button>
-            </div>
-          </div>
-        </div>
-
-        <div class="set-card" style="border-color: rgba(52,211,153,0.3); background: rgba(52,211,153,0.02);">
-          <div class="set-label-block" style="margin-bottom: 0.5rem;">
-            <div class="set-lbl readable-white" style="color:var(--c-inc) !important; font-size:0.75rem; text-transform:uppercase; letter-spacing:1px;">Add Custom Binding</div>
-          </div>
-          <div class="set-row" style="gap:10px;">
-            <select id="new-short-action" class="set-input" style="flex:1; cursor:pointer;">
-              <option value="nav_nw">Go to Net Worth</option>
-              <option value="nav_analytics">Go to Analytics</option>
-              <option value="nav_roughboard">Go to Rough Board</option>
-              <option value="open_settings">Open Settings</option>
-              <option value="open_export">Open Export Menu</option>
-              <option value="open_backup">Open Backup Menu</option>
-            </select>
-            <button id="btn-record-temp" class="shortcut-btn" onclick="recordShortcut(this, 'temp_new')" data-original-key="Record Key" style="min-width:90px;">Record Key</button>
-            <button class="btn-add" onclick="saveCustomShortcut()" style="padding: 5px 12px; font-size: 0.75rem; border-radius: 6px;"><i class="fas fa-plus"></i> Add</button>
-          </div>
-        </div>
-        
-        <div id="custom-shortcuts-list" style="display:flex; flex-direction:column; gap:1.2rem;"></div>
-
+        <input type="search" id="sc-filter" class="set-input" placeholder="Find a shortcut…" oninput="renderShortcutSettings()" style="width:100%;margin:6px 0 2px">
+        <div id="sc-list"></div>
       </div>
 
       <div id="set-tab-admin" class="set-tab-pane"><div id="adm-root"></div></div>
@@ -13081,7 +13022,7 @@ function passAppLockGate() {
 <!-- NOTIFICATIONS PANEL MODAL -->
 <div class="modal-overlay" id="notifications-modal">
   <div class="modal-box" style="width:520px;max-height:80vh;overflow-y:auto;border-color:rgba(245,158,11,0.3);box-shadow:0 0 60px rgba(245,158,11,0.1)">
-    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1.2rem">
+    <div class="notif-head" style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1.2rem">
       <div class="modal-title" style="color:#fbbf24;margin-bottom:0"><i class="fas fa-bell" style="margin-right:8px"></i>Notifications</div>
       <div style="display:flex;gap:8px">
         <button onclick="fosRemToggle()" class="btn-secondary" style="font-size:0.72rem;padding:5px 10px;color:#38bdf8;border-color:rgba(56,189,248,.4)"><i class="fas fa-plus" style="margin-right:4px"></i>Reminder<span id="rem-count"></span></button>
@@ -13089,6 +13030,7 @@ function passAppLockGate() {
         <button onclick="fosNotifClose()" class="btn-secondary" style="font-size:0.72rem;padding:5px 10px" aria-label="Close notifications">✕ Close</button>
       </div>
     </div>
+    <div class="notif-scroll">
     <div id="rem-panel">
       <div style="font-size:.78rem;font-weight:700;color:#38bdf8;margin-bottom:8px"><i class="fas fa-bell" style="margin-right:6px"></i>New reminder</div>
       <div class="input-group" style="margin-bottom:8px"><label>Title (optional)</label><input type="text" id="rem-title" class="input-field" maxlength="60" placeholder="e.g. Pay rent"></div>
@@ -13103,6 +13045,7 @@ function passAppLockGate() {
     </div>
     <div id="notif-list-container">
       <div class="empty-state"><i class="fas fa-bell-slash"></i><p>No notifications yet</p></div>
+    </div>
     </div>
   </div>
 </div>
@@ -14168,6 +14111,21 @@ function applyFilters() {
 }
 
 // ── NAVIGATION ─────────────────────────────────────────────────────────────
+// Every page opens at its top. On phones a flick on the previous page can still be gliding when the menu is
+// tapped, and iOS ignores a plain scrollTop = 0 during that glide, so the next page (e.g. the Calculator) opened
+// part-way down (on the Advanced Calculator). Stop the glide and reset again once the new page has laid out.
+function fosScrollViewTop(sa) {
+  try {
+    const touch = window.matchMedia('(max-width:900px), (hover:none) and (pointer:coarse)').matches;
+    if (touch) { sa.style.overflowY = 'hidden'; void sa.offsetHeight; }
+    sa.scrollTop = 0;
+    if (touch) sa.style.overflowY = '';
+    try { window.scrollTo(0, 0); } catch (e) {}
+    const again = () => { if (sa.scrollTop) sa.scrollTop = 0; };
+    requestAnimationFrame(() => requestAnimationFrame(again));
+    setTimeout(again, 180); setTimeout(again, 420);
+  } catch (e) { sa.scrollTop = 0; }
+}
 function switchView(viewName, btn, group) {
   activeView = viewName;
   if (typeof syncMobileFabLabel === 'function') syncMobileFabLabel();
@@ -14177,7 +14135,8 @@ function switchView(viewName, btn, group) {
   }
 
   const scrollArea = document.querySelector('.scroll-area');
-  if (scrollArea) scrollArea.scrollTop = 0;
+  if (scrollArea) fosScrollViewTop(scrollArea);
+  document.body.setAttribute('data-fos-view', viewName);
   
   // FIX: Globally clear the active bubble from BOTH sidebars every time you click
   document.querySelectorAll('.sidebar .nav-item, .port-sidebar .port-nav-item').forEach(el => el.classList.remove('active'));
@@ -17896,6 +17855,7 @@ function avg(arr) {
 }
 
 function renderDashboard() {
+  if (typeof fosLoanRoll === 'function') { try { fosLoanRoll(); } catch (e) { console.error('Loan auto-update failed:', e); } }
   if (dashboardRenderTimeout) clearTimeout(dashboardRenderTimeout);
   // Flash shimmer on KPIs immediately so screen feels responsive
   ['kpi-balance','kpi-income','kpi-loans','kpi-invest','kpi-savings-rate','kpi-credit-outstanding'].forEach(id => {
@@ -25889,6 +25849,7 @@ function saveBudgets() {
 
 // ── CREDIT TRACKER ─────────────────────────────────────────────────────────
 function renderCreditTracker() {
+  if (typeof fosLoanRoll === 'function') { try { fosLoanRoll(); } catch (e) { console.error('Loan auto-update failed:', e); } }
   const active = creditDb.filter(c => c.status === 'Active');
   const totalPrincipal    = creditDb.reduce((s,c) => s + Number(c.principalAmount), 0);
   const totalOutstanding  = creditDb.reduce((s,c) => s + Number(c.outstandingBalance), 0);
@@ -25943,7 +25904,7 @@ function renderCreditTable() {
       <td style="font-weight:600;white-space:nowrap">${c.lenderName}</td>
       <td><span class="badge ${tc}">${c.type}</span></td>
       <td style="text-align:right;font-family:'DM Mono',monospace">${fmt(c.principalAmount)}</td>
-      <td style="text-align:right;font-family:'DM Mono',monospace;color:#ef4444;font-weight:600">${fmt(c.outstandingBalance)}</td>
+      <td style="text-align:right;font-family:'DM Mono',monospace;color:#ef4444;font-weight:600"${c.status === 'Active' && Number(c.monthlyEmi) > 0 ? ` title="Updates automatically after each EMI due date${c.balanceAsOf ? ' (as of ' + fmtDate(c.balanceAsOf) + ')' : ''}"` : ''}>${fmt(c.outstandingBalance)}</td>
       <td style="text-align:right;font-family:'DM Mono',monospace;color:${rateColor}">${c.interestRate}%</td>
       <td style="text-align:right;font-family:'DM Mono',monospace;color:#fbbf24">${fmt(c.monthlyEmi)}</td>
       <td style="text-align:center;color:var(--text-muted);font-size:0.78rem">${c.dueDate || '-'}</td>
@@ -26467,6 +26428,17 @@ function renderCreditIntel() {
   });
 }
 
+// Debt Manager: fill the gaps from what was typed. Start + tenure gives the end date, start + end gives the tenure,
+// and a blank outstanding on a running loan is worked out from the principal at the start date (see fosLoanRoll).
+function crMonthsBetween(a, b) { const x = finaiParseISO(a), y = finaiParseISO(b); if (!x || !y) return 0; return (y.getFullYear() - x.getFullYear()) * 12 + (y.getMonth() - x.getMonth()); }
+function crFillSchedule(e) {
+  const patch = {}; let fromStart = false;
+  if (e.startDate && e.tenureMonths > 0 && !e.endDate) { const d = finaiParseISO(e.startDate); const t = new Date(d.getFullYear(), d.getMonth() + e.tenureMonths, Math.min(d.getDate(), finaiDim(d.getFullYear(), d.getMonth() + e.tenureMonths))); patch.endDate = localISO(t); }
+  if (e.startDate && e.endDate && !(e.tenureMonths > 0)) { const m = crMonthsBetween(e.startDate, e.endDate); if (m > 0) patch.tenureMonths = m; }
+  if (e.status === 'Active' && !(e.outstandingBalance > 0) && e.principalAmount > 0 && e.startDate && e.startDate <= localISO()) { patch.outstandingBalance = e.principalAmount; fromStart = true; }
+  return { patch, fromStart };
+}
+
 // Credit CRUD
 function openCreditModal() {
   editingCreditId = null;
@@ -26526,10 +26498,13 @@ function saveCreditEntry() {
   const purpose           = document.getElementById('cr-purpose').value || 'auto';
 
   if (!lenderName) { alert('Please enter a Lender / Card Name'); return; }
+  const _cr = crFillSchedule({ principalAmount, outstandingBalance, tenureMonths, startDate, endDate, status });
 
   const entry = { lenderName, type, principalAmount, outstandingBalance, interestRate, monthlyEmi, dueDate, tenureMonths, balanceTenure, startDate, endDate, status, remarks, purpose };
   const _prevLoan = editingCreditId ? creditDb.find(x => x.id === editingCreditId) : null;   // net worth rolls the balance forward from this date
   entry.balanceAsOf = (_prevLoan && _prevLoan.balanceAsOf && Number(_prevLoan.outstandingBalance) === outstandingBalance) ? _prevLoan.balanceAsOf : localISO();
+  Object.assign(entry, _cr.patch);
+  if (_cr.fromStart) { entry.balanceAsOf = startDate; entry.rollSkipCash = true; }   // no outstanding given: work it out from the principal at the start date
 
   if (editingCreditId) {
     const idx = creditDb.findIndex(x => x.id === editingCreditId);
@@ -27835,30 +27810,101 @@ function renderDashCreditCharts() {
 
 
 // ── SETTINGS MODAL LOGIC ──
-const DEFAULT_SHORTCUTS = {
-  'search': 'Ctrl + K', 'sidebar': 'B', 'help': '?',
-  'add_finance': 'T', 'add_portfolio': 'A',
-  'nav_dash': 'D', 'nav_port': 'P', 'nav_credit': 'C', 'nav_loans': 'L'
-};
-
-// Load saved shortcuts or fallback to defaults
+// Every shortcut in one list: the Settings → Shortcuts tab, the ? cheat sheet and the key handler all read it.
+// Keys work only when nothing is being typed and no pop-up is open. "Shift + X" means hold Shift.
+function _scView(v, g) { return () => { const id = g === 'portfolio' ? 'port-nav-' + v.replace('port-', '') : 'fin-nav-' + v; switchView(v, document.getElementById(id), g || 'finance'); }; }
+const FOS_SHORTCUTS = [
+  // group, id, label, default key, action
+  ['Global', 'search', 'Search / command palette', 'Ctrl + K', () => openSearch()],
+  ['Global', 'help', 'Show all shortcuts', '?', () => toggleShortcutHelp()],
+  ['Global', 'sidebar', 'Collapse / expand sidebar', 'B', () => { if (String(activeView).indexOf('port-') === 0 && typeof togglePortfolioSidebar === 'function') togglePortfolioSidebar(); else if (typeof toggleFinanceSidebar === 'function') toggleFinanceSidebar(); }],
+  ['Global', 'notifications', 'Notifications', 'N', () => openNotificationsPanel()],
+  ['Global', 'toggle_theme', 'Light / dark mode', 'Shift + M', () => toggleTheme()],
+  ['Global', 'open_settings', 'Settings', ',', () => openSettingsModal()],
+  ['Global', 'open_export', 'Export', 'E', () => openExportModal()],
+  ['Global', 'open_backup', 'Backup / restore', 'Shift + B', () => openBackupModal()],
+  ['Quick entry', 'add_finance', 'Add transaction', 'T', () => openModal()],
+  ['Quick entry', 'add_portfolio', 'Add portfolio asset', 'A', () => openPortModal()],
+  ['Quick entry', 'add_credit', 'Add loan / credit entry', 'Shift + C', () => openCreditModal()],
+  ['Quick entry', 'add_reminder', 'New reminder', 'R', () => { openNotificationsPanel(); setTimeout(() => { const rp = document.getElementById('rem-panel'); if (rp && rp.style.display !== 'block' && window.fosRemToggle) fosRemToggle(); }, 60); }],
+  ['Quick entry', 'open_budgets', 'Budgets', 'G', () => openBudgetModal()],
+  ['FinanceOS pages', 'nav_dash', 'Dashboard', 'D', _scView('dashboard')],
+  ['FinanceOS pages', 'nav_txn', 'Transactions', 'X', _scView('transactions')],
+  ['FinanceOS pages', 'nav_loans', 'Loans & EMI', 'L', _scView('loans')],
+  ['FinanceOS pages', 'nav_inv', 'Investments', 'I', _scView('investments')],
+  ['FinanceOS pages', 'nav_credit', 'Debt Tracker', 'C', _scView('credit')],
+  ['FinanceOS pages', 'nav_ccutil', 'CC Utilization', 'U', _scView('ccutil')],
+  ['FinanceOS pages', 'nav_analytics', 'Analytics', 'Y', _scView('analytics')],
+  ['FinanceOS pages', 'nav_nw', 'Net Worth', 'W', _scView('networth')],
+  ['FinanceOS pages', 'nav_finai', 'Fin AI', 'F', _scView('finai')],
+  ['Playbook & My Zone', 'nav_scenario', 'Scenario', 'S', _scView('scenario')],
+  ['Playbook & My Zone', 'nav_roughboard', 'Rough Board', 'O', _scView('roughboard')],
+  ['Playbook & My Zone', 'nav_calc', 'Calculator', 'K', _scView('calculator')],
+  ['Playbook & My Zone', 'nav_insurance', 'Insurance', 'Shift + I', _scView('insurance')],
+  ['Playbook & My Zone', 'nav_subs', 'Subscriptions', 'Shift + S', _scView('subscriptions')],
+  ['Playbook & My Zone', 'nav_notes', 'Notes', 'Shift + N', _scView('notes')],
+  ['PortfolioOS pages', 'nav_port_sum', 'Summary', '1', _scView('port-overview', 'portfolio')],
+  ['PortfolioOS pages', 'nav_port', 'Holdings & Stats', 'P', _scView('port-table', 'portfolio')],
+  ['PortfolioOS pages', 'nav_port_table2', 'Holdings & Stats (number key)', '2', _scView('port-table', 'portfolio')],
+  ['PortfolioOS pages', 'nav_port_analytics', 'Portfolio Analytics', '3', _scView('port-analytics', 'portfolio')],
+  ['PortfolioOS pages', 'nav_port_intel', 'Portfolio Intelligence', '4', _scView('port-intel', 'portfolio')],
+  ['PortfolioOS pages', 'nav_port_tax', 'Tax', '5', _scView('port-tax', 'portfolio')],
+  ['PortfolioOS pages', 'nav_port_stress', 'Stress Test', '6', _scView('port-stress', 'portfolio')],
+].map(r => ({ group: r[0], id: r[1], label: r[2], def: r[3], run: r[4] }));
+const DEFAULT_SHORTCUTS = Object.fromEntries(FOS_SHORTCUTS.map(a => [a.id, a.def]));
+// Load saved shortcuts or fall back to defaults ('' = turned off)
 let activeShortcuts = { ...DEFAULT_SHORTCUTS, ...JSON.parse(localStorage.getItem('fos_shortcuts') || '{}') };
+const CUSTOM_ACTION_NAMES = {};   // older "custom binding" builder: every action is now in the main list
 
-const CUSTOM_ACTION_NAMES = {
-  'nav_nw': 'Net Worth', 'nav_analytics': 'Analytics', 'nav_roughboard': 'Rough Board',
-  'open_settings': 'Settings', 'open_export': 'Export Data', 'open_backup': 'Backup Data'
-};
-
-function initShortcutUI() {
-  document.querySelectorAll('.shortcut-btn').forEach(btn => {
-    const match = btn.getAttribute('onclick')?.match(/'([^']+)'/);
-    if (match && activeShortcuts[match[1]]) {
-      btn.textContent = activeShortcuts[match[1]];
-    }
-  });
-  renderCustomShortcuts();
+// Turn a key press into the text the list uses ("Shift + I", "Ctrl + K", "?"). Shift is left out for symbols
+// that need it anyway, so "?" matches whether or not the keyboard needs Shift for it.
+function fosKeyName(e) {
+  const k = [];
+  if (e.ctrlKey || e.metaKey) k.push('Ctrl');
+  if (e.altKey) k.push('Alt');
+  const key = e.key === ' ' ? 'Space' : (e.key && e.key.length === 1 ? e.key.toUpperCase() : e.key);
+  const symbol = e.key && e.key.length === 1 && !/[a-z0-9]/i.test(e.key);
+  if (e.shiftKey && !symbol) k.push('Shift');
+  if (['Control', 'Alt', 'Shift', 'Meta'].includes(e.key)) return k.join(' + ') + (k.length ? ' + ' : '');
+  k.push(key); return k.join(' + ');
 }
-// Initialize UI button text on load
+function fosShortcutHtml(key) {
+  if (!key) return '<span style="opacity:.5">Off</span>';
+  return key.split(' + ').map(x => '<kbd class="sc-kbd">' + (x === ',' ? ',' : _esc(x)) + '</kbd>').join('<span class="sc-plus">+</span>');
+}
+function _scGroups(list) { const g = {}; list.forEach(a => { (g[a.group] = g[a.group] || []).push(a); }); return g; }
+function renderShortcutSettings() {
+  const box = document.getElementById('sc-list'); if (!box) return;
+  const q = ((document.getElementById('sc-filter') || {}).value || '').trim().toLowerCase();
+  const list = FOS_SHORTCUTS.filter(a => !q || a.label.toLowerCase().includes(q) || a.group.toLowerCase().includes(q) || String(activeShortcuts[a.id] || '').toLowerCase() === q);
+  const G = _scGroups(list), colors = { 'Global': 'var(--accent)', 'Quick entry': 'var(--c-inc)', 'FinanceOS pages': 'var(--c-net)', 'Playbook & My Zone': '#f472b6', 'PortfolioOS pages': '#a78bfa' };
+  box.innerHTML = Object.keys(G).map(g => '<div class="set-card"><div class="set-label-block" style="margin-bottom:.2rem"><div class="set-lbl readable-white" style="color:' + (colors[g] || 'var(--accent)') + ' !important;font-size:.75rem;text-transform:uppercase;letter-spacing:1px">' + _esc(g) + '</div></div><div class="sc-grid">' +
+    G[g].map(a => '<div class="set-row"><div class="set-label-block"><div class="set-lbl readable-white" style="font-size:.8rem">' + _esc(a.label) + '</div></div><div style="display:flex;gap:6px;align-items:center"><button class="shortcut-btn" data-sc="' + a.id + '" onclick="recordShortcut(this, \'' + a.id + '\')">' + _esc(activeShortcuts[a.id] || 'Off') + '</button>' +
+      (activeShortcuts[a.id] ? '<button class="sc-off" title="Turn this shortcut off" aria-label="Turn off ' + _esc(a.label) + ' shortcut" onclick="setShortcutKey(\'' + a.id + '\', \'\')">✕</button>' : '') + '</div></div>').join('') + '</div></div>').join('') +
+    '<div class="set-card" style="padding:.8rem 1.2rem"><div class="set-row"><div class="set-label-block"><div class="set-lbl readable-white" style="font-size:.8rem">Close pop-ups and panels</div></div><button class="shortcut-btn" style="opacity:0.6;cursor:not-allowed" title="System shortcut cannot be changed">Esc</button></div></div>' +
+    (list.length ? '' : '<div class="set-desc" style="padding:10px 2px">No shortcut matches that.</div>');
+}
+function setShortcutKey(id, key) {
+  let moved = '';
+  if (key) FOS_SHORTCUTS.forEach(a => { if (a.id !== id && activeShortcuts[a.id] === key) { activeShortcuts[a.id] = ''; moved = a.label; } });
+  activeShortcuts[id] = key;
+  localStorage.setItem('fos_shortcuts', JSON.stringify(activeShortcuts));
+  renderShortcutSettings(); renderShortcutHelp();
+  if (moved && typeof showSettingsToast === 'function') { try { showSettingsToast(key + ' now opens ' + (FOS_SHORTCUTS.find(a => a.id === id) || {}).label + ' (removed from ' + moved + ')'); } catch (e) {} }
+}
+function renderShortcutHelp() {
+  const box = document.getElementById('help-sc-body'); if (!box) return;
+  const G = _scGroups(FOS_SHORTCUTS.filter(a => activeShortcuts[a.id] && a.id !== 'nav_port_table2'));
+  box.innerHTML = Object.keys(G).map(g => '<div class="help-sc-col"><div class="help-sc-h">' + _esc(g) + '</div>' + G[g].map(a => '<div class="help-sc-row"><span>' + _esc(a.label) + '</span><span>' + fosShortcutHtml(activeShortcuts[a.id]) + '</span></div>').join('') + '</div>').join('') +
+    '<div class="help-sc-col"><div class="help-sc-h">Anywhere</div><div class="help-sc-row"><span>Close pop-ups</span><span><kbd class="sc-kbd">Esc</kbd></span></div></div>';
+}
+function toggleShortcutHelp(force) {
+  const help = document.getElementById('help-overlay'); if (!help) return;
+  const show = typeof force === 'boolean' ? force : help.style.display !== 'flex';
+  if (show) renderShortcutHelp();
+  help.style.display = show ? 'flex' : 'none';
+}
+function initShortcutUI() { renderShortcutSettings(); renderShortcutHelp(); }
 document.addEventListener('DOMContentLoaded', initShortcutUI);
 
 function saveCustomShortcut() {
@@ -27941,21 +27987,12 @@ function captureKeystroke(e) {
     // Cancel recording
     activeShortcutBtn.textContent = activeShortcutBtn.dataset.originalKey;
   } else {
-    // Parse the keystroke into a clean string
-    let keys = [];
-    if (e.ctrlKey || e.metaKey) keys.push('Ctrl');
-    if (e.altKey) keys.push('Alt');
-    if (e.shiftKey) keys.push('Shift');
-    
     // Ignore if they ONLY pressed a modifier key (wait for the actual key)
     if (!['Control', 'Alt', 'Shift', 'Meta'].includes(e.key)) {
-      keys.push(e.key === ' ' ? 'Space' : (e.key.length === 1 ? e.key.toUpperCase() : e.key));
-      const newKey = keys.join(' + ');
-      
-      // Update UI and Data
+      const newKey = fosKeyName(e);
       activeShortcutBtn.textContent = newKey;
-      activeShortcuts[activeShortcutId] = newKey;
-      localStorage.setItem('fos_shortcuts', JSON.stringify(activeShortcuts)); // Save globally
+      if (activeShortcutId === 'temp_new') activeShortcuts[activeShortcutId] = newKey;
+      else { const id = activeShortcutId; activeShortcutBtn.classList.remove('recording'); activeShortcutBtn = null; activeShortcutId = null; setShortcutKey(id, newKey); return; }
     } else {
       // Re-attach listener if they only pressed "Ctrl" so far
       document.addEventListener('keydown', captureKeystroke, { once: true, capture: true });
@@ -27973,6 +28010,7 @@ function resetShortcuts() {
   localStorage.removeItem('fos_shortcuts');
   activeShortcuts = { ...DEFAULT_SHORTCUTS };
   initShortcutUI();
+  try { const f = document.getElementById('sc-filter'); if (f) f.value = ''; renderShortcutSettings(); } catch (e) {}
 }
 
 function factoryResetApp() {
@@ -33393,6 +33431,7 @@ function switchAdvTab(tab, btn) {
 function initCalculator() {
   const view = document.getElementById('view-calculator');
   if (!view || !view.classList.contains('active')) return;
+  const _sa = document.querySelector('.scroll-area'); if (_sa && _sa.scrollTop) _sa.scrollTop = 0;   // open on the Normal Calculator
   calcUpdateDisplay();
   loadUnitOptions();
 }
@@ -33481,81 +33520,15 @@ document.addEventListener('keydown', (e) => {
     // 3. DYNAMIC CUSTOM SHORTCUT EXECUTION
     // =====================================================================
     try {
-        // Parse the physical keystroke to match our custom shortcut dictionary
-        let keys = [];
-        if (e.ctrlKey || e.metaKey) keys.push('Ctrl');
-        if (e.altKey) keys.push('Alt');
-        if (e.shiftKey) keys.push('Shift');
-        if (!['Control', 'Alt', 'Shift', 'Meta'].includes(e.key)) {
-            keys.push(e.key === ' ' ? 'Space' : (e.key.length === 1 ? e.key.toUpperCase() : e.key));
-        }
-        const pressedKey = keys.join(' + ');
-        
-        // Execute matched shortcut dynamically from the activeShortcuts dictionary
-        if (pressedKey === activeShortcuts['nav_dash']) {
-            const nav = document.getElementById('fin-nav-dashboard');
-            if (nav) switchView('dashboard', nav, 'finance');
-        }
-        else if (pressedKey === activeShortcuts['nav_port']) {
-            const nav = document.getElementById('port-nav-table'); 
-            if (nav) switchView('port-table', nav, 'portfolio');
-        }
-        else if (pressedKey === activeShortcuts['nav_credit']) {
-            const nav = document.getElementById('fin-nav-credit');
-            if (nav) switchView('credit', nav, 'finance');
-        }
-        else if (pressedKey === activeShortcuts['nav_loans']) {
-            const nav = document.getElementById('fin-nav-loans');
-            if (nav) switchView('loans', nav, 'finance'); 
-        }
-        else if (pressedKey === activeShortcuts['search']) { 
-            e.preventDefault(); openSearch(); 
-        }
-        else if (pressedKey === activeShortcuts['help']) { 
+        const pressedKey = fosKeyName(e);
+        if (!pressedKey || / \+ $/.test(pressedKey)) return;
+        const hit = FOS_SHORTCUTS.find(a => activeShortcuts[a.id] && activeShortcuts[a.id] === pressedKey);
+        if (hit) {
+            // Ctrl + K is already handled by the search box's own listener
+            if (hit.id === 'search' && pressedKey === 'Ctrl + K') { e.preventDefault(); return; }
             e.preventDefault();
-            const help = document.getElementById('help-overlay');
-            if (help) help.style.display = help.style.display === 'flex' ? 'none' : 'flex';
+            hit.run();
         }
-        else if (pressedKey === activeShortcuts['sidebar']) { 
-            e.preventDefault(); 
-            const sidebar = document.getElementById('finance-sidebar');
-            if (sidebar) sidebar.classList.toggle('collapsed');
-        }
-        else if (pressedKey === activeShortcuts['add_finance']) { 
-            e.preventDefault(); 
-            openModal(); 
-        } 
-        else if (pressedKey === activeShortcuts['add_portfolio']) { 
-            e.preventDefault(); 
-            openPortModal(); 
-        }
-        
-        // ── CUSTOM DYNAMIC BINDINGS ──
-        else if (pressedKey === activeShortcuts['nav_nw']) {
-            const nav = document.getElementById('fin-nav-networth');
-            if (nav) switchView('networth', nav, 'finance');
-        }
-        else if (pressedKey === activeShortcuts['nav_analytics']) {
-            const nav = document.getElementById('fin-nav-analytics');
-            if (nav) switchView('analytics', nav, 'finance');
-        }
-        else if (pressedKey === activeShortcuts['nav_roughboard']) {
-            const nav = document.getElementById('fin-nav-roughboard');
-            if (nav) switchView('roughboard', nav, 'finance');
-        }
-        else if (pressedKey === activeShortcuts['open_settings']) { 
-            e.preventDefault(); 
-            openSettingsModal(); 
-        }
-        else if (pressedKey === activeShortcuts['open_export']) { 
-            e.preventDefault(); 
-            openExportModal(); 
-        }
-        else if (pressedKey === activeShortcuts['open_backup']) { 
-            e.preventDefault(); 
-            openBackupModal(); 
-        }
-        
     } catch (error) {
         console.warn("Shortcut failed. Please check if the function or ID exists in your HTML:", error);
     }
@@ -35487,29 +35460,15 @@ function renderSubscriptions() {
   <button class="backup-dismiss" onclick="dismissBackupBanner()" title="Dismiss">✕</button>
 </div>
 
-<div id="help-overlay" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.95); z-index:9999; justify-content:center; align-items:center;">
-  <div class="glass-panel" style="width:400px; padding:25px; border-radius:15px; border:1px solid var(--brand); background:#0B1012;">
-    <h3 style="color:white; margin-bottom:15px; text-align:center; border-bottom:1px solid rgba(255,255,255,0.1); padding-bottom:10px;">Keyboard Shortcuts</h3>
-    
-    <div style="display:flex; justify-content:space-between; color:#cbd5e1; font-size:0.9rem;">
-      <ul style="list-style:none; padding:0; line-height:2;">
-        <li style="color:#38bdf8; font-weight:bold; margin-bottom:5px;">Navigation</li>
-        <li><kbd style="background:#1e293b; padding:2px 6px; border-radius:4px;">d</kbd> Dashboard</li>
-        <li><kbd style="background:#1e293b; padding:2px 6px; border-radius:4px;">p</kbd> Portfolio</li>
-        <li><kbd style="background:#1e293b; padding:2px 6px; border-radius:4px;">c</kbd> Credit</li>
-        <li><kbd style="background:#1e293b; padding:2px 6px; border-radius:4px;">l</kbd> Loans</li>
-      </ul>
-
-      <ul style="list-style:none; padding:0; line-height:2;">
-        <li style="color:#34d399; font-weight:bold; margin-bottom:5px;">Actions</li>
-        <li><kbd style="background:#1e293b; padding:2px 6px; border-radius:4px;">t</kbd> Add Transaction</li>
-        <li><kbd style="background:#1e293b; padding:2px 6px; border-radius:4px;">a</kbd> Add Portfolio Txn</li>
-        <li><kbd style="background:#1e293b; padding:2px 6px; border-radius:4px;">s</kbd> Search</li>
-        <li><kbd style="background:#1e293b; padding:2px 6px; border-radius:4px;">b</kbd> Toggle Sidebar</li>
-      </ul>
+<div id="help-overlay" onclick="if(event.target===this)toggleShortcutHelp(false)" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.85); z-index:9999; justify-content:center; align-items:center; padding:16px; box-sizing:border-box;">
+  <div class="glass-panel help-sc-box">
+    <h3 style="margin:0 0 4px; text-align:center;">Keyboard Shortcuts</h3>
+    <div style="text-align:center;font-size:.75rem;color:var(--text-muted);margin-bottom:14px">Change them in Settings → Shortcuts</div>
+    <div id="help-sc-body"></div>
+    <div style="display:flex;gap:8px;margin-top:16px">
+      <button class="btn-secondary" style="flex:1" onclick="toggleShortcutHelp(false);openSettingsModal();setTimeout(function(){var n=document.querySelector('.set-nav-item[onclick*=&quot;shortcuts&quot;]');if(n)n.click();},80)">Edit shortcuts</button>
+      <button onclick="toggleShortcutHelp(false)" style="flex:1; padding:10px; background:var(--brand); border:none; color:white; border-radius:8px; cursor:pointer; font-weight:600">Close</button>
     </div>
-
-    <button onclick="document.getElementById('help-overlay').style.display='none'" style="margin-top:20px; width:100%; padding:10px; background:var(--brand); border:none; color:white; border-radius:8px; cursor:pointer; font-weight:bold;">Close [ Esc ]</button>
   </div>
 </div>
 
@@ -38818,6 +38777,33 @@ try{init();paint()}catch(e){}
 .fosnw-row b{font-weight:600;color:var(--text-main)}.fosnw-row em{font-style:normal;color:var(--text-muted);font-size:.72rem;margin-left:6px}
 .fosnw-row.tot{font-weight:800;border-top:1px solid rgba(128,128,128,.4)}
 .fosnw-note{margin-top:8px;font-size:.72rem;color:var(--text-muted);line-height:1.55}
+/* Shortcuts: settings list and the ? cheat sheet */
+#sc-list .sc-grid { display:grid; grid-template-columns:1fr 1fr; gap:4px 18px; }
+@media (max-width:700px) { #sc-list .sc-grid { grid-template-columns:1fr; } }
+.sc-off { background:none; border:1px solid var(--glass-border); color:var(--text-muted); border-radius:6px; width:26px; height:26px; cursor:pointer; font-size:.7rem; line-height:1; }
+.sc-off:hover { color:#ef4444; border-color:rgba(239,68,68,.4); }
+.help-sc-box { width:min(820px, 100%); max-height:calc(100dvh - 32px); overflow-y:auto; padding:24px; border-radius:16px; border:1px solid var(--brand); background:#0B1012; color:#e2e8f0; box-sizing:border-box; }
+.help-sc-box h3 { color:#fff; }
+#help-sc-body { display:grid; grid-template-columns:repeat(auto-fill, minmax(230px, 1fr)); gap:14px 22px; }
+.help-sc-h { font-size:.7rem; font-weight:800; text-transform:uppercase; letter-spacing:1px; color:var(--brand-2, #38bdf8); margin-bottom:6px; }
+.help-sc-row { display:flex; justify-content:space-between; align-items:center; gap:10px; font-size:.84rem; color:#cbd5e1; padding:4px 0; border-bottom:1px dashed rgba(255,255,255,.06); }
+.sc-kbd { display:inline-block; min-width:20px; text-align:center; background:#1e293b; border:1px solid rgba(255,255,255,.12); border-bottom-width:2px; padding:1px 6px; border-radius:5px; font-family:'DM Mono',monospace; font-size:.74rem; color:#e2e8f0; }
+.sc-plus { opacity:.5; margin:0 3px; font-size:.7rem; }
+.help-sc-row > span:last-child { white-space:nowrap; flex:none; }
+body.light-mode .help-sc-box { background:#fff; color:#0f172a; }
+body.light-mode .help-sc-box h3 { color:#0f172a; }
+body.light-mode .help-sc-row { color:#334155; border-bottom-color:rgba(15,23,42,.08); }
+body.light-mode .sc-kbd { background:#f1f5f9; color:#0f172a; border-color:rgba(15,23,42,.15); }
+@media (max-width:900px) { #help-overlay { display:none !important; } }
+/* Phones and tablets: no Asset Categories list (Gold, Silver, ... Business) in the menu.
+   Phones and portrait tablets use the drawer; landscape tablets are wide enough for the desktop sidebar,
+   so they are picked out by having a touch screen and no mouse. */
+@media (max-width:900px) { .mobile-drawer .drawer-cat { display:none !important; } }
+/* Fin AI on phones and tablets: only the FinanceOS header; no search, theme toggle, add entry or month/year bar */
+@media (max-width:900px) { body[data-fos-view="finai"] .topbar { display:none !important; } }
+@media (max-width:1366px) and (hover:none) and (pointer:coarse) {
+  .mobile-drawer .drawer-cat, #pos-cat-by-asset, .port-sidebar [aria-controls="pos-cat-by-asset"] { display:none !important; }
+}
 </style>
 <script id="fosnw-script">
 /* Net worth = cash + current portfolio value − what you still owe (loans incl. interest, credit-card dues).
@@ -38852,9 +38838,67 @@ try{init();paint()}catch(e){}
     }
     var from = lastDue || asOf, days = Math.max(0, Math.round((today - from) / 86400000));
     var accrued = bal > 0 && rate > 0 ? bal * rate / 36500 * days : 0;
-    return { id: c.id, name: nm, start: c.startDate || '', balance: Math.round(bal), accrued: Math.round(accrued), assumed: Math.round(assumed), tracked: tracked, liab: Math.round(bal + accrued) };
+    return { id: c.id, name: nm, start: c.startDate || '', balance: Math.round(bal), accrued: Math.round(accrued), assumed: Math.round(assumed + (Number(c.autoAssumed) || 0)), tracked: tracked, liab: Math.round(bal + accrued) };
   }
+  // ── Debt Manager auto-roll ──────────────────────────────────────────────
+  // Each EMI due date that passes takes that month's EMI (or the larger amount you logged as a Loan entry that
+  // month) off the outstanding balance, after adding the month's interest. Balance Tenure counts down with it.
+  // Results are written back to the loan, so the Debt Manager, dashboard, net worth and Fin AI all show the
+  // same figure. EMIs you did not log are kept in autoAssumed, so net worth still takes them out of cash.
+  function dueOn(y, mo, day) { return new Date(y, mo, Math.min(day, finaiDim(y, mo))); }
+  function duesBetween(from, to, day) {          // EMI due dates d with from < d <= to
+    var n = 0; if (!from || !to || to <= from) return 0;
+    for (var k = 0; k < 600; k++) { var d = dueOn(from.getFullYear(), from.getMonth() + k, day); if (d > to) break; if (d > from) n++; }
+    return n;
+  }
+  function tenureLeft(c, bal, today) {
+    if (bal <= 0) return 0;
+    var day = dayOf(c.dueDate) || (finaiParseISO(c.startDate) || today).getDate();
+    var end = finaiParseISO(c.endDate), st = finaiParseISO(c.startDate), T = Number(c.tenureMonths) || 0;
+    if (end) return duesBetween(today, end, day);
+    if (st && T > 0) return Math.max(0, T - duesBetween(st, today, day));
+    var bt = Number(c.balanceTenure) || 0; if (bt > 0) return bt;
+    var E = Number(c.monthlyEmi) || 0, r = (Number(c.interestRate) || 0) / 1200;
+    if (E <= 0) return null;
+    if (r <= 0) return Math.ceil(bal / E);
+    var x = 1 - r * bal / E; return x > 0 ? Math.ceil(-Math.log(x) / Math.log(1 + r)) : null;
+  }
+  window.fosLoanRoll = function () {
+    if (typeof creditDb === 'undefined' || !Array.isArray(creditDb) || !creditDb.length) return false;
+    var today = new Date(); today.setHours(0, 0, 0, 0); var tIso = iso(today), S = stamps(), changed = false;
+    var rows = (typeof db !== 'undefined' && Array.isArray(db)) ? db.filter(function (t) { return t && t.type === 'Loan'; }) : [];
+    creditDb.forEach(function (c) {
+      if (!c || c.status !== 'Active') return;
+      if (!c.balanceAsOf) { c.balanceAsOf = S[c.id] || tIso; changed = true; }
+      var emi = Number(c.monthlyEmi) || 0, bal = Number(c.outstandingBalance) || 0, asOf = finaiParseISO(c.balanceAsOf);
+      if (emi > 0 && bal > 0 && asOf && asOf < today) {
+        var r = (Number(c.interestRate) || 0) / 1200, day = dayOf(c.dueDate) || (finaiParseISO(c.startDate) || asOf).getDate();
+        var end = finaiParseISO(c.endDate), nm = c.lenderName || 'Loan', mine = rows.filter(function (t) { return finaiNameMatch(t.name, nm) || finaiNameMatch(t.payee, nm); });
+        var n = 0, lastDue = null, assumedAdd = 0;
+        for (var k = 0; k < 600 && bal > 0; k++) {
+          var dd = dueOn(asOf.getFullYear(), asOf.getMonth() + k, day);
+          if (dd > today || (end && dd > end)) break;
+          if (dd <= asOf) continue;
+          var mk = iso(dd).slice(0, 7), logged = mine.filter(function (t) { return String(t.date || '').slice(0, 7) === mk; }).reduce(function (s2, t) { return s2 + (Number(t.amount) || 0); }, 0);
+          var intr = bal * r, pay = Math.min(bal + intr, Math.max(emi, logged));
+          assumedAdd += Math.max(0, pay - logged); bal = Math.max(0, bal + intr - pay); n++; lastDue = dd;
+        }
+        if (lastDue) {
+          c.outstandingBalance = Math.round(bal); c.balanceAsOf = iso(lastDue);
+          if (!c.rollSkipCash) c.autoAssumed = Math.round((Number(c.autoAssumed) || 0) + assumedAdd);
+          if (!c.endDate && !(c.startDate && Number(c.tenureMonths) > 0) && Number(c.balanceTenure) > 0) c.balanceTenure = Math.max(0, Number(c.balanceTenure) - n);
+          changed = true;
+        }
+      }
+      if (c.rollSkipCash) { delete c.rollSkipCash; changed = true; }
+      var bt = tenureLeft(c, Number(c.outstandingBalance) || 0, today);
+      if (bt !== null && bt !== Number(c.balanceTenure || 0)) { c.balanceTenure = bt; changed = true; }
+    });
+    if (changed) { try { localStorage.setItem('fos_credit_v1', JSON.stringify(creditDb)); } catch (e) {} if (typeof scheduleSave === 'function') { try { scheduleSave(); } catch (e) {} } }
+    return changed;
+  };
   window.fosNW = function () {
+    try { fosLoanRoll(); } catch (e) { console.error('Loan auto-update failed:', e); }
     var today = new Date(); today.setHours(0, 0, 0, 0); var tIso = iso(today), S = stamps(), notes = [];
     var sum = function (type) { return (db || []).reduce(function (s, r) { return s + (r && r.type === type && String(r.date || '').slice(0, 10) <= tIso ? (Number(r.amount) || 0) : 0); }, 0); };
     var inc = sum('Income'), exp = sum('Expense'), inv = sum('Investment'), emiPaid = sum('Loan');
@@ -48317,6 +48361,28 @@ body:has(#notifications-modal.fos-drawer-in) #fos-toast-stack { opacity:0; point
 #notifications-modal.fos-drawer-in .modal-box { transform:none; }
 #notifications-modal .modal-box > div:first-child { position:sticky; top:-1px; z-index:2; padding-top:4px; padding-bottom:10px; background:inherit; }
 @media (max-width:640px) { #notifications-modal .modal-box { width:100vw !important; border-radius:0 !important; } }
+/* The header (title, Reminder, Clear All, Close) sits above the list instead of inside it: the list scrolls in its own
+   area underneath, so nothing ever scrolls through or above the header. On phones the header starts below the
+   status bar / notch so its buttons can be tapped. */
+#notifications-modal .modal-box { display:flex !important; flex-direction:column; overflow:hidden !important; padding:0 !important; }
+#notifications-modal .modal-box > div.notif-head:first-child { position:relative !important; top:auto !important; flex:none; margin:0 !important; z-index:2;
+  padding:calc(env(safe-area-inset-top, 0px) + 20px) 22px 14px !important; background:transparent !important;
+  border-bottom:1px solid var(--glass-border); flex-wrap:wrap; gap:10px; }
+#notifications-modal .modal-box > div.notif-head:first-child > div:last-child { flex-wrap:wrap; }
+#notifications-modal .notif-scroll { flex:1 1 auto; min-height:0; overflow-y:auto; overscroll-behavior:contain; -webkit-overflow-scrolling:touch;
+  padding:14px 22px calc(env(safe-area-inset-bottom, 0px) + 22px); scrollbar-width:none; }
+#notifications-modal .notif-scroll::-webkit-scrollbar { display:none; }
+#notifications-modal .notif-head.scrolled { box-shadow:0 8px 18px -10px rgba(0,0,0,.6); }
+body.light-mode #notifications-modal .notif-head.scrolled { box-shadow:0 8px 16px -12px rgba(15,23,42,.35); }
+@media (max-width:900px) {
+  #notifications-modal .modal-box > div.notif-head:first-child { padding:calc(env(safe-area-inset-top, 0px) + 16px) 16px 12px !important; }
+  #notifications-modal .modal-box > div.notif-head:first-child button { min-height:42px; padding:8px 14px !important; font-size:.82rem !important; }
+  #notifications-modal .notif-scroll { padding:12px 16px calc(env(safe-area-inset-bottom, 0px) + 20px); }
+}
+@media (max-width:520px) {
+  #notifications-modal .modal-box > div.notif-head:first-child > div:last-child { width:100%; }
+  #notifications-modal .modal-box > div.notif-head:first-child > div:last-child > button { flex:1 1 0; justify-content:center; white-space:nowrap; }
+}
 
 /* ── accordion sidebar: smoother open/close with items fading in turn ── */
 .nav-group { transition:grid-template-rows .34s cubic-bezier(.22,1,.36,1), margin-bottom .34s cubic-bezier(.22,1,.36,1) !important; }
@@ -48362,6 +48428,8 @@ body.pdf-export-mode .view-section .fxr { opacity:1 !important; transform:none !
     requestAnimationFrame(function () { requestAnimationFrame(function () { modal.classList.add('fos-drawer-in'); }); });
     var bell = $('fin-nav-notifications'); if (bell) bell.setAttribute('aria-expanded', 'true');
   };
+  (function () { var sc = modal && modal.querySelector('.notif-scroll'), hd = modal && modal.querySelector('.notif-head');
+    if (sc && hd) sc.addEventListener('scroll', function () { hd.classList.toggle('scrolled', sc.scrollTop > 2); }, { passive: true }); })();
   window.fosNotifClose = function () {
     if (!modal || !isOpen()) return;
     modal.classList.remove('fos-drawer-in');
@@ -49326,8 +49394,8 @@ body.light-mode .fai-pri.p3 { color:#b91c1c; } body.light-mode .fai-pri.p2 { col
     var m = $('notifications-modal'); if (!m || $('fai-ins')) return;
     var box = m.querySelector('.modal-box'), rem = $('rem-panel'), list = $('notif-list-container'); if (!box || !list) return;
     var sec = document.createElement('section'); sec.className = 'fai-ins'; sec.id = 'fai-ins'; sec.setAttribute('aria-label', 'AI Insights');
-    box.insertBefore(sec, rem || list);
-    var h = document.createElement('div'); h.className = 'fai-notif-h'; h.innerHTML = '<i class="fas fa-bell"></i> Notifications'; box.insertBefore(h, list);
+    var at = rem || list; at.parentNode.insertBefore(sec, at);   // inside the scrolling list area, under the fixed header
+    var h = document.createElement('div'); h.className = 'fai-notif-h'; h.innerHTML = '<i class="fas fa-bell"></i> Notifications'; list.parentNode.insertBefore(h, list);
     sec.addEventListener('click', function (e) {
       var f = e.target.closest('[data-f]'); if (f) { filter = f.getAttribute('data-f'); renderInsights(); return; }
       var a = e.target.closest('[data-act]'); if (!a) return;
