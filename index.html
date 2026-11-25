@@ -11,7 +11,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="fos-integrity" content="926125651fdeb5a13742c6918d58ba4c1372deb4e95b9ede216832674580fd94">
+<meta name="fos-integrity" content="b1cdc4c4caee8b34af82a5cc9cb6907b792bc4ea2ab33f1a416f3ec567e7f0f8">
 <script id="fos-tamper-guard">
 /*! \u00a9 2026 MC Enterprise. Integrity check: detects a copy of this file that no longer matches the
     official release and locks it with a notice. This checks the FILE as served, not live memory --
@@ -9441,11 +9441,11 @@ function passAppLockGate() {
         <div class="panel-title fhs-title"><span><i class="fas fa-heart-pulse" style="margin-right:7px;color:var(--brand,#20CDB5)"></i>Financial Health Score</span><small id="dash-fhs-scope"></small></div>
         <div id="dash-fhs"></div>
       </div>
-      <!-- MONTH-END FORECAST -->
+      </div>
+      <!-- MONTH-END FORECAST — third box, full width under the breakdown + health score -->
       <div class="glass-panel txa-host" id="dash-fcs-panel">
         <div class="panel-title fhs-title"><span><i class="fas fa-calendar-check" style="margin-right:7px;color:var(--brand,#20CDB5)"></i>Month-End Forecast</span><small id="dash-fcs-scope"></small></div>
         <div id="dash-fcs"></div>
-      </div>
       </div>
       </div>
 
@@ -10399,8 +10399,8 @@ function passAppLockGate() {
                   <p class="ccx-tip-p" id="ccx-tip-p" aria-live="polite"></p>
                   <canvas class="ccx-tip-px" id="ccx-tip-px" aria-hidden="true"></canvas>
                 </div>
-                <div class="ccx-tips-foot">
-                  <button type="button" class="ccx-btn ccx-btn-ghost ccx-btn-sm" onclick="ccxNextTip()"><i class="fas fa-shuffle"></i> Another tip</button>
+                <div class="ccx-tips-foot ccx-tips-auto" aria-hidden="true">
+                  <div class="ccx-tip-prog" id="ccx-tip-prog"><i></i></div>
                 </div>
               </aside>
             </div>
@@ -47166,123 +47166,123 @@ body.light-mode .ccx-dlg { background:#fff; color:#0f172a; border-color:rgba(15,
 // later circulars). Each: topic, headline, body. Keep entries unique — ids are their index.
 const CCX_TIPS = [
   // Credit utilisation
-  ['Credit utilisation', 'Aim to keep utilisation under 30%', 'Utilisation is your balance divided by your credit limit. Lenders generally see under 30% as healthy, and under 10% as excellent.'],
-  ['Credit utilisation', 'Overall and per-card ratios both count', 'Bureaus look at your total utilisation across all cards and at each card on its own. One maxed-out card can still hurt even when your overall ratio looks fine.'],
-  ['Credit utilisation', 'Pay before the statement is generated', 'The balance reported to credit bureaus is usually the one on your statement. Paying part of it before the statement date lowers the utilisation lenders see.'],
-  ['Credit utilisation', 'A higher limit can lower your ratio', 'If your spending stays the same, a higher credit limit reduces utilisation. That only helps if the extra room does not tempt you into spending more.'],
+  ['Credit utilisation', 'Aim to keep utilisation under 30%', 'Utilisation is your balance divided by your credit limit. Lenders generally see under 30% as healthy, and under 10% as excellent. On a ₹1 lakh limit that means keeping the statement balance below ₹30,000. If you regularly spend more, pay part of the bill mid-cycle so the reported balance stays low.'],
+  ['Credit utilisation', 'Overall and per-card ratios both count', 'Bureaus look at your total utilisation across all cards and at each card on its own. One maxed-out card can still hurt even when your overall ratio looks fine. Check each card in the list above, not just the total. Moving spending from a card near its limit to one with more room is an easy way to bring every card under 30%.'],
+  ['Credit utilisation', 'Pay before the statement is generated', 'The balance reported to credit bureaus is usually the one on your statement. Paying part of it before the statement date lowers the utilisation lenders see. Pay a few days before the statement date, then pay the rest by the due date. You still get the interest-free period, and the bureau sees a much smaller balance.'],
+  ['Credit utilisation', 'A higher limit can lower your ratio', 'If your spending stays the same, a higher credit limit reduces utilisation. That only helps if the extra room does not tempt you into spending more. Ask your issuer for an increase once you have a year or so of on-time payments. Treat the new limit as a buffer, not as extra spending money.'],
   // Billing cycles
-  ['Billing cycles', 'What a billing cycle is', 'A billing cycle is the period, usually about 30 days, in which your purchases are collected into one statement. Spending early in the cycle gets the longest interest-free period.'],
-  ['Billing cycles', 'You can change your billing cycle', 'RBI rules let cardholders change their billing cycle at least once. This is useful for lining the due date up with your salary date.'],
-  ['Billing cycles', 'Interest-free periods vary', 'Most Indian cards give roughly 20 to 50 interest-free days, depending on when in the cycle you made the purchase. This only applies if last month\'s bill was paid in full.'],
+  ['Billing cycles', 'What a billing cycle is', 'A billing cycle is the period, usually about 30 days, in which your purchases are collected into one statement. Spending early in the cycle gets the longest interest-free period. A purchase on the first day of the cycle can be interest-free for up to about 50 days; one on the last day may get only 15–20. Timing large purchases just after the statement date stretches that free period.'],
+  ['Billing cycles', 'You can change your billing cycle', 'RBI rules let cardholders change their billing cycle at least once. This is useful for lining the due date up with your salary date. Ask through the app, phone banking or a branch. Picking a statement date a few days after your salary arrives means the money is always there when the bill is due.'],
+  ['Billing cycles', 'Interest-free periods vary', 'Most Indian cards give roughly 20 to 50 interest-free days, depending on when in the cycle you made the purchase. This only applies if last month\'s bill was paid in full. If you carry even a small balance forward, new purchases usually start charging interest from day one. Clearing the full amount restores the interest-free period from the next cycle.'],
   // Statement generation
-  ['Statement dates', 'Read every statement line by line', 'Check each statement for charges you do not recognise, duplicate entries and unexpected fees. Spotting an error early makes a dispute much easier.'],
-  ['Statement dates', 'Statement date and due date are different', 'The statement date closes the cycle and fixes your bill. The due date, usually 15 to 20 days later, is the last day to pay without a late fee.'],
-  ['Statement dates', 'Statements must be sent on time', 'RBI requires issuers to send statements early enough to give you at least 15 days to pay before interest starts.'],
+  ['Statement dates', 'Read every statement line by line', 'Check each statement for charges you do not recognise, duplicate entries and unexpected fees. Spotting an error early makes a dispute much easier. Look out especially for small recurring charges, annual fees you did not expect and foreign transactions you did not make. Most issuers let you raise a dispute straight from the app.'],
+  ['Statement dates', 'Statement date and due date are different', 'The statement date closes the cycle and fixes your bill. The due date, usually 15 to 20 days later, is the last day to pay without a late fee. Note both dates for every card. Planning payments around the due date avoids late fees, and planning spending around the statement date keeps utilisation low.'],
+  ['Statement dates', 'Statements must be sent on time', 'RBI requires issuers to send statements early enough to give you at least 15 days to pay before interest starts. If a statement arrives late or not at all, tell your issuer in writing. You should not be charged a late fee or interest because they sent the bill late.'],
   // Payment due dates
-  ['Payment due dates', 'Set up autopay for the full amount', 'A standing instruction to pay the total amount due means you never miss a date. Autopay set to the minimum amount still leaves interest piling up.'],
-  ['Payment due dates', 'Allow time for the payment to post', 'UPI and in-app payments usually post quickly, but some channels can take a working day or more. Paying two or three days before the due date is a safe habit.'],
-  ['Payment due dates', 'There is a 3-day buffer, not a habit', 'Under RBI rules, a late fee applies and a payment is reported as past due only after it is more than three days overdue. Treat this buffer as a safety net, not a plan.'],
+  ['Payment due dates', 'Set up autopay for the full amount', 'A standing instruction to pay the total amount due means you never miss a date. Autopay set to the minimum amount still leaves interest piling up. Keep enough in the linked account a day before the due date, because a failed autopay counts as a missed payment. Check the first autopay debit to make sure it ran correctly.'],
+  ['Payment due dates', 'Allow time for the payment to post', 'UPI and in-app payments usually post quickly, but some channels can take a working day or more. Paying two or three days before the due date is a safe habit. Weekends and bank holidays can delay NEFT and some biller payments. Paying from your issuer\'s own app or by UPI to the card is usually the fastest route.'],
+  ['Payment due dates', 'There is a 3-day buffer, not a habit', 'Under RBI rules, a late fee applies and a payment is reported as past due only after it is more than three days overdue. Treat this buffer as a safety net, not a plan. Interest is still charged from the due date even inside those three days, and some issuers charge it from the transaction date. Paying on time is always cheaper.'],
   // Minimum payments
-  ['Minimum payments', 'Minimum due is not a payment plan', 'The minimum amount due is often around 5% of the balance plus any EMIs and fees. Paying only this avoids a late fee but not interest.'],
-  ['Minimum payments', 'Minimum payment removes your interest-free days', 'Once you carry a balance, interest is charged from each transaction date and new purchases usually lose their interest-free period until you clear the full amount.'],
-  ['Minimum payments', 'Why your debt can barely move', 'At typical card rates, paying only the minimum means most of each payment goes to interest. A ₹1 lakh balance can take years to clear that way.'],
+  ['Minimum payments', 'Minimum due is not a payment plan', 'The minimum amount due is often around 5% of the balance plus any EMIs and fees. Paying only this avoids a late fee but not interest. Paying only the minimum keeps the account in good standing but lets interest grow every month. If you cannot pay in full, pay as much above the minimum as you can.'],
+  ['Minimum payments', 'Minimum payment removes your interest-free days', 'Once you carry a balance, interest is charged from each transaction date and new purchases usually lose their interest-free period until you clear the full amount. That is why a small leftover balance can make the next bill much bigger than expected. Clear the full outstanding once to get back to interest-free spending.'],
+  ['Minimum payments', 'Why your debt can barely move', 'At typical card rates, paying only the minimum means most of each payment goes to interest. A ₹1 lakh balance can take years to clear that way. If a balance has stopped shrinking, stop using the card for new purchases and set a fixed monthly repayment well above the minimum, or move the balance to a cheaper loan.'],
   // Interest & finance charges
-  ['Interest & charges', 'Card interest is expensive', 'Revolving interest on Indian cards is often around 3% to 3.75% a month, which works out to roughly 36% to 45% a year. That is far higher than most personal loans.'],
-  ['Interest & charges', 'Cash withdrawals cost twice', 'Withdrawing cash on a credit card usually incurs a cash-advance fee, and interest starts from the day of withdrawal with no interest-free period.'],
-  ['Interest & charges', 'GST applies to card charges', 'GST at 18% is added to interest, late fees, annual fees and most other card charges, which makes the real cost higher than the quoted rate.'],
-  ['Interest & charges', 'Late charges apply only to what is unpaid', 'RBI rules say late payment and related charges can only be levied on the amount still outstanding after the due date, not on the whole statement balance.'],
+  ['Interest & charges', 'Card interest is expensive', 'Revolving interest on Indian cards is often around 3% to 3.75% a month, which works out to roughly 36% to 45% a year. That is far higher than most personal loans. Carrying ₹50,000 for a year at 3.5% a month costs roughly ₹21,000 in interest before GST. A personal loan or even a card EMI is usually far cheaper for planned borrowing.'],
+  ['Interest & charges', 'Cash withdrawals cost twice', 'Withdrawing cash on a credit card usually incurs a cash-advance fee, and interest starts from the day of withdrawal with no interest-free period. The fee is commonly 2.5% to 3.5% of the amount, with a minimum of a few hundred rupees, plus GST. Use a debit card or UPI for cash needs instead.'],
+  ['Interest & charges', 'GST applies to card charges', 'GST at 18% is added to interest, late fees, annual fees and most other card charges, which makes the real cost higher than the quoted rate. So a ₹500 late fee actually costs ₹590, and ₹1,000 of interest costs ₹1,180. Add GST whenever you work out what a fee or interest charge really costs.'],
+  ['Interest & charges', 'Late charges apply only to what is unpaid', 'RBI rules say late payment and related charges can only be levied on the amount still outstanding after the due date, not on the whole statement balance. If you paid most of your bill on time, the late fee and interest should apply only to the part you missed. Check that your statement shows this, and raise it with the issuer if not.'],
   // Credit scores & history
-  ['Credit scores', 'Payment history matters most', 'Paying on time, every time, is the single biggest factor in your credit score. One missed payment can stay on your report for years.'],
-  ['Credit scores', 'Old cards help your history', 'The age of your credit history counts. Closing your oldest card can shorten your history and cut your total limit, which raises utilisation.'],
-  ['Credit scores', 'Space out credit applications', 'Each new card or loan application usually triggers a hard enquiry. Several in a short period can make you look credit-hungry to lenders.'],
-  ['Credit scores', 'A secured card can build credit', 'A card issued against a fixed deposit is a low-risk way to start a credit history if you have none, as long as you pay it on time.'],
+  ['Credit scores', 'Payment history matters most', 'Paying on time, every time, is the single biggest factor in your credit score. One missed payment can stay on your report for years. A single payment more than 30 days late can lower a good score sharply. Autopay for at least the minimum is a useful backup even if you normally pay in full by hand.'],
+  ['Credit scores', 'Old cards help your history', 'The age of your credit history counts. Closing your oldest card can shorten your history and cut your total limit, which raises utilisation. If an old card has an annual fee, ask to move it to a free variant instead of closing it. You keep the account age and the limit without paying for a card you rarely use.'],
+  ['Credit scores', 'Space out credit applications', 'Each new card or loan application usually triggers a hard enquiry. Several in a short period can make you look credit-hungry to lenders. Leaving a few months between applications is a sensible gap. Use pre-approved offers or eligibility checks, which usually do not affect your score, before you apply.'],
+  ['Credit scores', 'A secured card can build credit', 'A card issued against a fixed deposit is a low-risk way to start a credit history if you have none, as long as you pay it on time. Use it for a few regular bills and pay in full every month. After 6 to 12 months of clean history, many issuers will offer you an unsecured card.'],
   // Rewards & cashback
-  ['Rewards & cashback', 'Rewards never beat interest', 'Reward rates are typically 1% to 5%. Carrying a balance at 36% or more a year wipes out any rewards many times over.'],
-  ['Rewards & cashback', 'Check what earns rewards', 'Many cards exclude or cap rewards on rent, wallet loads, fuel, insurance or government payments. Check your card\'s terms before relying on them.'],
-  ['Rewards & cashback', 'Reward points can expire', 'Points on many cards expire after a set period, and issuers can change redemption values. Redeem regularly instead of saving points indefinitely.'],
-  ['Rewards & cashback', 'Points are worth different amounts', 'One reward point might be worth ₹0.25 as a voucher and ₹1 or more as air miles. Compare redemption options before you redeem.'],
+  ['Rewards & cashback', 'Rewards never beat interest', 'Reward rates are typically 1% to 5%. Carrying a balance at 36% or more a year wipes out any rewards many times over. Earning 2% cashback on ₹20,000 gives you ₹400, while one month of interest on the same amount is about ₹700 plus GST. Pay in full first, then chase rewards.'],
+  ['Rewards & cashback', 'Check what earns rewards', 'Many cards exclude or cap rewards on rent, wallet loads, fuel, insurance or government payments. Check your card\'s terms before relying on them. Transactions are classified by the merchant\'s category code, so a payment may not earn what you expect. If rewards matter for a big purchase, check the category first.'],
+  ['Rewards & cashback', 'Reward points can expire', 'Points on many cards expire after a set period, and issuers can change redemption values. Redeem regularly instead of saving points indefinitely. Some cards expire points after two or three years; others keep them while the card is active. Closing a card usually cancels any points you have not redeemed.'],
+  ['Rewards & cashback', 'Points are worth different amounts', 'One reward point might be worth ₹0.25 as a voucher and ₹1 or more as air miles. Compare redemption options before you redeem. Statement credit and vouchers are simple but often give the lowest value. Work out the rupee value of each point before redeeming, and avoid paying a redemption fee for a poor rate.'],
   // Annual fees & hidden charges
-  ['Fees & charges', 'Ask about fee waivers', 'Many cards waive the annual fee when you spend above a set amount in a year. If yours does not, ask the issuer for a waiver or a switch to a free variant.'],
-  ['Fees & charges', 'Foreign spending carries a markup', 'International and many foreign-currency online payments add a forex markup, commonly 2% to 3.5%, plus GST, on top of the exchange rate.'],
-  ['Fees & charges', 'No over-limit charges without consent', 'RBI rules require your explicit consent before an issuer lets you go over your limit. Without that consent, over-limit charges should not be applied.'],
+  ['Fees & charges', 'Ask about fee waivers', 'Many cards waive the annual fee when you spend above a set amount in a year. If yours does not, ask the issuer for a waiver or a switch to a free variant. If you will not reach the spending target, ask before the fee is charged. Issuers often waive the fee or offer a lifetime-free card to keep a customer with a good payment record.'],
+  ['Fees & charges', 'Foreign spending carries a markup', 'International and many foreign-currency online payments add a forex markup, commonly 2% to 3.5%, plus GST, on top of the exchange rate. On ₹1 lakh of overseas spending, a 3.5% markup plus GST adds over ₹4,000. A card with a low or zero forex markup is worth having if you travel or shop abroad often.'],
+  ['Fees & charges', 'No over-limit charges without consent', 'RBI rules require your explicit consent before an issuer lets you go over your limit. Without that consent, over-limit charges should not be applied. If you have not opted in, a transaction over your limit should simply be declined. Check your app\'s settings and switch the over-limit option off if it is on.'],
   // Security
-  ['Card security', 'Never share OTP, CVV or PIN', 'No bank, card network or government agency will ask for your OTP, CVV or PIN. Anyone who asks is attempting fraud.'],
-  ['Card security', 'Turn off channels you do not use', 'Your card app lets you switch online, international and contactless use on or off and set limits for each. Keep anything you do not use switched off.'],
-  ['Card security', 'Tokenisation protects saved cards', 'Since October 2022, merchants cannot store your card number. Saving a card now creates a token, so a merchant breach does not expose your real number.'],
-  ['Card security', 'Contactless has a PIN-free cap', 'Tap-to-pay payments up to ₹5,000 usually need no PIN. Above that a PIN is required, so keep contactless off if you rarely use it.'],
+  ['Card security', 'Never share OTP, CVV or PIN', 'No bank, card network or government agency will ask for your OTP, CVV or PIN. Anyone who asks is attempting fraud. Fraudsters often pose as bank staff, delivery agents or government officials and create urgency. Hang up, and never read out a code sent to your phone.'],
+  ['Card security', 'Turn off channels you do not use', 'Your card app lets you switch online, international and contactless use on or off and set limits for each. Keep anything you do not use switched off. Switch international use on only before a trip and off again when you return. Lowering online and contactless limits also caps the damage if your card details are ever stolen.'],
+  ['Card security', 'Tokenisation protects saved cards', 'Since October 2022, merchants cannot store your card number. Saving a card now creates a token, so a merchant breach does not expose your real number. A token works only with that merchant, so you may need to save your card again on each site. You can see and remove tokens in your card app.'],
+  ['Card security', 'Contactless has a PIN-free cap', 'Tap-to-pay payments up to ₹5,000 usually need no PIN. Above that a PIN is required, so keep contactless off if you rarely use it. Several small tap payments can add up before you notice. Turn on transaction alerts and set a contactless limit in the app that suits how you use the card.'],
   // Fraud prevention
-  ['Fraud prevention', 'Report fraud within 3 working days', 'Under RBI customer protection rules, reporting an unauthorised electronic transaction within three working days generally gives you zero liability when the fault is not yours.'],
-  ['Fraud prevention', 'Call 1930 for cyber fraud', 'Report online financial fraud on the 1930 helpline or at cybercrime.gov.in as quickly as possible, alongside blocking the card with your bank.'],
-  ['Fraud prevention', 'Be wary of links and screen-sharing', 'Fraudsters send fake reward, KYC or refund links and ask you to install screen-sharing apps. Only use your bank\'s official app or website.'],
-  ['Fraud prevention', 'Block a lost card at once', 'Blocking a lost or stolen card in the app or through the helpline takes seconds and stops misuse. You can usually get a replacement with the same account.'],
+  ['Fraud prevention', 'Report fraud within 3 working days', 'Under RBI customer protection rules, reporting an unauthorised electronic transaction within three working days generally gives you zero liability when the fault is not yours. Reporting within 4 to 7 days can leave you liable for part of the loss, and later still depends on the bank\'s policy. Report the moment you see a transaction you did not make.'],
+  ['Fraud prevention', 'Call 1930 for cyber fraud', 'Report online financial fraud on the 1930 helpline or at cybercrime.gov.in as quickly as possible, alongside blocking the card with your bank. Calling quickly gives the best chance of the money being frozen before it moves on. Keep the complaint number from 1930 and the one from your bank.'],
+  ['Fraud prevention', 'Be wary of links and screen-sharing', 'Fraudsters send fake reward, KYC or refund links and ask you to install screen-sharing apps. Only use your bank\'s official app or website. Screen-sharing apps let someone watch you type and read your OTPs. Banks will never ask you to install one to receive a refund or fix your KYC.'],
+  ['Fraud prevention', 'Block a lost card at once', 'Blocking a lost or stolen card in the app or through the helpline takes seconds and stops misuse. You can usually get a replacement with the same account. Blocking is free and can be undone if the card turns up. Check your recent transactions afterwards and dispute anything you do not recognise.'],
   // Responsible usage
-  ['Responsible use', 'Spend as if it were debit', 'Only put on the card what you could pay from your bank account today. That keeps rewards a bonus and keeps you clear of debt.'],
-  ['Responsible use', 'Fewer cards are easier to manage', 'Each extra card adds due dates and fees. Two or three well-chosen cards are usually enough for most people.'],
-  ['Responsible use', 'Use a dormant card now and then', 'Issuers can close cards that go unused for a long time, which can reduce your total limit. A small purchase you pay off right away keeps a card active.'],
+  ['Responsible use', 'Spend as if it were debit', 'Only put on the card what you could pay from your bank account today. That keeps rewards a bonus and keeps you clear of debt. One simple method is to move the amount out of your savings into a separate account each time you spend on the card, so the bill is always covered.'],
+  ['Responsible use', 'Fewer cards are easier to manage', 'Each extra card adds due dates and fees. Two or three well-chosen cards are usually enough for most people. Each card should earn its place by giving rewards, benefits or a backup limit you actually use. Close cards that only cost fees, starting with the newest ones.'],
+  ['Responsible use', 'Use a dormant card now and then', 'Issuers can close cards that go unused for a long time, which can reduce your total limit. A small purchase you pay off right away keeps a card active. Issuers can close a card that has not been used for over a year, after notifying you. One small purchase every few months keeps it active and keeps your total limit.'],
   // Credit limits & available balance
-  ['Credit limits', 'Limit increases need your consent', 'RBI rules say issuers must not raise your credit limit without your explicit consent. You can also ask for a lower limit at any time.'],
-  ['Credit limits', 'Add-on cards share your limit', 'Add-on cards for family members draw from the same limit, and the primary cardholder is responsible for all the spending.'],
-  ['Credit limits', 'Available credit is not spare money', 'Your available balance is limit minus outstanding, and it may already include blocked amounts such as hotel or fuel pre-authorisations.'],
+  ['Credit limits', 'Limit increases need your consent', 'RBI rules say issuers must not raise your credit limit without your explicit consent. You can also ask for a lower limit at any time. Only accept an increase you will not be tempted to use. A lower limit can help some people control spending, even if it slightly raises utilisation.'],
+  ['Credit limits', 'Add-on cards share your limit', 'Add-on cards for family members draw from the same limit, and the primary cardholder is responsible for all the spending. Set separate spending limits for add-on cards in the app where your issuer allows it, and review their transactions on your statement each month.'],
+  ['Credit limits', 'Available credit is not spare money', 'Your available balance is limit minus outstanding, and it may already include blocked amounts such as hotel or fuel pre-authorisations. Hotels, car rentals and fuel pumps can block more than the final bill for several days. Keep a cushion so a pre-authorisation does not push a card near its limit.'],
   // EMI conversions
-  ['EMI conversions', 'Read the fine print on EMIs', 'Converting a purchase to EMI usually adds interest, a processing fee and GST, and closing it early may carry a foreclosure charge.'],
-  ['EMI conversions', 'No-cost EMI is not always free', 'With no-cost EMI the interest is usually given back as an upfront discount, but GST on that interest and any processing fee are still yours to pay.'],
-  ['EMI conversions', 'EMIs lock up your limit', 'The full principal of an EMI usually stays blocked from your available limit and is released gradually as you repay.'],
+  ['EMI conversions', 'Read the fine print on EMIs', 'Converting a purchase to EMI usually adds interest, a processing fee and GST, and closing it early may carry a foreclosure charge. Look at the total amount you will repay, not just the monthly figure. A 13% to 16% EMI rate plus a 1% to 2% processing fee adds up quickly on a large purchase.'],
+  ['EMI conversions', 'No-cost EMI is not always free', 'With no-cost EMI the interest is usually given back as an upfront discount, but GST on that interest and any processing fee are still yours to pay. It can also mean giving up a cash discount you would get by paying upfront. Compare the final price both ways before you choose the EMI option.'],
+  ['EMI conversions', 'EMIs lock up your limit', 'The full principal of an EMI usually stays blocked from your available limit and is released gradually as you repay. A ₹60,000 phone on EMI can block ₹60,000 of your limit at first, which raises utilisation. Keep this in mind before converting several purchases at once.'],
   // Late payments
-  ['Late payments', 'Late fees are slab-based', 'Late payment fees usually rise with the outstanding amount and include GST. Missing a payment can also cost you interest and a mark on your report.'],
+  ['Late payments', 'Late fees are slab-based', 'Late payment fees usually rise with the outstanding amount and include GST. Missing a payment can also cost you interest and a mark on your report. A small missed bill can still attract a fee of a few hundred rupees plus GST. Setting a reminder a few days before every due date is the cheapest protection.'],
   // Credit report monitoring
-  ['Credit reports', 'Get your free reports every year', 'TransUnion CIBIL, Experian, Equifax and CRIF High Mark each give you one free full credit report a year. Reports are now refreshed at least every 15 days, so check for errors and raise disputes promptly.']
+  ['Credit reports', 'Get your free reports every year', 'TransUnion CIBIL, Experian, Equifax and CRIF High Mark each give you one free full credit report a year. Reports are now refreshed at least every 15 days, so check for errors and raise disputes promptly. Spreading the four free reports across the year lets you check your credit about once a quarter at no cost.']
   ,
   // ── second set of 50 ──
-  ['Credit utilisation', 'A bad month can be repaired quickly', 'Utilisation is based on the balances reported to bureaus, so a high month stops counting against you once the balance is paid down and reported lower.'],
-  ['Credit utilisation', 'Spread large purchases out', 'If one big purchase would push a single card past 50%, splitting it across cards, or paying part of it straight away, keeps each card\'s utilisation lower.'],
-  ['Credit utilisation', 'Zero utilisation isn\'t the goal', 'Using a card lightly and paying it off in full shows active, responsible use. A small balance cleared every month is perfectly healthy.'],
-  ['Billing cycles', 'Note your cycle dates once', 'Most card cycles run about 30 days, and the exact start and end dates are printed on every statement. Note them once and plan big purchases around them.'],
-  ['Billing cycles', 'Refunds can land in a later cycle', 'A refund credited after your statement is generated usually appears on the next one. Pay the current bill as printed rather than waiting for the refund.'],
-  ['Statement dates', 'Keep your e-statements', 'E-statements arrive faster than paper and are easy to search. Keep the PDFs; they are your record if you ever need to dispute a charge.'],
-  ['Statement dates', 'Check the rewards summary', 'Statements list points earned, redeemed and about to expire. A quick look each month stops points from lapsing unnoticed.'],
-  ['Statement dates', 'Unbilled spends come next month', 'Purchases made after the statement date show as unbilled in your app. They will appear on the next statement, with their own due date.'],
-  ['Payment due dates', 'Paying early never hurts', 'There is no penalty for paying before the due date. Paying as soon as the statement arrives removes the risk of forgetting.'],
-  ['Payment due dates', 'Keep proof of every payment', 'Save the UPI or NEFT reference for each card payment. If a payment is credited late, the reference helps you get a late fee reversed.'],
-  ['Minimum payments', 'Every rupee above the minimum helps', 'Interest is charged on what you leave unpaid, so anything you pay above the minimum lowers next month\'s interest straight away.'],
-  ['Minimum payments', 'Partial payments follow a set order', 'Issuers apply part-payments in the order set out in their terms, usually taxes and fees first and the purchase balance last. Paying in full avoids the issue entirely.'],
-  ['Interest & charges', 'Fuel surcharge waivers have caps', 'Most cards waive the fuel surcharge only within a set transaction range and up to a monthly limit. Check the cap before relying on it.'],
-  ['Interest & charges', 'Pay abroad in the local currency', 'When a terminal or website offers to charge you in rupees, choose the local currency instead. The on-the-spot conversion usually uses a worse rate.'],
-  ['Interest & charges', 'Read balance transfer offers closely', 'Moving a balance to a lower-rate card can save interest, but check the processing fee and the rate that applies once the offer period ends.'],
-  ['Credit scores', 'Checking your own score is safe', 'Looking up your own credit report or score is a soft enquiry and does not lower it. Only lenders checking you for new credit count.'],
-  ['Credit scores', 'A mix of credit helps over time', 'Handling both loans and cards well shows lenders you can manage different kinds of credit. Never borrow just to improve your mix.'],
-  ['Credit scores', '"Settled" hurts more than "closed"', 'Settling a card for less than you owe is reported as settled, which damages your score far more than paying in full and closing the account.'],
-  ['Credit scores', 'Co-signing makes you responsible', 'If you guarantee or co-apply for someone else\'s loan, their missed payments can show up on your credit report too.'],
-  ['Rewards & cashback', 'Match the card to your spending', 'A card that rewards what you actually spend on, such as groceries, travel or online shopping, usually beats a higher headline rate elsewhere.'],
-  ['Rewards & cashback', 'Watch the monthly reward caps', 'Many cards cap accelerated rewards per month or per category. Spending beyond the cap earns only the base rate.'],
-  ['Rewards & cashback', 'Don\'t chase milestones', 'Spend milestones pay off only if you reach them naturally. Spending extra just to hit one usually costs more than the reward.'],
-  ['Rewards & cashback', 'Lounge access often needs spending', 'Many cards now require a minimum spend in the previous quarter before they allow airport lounge visits. Check before you travel.'],
-  ['Fees & charges', 'Read the MITC before applying', 'The Most Important Terms and Conditions document lists every fee and interest rate. Issuers must share it, and it takes five minutes to read.'],
-  ['Fees & charges', 'Rent payments may carry a fee', 'Several issuers charge a fee, often around 1%, on rent paid by card and on some large utility or wallet payments.'],
-  ['Fees & charges', 'Replacements and add-ons can cost extra', 'Replacing a lost card or adding family members carries a fee on some cards. Check the fee schedule before ordering.'],
-  ['Fees & charges', 'Fee waivers depend on timing', 'Spend-based fee waivers usually count spending within your card year. Missing the target by the anniversary date means the fee is charged.'],
-  ['Card security', 'Turn on alerts for every transaction', 'SMS and email alerts for each transaction let you spot misuse within minutes. Keep your registered mobile number up to date.'],
-  ['Card security', 'Keep your card in sight', 'At shops and restaurants, keep your card where you can see it and shield the keypad when you enter your PIN.'],
-  ['Card security', 'Skip public Wi-Fi for payments', 'Use mobile data or a network you trust when shopping online. Public Wi-Fi makes it easier for others to intercept what you send.'],
-  ['Card security', 'Check for the .bank.in address', 'Indian banks now use the .bank.in domain for their websites. Check the address bar before entering any card details.'],
-  ['Fraud prevention', 'Call your bank back yourself', 'If someone calls claiming to be your bank, hang up and call the number printed on the back of your card.'],
-  ['Fraud prevention', 'Raise disputes with a reference', 'If a charge looks wrong, dispute it through the app or in writing and keep the reference number. Issuers must investigate within set timelines.'],
-  ['Fraud prevention', 'An unexpected OTP is a warning', 'An OTP you didn\'t ask for may mean someone is trying to use your card. Never share it, and tell your bank straight away.'],
-  ['Fraud prevention', 'The RBI Ombudsman can help', 'If your bank doesn\'t resolve a complaint within 30 days, or you\'re unhappy with its answer, you can complain to the RBI Ombudsman at cms.rbi.org.in.'],
-  ['Responsible use', 'Set a monthly card budget', 'Decide each month how much card spending your income can clear in full, and track your spending against that number.'],
-  ['Responsible use', 'Don\'t pay one card with another', 'Using cash from one card to pay another only adds fees and interest. It moves the debt without reducing it.'],
-  ['Responsible use', 'Keep an emergency fund', 'Savings set aside for emergencies mean a sudden expense doesn\'t have to go on a card at around 40% interest.'],
-  ['Credit limits', 'The cash limit is smaller', 'Your cash withdrawal limit is usually only part of your total limit, and it draws on the same overall credit line.'],
-  ['Credit limits', 'Limits are reviewed over time', 'Issuers review limits based on income and repayment history. A record of full, on-time payments is the best case for an increase.'],
-  ['Credit limits', 'Going over the limit isn\'t free money', 'If you have opted in to over-limit spending, going past the limit can carry charges and pushes that card\'s utilisation above 100%.'],
-  ['EMI conversions', 'Compare EMI with a personal loan', 'For large amounts, a personal loan can cost less than a card EMI. Compare the total cost, including fees, before you choose.'],
-  ['EMI conversions', 'Missed EMIs count as missed dues', 'An EMI on a card is part of your card dues. Missing one attracts late charges and is reported to credit bureaus like any missed payment.'],
-  ['EMI conversions', 'Convert soon after you buy', 'Most issuers allow EMI conversion only within a limited window after the purchase, and some only before the statement is generated.'],
-  ['Late payments', 'Late fees add up quickly', 'A late fee, interest on the unpaid amount and GST on both can easily cost more than the payment you missed.'],
-  ['Late payments', 'Ask for a one-time waiver', 'If it\'s your first missed due date, ask your issuer to waive the late fee. Many will for customers with a good record.'],
-  ['Late payments', 'Clear an overdue amount fast', 'The longer a payment stays overdue, the worse it looks on your report. Bringing the account up to date quickly limits the damage.'],
-  ['Credit reports', 'Check the details, not just the score', 'Look for accounts you don\'t recognise, old addresses and incorrect late marks. Errors can be disputed directly with the bureau.'],
-  ['Credit reports', 'Make sure closed accounts show as closed', 'After repaying a loan or closing a card, check that your report shows it as closed, and keep the no-dues certificate.'],
-  ['Credit reports', 'Errors must be fixed within 30 days', 'RBI rules require lenders and credit bureaus to resolve credit report complaints within 30 days, and to pay compensation if they take longer.']
+  ['Credit utilisation', 'A bad month can be repaired quickly', 'Utilisation is based on the balances reported to bureaus, so a high month stops counting against you once the balance is paid down and reported lower. Lenders usually see your most recent balances, so paying down a high balance before you apply for a loan helps. Pay down first, then wait for the next report before applying.'],
+  ['Credit utilisation', 'Spread large purchases out', 'If one big purchase would push a single card past 50%, splitting it across cards, or paying part of it straight away, keeps each card\'s utilisation lower. An EMI or a part-payment straight after the purchase can also keep the reported balance low. Plan ahead for big expenses like travel, gadgets or insurance premiums.'],
+  ['Credit utilisation', 'Zero utilisation isn\'t the goal', 'Using a card lightly and paying it off in full shows active, responsible use. A small balance cleared every month is perfectly healthy. A card that shows no activity for months gives lenders little to go on. Putting one or two regular bills on it and paying in full keeps your history fresh.'],
+  ['Billing cycles', 'Note your cycle dates once', 'Most card cycles run about 30 days, and the exact start and end dates are printed on every statement. Note them once and plan big purchases around them. Add each card\'s statement and due dates to your calendar. FinanceOS reminders can help you track them in one place.'],
+  ['Billing cycles', 'Refunds can land in a later cycle', 'A refund credited after your statement is generated usually appears on the next one. Pay the current bill as printed rather than waiting for the refund. Not paying because a refund is on the way can lead to interest and late fees on the full amount. The refund will reduce your next bill, or leave a credit on the card.'],
+  ['Statement dates', 'Keep your e-statements', 'E-statements arrive faster than paper and are easy to search. Keep the PDFs; they are your record if you ever need to dispute a charge. Save them in one folder with the month in the file name. Old statements help when you dispute charges, apply for loans or file taxes.'],
+  ['Statement dates', 'Check the rewards summary', 'Statements list points earned, redeemed and about to expire. A quick look each month stops points from lapsing unnoticed. Make a note of points expiring in the next few months, and redeem them before you close or downgrade a card.'],
+  ['Statement dates', 'Unbilled spends come next month', 'Purchases made after the statement date show as unbilled in your app. They will appear on the next statement, with their own due date. Your available limit already reflects unbilled spending, even though you do not have to pay it yet. Count it when you plan next month\'s budget.'],
+  ['Payment due dates', 'Paying early never hurts', 'There is no penalty for paying before the due date. Paying as soon as the statement arrives removes the risk of forgetting. Paying during the cycle can also lower the balance reported to bureaus. Some people pay weekly to keep utilisation and their bill under control.'],
+  ['Payment due dates', 'Keep proof of every payment', 'Save the UPI or NEFT reference for each card payment. If a payment is credited late, the reference helps you get a late fee reversed. A screenshot or bank SMS with the reference number and time is usually enough. Banks generally reverse a late fee when you can show you paid on time.'],
+  ['Minimum payments', 'Every rupee above the minimum helps', 'Interest is charged on what you leave unpaid, so anything you pay above the minimum lowers next month\'s interest straight away. Even a fixed extra amount each month, such as ₹2,000, can cut months off the time it takes to clear a balance and save a lot of interest.'],
+  ['Minimum payments', 'Partial payments follow a set order', 'Issuers apply part-payments in the order set out in their terms, usually taxes and fees first and the purchase balance last. Paying in full avoids the issue entirely. That means a part-payment can leave the expensive purchase balance growing. Ask your issuer, or check the card terms, to see how your payments are applied.'],
+  ['Interest & charges', 'Fuel surcharge waivers have caps', 'Most cards waive the fuel surcharge only within a set transaction range and up to a monthly limit. Check the cap before relying on it. A waiver often applies only to transactions between about ₹400 and ₹4,000 and up to a few hundred rupees a month. Large fill-ups beyond the cap pay the 1% surcharge.'],
+  ['Interest & charges', 'Pay abroad in the local currency', 'When a terminal or website offers to charge you in rupees, choose the local currency instead. The on-the-spot conversion usually uses a worse rate. This option is often called dynamic currency conversion. Your card network\'s rate plus your card\'s markup is usually cheaper than the merchant\'s conversion.'],
+  ['Interest & charges', 'Read balance transfer offers closely', 'Moving a balance to a lower-rate card can save interest, but check the processing fee and the rate that applies once the offer period ends. Make a plan to clear the transferred amount within the offer period, and avoid new spending on that card. Otherwise the balance can end up costing more than before.'],
+  ['Credit scores', 'Checking your own score is safe', 'Looking up your own credit report or score is a soft enquiry and does not lower it. Only lenders checking you for new credit count. Checking regularly helps you spot errors and fraud early. Use the bureaus\' own websites or trusted apps, and never pay for a free report.'],
+  ['Credit scores', 'A mix of credit helps over time', 'Handling both loans and cards well shows lenders you can manage different kinds of credit. Never borrow just to improve your mix. Mix is a smaller factor than payment history and utilisation. Paying everything on time does much more for your score than adding a new type of loan.'],
+  ['Credit scores', '"Settled" hurts more than "closed"', 'Settling a card for less than you owe is reported as settled, which damages your score far more than paying in full and closing the account. If you are struggling, talk to the issuer about a repayment plan before agreeing to a settlement. A "settled" status can make future loans harder to get for years.'],
+  ['Credit scores', 'Co-signing makes you responsible', 'If you guarantee or co-apply for someone else\'s loan, their missed payments can show up on your credit report too. Only guarantee a loan you could repay yourself if needed. A guarantee also counts against how much you can borrow in your own name.'],
+  ['Rewards & cashback', 'Match the card to your spending', 'A card that rewards what you actually spend on, such as groceries, travel or online shopping, usually beats a higher headline rate elsewhere. Look at three months of your own statements to see where your money actually goes. Pick the card that rewards your two or three biggest spending categories.'],
+  ['Rewards & cashback', 'Watch the monthly reward caps', 'Many cards cap accelerated rewards per month or per category. Spending beyond the cap earns only the base rate. Once you hit a card\'s cap, move the rest of that month\'s spending to another card. A quick check of the rewards terms shows where the caps are.'],
+  ['Rewards & cashback', 'Don\'t chase milestones', 'Spend milestones pay off only if you reach them naturally. Spending extra just to hit one usually costs more than the reward. Before a milestone deadline, check whether your normal planned spending will get you there. If it won\'t, let the bonus go rather than buying things you don\'t need.'],
+  ['Rewards & cashback', 'Lounge access often needs spending', 'Many cards now require a minimum spend in the previous quarter before they allow airport lounge visits. Check before you travel. Your card app or the issuer\'s website usually shows whether you have qualified for the current quarter. Check a week before you fly, so a denied entry does not surprise you.'],
+  ['Fees & charges', 'Read the MITC before applying', 'The Most Important Terms and Conditions document lists every fee and interest rate. Issuers must share it, and it takes five minutes to read. Pay particular attention to the interest rate, late payment slabs, cash advance fees, forex markup and any conditions for waiving the annual fee.'],
+  ['Fees & charges', 'Rent payments may carry a fee', 'Several issuers charge a fee, often around 1%, on rent paid by card and on some large utility or wallet payments. Rent payments may also earn few or no rewards. Work out whether the fee plus GST is worth the extra interest-free days before paying rent by card.'],
+  ['Fees & charges', 'Replacements and add-ons can cost extra', 'Replacing a lost card or adding family members carries a fee on some cards. Check the fee schedule before ordering. Many issuers offer free replacements for damaged cards or for upgrades. Ask before you pay, especially if the card was compromised through no fault of yours.'],
+  ['Fees & charges', 'Fee waivers depend on timing', 'Spend-based fee waivers usually count spending within your card year. Missing the target by the anniversary date means the fee is charged. Find your card\'s anniversary date in the app or on the statement, and check how much you have spent so far. Plan regular bills on the card if you are close to the target.'],
+  ['Card security', 'Turn on alerts for every transaction', 'SMS and email alerts for each transaction let you spot misuse within minutes. Keep your registered mobile number up to date. Read alerts as they arrive, not later. A charge you did not make is much easier to stop and dispute when you report it within minutes.'],
+  ['Card security', 'Keep your card in sight', 'At shops and restaurants, keep your card where you can see it and shield the keypad when you enter your PIN. Skimming devices can copy a card in seconds. Use tap or chip payments rather than handing the card over, and cover the keypad when you type your PIN.'],
+  ['Card security', 'Skip public Wi-Fi for payments', 'Use mobile data or a network you trust when shopping online. Public Wi-Fi makes it easier for others to intercept what you send. If you have to use public Wi-Fi, avoid entering card details. Wait until you are on mobile data or your home network to complete payments.'],
+  ['Card security', 'Check for the .bank.in address', 'Indian banks now use the .bank.in domain for their websites. Check the address bar before entering any card details. Fake bank websites often use addresses that look almost right. Bookmark your bank\'s real site or use its official app instead of following links.'],
+  ['Fraud prevention', 'Call your bank back yourself', 'If someone calls claiming to be your bank, hang up and call the number printed on the back of your card. Fraudsters can make a call appear to come from a real bank number. Genuine banks will never mind you hanging up and calling them back.'],
+  ['Fraud prevention', 'Raise disputes with a reference', 'If a charge looks wrong, dispute it through the app or in writing and keep the reference number. Issuers must investigate within set timelines. Card networks set time limits for disputes, often within a few months of the transaction, so act quickly. Note the date you raised it and follow up if there is no answer.'],
+  ['Fraud prevention', 'An unexpected OTP is a warning', 'An OTP you didn\'t ask for may mean someone is trying to use your card. Never share it, and tell your bank straight away. Block or freeze the card in your app if you suspect misuse, then change your online banking passwords. Check recent transactions for anything you did not make.'],
+  ['Fraud prevention', 'The RBI Ombudsman can help', 'If your bank doesn\'t resolve a complaint within 30 days, or you\'re unhappy with its answer, you can complain to the RBI Ombudsman at cms.rbi.org.in. The Integrated Ombudsman service is free. Keep your complaint reference and the bank\'s reply, as you will need both when you file.'],
+  ['Responsible use', 'Set a monthly card budget', 'Decide each month how much card spending your income can clear in full, and track your spending against that number. Add your card spending to your FinanceOS budget so you can see it before the statement arrives, not after.'],
+  ['Responsible use', 'Don\'t pay one card with another', 'Using cash from one card to pay another only adds fees and interest. It moves the debt without reducing it. Cash withdrawals from a card attract fees and interest from day one. If you can\'t clear a bill, talk to the issuer about an EMI or repayment plan instead.'],
+  ['Responsible use', 'Keep an emergency fund', 'Savings set aside for emergencies mean a sudden expense doesn\'t have to go on a card at around 40% interest. Three to six months of essential expenses is a common target. Even a small fund of one month\'s essentials stops many emergencies from turning into card debt.'],
+  ['Credit limits', 'The cash limit is smaller', 'Your cash withdrawal limit is usually only part of your total limit, and it draws on the same overall credit line. Cash withdrawals also attract interest from the first day and a fee each time. Check your card\'s cash limit in the app before an emergency, not during one.'],
+  ['Credit limits', 'Limits are reviewed over time', 'Issuers review limits based on income and repayment history. A record of full, on-time payments is the best case for an increase. If your income rises, update it with your issuer, since limits are based on what you earn and how you repay.'],
+  ['Credit limits', 'Going over the limit isn\'t free money', 'If you have opted in to over-limit spending, going past the limit can carry charges and pushes that card\'s utilisation above 100%. It also shows lenders a maxed-out account. Keep a buffer of at least 10% to 20% of the limit unused, especially near the statement date.'],
+  ['EMI conversions', 'Compare EMI with a personal loan', 'For large amounts, a personal loan can cost less than a card EMI. Compare the total cost, including fees, before you choose. Card EMIs are convenient for a single purchase, but personal loan rates for good borrowers can be lower, and a loan does not block your card limit.'],
+  ['EMI conversions', 'Missed EMIs count as missed dues', 'An EMI on a card is part of your card dues. Missing one attracts late charges and is reported to credit bureaus like any missed payment. Pay the total amount due on the statement, which includes the EMI instalment. Missing it can also cancel the EMI plan and make the whole balance payable.'],
+  ['EMI conversions', 'Convert soon after you buy', 'Most issuers allow EMI conversion only within a limited window after the purchase, and some only before the statement is generated. If you plan to convert, do it as soon as the purchase posts. After the statement is generated you may have to pay the purchase in full instead.'],
+  ['Late payments', 'Late fees add up quickly', 'A late fee, interest on the unpaid amount and GST on both can easily cost more than the payment you missed. On a ₹10,000 bill, a late fee, a month of interest and GST can easily come to over ₹1,000. A reminder or autopay costs nothing.'],
+  ['Late payments', 'Ask for a one-time waiver', 'If it\'s your first missed due date, ask your issuer to waive the late fee. Many will for customers with a good record. Pay the overdue amount first, then call or chat with the issuer and ask politely. Mention your on-time history; many issuers waive the fee once a year.'],
+  ['Late payments', 'Clear an overdue amount fast', 'The longer a payment stays overdue, the worse it looks on your report. Bringing the account up to date quickly limits the damage. Payments are usually reported to bureaus as 30, 60 or 90 days past due. Paying before the next reporting cycle can keep a small delay from becoming a serious mark.'],
+  ['Credit reports', 'Check the details, not just the score', 'Look for accounts you don\'t recognise, old addresses and incorrect late marks. Errors can be disputed directly with the bureau. An account that is not yours could mean identity fraud. Dispute it with the bureau quickly and inform the lender named on the report.'],
+  ['Credit reports', 'Make sure closed accounts show as closed', 'After repaying a loan or closing a card, check that your report shows it as closed, and keep the no-dues certificate. It can take one or two reporting cycles for a closure to show. If it still appears open after that, contact the lender with your no-dues certificate.'],
+  ['Credit reports', 'Errors must be fixed within 30 days', 'RBI rules require lenders and credit bureaus to resolve credit report complaints within 30 days, and to pay compensation if they take longer. Compensation is ₹100 for each day beyond the 30-day limit. Keep a copy of your dispute and the date you raised it.']
 ];
 
 /* ═══════════════════════════════════════════════════════════════════════
@@ -51119,5 +51119,60 @@ body.light-mode .pin-box { background:#f8fafc; border-color:#cbd5e1; color:#0f17
 #view-dashboard .kpi-grid:has(#kpi-balance) .kpi-cnt { position:absolute; right:12px; bottom:14px; }
 .kpi-cnt { font:700 .58rem 'DM Sans',sans-serif; letter-spacing:.04em; text-transform:none; padding:2px 7px; border-radius:99px; color:#f97316; background:rgba(249,115,22,.12); border:1px solid rgba(249,115,22,.3); white-space:nowrap; }
 </style>
+
+<style id="fos-dash-row2">
+/* Dashboard: Expense Category Breakdown | Financial Health Score side by side (equal), Month-End Forecast full width below */
+.fhs-row { grid-template-columns:minmax(0,1fr) minmax(0,1fr) !important; margin-bottom:var(--fxl-gap, 20px) !important; }
+@media (max-width:1180px) { .fhs-row { grid-template-columns:minmax(0,1fr) !important; } }
+#dash-fcs-panel { grid-column:1 / -1; margin:0 !important; min-width:0; }
+@media (min-width:1000px) {
+  #dash-fcs { display:grid; grid-template-columns:minmax(0,1.05fr) minmax(0,1fr); column-gap:32px; align-items:start; }
+  #dash-fcs > * { grid-column:1; }
+  #dash-fcs > .fcs-rows { grid-column:2; grid-row:1 / span 8; margin-top:0; }
+}
+</style>
+
+<style id="ccx-tips-auto-css">
+.ccx-tips-auto { display:block !important; padding-top:8px; }
+.ccx-tip-prog { height:3px; border-radius:99px; background:rgba(148,163,184,.16); overflow:hidden; }
+.ccx-tip-prog i { display:block; height:100%; width:0; background:rgb(var(--brand-rgb)); border-radius:inherit; }
+.ccx-tips.paused .ccx-tip-prog i { opacity:.45; }
+/* longer tips: the text takes the height it needs; the card animation fills whatever is left (never below 110px) */
+#ccx-tips .ccx-tip-stage { flex:0 0 auto !important; min-height:0 !important; }
+#ccx-tips .ccx-tip-fx { flex:1 1 auto !important; min-height:110px !important; }
+#ccx-tips { overflow:visible; }
+</style>
+<script id="ccx-tips-auto">
+/* Credit Card Knowledge: a new tip on every visit, then a fresh one every 15 s while the page is open.
+   Pauses while the pointer is over the panel (to finish reading), when the tab is hidden or the panel is off-screen. */
+(function () {
+  'use strict';
+  var EVERY = 15000, el = function () { return document.getElementById('ccx-tips'); }, bar = function () { var p = document.getElementById('ccx-tip-prog'); return p && p.firstElementChild; };
+  var acc = 0, last = 0, hover = false, onScreen = true;
+  function active() { var v = document.getElementById('view-ccutil'); return !!v && v.classList.contains('active') && !document.hidden && onScreen; }
+  function tick(now) {
+    var dt = last ? Math.min(250, now - last) : 0; last = now;
+    var a = active(), box = el();
+    if (box) box.classList.toggle('paused', hover);
+    if (a && !hover) acc += dt;
+    if (acc >= EVERY) { acc = 0; try { if (typeof ccxNextTip === 'function') ccxNextTip(); } catch (e) { } }
+    var b = bar(); if (b) b.style.width = (acc / EVERY * 100).toFixed(2) + '%';
+    requestAnimationFrame(tick);
+  }
+  function wire() {
+    var box = el(); if (!box) return;
+    box.addEventListener('pointerenter', function () { hover = true; });
+    box.addEventListener('pointerleave', function () { hover = false; });
+    box.addEventListener('focusin', function () { hover = true; });
+    box.addEventListener('focusout', function () { hover = false; });
+    if ('IntersectionObserver' in window) new IntersectionObserver(function (es) { onScreen = es[0].isIntersecting; }).observe(box);
+    requestAnimationFrame(tick);
+  }
+  // each visit to the page starts the countdown afresh (the page itself already shows a new tip on open)
+  if (typeof switchView === 'function') { var sv = switchView; window.switchView = switchView = function (v) { if (v === 'ccutil') acc = 0; return sv.apply(this, arguments); }; }
+  window.ccxTipsAutoMs = EVERY;
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', wire); else wire();
+})();
+</script>
 </body>
 </html>
