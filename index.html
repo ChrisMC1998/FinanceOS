@@ -11,7 +11,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="fos-integrity" content="aa19fff12ea682aa89ea06cf2a6a1d37faffaefd5e4c34ebd7c1009a3bb0447c">
+<meta name="fos-integrity" content="0290a9ed3b8eeaafdc9ceefffecfa3b7455b25e6a7bfc0d2363bbc47a272251c">
 <script id="fos-tamper-guard">
 /*! \u00a9 2026 MC Enterprise. Integrity check: detects a copy of this file that no longer matches the
     official release and locks it with a notice. This checks the FILE as served, not live memory --
@@ -9145,29 +9145,7 @@ function passAppLockGate() {
   </div>
   </div></div>
 
-  <div class="port-filter-box">
-    <div class="port-filter-label">Holding Status</div>
-    <div class="port-mode-toggle">
-      <button class="port-mode-btn port-status-btn active" id="port-status-active" onclick="setPortStatusFilter('active',this)">Active</button>
-      <button class="port-mode-btn port-status-btn" id="port-status-sold" onclick="setPortStatusFilter('sold',this)">Sold</button>
-      <button class="port-mode-btn port-status-btn" id="port-status-all" onclick="setPortStatusFilter('all',this)">All</button>
-    </div>
-    <div class="port-filter-label">Filter</div>
-    <div class="port-mode-toggle">
-      <button class="port-mode-btn active" id="port-mode-only" onclick="setPortMode('only',this)">Only</button>
-      <button class="port-mode-btn" id="port-mode-cumul" onclick="setPortMode('cumul',this)">Cumul.</button>
-      <button class="port-mode-btn" id="port-mode-all" onclick="setPortMode('all',this)">All</button>
-    </div>
-    <select class="port-filter-select" id="port-month" onchange="applyPortFilters()">
-      <option value="all">All Months</option>
-    </select>
-    <select class="port-filter-select" id="port-year" onchange="applyPortFilters()">
-      <option value="all">All Years</option>
-    </select>
-    <button class="btn-port-add" onclick="openPortModal()">
-      <i class="fas fa-plus"></i><span class="nav-label"> New Asset Entry</span>
-    </button>
-  </div>
+  <!-- Holding status + period filters now live in the top bar on portfolio pages (fos-port-topctl) -->
 </div>
 
 <script id="fos-sidebar-categories">
@@ -9226,6 +9204,21 @@ function passAppLockGate() {
   <div class="topbar">
     <div class="page-title" id="page-header"><span>Dashboard</span> <b>Overview</b></div>
     <div class="topbar-right">
+      <div class="port-topctl" id="port-topctl" role="group" aria-label="Portfolio filters">
+        <div class="ptc-seg ptc-status" role="radiogroup" aria-label="Holding status" title="Which holdings to include">
+          <span class="ptc-lbl"><i class="fas fa-layer-group"></i>Holdings</span>
+          <button class="port-mode-btn port-status-btn active" id="port-status-active" role="radio" aria-checked="true" onclick="setPortStatusFilter('active',this)">Active</button>
+          <button class="port-mode-btn port-status-btn" id="port-status-sold" role="radio" aria-checked="false" onclick="setPortStatusFilter('sold',this)">Sold</button>
+          <button class="port-mode-btn port-status-btn" id="port-status-all" role="radio" aria-checked="false" onclick="setPortStatusFilter('all',this)">All</button>
+        </div>
+        <div class="ptc-seg ptc-mode" role="radiogroup" aria-label="Period mode" title="Only = bought in the chosen period · Cumul. = held up to it · All = everything">
+          <button class="port-mode-btn" id="port-mode-only" onclick="setPortMode('only',this)">Only</button>
+          <button class="port-mode-btn" id="port-mode-cumul" onclick="setPortMode('cumul',this)">Cumul.</button>
+          <button class="port-mode-btn active" id="port-mode-all" onclick="setPortMode('all',this)">All</button>
+        </div>
+        <select class="filter-select ptc-sel" id="port-month" onchange="applyPortFilters()" aria-label="Month"><option value="all">All Months</option></select>
+        <select class="filter-select ptc-sel" id="port-year" onchange="applyPortFilters()" aria-label="Year"><option value="all">All Years</option></select>
+      </div>
       <button class="theme-toggle-btn" onclick="toggleTheme()" id="theme-btn" title="Toggle light/dark mode">
         <i class="fas fa-sun" id="theme-icon"></i><span id="theme-label">Light</span>
       </button>
@@ -14033,15 +14026,15 @@ function getPortFilteredAllStatus() {
 function setPortStatusFilter(status, btn) {
   portStatusFilter = status;
   if (btn) {
-    document.querySelectorAll('.port-status-btn').forEach(b => b.classList.remove('active'));
-    btn.classList.add('active');
+    document.querySelectorAll('.port-status-btn').forEach(b => { b.classList.remove('active'); b.setAttribute('aria-checked', 'false'); });
+    btn.classList.add('active'); btn.setAttribute('aria-checked', 'true');
   }
   applyPortFilters();
 }
 
 function setPortMode(mode, btn) {
   portFilterMode = mode;
-  document.querySelectorAll('.port-mode-btn').forEach(b => b.classList.remove('active'));
+  document.querySelectorAll('.port-mode-btn:not(.port-status-btn)').forEach(b => b.classList.remove('active'));
   btn.classList.add('active');
   applyPortFilters();
 }
@@ -30345,7 +30338,7 @@ window.onload = () => {
   // Set the Portfolio filter toggle button to "All"
   const portModeAllBtn = document.getElementById('port-mode-all');
   if (portModeAllBtn) {
-    document.querySelectorAll('.port-mode-btn').forEach(b => b.classList.remove('active'));
+    document.querySelectorAll('.port-mode-btn:not(.port-status-btn)').forEach(b => b.classList.remove('active'));
     portModeAllBtn.classList.add('active');
   }
 
@@ -50723,6 +50716,144 @@ body.light-mode .fj-tl li::before { background:#fff; }
   }
   window.toggleFinanceSidebar = toggleFinanceSidebar = function () { toggle('finance-sidebar', 'finance-toggle-icon', 'fos_finance_sidebar_collapsed'); };
   window.togglePortfolioSidebar = togglePortfolioSidebar = function () { toggle('portfolio-sidebar', 'portfolio-toggle-icon', 'fos_portfolio_sidebar_collapsed'); };
+})();
+</script>
+
+<style id="fos-round7-css">
+/* 1 ── icon-only sidebar: items of closed categories must stay visible (they were faded to 0 by the accordion animation) */
+.sidebar.collapsed .nav-group > .nav-group-inner > *, .port-sidebar.collapsed .nav-group > .nav-group-inner > * { opacity:1 !important; transform:none !important; transition:none !important; }
+@media (min-width:901px) and (max-width:1200px) { .nav-group > .nav-group-inner > * { opacity:1 !important; transform:none !important; } }
+
+/* 2 ── portfolio filters in the top bar (portfolio pages only); FinanceOS period filters are hidden there */
+.port-topctl { display:none; align-items:center; gap:8px; flex-wrap:wrap; }
+.topbar.fos-port-page .port-topctl { display:flex; }
+.topbar.fos-port-page .topbar-right > .filter-mode-toggle, .topbar.fos-port-page .topbar-right > #filter-month, .topbar.fos-port-page .topbar-right > #filter-year { display:none !important; }
+.ptc-seg { display:flex; align-items:center; background:rgba(167,139,250,.07); border:1px solid rgba(167,139,250,.22); border-radius:9px; overflow:hidden; height:32px; }
+.ptc-seg .ptc-lbl { display:flex; align-items:center; gap:6px; padding:0 9px 0 10px; font:700 .66rem 'DM Sans',sans-serif; letter-spacing:.06em; text-transform:uppercase; color:#a78bfa; border-right:1px solid rgba(167,139,250,.2); height:100%; }
+.ptc-seg .port-mode-btn { flex:0 0 auto; height:100%; padding:0 11px; font-size:.74rem; border-radius:0; }
+.ptc-seg .port-mode-btn.active { background:#a78bfa; color:#0b0820; }
+.ptc-seg .port-mode-btn:focus-visible { outline:2px solid #a78bfa; outline-offset:-2px; }
+.ptc-sel { min-width:96px; }
+body.light-mode .ptc-seg { background:#f5f3ff; border-color:#ddd6fe; }
+body.light-mode .ptc-seg .ptc-lbl { color:#7c3aed; border-color:#ddd6fe; }
+body.light-mode .ptc-seg .port-mode-btn.active { background:#7c3aed; color:#fff; }
+@media (max-width:900px) {
+  .topbar.fos-port-page .port-topctl { grid-column:1 / -1; order:5; width:100%; }
+  .port-topctl .ptc-seg { flex:1 1 auto; } .port-topctl .ptc-seg .port-mode-btn { flex:1 1 0; }
+  .port-topctl .ptc-sel { flex:1 1 40%; min-height:40px; }
+}
+
+/* 3 ── New Entry chooser: blurred backdrop, dotted arcs branching from the button to two choices */
+#fos-ne { position:fixed; inset:0; z-index:10040; display:none; }
+#fos-ne.open { display:block; }
+#fos-ne .ne-bg { position:absolute; inset:0; background:rgba(2,6,23,.45); backdrop-filter:blur(5px) saturate(1.1); -webkit-backdrop-filter:blur(5px) saturate(1.1); opacity:0; transition:opacity .22s ease; }
+#fos-ne.in .ne-bg { opacity:1; }
+body.light-mode #fos-ne .ne-bg { background:rgba(241,245,249,.55); }
+#fos-ne svg { position:absolute; inset:0; width:100%; height:100%; pointer-events:none; overflow:visible; }
+#fos-ne .ne-arc { fill:none; stroke-width:2; stroke-linecap:round; stroke-dasharray:1 7; }
+#fos-ne .ne-arc.flow { animation:neFlow 1.1s linear infinite; }
+@keyframes neFlow { to { stroke-dashoffset:-16; } }
+#fos-ne .ne-dot { opacity:0; transition:opacity .2s .25s; } #fos-ne.in .ne-dot { opacity:1; }
+#fos-ne .ne-card { position:absolute; width:262px; padding:16px 16px 14px; border-radius:18px; cursor:pointer; text-align:left; color:var(--text-main); font:inherit;
+  background:linear-gradient(150deg, rgba(17,24,39,.97), rgba(10,14,28,.97)); border:1px solid rgba(255,255,255,.09); box-shadow:0 18px 50px rgba(0,0,0,.5);
+  opacity:0; transform:translateY(-10px) scale(.94); transition:opacity .24s ease, transform .34s cubic-bezier(.16,1,.3,1), border-color .2s, box-shadow .2s; }
+#fos-ne.in .ne-card { opacity:1; transform:none; }
+#fos-ne.in .ne-card.b { transition-delay:.06s; }
+#fos-ne .ne-card:hover, #fos-ne .ne-card:focus-visible { border-color:var(--c); box-shadow:0 18px 50px rgba(0,0,0,.5), 0 0 0 3px color-mix(in srgb, var(--c) 25%, transparent); outline:none; transform:translateY(-2px); }
+body.light-mode #fos-ne .ne-card { background:#fff; border-color:#e2e8f0; box-shadow:0 18px 50px rgba(15,23,42,.18); }
+#fos-ne .ne-ic { width:42px; height:42px; border-radius:12px; display:grid; place-items:center; font-size:1.05rem; color:var(--c); background:color-mix(in srgb, var(--c) 14%, transparent); border:1px solid color-mix(in srgb, var(--c) 35%, transparent); margin-bottom:10px; }
+#fos-ne .ne-t { font:800 .95rem 'DM Sans',sans-serif; margin-bottom:4px; display:flex; align-items:center; gap:8px; flex-wrap:wrap; white-space:nowrap; }
+#fos-ne .ne-t small { font:700 .58rem 'DM Sans',sans-serif; letter-spacing:.1em; text-transform:uppercase; color:var(--c); padding:2px 7px; border-radius:99px; background:color-mix(in srgb, var(--c) 12%, transparent); }
+#fos-ne .ne-d { font-size:.74rem; color:var(--text-muted); line-height:1.45; }
+#fos-ne .ne-k { position:absolute; right:12px; top:12px; font:700 .62rem 'DM Mono',monospace; color:var(--text-muted); border:1px solid rgba(148,163,184,.3); border-radius:5px; padding:1px 5px; }
+@media (max-width:640px) { #fos-ne .ne-card { width:calc(50vw - 22px); padding:13px; } #fos-ne .ne-d { font-size:.7rem; } #fos-ne .ne-k { display:none; } }
+@media (prefers-reduced-motion: reduce) { #fos-ne .ne-arc.flow { animation:none; } #fos-ne .ne-card, #fos-ne .ne-bg { transition:none; } }
+</style>
+<script id="fos-round7">
+(function () {
+  'use strict';
+  var $ = function (id) { return document.getElementById(id); };
+  var reduce = function () { try { return matchMedia('(prefers-reduced-motion: reduce)').matches; } catch (e) { return false; } };
+
+  /* ── 1. sidebar glass highlight: closed categories count as usable when the sidebar is icon-only ── */
+  // (handled by CSS; nothing else needed — items are real buttons again)
+
+  /* ── 2. show portfolio filters in the top bar on portfolio pages ── */
+  var PORT_FILTERED = { 'port-overview': 1, 'port-table': 1, 'port-analytics': 1 };
+  var lastV = null;
+  function syncTop() {
+    var v = typeof activeView !== 'undefined' ? activeView : '', tb = document.querySelector('.topbar'); if (!tb) return;
+    if (v === lastV) return; lastV = v;
+    var port = /^port-/.test(v);
+    tb.classList.toggle('fos-port-page', port);                       // on the top bar, not <body> (body class changes re-render the dashboard)
+    var ctl = $('port-topctl'); if (ctl) ctl.style.display = port && PORT_FILTERED[v] ? '' : 'none';
+    if (port && typeof buildPortDropdowns === 'function') try { buildPortDropdowns(); } catch (e) { }
+  }
+  if (typeof switchView === 'function') { var sv = switchView; window.switchView = switchView = function () { var r = sv.apply(this, arguments); lastV = null; syncTop(); return r; }; }
+  setInterval(syncTop, 400); syncTop();
+
+  /* ── 3. New Entry chooser ── */
+  var host = null, origin = null, last = null;
+  function build() {
+    host = document.createElement('div'); host.id = 'fos-ne'; host.setAttribute('role', 'dialog'); host.setAttribute('aria-modal', 'true'); host.setAttribute('aria-label', 'What would you like to add?');
+    host.innerHTML = '<div class="ne-bg" data-ne-x></div><svg aria-hidden="true"><defs>'
+      + '<mask id="ne-m0" maskUnits="userSpaceOnUse"><path class="ne-mp" id="ne-mp0" stroke="#fff" stroke-width="8" fill="none"/></mask><mask id="ne-m1" maskUnits="userSpaceOnUse"><path class="ne-mp" id="ne-mp1" stroke="#fff" stroke-width="8" fill="none"/></mask></defs>'
+      + '<path class="ne-arc flow" id="ne-a0" stroke="#2dd4bf" mask="url(#ne-m0)"/><path class="ne-arc flow" id="ne-a1" stroke="#a78bfa" mask="url(#ne-m1)"/>'
+      + '<circle class="ne-dot" id="ne-o" r="4.5" fill="#e2e8f0"/><circle class="ne-dot" id="ne-d0" r="4" fill="#2dd4bf"/><circle class="ne-dot" id="ne-d1" r="4" fill="#a78bfa"/></svg>'
+      + '<button type="button" class="ne-card a" data-ne="txn" style="--c:#2dd4bf"><span class="ne-k">1</span><div class="ne-ic"><i class="fas fa-receipt"></i></div><div class="ne-t">New transaction <small>FinanceOS</small></div><div class="ne-d">Income, an expense, an EMI or an investment payment.</div></button>'
+      + '<button type="button" class="ne-card b" data-ne="asset" style="--c:#a78bfa"><span class="ne-k">2</span><div class="ne-ic"><i class="fas fa-gem"></i></div><div class="ne-t">New asset <small>Portfolio OS</small></div><div class="ne-d">A holding: stocks, gold, property, FDs, crypto and more.</div></button>';
+    document.body.appendChild(host);
+    host.addEventListener('click', function (e) {
+      var c = e.target.closest('[data-ne]'); if (c) return choose(c.getAttribute('data-ne'));
+      if (e.target.closest('[data-ne-x]')) close();
+    });
+    host.addEventListener('keydown', function (e) {
+      if (e.key === 'Escape') { e.preventDefault(); close(); }
+      else if (e.key === '1') { e.preventDefault(); choose('txn'); } else if (e.key === '2') { e.preventDefault(); choose('asset'); }
+      else if (e.key === 'ArrowLeft' || e.key === 'ArrowRight' || e.key === 'Tab') { e.preventDefault(); var cs = host.querySelectorAll('.ne-card'), i = [].indexOf.call(cs, document.activeElement); cs[(i + 1) % 2].focus(); }
+    });
+    window.addEventListener('resize', function () { if (host.classList.contains('open')) layout(); });
+  }
+  function layout() {
+    var b = origin && origin.getBoundingClientRect(), W = innerWidth, H = innerHeight;
+    var ox = b ? b.left + b.width / 2 : W - 120, oy = b ? b.bottom + 4 : 70;
+    var A = host.querySelector('.ne-card.a'), B = host.querySelector('.ne-card.b'), cw = A.offsetWidth, ch = A.offsetHeight, gap = 18, mob = W <= 640;
+    var top = Math.min(H - ch - 16, oy + (mob ? 110 : 120));
+    var cx = mob ? W / 2 : Math.min(W - 16 - cw - gap / 2, Math.max(16 + cw + gap / 2, ox - cw * 0.55));   // the pair sits under/left of the button, kept on screen
+    var ax = cx - gap / 2 - cw, bx = cx + gap / 2;
+    A.style.left = ax + 'px'; A.style.top = top + 'px'; B.style.left = bx + 'px'; B.style.top = top + 'px';
+    [[A, 0], [B, 1]].forEach(function (p) {
+      var r = { x: parseFloat(p[0].style.left) + cw / 2, y: top - 2 }, mx = (ox + r.x) / 2, d = 'M' + ox + ' ' + oy + ' C ' + ox + ' ' + (oy + (r.y - oy) * 0.55) + ', ' + r.x + ' ' + (oy + (r.y - oy) * 0.35) + ', ' + r.x + ' ' + r.y;
+      $('ne-a' + p[1]).setAttribute('d', d); $('ne-mp' + p[1]).setAttribute('d', d);
+      var dot = $('ne-d' + p[1]); dot.setAttribute('cx', r.x); dot.setAttribute('cy', r.y);
+    });
+    var o = $('ne-o'); o.setAttribute('cx', ox); o.setAttribute('cy', oy);
+  }
+  function drawArcs() {
+    [0, 1].forEach(function (i) {
+      var m = $('ne-mp' + i), L = m.getTotalLength ? m.getTotalLength() : 400;
+      m.style.strokeDasharray = L; m.style.strokeDashoffset = reduce() ? 0 : L;
+      if (!reduce() && m.animate) m.animate([{ strokeDashoffset: L }, { strokeDashoffset: 0 }], { duration: 420, delay: i * 60, easing: 'cubic-bezier(.16,1,.3,1)', fill: 'forwards' });
+    });
+  }
+  function open(btn) {
+    if (!host) build(); origin = btn; last = document.activeElement;
+    host.classList.add('open'); layout(); drawArcs();
+    requestAnimationFrame(function () { host.classList.add('in'); setTimeout(function () { var a = host.querySelector('.ne-card.a'); if (a) a.focus({ preventScroll: true }); }, 60); });
+  }
+  function close(then) {
+    if (!host || !host.classList.contains('open')) return;
+    host.classList.remove('in');
+    setTimeout(function () { host.classList.remove('open'); if (then) then(); else if (last && last.focus) try { last.focus(); } catch (e) { } }, reduce() ? 0 : 180);
+  }
+  function choose(k) { close(function () { if (k === 'asset') { if (typeof openPortModal === 'function') openPortModal(); } else if (typeof openModal === 'function') openModal(); }); }
+  window.fosNewEntryChooser = open;
+  window.fosNewEntryClose = close;
+  // the top-bar New Entry button opens the chooser (its own onclick is kept so guided tours still find it)
+  document.addEventListener('click', function (e) {
+    var b = e.target.closest && e.target.closest('.topbar-right .btn-add[onclick="openModal()"]'); if (!b) return;
+    e.stopPropagation(); e.preventDefault(); open(b);
+  }, true);
 })();
 </script>
 </body>
