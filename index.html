@@ -11,7 +11,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="fos-integrity" content="897dbe9f1de1562c62cfe9164789fd922026ea230052c81ea65c48dff9f86f75">
+<meta name="fos-integrity" content="2e8ed16aa151af9678dd05fa764aa2b78ffef9f6594fd537ae4cb6600df0fd05">
 <script id="fos-tamper-guard">
 /*! \u00a9 2026 MC Enterprise. Integrity check: detects a copy of this file that no longer matches the
     official release and locks it with a notice. This checks the FILE as served, not live memory --
@@ -34,7 +34,7 @@
       if (location.protocol === 'file:' || !window.crypto || !crypto.subtle) return;
       var res = await fetch(location.pathname + (location.search ? location.search + '&' : '?') + '_fosv=' + Date.now(), { cache: 'no-store' });
       if (!res.ok) return;
-      var text = await res.text();
+      var text = (await res.text()).replace(/\r\n/g, '\n');   // line endings (CRLF vs LF) don't count as a change
       var m = text.match(/<meta name="fos-integrity" content="([0-9a-f]{64})">/);
       if (!m) return;
       var shipped = m[1];
