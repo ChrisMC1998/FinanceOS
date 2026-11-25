@@ -11,7 +11,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="fos-integrity" content="2e8ed16aa151af9678dd05fa764aa2b78ffef9f6594fd537ae4cb6600df0fd05">
+<meta name="fos-integrity" content="c5bd20a1cf930b40d688f0aa629e4befa16eae17f17db46a71a58018ad741b79">
 <script id="fos-tamper-guard">
 /*! \u00a9 2026 MC Enterprise. Integrity check: detects a copy of this file that no longer matches the
     official release and locks it with a notice. This checks the FILE as served, not live memory --
@@ -8957,14 +8957,6 @@ function passAppLockGate() {
     <span class="nav-label">Budgets</span>
     <span id="budget-sidebar-badge" style="display:none" class="budget-badge"></span>
   </div>
-  <div class="nav-item" id="fin-nav-notifications" onclick="openNotificationsPanel()">
-    <div class="nav-icon" style="position:relative">
-      <i class="fas fa-bell" style="color:#f59e0b"></i>
-      <span id="notif-dot" style="display:none;position:absolute;top:-3px;right:-3px;width:8px;height:8px;background:#ef4444;border-radius:50%;border:1.5px solid #07091a"></span>
-    </div>
-    <span class="nav-label">Notifications</span>
-    <span id="notif-count-badge" style="display:none" class="budget-badge over"></span>
-  </div>
   </div></div>
 
   <div class="nav-section-label nav-cat-toggle" role="button" tabindex="0" aria-expanded="true" aria-controls="fos-cat-my-zone" aria-label="Collapse My Zone section" data-cat-key="fos_sidebar_category_my_zone_collapsed" data-cat-name="My Zone" title="Collapse / expand My Zone">My Zone<i class="fas fa-chevron-down nav-cat-chevron" aria-hidden="true"></i></div>
@@ -9245,6 +9237,11 @@ function passAppLockGate() {
 </button>
       <button class="btn-add" onclick="openModal()">
         <i class="fas fa-plus"></i> New Entry
+      </button>
+      <button type="button" class="fos-bell-btn" id="fin-nav-notifications" onclick="openNotificationsPanel()" title="Notifications" aria-label="Notifications" aria-haspopup="dialog" aria-expanded="false">
+        <i class="fas fa-bell" aria-hidden="true"></i>
+        <span id="notif-dot" style="display:none"></span>
+        <span id="notif-count-badge" style="display:none"></span>
       </button>
     </div>
   </div>
@@ -10334,16 +10331,12 @@ function passAppLockGate() {
             <!-- Workspace: form (60%) + knowledge panel (40%) -->
             <div class="ccx-work">
               <div class="ccx-form-col">
-                <div class="ccx-form-empty" id="ccx-form-empty">
-                  <div class="ccx-empty-ic"><i class="fas fa-credit-card"></i></div>
-                  <div class="ccx-empty-t">Select a bank to start</div>
-                  <div class="ccx-empty-s">The card form opens once you choose the issuing bank.</div>
-                </div>
-                <form class="ccx-form" id="cc-details-box" hidden novalidate autocomplete="off" onsubmit="event.preventDefault(); ccxSubmitForm();">
+                <form class="ccx-form" id="cc-details-box" novalidate autocomplete="off" onsubmit="event.preventDefault(); ccxSubmitForm();">
                   <div class="ccx-form-head">
                     <div class="ccx-form-bank" id="ccx-form-bank"></div>
                     <div class="ccx-form-mode" id="ccx-form-mode">New card</div>
                   </div>
+                  <div class="ccx-err ccx-bank-err" id="ccx-bank-err" role="alert"></div>
                   <input type="hidden" id="ccx-edit-id" value="">
 
                   <div class="ccx-fgrid">
@@ -10427,16 +10420,16 @@ function passAppLockGate() {
                   <span class="ccx-tips-badge"><i class="fas fa-graduation-cap"></i></span>
                   <div>
                     <div class="ccx-tips-title" id="ccx-tips-title">Credit Card Knowledge</div>
-                    <div class="ccx-tips-meta"><span id="ccx-tip-topic">—</span> · Tip <span id="ccx-tip-no">–</span> of 50</div>
+                    <div class="ccx-tips-meta"><span id="ccx-tip-topic">—</span></div>
                   </div>
                 </div>
+                <div class="ccx-tip-fx" aria-hidden="true"><canvas id="ccx-card-fx"></canvas></div>
                 <div class="ccx-tip-stage" id="ccx-tip-stage">
                   <h3 class="ccx-tip-h" id="ccx-tip-h"></h3>
                   <p class="ccx-tip-p" id="ccx-tip-p" aria-live="polite"></p>
                   <canvas class="ccx-tip-px" id="ccx-tip-px" aria-hidden="true"></canvas>
                 </div>
                 <div class="ccx-tips-foot">
-                  <span class="ccx-tips-seen" id="ccx-tips-seen"></span>
                   <button type="button" class="ccx-btn ccx-btn-ghost ccx-btn-sm" onclick="ccxNextTip()"><i class="fas fa-shuffle"></i> Another tip</button>
                 </div>
               </aside>
@@ -13156,7 +13149,7 @@ function passAppLockGate() {
       <div style="display:flex;gap:8px">
         <button onclick="fosRemToggle()" class="btn-secondary" style="font-size:0.72rem;padding:5px 10px;color:#38bdf8;border-color:rgba(56,189,248,.4)"><i class="fas fa-plus" style="margin-right:4px"></i>Reminder<span id="rem-count"></span></button>
         <button onclick="clearAllNotifications()" class="btn-secondary" style="font-size:0.72rem;padding:5px 10px">Clear All</button>
-        <button onclick="document.getElementById('notifications-modal').style.display='none'" class="btn-secondary" style="font-size:0.72rem;padding:5px 10px">✕ Close</button>
+        <button onclick="fosNotifClose()" class="btn-secondary" style="font-size:0.72rem;padding:5px 10px" aria-label="Close notifications">✕ Close</button>
       </div>
     </div>
     <div id="rem-panel">
@@ -47011,7 +47004,7 @@ body.light-mode .ccx-btn-danger:hover { color:#fff; }
 body.light-mode .ccx-btn.is-on { color:#1d4ed8; background:rgba(37,99,235,.08); }
 
 /* ── SECTION 1 ─────────────────────────────────────────────────────── */
-.ccx-s1-grid { display:grid; grid-template-columns:272px minmax(0,1fr); gap:1.1rem; align-items:start; }
+.ccx-s1-grid { display:grid; grid-template-columns:272px minmax(0,1fr); gap:1.1rem; align-items:stretch; }
 .ccx-bankpick { position:relative; min-width:0; }
 .ccx-bank-trigger { display:none; }
 .ccx-bank-panel { background:var(--ccx-surface-2); border:1px solid var(--ccx-line); border-radius:14px; padding:12px; display:flex; flex-direction:column; gap:10px; }
@@ -47116,7 +47109,22 @@ body.light-mode .ccx-net[aria-checked="true"] { box-shadow:0 0 0 2px var(--ccx-a
 .ccx-tips-title { font-size:.86rem; font-weight:700; color:var(--text-main); }
 .ccx-tips-meta { font-size:.66rem; color:var(--text-muted); margin-top:2px; }
 .ccx-tips-meta #ccx-tip-topic { color:rgb(var(--brand-rgb)); font-weight:700; text-transform:uppercase; letter-spacing:.8px; }
-.ccx-tip-stage { position:relative; flex:1; min-height:170px; padding:14px 2px 4px; }
+.ccx-tip-fx { position:relative; flex:1 1 50%; min-height:150px; border-radius:12px; overflow:hidden;
+  background:radial-gradient(70% 70% at 50% 45%, rgba(var(--brand-rgb),.10), transparent 70%); }
+.ccx-tip-fx canvas { position:absolute; inset:0; width:100%; height:100%; display:block; }
+.ccx-tip-stage { position:relative; flex:1 1 50%; min-height:150px; padding:4px 2px 4px; }
+.ccx-form-col { display:flex; flex-direction:column; }
+.ccx-form { flex:1; }
+.ccx-logo-ph { background:var(--ccx-surface-3) !important; color:var(--text-muted); box-shadow:inset 0 0 0 1px var(--ccx-line-2) !important; font-size:.95rem; }
+.ccx-form-bank.ccx-swap { animation:ccxSwap .32s cubic-bezier(.22,1,.36,1); }
+@keyframes ccxSwap { from { opacity:0; transform:translateX(-8px); } }
+.ccx-bank-err { margin:-6px 0 12px; }
+/* desktop: the bank list takes the row height set by the form + tips, and scrolls inside it */
+@media (min-width:1025px) { @container ccx (min-width:900px) {
+  .ccx-bankpick { display:flex; }
+  .ccx-bank-panel { flex:1; height:100%; contain:size; min-height:0; }
+  .ccx-bank-list { flex:1 1 auto; min-height:0; max-height:none; }
+} }
 .ccx-tip-h { margin:0 0 8px; font-size:1.02rem; line-height:1.35; font-weight:700; color:var(--text-main); letter-spacing:-.01em; }
 .ccx-tip-p { margin:0; font-size:.82rem; line-height:1.65; color:var(--text-muted); }
 .ccx-tip-px { position:absolute; left:0; top:0; width:100%; height:100%; pointer-events:none; image-rendering:pixelated; }
@@ -47417,6 +47425,58 @@ const CCX_TIPS = [
   ['Late payments', 'Late fees are slab-based', 'Late payment fees usually rise with the outstanding amount and include GST. Missing a payment can also cost you interest and a mark on your report.'],
   // Credit report monitoring
   ['Credit reports', 'Get your free reports every year', 'TransUnion CIBIL, Experian, Equifax and CRIF High Mark each give you one free full credit report a year. Reports are now refreshed at least every 15 days, so check for errors and raise disputes promptly.']
+  ,
+  // ── second set of 50 ──
+  ['Credit utilisation', 'A bad month can be repaired quickly', 'Utilisation is based on the balances reported to bureaus, so a high month stops counting against you once the balance is paid down and reported lower.'],
+  ['Credit utilisation', 'Spread large purchases out', 'If one big purchase would push a single card past 50%, splitting it across cards, or paying part of it straight away, keeps each card\'s utilisation lower.'],
+  ['Credit utilisation', 'Zero utilisation isn\'t the goal', 'Using a card lightly and paying it off in full shows active, responsible use. A small balance cleared every month is perfectly healthy.'],
+  ['Billing cycles', 'Note your cycle dates once', 'Most card cycles run about 30 days, and the exact start and end dates are printed on every statement. Note them once and plan big purchases around them.'],
+  ['Billing cycles', 'Refunds can land in a later cycle', 'A refund credited after your statement is generated usually appears on the next one. Pay the current bill as printed rather than waiting for the refund.'],
+  ['Statement dates', 'Keep your e-statements', 'E-statements arrive faster than paper and are easy to search. Keep the PDFs; they are your record if you ever need to dispute a charge.'],
+  ['Statement dates', 'Check the rewards summary', 'Statements list points earned, redeemed and about to expire. A quick look each month stops points from lapsing unnoticed.'],
+  ['Statement dates', 'Unbilled spends come next month', 'Purchases made after the statement date show as unbilled in your app. They will appear on the next statement, with their own due date.'],
+  ['Payment due dates', 'Paying early never hurts', 'There is no penalty for paying before the due date. Paying as soon as the statement arrives removes the risk of forgetting.'],
+  ['Payment due dates', 'Keep proof of every payment', 'Save the UPI or NEFT reference for each card payment. If a payment is credited late, the reference helps you get a late fee reversed.'],
+  ['Minimum payments', 'Every rupee above the minimum helps', 'Interest is charged on what you leave unpaid, so anything you pay above the minimum lowers next month\'s interest straight away.'],
+  ['Minimum payments', 'Partial payments follow a set order', 'Issuers apply part-payments in the order set out in their terms, usually taxes and fees first and the purchase balance last. Paying in full avoids the issue entirely.'],
+  ['Interest & charges', 'Fuel surcharge waivers have caps', 'Most cards waive the fuel surcharge only within a set transaction range and up to a monthly limit. Check the cap before relying on it.'],
+  ['Interest & charges', 'Pay abroad in the local currency', 'When a terminal or website offers to charge you in rupees, choose the local currency instead. The on-the-spot conversion usually uses a worse rate.'],
+  ['Interest & charges', 'Read balance transfer offers closely', 'Moving a balance to a lower-rate card can save interest, but check the processing fee and the rate that applies once the offer period ends.'],
+  ['Credit scores', 'Checking your own score is safe', 'Looking up your own credit report or score is a soft enquiry and does not lower it. Only lenders checking you for new credit count.'],
+  ['Credit scores', 'A mix of credit helps over time', 'Handling both loans and cards well shows lenders you can manage different kinds of credit. Never borrow just to improve your mix.'],
+  ['Credit scores', '"Settled" hurts more than "closed"', 'Settling a card for less than you owe is reported as settled, which damages your score far more than paying in full and closing the account.'],
+  ['Credit scores', 'Co-signing makes you responsible', 'If you guarantee or co-apply for someone else\'s loan, their missed payments can show up on your credit report too.'],
+  ['Rewards & cashback', 'Match the card to your spending', 'A card that rewards what you actually spend on, such as groceries, travel or online shopping, usually beats a higher headline rate elsewhere.'],
+  ['Rewards & cashback', 'Watch the monthly reward caps', 'Many cards cap accelerated rewards per month or per category. Spending beyond the cap earns only the base rate.'],
+  ['Rewards & cashback', 'Don\'t chase milestones', 'Spend milestones pay off only if you reach them naturally. Spending extra just to hit one usually costs more than the reward.'],
+  ['Rewards & cashback', 'Lounge access often needs spending', 'Many cards now require a minimum spend in the previous quarter before they allow airport lounge visits. Check before you travel.'],
+  ['Fees & charges', 'Read the MITC before applying', 'The Most Important Terms and Conditions document lists every fee and interest rate. Issuers must share it, and it takes five minutes to read.'],
+  ['Fees & charges', 'Rent payments may carry a fee', 'Several issuers charge a fee, often around 1%, on rent paid by card and on some large utility or wallet payments.'],
+  ['Fees & charges', 'Replacements and add-ons can cost extra', 'Replacing a lost card or adding family members carries a fee on some cards. Check the fee schedule before ordering.'],
+  ['Fees & charges', 'Fee waivers depend on timing', 'Spend-based fee waivers usually count spending within your card year. Missing the target by the anniversary date means the fee is charged.'],
+  ['Card security', 'Turn on alerts for every transaction', 'SMS and email alerts for each transaction let you spot misuse within minutes. Keep your registered mobile number up to date.'],
+  ['Card security', 'Keep your card in sight', 'At shops and restaurants, keep your card where you can see it and shield the keypad when you enter your PIN.'],
+  ['Card security', 'Skip public Wi-Fi for payments', 'Use mobile data or a network you trust when shopping online. Public Wi-Fi makes it easier for others to intercept what you send.'],
+  ['Card security', 'Check for the .bank.in address', 'Indian banks now use the .bank.in domain for their websites. Check the address bar before entering any card details.'],
+  ['Fraud prevention', 'Call your bank back yourself', 'If someone calls claiming to be your bank, hang up and call the number printed on the back of your card.'],
+  ['Fraud prevention', 'Raise disputes with a reference', 'If a charge looks wrong, dispute it through the app or in writing and keep the reference number. Issuers must investigate within set timelines.'],
+  ['Fraud prevention', 'An unexpected OTP is a warning', 'An OTP you didn\'t ask for may mean someone is trying to use your card. Never share it, and tell your bank straight away.'],
+  ['Fraud prevention', 'The RBI Ombudsman can help', 'If your bank doesn\'t resolve a complaint within 30 days, or you\'re unhappy with its answer, you can complain to the RBI Ombudsman at cms.rbi.org.in.'],
+  ['Responsible use', 'Set a monthly card budget', 'Decide each month how much card spending your income can clear in full, and track your spending against that number.'],
+  ['Responsible use', 'Don\'t pay one card with another', 'Using cash from one card to pay another only adds fees and interest. It moves the debt without reducing it.'],
+  ['Responsible use', 'Keep an emergency fund', 'Savings set aside for emergencies mean a sudden expense doesn\'t have to go on a card at around 40% interest.'],
+  ['Credit limits', 'The cash limit is smaller', 'Your cash withdrawal limit is usually only part of your total limit, and it draws on the same overall credit line.'],
+  ['Credit limits', 'Limits are reviewed over time', 'Issuers review limits based on income and repayment history. A record of full, on-time payments is the best case for an increase.'],
+  ['Credit limits', 'Going over the limit isn\'t free money', 'If you have opted in to over-limit spending, going past the limit can carry charges and pushes that card\'s utilisation above 100%.'],
+  ['EMI conversions', 'Compare EMI with a personal loan', 'For large amounts, a personal loan can cost less than a card EMI. Compare the total cost, including fees, before you choose.'],
+  ['EMI conversions', 'Missed EMIs count as missed dues', 'An EMI on a card is part of your card dues. Missing one attracts late charges and is reported to credit bureaus like any missed payment.'],
+  ['EMI conversions', 'Convert soon after you buy', 'Most issuers allow EMI conversion only within a limited window after the purchase, and some only before the statement is generated.'],
+  ['Late payments', 'Late fees add up quickly', 'A late fee, interest on the unpaid amount and GST on both can easily cost more than the payment you missed.'],
+  ['Late payments', 'Ask for a one-time waiver', 'If it\'s your first missed due date, ask your issuer to waive the late fee. Many will for customers with a good record.'],
+  ['Late payments', 'Clear an overdue amount fast', 'The longer a payment stays overdue, the worse it looks on your report. Bringing the account up to date quickly limits the damage.'],
+  ['Credit reports', 'Check the details, not just the score', 'Look for accounts you don\'t recognise, old addresses and incorrect late marks. Errors can be disputed directly with the bureau.'],
+  ['Credit reports', 'Make sure closed accounts show as closed', 'After repaying a loan or closing a card, check that your report shows it as closed, and keep the no-dues certificate.'],
+  ['Credit reports', 'Errors must be fixed within 30 days', 'RBI rules require lenders and credit bureaus to resolve credit report complaints within 30 days, and to pay compensation if they take longer.']
 ];
 
 /* ═══════════════════════════════════════════════════════════════════════
@@ -47575,25 +47635,24 @@ const CCX_TIPS = [
 
   window.selectCCBank = function (id) {
     const b = bankById(id); if (!b) return;
-    if (ccSelectedBank === id && editingId == null) {          // clicking the selected bank again closes the form
-      ccSelectedBank = null; ccxRenderBankList(); syncTrigger(); showForm(false); return;
-    }
+    const changed = ccSelectedBank !== id;
     ccSelectedBank = id;
     ccxRenderBankList(); syncTrigger(); ccxToggleBankPanel(false);
-    const fb = $('ccx-form-bank');
-    if (fb) fb.innerHTML = logoHTML(b, null, 'lg') + '<div style="min-width:0"><b>' + esc(b.name) + '</b><small>' + esc(b.officialName) + '</small></div>';
+    paintFormBank(b, changed);
+    const be = $('ccx-bank-err'); if (be) be.textContent = '';
     renderNets();
     if (editingId == null && !ccSelectedNetwork && b.networks.length === 1) setNetwork(b.networks[0]);
-    showForm(true);
+    try { if (window.ccxCardFx) ccxCardFx.color(b.color); } catch (e) { }
   };
-  function showForm(on) {
-    const f = $('cc-details-box'), e = $('ccx-form-empty'); if (!f) return;
-    if (!on) { f.hidden = true; if (e) e.hidden = false; editingId = null; resetForm(); return; }
-    const wasHidden = f.hidden;
-    f.hidden = false; if (e) e.hidden = true;
-    f.classList.remove('ccx-enter'); void f.offsetWidth; if (!reduced()) f.classList.add('ccx-enter');
-    if (wasHidden && editingId == null) setTimeout(() => { const h = $('cc-holder'); if (h && matchMedia('(hover:hover)').matches) h.focus({ preventScroll: true }); }, 60);
+  function paintFormBank(b, animate) {
+    const fb = $('ccx-form-bank'); if (!fb) return;
+    fb.innerHTML = b
+      ? logoHTML(b, null, 'lg') + '<div style="min-width:0"><b>' + esc(b.name) + '</b><small>' + esc(b.officialName) + '</small></div>'
+      : '<span class="ccx-logo lg ccx-logo-ph"><i class="fas fa-university"></i></span><div style="min-width:0"><b>No bank selected</b><small>Choose your bank from the list</small></div>';
+    if (animate && !reduced()) { fb.classList.remove('ccx-swap'); void fb.offsetWidth; fb.classList.add('ccx-swap'); }
   }
+  // the form is always on screen; "closing" it now just clears it back to a fresh new-card form
+  function showForm(on) { if (!on) { editingId = null; resetForm(); } }
 
   // ════════════════════ SECTION 1: form ════════════════════
   function renderNets() {
@@ -47662,7 +47721,7 @@ const CCX_TIPS = [
     const h = $('cc-number-hint'); if (h) h.textContent = '16 digits (15 for American Express, 14 for Diners Club). Shown masked once saved.';
     const ei = $('ccx-edit-id'); if (ei) ei.value = '';
   }
-  window.ccxCancelForm = function () { ccSelectedBank = null; editingId = null; ccxRenderBankList(); syncTrigger(); showForm(false); };
+  window.ccxCancelForm = function () { editingId = null; showForm(false); const be = $('ccx-bank-err'); if (be) be.textContent = ''; };
 
   function validate(isEdit) {
     let ok = true, first = null;
@@ -47714,7 +47773,11 @@ const CCX_TIPS = [
   window.ccxSubmitForm = function () {
     const isEdit = editingId != null;
     const bank = bankById(ccSelectedBank);
-    if (!bank) { toast('Select a bank first.', '#f59e0b'); ccxToggleBankPanel(true); return; }
+    if (!bank) {
+      const be = $('ccx-bank-err'); if (be) be.textContent = 'Select the bank that issued this card from the list.';
+      if (getComputedStyle($('ccx-bank-trigger')).display !== 'none') ccxToggleBankPanel(true); else { const q = $('ccx-bank-q'); if (q) q.focus(); }
+      validate(editingId != null); return;
+    }
     const val = validate(isEdit);
     const cvvEl = $('cc-cvv'); if (cvvEl) cvvEl.value = '';          // CVV leaves memory the moment we're done with it
     if (!val) return;
@@ -47740,7 +47803,7 @@ const CCX_TIPS = [
       toast('Card added · ' + card.nickname);
     }
     saveCCCards();
-    ccSelectedBank = null; editingId = null; ccxRenderBankList(); syncTrigger(); showForm(false);
+    editingId = null; showForm(false);                // keep the chosen bank, ready for the next card
     renderCCCards();
     try { if (typeof checkAlerts === 'function') checkAlerts(); } catch (e) { }
     setTimeout(() => { const s = $('ccx-s3'); if (s && !s.hidden) s.scrollIntoView({ behavior: reduced() ? 'auto' : 'smooth', block: 'start' }); }, 80);
@@ -47753,7 +47816,7 @@ const CCX_TIPS = [
   window.editCCCard = function (id) {
     const c = ccCards.find(x => x.id === id); if (!c) return;
     editingId = id; ccSelectedBank = null;
-    resetForm();
+    resetForm(); editingId = id;
     selectCCBank(bankById(c.bankId) ? c.bankId : 'hdfc');
     $('cc-nickname').value = c.nickname || '';
     $('cc-holder').value = c.holder || '';
@@ -47793,10 +47856,8 @@ const CCX_TIPS = [
     if (typeof CCX_TIPS === 'undefined') return;
     const { idx, seen } = drawTip(), t = CCX_TIPS[idx];
     $('ccx-tip-topic').textContent = t[0];
-    $('ccx-tip-no').textContent = idx + 1;
     $('ccx-tip-h').textContent = t[1];
     $('ccx-tip-p').textContent = t[2];
-    const s = $('ccx-tips-seen'); if (s) s.textContent = seen ? seen + ' of 50 seen this session' : 'All 50 seen — starting a new round';
     pixelReveal();
   }
   window.ccxNextTip = showTip;
@@ -48203,6 +48264,7 @@ const CCX_TIPS = [
     if (!$('ccx-bank-list')) return;
     if (recordSnapshots()) { try { localStorage.setItem('financeOS_ccCards', JSON.stringify(ccCards)); } catch (e) { } }
     ccxRenderBankList(); syncTrigger(); renderNets();
+    if (!ccSelectedBank) paintFormBank(null, false);
     showTip();                          // a new tip on every visit / refresh
     renderCCCards();
   };
@@ -48318,6 +48380,248 @@ html body .view-section :is(.glass-panel, .finai-panel, .cc-panel-box, .finai-sc
     window.addEventListener('orientationchange', function () { setTimeout(float, 200); });
   }
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', initFloat); else initFloat();
+})();
+</script>
+<script id="fos-ccx-cardfx">
+/* Knowledge panel animation: a card spins, dissolves into pixels that swirl in a vortex, then reassembles.
+   Tinted with the selected bank's colour. Pauses off-screen / in background tabs; static card for reduced motion. */
+(function () {
+  'use strict';
+  var cv = document.getElementById('ccx-card-fx'); if (!cv || !cv.getContext) return;
+  var ctx = cv.getContext('2d'), W = 0, H = 0, cw = 0, ch = 0, img = null, back = null, parts = [], color = '#20CDB5', raf = 0, t0 = 0, onScreen = true, CELL = 5;
+  var T = { spin: 1700, dissolve: 1500, swirl: 1100, rebuild: 1600, hold: 1300 };
+  var TOTAL = T.spin + T.dissolve + T.swirl + T.rebuild + T.hold;
+  function reduced() { try { if (matchMedia('(prefers-reduced-motion: reduce)').matches) return true; } catch (e) { } try { return !!(window.FosMotion && FosMotion.master && !FosMotion.master()); } catch (e) { return false; } }
+  function shade(hex, pct) { return typeof ccShade === 'function' ? ccShade(hex, pct) : hex; }
+  function rr(g, x, y, w, h, r) { g.beginPath(); g.moveTo(x + r, y); g.arcTo(x + w, y, x + w, y + h, r); g.arcTo(x + w, y + h, x, y + h, r); g.arcTo(x, y + h, x, y, r); g.arcTo(x, y, x + w, y, r); g.closePath(); }
+  function face(w, h, isBack) {
+    var c = document.createElement('canvas'); c.width = Math.ceil(w); c.height = Math.ceil(h);
+    var g = c.getContext('2d'), r = h * 0.09;
+    var gr = g.createLinearGradient(0, 0, w, h);
+    gr.addColorStop(0, shade(color, isBack ? -10 : 14)); gr.addColorStop(0.55, shade(color, isBack ? -26 : 0)); gr.addColorStop(1, shade(color, isBack ? -50 : -36));
+    rr(g, 0, 0, w, h, r); g.fillStyle = gr; g.fill(); g.save(); rr(g, 0, 0, w, h, r); g.clip();
+    var sh = g.createLinearGradient(0, 0, w, h * 0.6); sh.addColorStop(0, 'rgba(255,255,255,.22)'); sh.addColorStop(0.5, 'rgba(255,255,255,0)');
+    g.fillStyle = sh; g.fillRect(0, 0, w, h);
+    if (isBack) {
+      g.fillStyle = 'rgba(0,0,0,.55)'; g.fillRect(0, h * 0.16, w, h * 0.19);                       // magnetic stripe
+      g.fillStyle = 'rgba(255,255,255,.85)'; g.fillRect(w * 0.08, h * 0.48, w * 0.6, h * 0.13);     // signature panel
+      g.fillStyle = 'rgba(0,0,0,.35)'; for (var i = 0; i < 3; i++) g.fillRect(w * 0.72 + i * w * 0.045, h * 0.515, w * 0.03, h * 0.06);
+    } else {
+      var cg = g.createLinearGradient(0, 0, w * 0.16, h * 0.2); cg.addColorStop(0, '#ffe9b0'); cg.addColorStop(1, '#d4af57');
+      rr(g, w * 0.08, h * 0.3, w * 0.15, h * 0.2, h * 0.03); g.fillStyle = cg; g.fill();              // chip
+      g.fillStyle = 'rgba(255,255,255,.9)';
+      for (var k = 0; k < 4; k++) for (var j = 0; j < 4; j++) { g.beginPath(); g.arc(w * 0.1 + k * w * 0.2 + j * w * 0.037, h * 0.66, h * 0.022, 0, Math.PI * 2); g.fill(); }   // •••• groups
+      g.fillStyle = 'rgba(255,255,255,.75)'; g.fillRect(w * 0.08, h * 0.8, w * 0.32, h * 0.045);   // name line
+      g.globalAlpha = .9; g.fillStyle = '#EB001B'; g.beginPath(); g.arc(w * 0.8, h * 0.8, h * 0.085, 0, Math.PI * 2); g.fill();
+      g.fillStyle = '#F79E1B'; g.beginPath(); g.arc(w * 0.865, h * 0.8, h * 0.085, 0, Math.PI * 2); g.fill(); g.globalAlpha = 1;
+      g.strokeStyle = 'rgba(255,255,255,.8)'; g.lineWidth = Math.max(1, h * 0.012);                 // contactless waves
+      for (var q = 1; q <= 3; q++) { g.beginPath(); g.arc(w * 0.84, h * 0.24, h * 0.035 * q, -0.7, 0.7); g.stroke(); }
+    }
+    g.restore();
+    rr(g, 0.5, 0.5, w - 1, h - 1, r); g.strokeStyle = 'rgba(255,255,255,.18)'; g.lineWidth = 1; g.stroke();
+    return c;
+  }
+  function layout() {
+    var r = cv.getBoundingClientRect(); if (!r.width || !r.height) return false;
+    var dpr = Math.min(2, window.devicePixelRatio || 1);
+    W = r.width; H = r.height; cv.width = Math.round(W * dpr); cv.height = Math.round(H * dpr); ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    cw = Math.min(W * 0.74, (H - 30) * 1.586, 270); ch = cw / 1.586;
+    img = face(cw, ch, false); back = face(cw, ch, true);
+    var d = img.getContext('2d').getImageData(0, 0, img.width, img.height).data; parts = [];
+    for (var y = 0; y < img.height; y += CELL) for (var x = 0; x < img.width; x += CELL) {
+      var i = ((Math.min(img.height - 1, y + 2) * img.width) + Math.min(img.width - 1, x + 2)) * 4;
+      if (d[i + 3] < 40) continue;
+      var hx = x - cw / 2, hy = y - ch / 2;
+      parts.push({ a0: Math.atan2(hy, hx), r0: Math.hypot(hx, hy), hx: hx, hy: hy, c: 'rgb(' + d[i] + ',' + d[i + 1] + ',' + d[i + 2] + ')', lag: (x / cw) * 0.35 + Math.random() * 0.12, s: 0.6 + Math.random() * 0.9, j: Math.random() * Math.PI * 2 });
+    }
+    return true;
+  }
+  var ease = function (p) { return p < 0.5 ? 4 * p * p * p : 1 - Math.pow(-2 * p + 2, 3) / 2; };
+  var clamp = function (v) { return v < 0 ? 0 : v > 1 ? 1 : v; };
+  function drawCard(scaleX, tilt) {
+    ctx.save(); ctx.translate(W / 2, H / 2); ctx.rotate(tilt); ctx.scale(Math.abs(scaleX) < 0.02 ? 0.02 : Math.abs(scaleX), 1);
+    ctx.shadowColor = 'rgba(0,0,0,.45)'; ctx.shadowBlur = 18; ctx.shadowOffsetY = 8;
+    ctx.drawImage(scaleX >= 0 ? img : back, -cw / 2, -ch / 2, cw, ch); ctx.restore();
+  }
+  function frame(now) {
+    raf = 0; if (!onScreen || document.hidden) return;
+    var t = (now - t0) % TOTAL; ctx.clearRect(0, 0, W, H);
+    if (t < T.spin) {                                                   // 1. card twirls once
+      var p = ease(t / T.spin); drawCard(Math.cos(p * Math.PI * 2), Math.sin(p * Math.PI * 2) * 0.06);
+    } else if (t >= TOTAL - T.hold) {                                   // 5. resting card, gentle float
+      var f = (t - (TOTAL - T.hold)) / T.hold; ctx.save(); ctx.translate(0, Math.sin(f * Math.PI) * -3); drawCard(1, 0); ctx.restore();
+    } else {                                                            // 2–4. pixels: dissolve → swirl → rebuild
+      var u = t - T.spin, span = T.dissolve + T.swirl + T.rebuild, cx = W / 2, cy = H / 2;
+      for (var i = 0; i < parts.length; i++) {
+        var q = parts[i], L = q.lag * 900, rb = T.rebuild - 450, life = T.dissolve + T.swirl + rb;
+        var lt = u - L;                                                 // this pixel's own clock (left edge leaves first)
+        var out = clamp(lt / T.dissolve), home = clamp((lt - T.dissolve - T.swirl) / rb);
+        var e = ease(out) * (1 - ease(home));                           // 0 at home → 1 spread → back to 0
+        var rot = ease(clamp(lt / life)) * Math.PI * 4;                 // two full turns, finishing exactly as it lands
+        var ang = q.a0 + rot;
+        var R = q.r0 * (1 + 0.55 * e) + e * (14 + 26 * q.s) + Math.sin(u / 260 + q.j) * 4 * e;
+        var x = cx + Math.cos(ang) * R, y = cy + Math.sin(ang) * R * (0.78 + 0.22 * (1 - e));
+        var sz = CELL - 0.6 + e * 0.8;
+        ctx.globalAlpha = 0.95 - e * 0.25; ctx.fillStyle = q.c; ctx.fillRect(x - sz / 2, y - sz / 2, sz, sz);
+      }
+      ctx.globalAlpha = 1;
+    }
+    raf = requestAnimationFrame(frame);
+  }
+  function start() { if (raf || reduced()) return; t0 = performance.now(); raf = requestAnimationFrame(frame); }
+  function stop() { if (raf) cancelAnimationFrame(raf); raf = 0; }
+  function still() { if (!layout()) return; ctx.clearRect(0, 0, W, H); drawCard(1, 0); }
+  function refresh() { stop(); if (!layout()) return; if (reduced()) { still(); return; } if (onScreen && !document.hidden) start(); }
+  window.ccxCardFx = { color: function (hex) { if (!hex || hex === color) return; color = hex; refresh(); }, refresh: refresh };
+  try { new IntersectionObserver(function (es) { onScreen = es[0].isIntersecting; if (onScreen) { if (!parts.length) refresh(); else start(); } else stop(); }).observe(cv); } catch (e) { }
+  try { new ResizeObserver(function () { refresh(); }).observe(cv); } catch (e) { }
+  document.addEventListener('visibilitychange', function () { if (document.hidden) stop(); else if (onScreen) start(); });
+  refresh();
+})();
+</script>
+<style id="fos-ui2">
+/* ════════════════════════════════════════════════════════════════════
+   UI polish: top-bar bell + notifications side panel · accordion sidebar
+   with a glass highlight that leaves headers alone · one-time scroll reveal
+   ════════════════════════════════════════════════════════════════════ */
+/* ── bell in the top bar, right after New Entry ── */
+.fos-bell-btn { position:relative; width:38px; height:38px; flex:0 0 38px; border-radius:12px; display:inline-flex; align-items:center; justify-content:center; cursor:pointer;
+  background:rgba(255,255,255,0.04); border:1px solid var(--glass-border); color:#fbbf24; font-size:.95rem; transition:background .18s, border-color .18s, transform .18s; margin-left:8px; }
+.fos-bell-btn:hover { background:rgba(251,191,36,.10); border-color:rgba(251,191,36,.35); }
+.fos-bell-btn:focus-visible { outline:2px solid var(--accent); outline-offset:2px; }
+.fos-bell-btn.ring i { animation:fosBellRing .9s ease; transform-origin:50% 0; }
+@keyframes fosBellRing { 0%,100% { transform:rotate(0); } 15% { transform:rotate(14deg); } 30% { transform:rotate(-12deg); } 45% { transform:rotate(8deg); } 60% { transform:rotate(-5deg); } 75% { transform:rotate(2deg); } }
+.fos-bell-btn #notif-dot { visibility:hidden; position:absolute; }        /* kept for the mobile-drawer sync; the count shows instead */
+.fos-bell-btn #notif-count-badge { position:absolute; top:-6px; right:-6px; min-width:18px; height:18px; padding:0 5px; border-radius:9px; align-items:center; justify-content:center;
+  font-size:.62rem; font-weight:800; line-height:1; background:#ef4444; color:#fff; border:2px solid #0b1012; box-sizing:border-box; }
+body.light-mode .fos-bell-btn { background:#fff; border-color:rgba(15,23,42,.12); color:#d97706; }
+body.light-mode .fos-bell-btn #notif-count-badge { border-color:#fff; }
+@media (max-width:900px) { .topbar-right > .fos-bell-btn { display:none !important; } }   /* phones/tablets: Notifications stays in the menu drawer */
+
+/* ── notifications: slide-in side panel over a dimmed, desaturated page ── */
+#notifications-modal.modal-overlay { justify-content:flex-end !important; align-items:stretch !important; padding:0 !important;
+  background:rgba(4,7,9,.52) !important; -webkit-backdrop-filter:grayscale(.65) blur(2px); backdrop-filter:grayscale(.65) blur(2px);
+  opacity:0; transition:opacity .3s ease; }
+#notifications-modal.fos-drawer-in { opacity:1; }
+/* pop-up toasts are redundant while the full list is open */
+body:has(#notifications-modal.fos-drawer-in) #fos-toast-stack { opacity:0; pointer-events:none; transition:opacity .2s; }
+#notifications-modal .modal-box { width:min(440px, 100vw) !important; max-width:100vw !important; height:100% !important; max-height:none !important; margin:0 !important;
+  border-radius:22px 0 0 22px !important; border-right:0 !important; transform:translateX(104%); transition:transform .42s cubic-bezier(.22,1,.36,1); animation:none !important;
+  box-shadow:-24px 0 60px rgba(0,0,0,.45) !important; overflow-y:auto; overscroll-behavior:contain; }
+#notifications-modal.fos-drawer-in .modal-box { transform:none; }
+#notifications-modal .modal-box > div:first-child { position:sticky; top:-1px; z-index:2; padding-top:4px; padding-bottom:10px; background:inherit; }
+@media (max-width:640px) { #notifications-modal .modal-box { width:100vw !important; border-radius:0 !important; } }
+
+/* ── accordion sidebar: smoother open/close with items fading in turn ── */
+.nav-group { transition:grid-template-rows .34s cubic-bezier(.22,1,.36,1), margin-bottom .34s cubic-bezier(.22,1,.36,1) !important; }
+.nav-group.is-cat-collapsed > .nav-group-inner { transition:visibility 0s linear .34s !important; }
+.nav-group > .nav-group-inner > * { transition:opacity .26s ease, transform .32s cubic-bezier(.22,1,.36,1); }
+.nav-group.is-cat-collapsed > .nav-group-inner > * { opacity:0; transform:translateY(-6px); }
+.nav-group:not(.is-cat-collapsed) > .nav-group-inner > :nth-child(2) { transition-delay:.03s; }
+.nav-group:not(.is-cat-collapsed) > .nav-group-inner > :nth-child(3) { transition-delay:.06s; }
+.nav-group:not(.is-cat-collapsed) > .nav-group-inner > :nth-child(4) { transition-delay:.09s; }
+.nav-group:not(.is-cat-collapsed) > .nav-group-inner > :nth-child(n+5) { transition-delay:.12s; }
+.nav-cat-chevron { transition:transform .34s cubic-bezier(.22,1,.36,1), opacity .2s ease !important; }
+/* the glass pill fades out cleanly instead of freezing on a header */
+.fos-glide:not(.on) { transition:opacity .18s ease !important; }
+body.fos-no-sidebar-anim .nav-group > .nav-group-inner > * { transition:none !important; }
+
+/* ── one-time reveal: panels below the fold rise in the first time they're scrolled to ── */
+html body .view-section .fxr { opacity:0; transform:translateY(14px); }
+html body .view-section .fxr.fxr-in { opacity:1; transform:none; transition:opacity .5s ease var(--fxr-d, 0s), transform .6s cubic-bezier(.22,1,.36,1) var(--fxr-d, 0s) !important; }
+
+body.pdf-export-mode .view-section .fxr { opacity:1 !important; transform:none !important; }
+@media print { .view-section .fxr { opacity:1 !important; transform:none !important; } }
+@media (prefers-reduced-motion:reduce) {
+  html body .view-section .fxr { opacity:1 !important; transform:none !important; }
+  #notifications-modal .modal-box, #notifications-modal.modal-overlay, .nav-group > .nav-group-inner > * { transition:none !important; }
+  .fos-bell-btn.ring i { animation:none; }
+}
+</style>
+<script id="fos-ui2-js">
+(function () {
+  'use strict';
+  var $ = function (id) { return document.getElementById(id); };
+  function reduced() { try { if (matchMedia('(prefers-reduced-motion: reduce)').matches) return true; } catch (e) { } try { return !!(window.FosMotion && FosMotion.master && !FosMotion.master()); } catch (e) { return false; } }
+
+  /* ── notifications side panel ── */
+  var modal = $('notifications-modal'), closing = 0;
+  function isOpen() { return modal && modal.style.display === 'flex'; }
+  var origOpen = window.openNotificationsPanel;
+  window.openNotificationsPanel = function () {
+    if (!modal) return origOpen && origOpen();
+    clearTimeout(closing);
+    if (typeof renderNotifList === 'function') renderNotifList();
+    modal.style.display = 'flex';
+    requestAnimationFrame(function () { requestAnimationFrame(function () { modal.classList.add('fos-drawer-in'); }); });
+    var bell = $('fin-nav-notifications'); if (bell) bell.setAttribute('aria-expanded', 'true');
+  };
+  window.fosNotifClose = function () {
+    if (!modal || !isOpen()) return;
+    modal.classList.remove('fos-drawer-in');
+    var bell = $('fin-nav-notifications'); if (bell) { bell.setAttribute('aria-expanded', 'false'); }
+    closing = setTimeout(function () { modal.style.display = 'none'; if (bell && document.activeElement && modal.contains(document.activeElement)) bell.focus(); }, reduced() ? 0 : 420);
+  };
+  if (modal) {
+    modal.addEventListener('click', function (e) { if (e.target === modal) { e.stopPropagation(); fosNotifClose(); } }, true);    // click the dimmed page to close
+    document.addEventListener('keydown', function (e) { if (e.key === 'Escape' && isOpen()) { e.stopImmediatePropagation(); e.preventDefault(); fosNotifClose(); } }, true);
+    // anything else that hides it directly (other scripts) also resets the slide state
+    new MutationObserver(function () { if (!isOpen()) modal.classList.remove('fos-drawer-in'); }).observe(modal, { attributes: true, attributeFilter: ['style'] });
+  }
+  // a little ring when a new notification arrives
+  var badge = $('notif-count-badge'), last = badge ? badge.textContent : '';
+  if (badge) new MutationObserver(function () { var v = badge.textContent; if (+v > +last && !reduced()) { var b = $('fin-nav-notifications'); if (b) { b.classList.remove('ring'); void b.offsetWidth; b.classList.add('ring'); } } last = v; }).observe(badge, { childList: true, characterData: true, subtree: true });
+
+  /* ── sidebar glass: hide on headers / gaps / during collapse, glide on items ── */
+  var ITEM = '.nav-item, .port-nav-item, .export-btn';
+  function glideOf(sb) { return sb && sb.querySelector(':scope > .fos-glide'); }
+  function hideGlide(sb) { var g = glideOf(sb); if (g) { g.classList.remove('on'); g.classList.add('no-anim'); } }
+  ['finance-sidebar', 'portfolio-sidebar'].forEach(function (id) {
+    var sb = $(id); if (!sb) return;
+    sb.addEventListener('mouseover', function (e) {
+      var t = e.target.closest && e.target.closest(ITEM);
+      var usable = t && sb.contains(t) && !t.closest('.is-cat-collapsed') && t.getBoundingClientRect().height > 0;
+      if (!usable) hideGlide(sb);                               // section header, divider or empty space: no pill
+    });
+    sb.addEventListener('click', function (e) {                // a section opening/closing moves every item below it
+      if (!(e.target.closest && e.target.closest('.nav-cat-toggle'))) return;
+      hideGlide(sb);
+    }, true);
+    sb.addEventListener('keydown', function (e) { if ((e.key === 'Enter' || e.key === ' ') && e.target.closest && e.target.closest('.nav-cat-toggle')) hideGlide(sb); }, true);
+  });
+
+  /* ── one-time scroll reveal (only for panels that start below the fold) ── */
+  var PANEL = '.glass-panel, .kpi-card, .ccx-sec, .pol-card, .insight-kpi-card, .port-kpi-card, .credit-kpi-card, .nw-card, .ins-card, .ins-summary-card, .sub-card, .finai-card, .spark-card, .market-card, .game-card, .insight-rec-card, .p1-sec, .cca-panel';
+  var io = null;
+  function topLevel(el, view) { for (var p = el.parentElement; p && p !== view; p = p.parentElement) if (p.matches(PANEL)) return false; return true; }
+  function arm(view) {
+    if (!view || reduced() || !window.IntersectionObserver) return;
+    var sa = document.querySelector('.scroll-area'); if (!sa) return;
+    var fold = sa.getBoundingClientRect().bottom;
+    if (!io) io = new IntersectionObserver(function (list) {
+      list.forEach(function (en) {
+        if (!en.isIntersecting) return; var el = en.target; io.unobserve(el);
+        el.classList.add('fxr-in');
+        setTimeout(function () { el.classList.remove('fxr', 'fxr-in'); el.style.removeProperty('--fxr-d'); }, 1200);   // hand the element back untouched
+      });
+    }, { root: sa, threshold: 0.06, rootMargin: '0px 0px -4% 0px' });
+    var rows = {};
+    Array.prototype.forEach.call(view.querySelectorAll(PANEL), function (el) {
+      if (el.__fxr || !topLevel(el, view)) return;
+      var r = el.getBoundingClientRect(); if (!r.height || r.top < fold) return;   // already on screen: leave it alone
+      el.__fxr = 1; el.classList.add('fxr');
+      var k = Math.round(r.top / 8); rows[k] = (rows[k] || 0) + 1;                 // stagger cards that share a row
+      if (rows[k] > 1) el.style.setProperty('--fxr-d', Math.min(0.24, (rows[k] - 1) * 0.07) + 's');
+      io.observe(el);
+    });
+  }
+  function watchViews() {
+    Array.prototype.forEach.call(document.querySelectorAll('.view-section'), function (v) {
+      new MutationObserver(function () { if (v.classList.contains('active')) setTimeout(function () { arm(v); }, 700); }).observe(v, { attributes: true, attributeFilter: ['class'] });
+    });
+    var a = document.querySelector('.view-section.active'); if (a) setTimeout(function () { arm(a); }, 900);
+  }
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', watchViews); else watchViews();
 })();
 </script>
 </body>
