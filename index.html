@@ -11,7 +11,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="fos-integrity" content="680b84c77d5352c30230dbeb673ab8180ff7a97be5cd141586010472c7f5ffff">
+<meta name="fos-integrity" content="514880d647f7b74fce0b4146b2a817f162187230f7759dedce75981cc4b677b8">
 <script id="fos-tamper-guard">
 /*! \u00a9 2026 MC Enterprise. Integrity check: detects a copy of this file that no longer matches the
     official release and locks it with a notice. This checks the FILE as served, not live memory --
@@ -53737,6 +53737,57 @@ body.light-mode .pin-box { background:#f8fafc; border-color:#cbd5e1; color:#0f17
   if (typeof switchView === 'function') { var sv = switchView; window.switchView = switchView = function (v) { if (v === 'ccutil') acc = 0; return sv.apply(this, arguments); }; }
   window.ccxTipsAutoMs = EVERY;
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', wire); else wire();
+})();
+</script>
+<script id="fos-access-gate">
+/* FinanceOS access gate: if the command center has blocked this login, the app shows a full-screen notice
+   asking the person to complete their monthly subscription. It only reads billing_my_access (the person's
+   own row). If the server cannot be reached, nothing is blocked. Unblocking or a confirmed payment lifts it. */
+(function () {
+  var SITE = 'https://chrismc1998.github.io/Fin-Port-OS/', MAIL = 'financeosdesk@gmail.com';
+  var DEFAULT = 'Please complete your monthly subscription to access FinanceOS. If you have already paid or need help, email us at ' + MAIL + '.';
+  var lastUid = null, lastAt = 0, shown = false;
+  function sess() { try { return (typeof cloudSession !== 'undefined' && cloudSession && cloudSession.user) ? cloudSession : null; } catch (e) { return null; } }
+  function client() { try { return typeof sb !== 'undefined' && sb && sb.rpc ? sb : null; } catch (e) { return null; } }
+  function esc(s) { return String(s || '').replace(/[&<>"']/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]; }); }
+  function hide() { var o = document.getElementById('fos-gate'); if (o) o.remove(); document.documentElement.style.overflow = ''; shown = false; }
+  function show(msg, email) {
+    var o = document.getElementById('fos-gate');
+    if (!o) {
+      o = document.createElement('div'); o.id = 'fos-gate'; o.setAttribute('role', 'alertdialog'); o.setAttribute('aria-modal', 'true'); o.setAttribute('aria-labelledby', 'fos-gate-t');
+      o.style.cssText = 'position:fixed;inset:0;z-index:2147483600;background:rgba(3,10,8,.97);color:#e9fff5;display:flex;align-items:center;justify-content:center;padding:24px;font-family:system-ui,-apple-system,Segoe UI,Roboto,sans-serif';
+      document.body.appendChild(o);
+    }
+    o.innerHTML = '<div style="max-width:440px;width:100%;background:#0b241d;border:1px solid #1f5244;border-radius:20px;padding:26px;text-align:center;box-shadow:0 20px 60px rgba(0,0,0,.5)">' +
+      '<div style="width:56px;height:56px;margin:0 auto 14px;border-radius:50%;display:grid;place-items:center;background:rgba(251,191,36,.15);color:#fbbf24;font-size:26px;font-weight:800">!</div>' +
+      '<h2 id="fos-gate-t" style="margin:0 0 10px;font-size:1.3rem">Your FinanceOS access is paused</h2>' +
+      '<p style="margin:0 0 18px;color:#c6ecdc;line-height:1.55;font-size:.95rem">' + esc(msg || DEFAULT) + '</p>' +
+      '<div style="display:grid;gap:10px">' +
+      '<a href="' + SITE + '#pricing" target="_blank" rel="noopener" style="display:block;padding:12px;border-radius:12px;background:#10b981;color:#022c1f;font-weight:700;text-decoration:none">Complete my subscription</a>' +
+      '<a href="mailto:' + MAIL + '?subject=' + encodeURIComponent('FinanceOS access') + '&body=' + encodeURIComponent('Account: ' + (email || '')) + '" style="display:block;padding:12px;border-radius:12px;border:1px solid #1f5244;color:#e9fff5;font-weight:600;text-decoration:none">Email ' + MAIL + '</a>' +
+      '<div style="display:flex;gap:10px"><button type="button" id="fos-gate-re" style="flex:1;padding:11px;border-radius:12px;border:1px solid #1f5244;background:none;color:#e9fff5;font:inherit;cursor:pointer">Check again</button>' +
+      '<button type="button" id="fos-gate-out" style="flex:1;padding:11px;border-radius:12px;border:1px solid #1f5244;background:none;color:#e9fff5;font:inherit;cursor:pointer">Sign out</button></div></div>' +
+      '<p style="margin:14px 0 0;font-size:.8rem;color:#8db5a5">Signed in as ' + esc(email) + '. Your data is kept safe while access is paused.</p></div>';
+    document.documentElement.style.overflow = 'hidden'; shown = true;
+    document.getElementById('fos-gate-re').onclick = function () { lastAt = 0; check(true); };
+    document.getElementById('fos-gate-out').onclick = function () { var c = client(); Promise.resolve(c && c.auth.signOut()).catch(function () { }).then(function () { location.reload(); }); };
+  }
+  async function check(force) {
+    var s = sess(), c = client();
+    if (!s || !c) { if (shown) hide(); lastUid = null; return; }
+    var now = Date.now();
+    if (!force && s.user.id === lastUid && now - lastAt < (shown ? 60000 : 300000)) return;
+    lastUid = s.user.id; lastAt = now;
+    try {
+      var r = await c.rpc('billing_my_access');
+      if (r.error) return;                        // server not ready or offline: never block
+      var row = (r.data || [])[0];
+      if (row && (row.blocked || row.locked)) show(row.block_message, s.user.email); else if (shown) hide();
+    } catch (e) { }
+  }
+  setInterval(check, 5000);
+  document.addEventListener('visibilitychange', function () { if (!document.hidden) { lastAt = 0; check(); } });
+  setTimeout(check, 1500);
 })();
 </script>
 </body>
