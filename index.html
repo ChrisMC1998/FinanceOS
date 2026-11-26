@@ -11,7 +11,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="fos-integrity" content="9c1940ad0dc6f27bec85ac90c8046e72f6116273f16640474395e07a8245b84e">
+<meta name="fos-integrity" content="de0d98af6f233bea6138e2172d51dc5490e85c5c99ed23a946528935281d07f9">
 <script id="fos-tamper-guard">
 /*! \u00a9 2026 MC Enterprise. Integrity check: detects a copy of this file that no longer matches the
     official release and locks it with a notice. This checks the FILE as served, not live memory --
@@ -18305,6 +18305,9 @@ function renderDashboardImmediate() {
     top3El.innerHTML = '<div class="empty-state"><i class="fas fa-inbox"></i>No portfolio data</div>';
   }
 
+  // handed to the chart styling layer (fos-fx7): the exact figures computed above, never recomputed there
+  window.__fosDash = { inc: totalInc, exp: totalExp, loan: totalLoan, inv: totalInv, rv: _rv, balance, savingsRate, mix: mixEntries, roiInv: dashByTypeInv, roiGain: dashGainMap, byType, top3: sorted };
+
   // Phase 1 — lightweight UI, no charts, runs immediately
   renderBudgetAlerts(data);
   renderEmiStrip();
@@ -25953,6 +25956,7 @@ destroyChart('credit-bar');
   const sortedCreditData = Object.keys(groupedCredit)
     .map(name => ({ lenderName: name, outstandingBalance: groupedCredit[name] }))
     .sort((a,b) => b.outstandingBalance - a.outstandingBalance);
+  window.__fosLendPage = { list: sortedCreditData, groups: sortedCreditData.length };   // read by fos-fx7
 
   if (sortedCreditData.length === 0) {
     creditBarWrap.innerHTML = '<div class="empty-state" style="padding-top:2rem"><i class="fas fa-credit-card"></i><p>No credit data</p></div>';
@@ -27596,6 +27600,7 @@ function renderDashCreditCharts() {
     .map(name => ({ lenderName: name, outstandingBalance: groupedDashCredit[name] }))
     .sort((a,b) => b.outstandingBalance - a.outstandingBalance)
     .slice(0, 6);
+  window.__fosLendDash = { list: sorted, groups: Object.keys(groupedDashCredit).length };   // read by fos-fx7
 
   destroyChart('dash-credit-bar');
   const dashCreditEl = document.getElementById('dash-credit-bar');
@@ -27639,6 +27644,7 @@ function renderDashCreditCharts() {
   const activeLoans = [...creditDb]
     .filter(c => c.outstandingBalance > 0 || c.monthlyEmi > 0) // Hides zero-balance closed loans
     .sort((a,b) => b.outstandingBalance - a.outstandingBalance);
+  window.__fosEmiLoans = activeLoans;   // read by fos-fx7
     
   destroyChart('dash-credit-emi');
   
@@ -36921,6 +36927,7 @@ body.light-mode .fr-tick.major { stroke:rgba(15,23,42,.34); }
       mVals.push(sum2); mIn.push(inside); mLab.push(MONTHS[m0.getMonth()] + ' ' + String(m0.getFullYear()).slice(2));
     });
     $('txa-month-note').textContent = ctxN > 0 ? 'Dimmed bars = earlier months for context' : '';
+    window.__txaMonth = { inside: mIn, ctx: ctxN }; window.__txaWeek = { order: W.order, avg: W.avgByDow, tot: W.tot, occ: W.occ };   // read by fos-fx7
     var barBase = teal.length === 7 ? teal : '#20CDB5';
     var ms = baseScales(); ms.x.ticks.maxTicksLimit = 12;
     mk('month', 'txa-c-month', {
@@ -37471,6 +37478,7 @@ body.light-mode .txa-advhead h2 i{color:#0f766e}
       '<div class="txa-grid txa-g2">' + card('fa-arrows-up-down', 'Spending Increases & Decreases', '', changeBody) + card('fa-bolt', 'Unusual Spending Spikes', '', spBody) + '</div>' +
       card('fa-coins', 'Recurring & Frequent Small Expenses', '', smBody);
     function barCfg(b, s) { var o = opts(false, false, false); o.plugins.tooltip.callbacks.afterLabel = function (c) { return ' ' + $m(s[c.dataIndex] / b[c.dataIndex].d) + ' per day over ' + b[c.dataIndex].d + ' day' + (b[c.dataIndex].d === 1 ? '' : 's'); }; return { type: 'bar', data: { labels: b.map(function (x) { return x.l; }), datasets: [barDs('Spent', s, col(0))] }, options: o }; }
+    window.__txaTrend = { m: bm.map(function (x) { return x.d; }), w: bw.map(function (x) { return x.d; }) };   // read by fos-fx7
     mk('m', 'adv-c-m', barCfg(bm, sm)); mk('w', 'adv-c-w', barCfg(bw, sw));
   }
 
@@ -37535,6 +37543,7 @@ body.light-mode .txa-advhead h2 i{color:#0f766e}
       var a = sm[i] / b.d, pa = i ? sm[i - 1] / bm[i - 1].d : null;
       return [esc(b.l) + (b.d < 28 ? ' <span class="txa-note">(' + b.d + 'd)</span>' : ''), $m(sm[i]), $m(a), i ? dl(sm[i], sm[i - 1]) : '—', i ? dl(a, pa) : '—'];
     });
+    window.__txaMoM = bm.map(function (b, i) { return { l: b.l, d: b.d, t: sm[i] }; });   // read by fos-fx7
     var momCard = card('fa-calendar-plus', 'Month-over-Month Changes', 'Δ per day adjusts for partial months', bm.length < 2 ? empty('Month-over-month needs a range that spans at least two calendar months.') : tbl([{ h: 'Month', w: 'minmax(0,1fr)' }, { h: 'Total', w: '.9fr', r: 1 }, { h: 'Avg/day', w: '.8fr', r: 1 }, { h: 'Δ Total', w: '.8fr', r: 1 }, { h: 'Δ /day', w: '.8fr', r: 1 }], mRows, 480));
     var gc = grp(X.cur, KC, KC), cvs = gc.map(function (g, i) {
       var subs = grp(g.it.filter(function (e) { return !e._nosub; }), function (e) { return e._subk; }, function (e) { return e._sub; }), un = g.t - sum(g.it.filter(function (e) { return !e._nosub; }));
@@ -38451,7 +38460,7 @@ function msLines(){return msAll().filter(function(x){return !x.ready}).map(funct
 function msCelebrate(A){var seen={};try{seen=JSON.parse(localStorage.getItem('pol_ms_seen')||'{}')}catch(e){}var ch=0;
   A.forEach(function(x){if(x.ready&&!seen[x.id]){seen[x.id]=1;ch=1;try{addNotification('ms-'+x.id,'fa-unlock-alt','#34d399','🔓 Unlocked: '+x.name,'You\'ve logged enough data to unlock '+x.name+' ('+x.what+'). Find it on your dashboard.','goal-achievement')}catch(e){}}});
   if(ch)try{localStorage.setItem('pol_ms_seen',JSON.stringify(seen))}catch(e){}}
-function paintMS(){var el=$('pol-ms');if(!el)return;var A=msAll(),R=A[0],S=A[1],h='';msCelebrate(A);
+function paintMS(){var el=$('pol-ms');if(!el)return;var A=msAll(),R=A[0],S=A[1],h='';msCelebrate(A);window.__fosRhythm=R;
   if(R.ready){var mx=Math.max.apply(null,R.by)||1;
     h+='<div><div class="pol-h"><i class="fas fa-wave-square"></i> Spending rhythm</div><div class="pol-rh">'+R.by.map(function(v,i){return '<div'+(i===R.pk?' class="pk"':'')+'><i style="height:'+Math.max(3,Math.round(v/mx*38))+'px"></i>'+DN[i].slice(0,1)+'</div>'}).join('')+'</div>'+
       '<ul><li><b>'+DN[R.pk]+'</b> is your priciest day — '+Math.round(R.by[R.pk]/R.t*100)+'% of all spending ('+fmt(R.by[R.pk])+').</li>'+
@@ -38495,6 +38504,7 @@ function lhPulse(){var cw=lhWeekKey(localISO()),tot={};
   dbNow().forEach(function(r){if(r&&r.type==='Expense'&&r.date){var w=lhWeekKey(r.date);tot[w]=(tot[w]||0)+(Number(r.amount)||0)}});
   var ks=[],w=lhPrevW(cw);for(var i=0;i<8;i++){ks.unshift(w);w=lhPrevW(w)}
   var vals=ks.map(function(k){return tot[k]||0}),cur=tot[cw]||0,avg4=lhAvg(vals.slice(-4),function(x){return x}),used=ks.map(function(k,i){return{k:k,v:vals[i]}}).filter(function(x){return x.v>0});
+  window.__fosPulse={ks:ks,vals:vals,cur:cur,cw:cw,avg4:avg4};
   if(!used.length)return '';
   var hi=used.slice().sort(function(a,b){return b.v-a.v})[0],lo=used.slice().sort(function(a,b){return a.v-b.v})[0],mx=Math.max.apply(null,vals.concat([cur]))||1;
   var lb=function(k){return +k.slice(8)+' '+MN[+k.slice(5,7)-1]};
@@ -44777,6 +44787,548 @@ body.light-mode .fx6-step small { text-shadow:none; }
   hookAll();
   window.addEventListener('load', function () { setTimeout(function () { hookAll(); try { if (activeView === 'port-analytics') run(PA); else if (activeView === 'port-intel') run(PI); } catch (e) { } }, 0); });
   window.fosFx6 = { run: run, timeline: timeline, roiScatter: roiScatter, alloc: alloc, targets: targets, health: health, conc: conc, ladder: ladder };
+})();
+</script>
+<style id="fos-fx7-css">
+/* Round 7: dashboard, debt tracker and Transactions › Analytics chart upgrades + spacing fixes.
+   Visual only: every number shown comes from what the original code already calculated. */
+.fx7-read { min-height:1.25em; font-size:.66rem; color:var(--text-muted); margin:0 0 6px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.fx7-read b { color:var(--text-main); font-family:'DM Mono',monospace; }
+.fx7-read em { font-style:normal; color:var(--cc, var(--text-main)); font-weight:700; }
+/* cash flow sankey */
+.fx7-cf { display:flex; flex-direction:column; height:100%; min-height:0; }
+.fx7-cf svg { width:100%; flex:1 1 auto; min-height:180px; display:block; overflow:visible; }
+.fx7-sk path.b { fill-opacity:.32; transition:fill-opacity .2s, opacity .2s; cursor:pointer; }
+.fx7-sk path.b:hover, .fx7-sk path.b.on { fill-opacity:.62; }
+.fx7-sk.hl path.b:not(.on) { opacity:.28; }
+.fx7-sk rect.n { cursor:pointer; transition:opacity .2s; }
+.fx7-sk.hl rect.n:not(.on) { opacity:.4; }
+.fx7-sk text { font-family:'DM Sans',sans-serif; font-size:11px; font-weight:700; fill:var(--text-main); pointer-events:none; }
+.fx7-sk text.v { font-family:'DM Mono',monospace; font-size:10.5px; font-weight:600; fill:var(--text-muted); }
+.fx7-sk .grow { animation:fx7Fade .9s cubic-bezier(.22,1,.36,1) both; }
+@keyframes fx7Fade { from { opacity:0; } }
+/* treemap */
+.fx7-mix { display:flex; flex-direction:column; height:100%; min-height:0; }
+.fx7-tm { position:relative; flex:1 1 190px; min-height:170px; border-radius:12px; overflow:hidden; }
+.fx7-tile { position:absolute; box-sizing:border-box; padding:7px 8px; border:2px solid var(--bg-main, #0b1012); border-radius:10px; background:linear-gradient(140deg, color-mix(in srgb, var(--cc) 55%, transparent), color-mix(in srgb, var(--cc) 18%, transparent)); overflow:hidden; cursor:default; transition:filter .2s, opacity .2s; animation:fx7Pop .7s cubic-bezier(.22,1,.36,1) both; }
+body.light-mode .fx7-tile { border-color:#fff; background:linear-gradient(140deg, color-mix(in srgb, var(--cc) 70%, #fff), color-mix(in srgb, var(--cc) 35%, #fff)); }
+body.light-mode .fx7-tile, body.light-mode .fx7-tile * { color:#0f172a !important; text-shadow:none !important; }
+body.light-mode .fx7-tile:hover, body.light-mode .fx7-tile.on { filter:brightness(.96) saturate(1.2); }
+.fx7-tile:hover, .fx7-tile.on { filter:brightness(1.25) saturate(1.15); }
+.fx7-tm.hl .fx7-tile:not(.on) { opacity:.45; }
+.fx7-tile b { display:block; font-size:.72rem; color:#fff; text-shadow:0 1px 4px rgba(0,0,0,.6); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.fx7-tile span { display:block; font-family:'DM Mono',monospace; font-size:.66rem; color:rgba(255,255,255,.9); text-shadow:0 1px 4px rgba(0,0,0,.6); white-space:nowrap; }
+.fx7-tile.sm b, .fx7-tile.sm span { display:none; }
+@keyframes fx7Pop { from { opacity:0; transform:scale(.92); } }
+.fx7-list { flex:0 1 auto; max-height:118px; min-height:0; overflow:auto; scrollbar-width:none; margin-top:8px; display:grid; grid-template-columns:repeat(auto-fill, minmax(205px, 1fr)); gap:2px 12px; align-content:start; }
+.fx7-list::-webkit-scrollbar { display:none; }
+.fx7-li { display:grid; grid-template-columns:8px minmax(0,1fr) auto; gap:7px; align-items:center; padding:4px 6px; border-radius:8px; font-size:.7rem; }
+.fx7-li:hover, .fx7-li.on { background:color-mix(in srgb, var(--cc) 12%, transparent); }
+.fx7-li i { width:8px; height:8px; border-radius:50%; background:var(--cc); box-shadow:0 0 8px var(--cc); }
+.fx7-li span { color:var(--text-main); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; font-weight:600; }
+.fx7-li em { font-style:normal; font-family:'DM Mono',monospace; color:var(--text-muted); font-size:.64rem; }
+/* columns (weekly pulse, month bars, weekday bars, spending patterns) */
+.fx7-cols { position:relative; display:flex; align-items:flex-end; gap:5px; margin-top:16px; }
+.fx7-col { flex:1 1 0; min-width:0; height:100%; display:flex; flex-direction:column; justify-content:flex-end; cursor:default; position:relative; }
+.fx7-col .bar { position:relative; border-radius:6px 6px 3px 3px; background:linear-gradient(180deg, var(--cc), color-mix(in srgb, var(--cc) 30%, transparent)); box-shadow:0 0 12px color-mix(in srgb, var(--cc) 45%, transparent); transform-origin:bottom; animation:fx7Rise .9s cubic-bezier(.22,1,.36,1) both; transition:filter .2s; }
+.fx7-col.dim .bar { background:linear-gradient(180deg, rgba(100,116,139,.7), rgba(100,116,139,.18)); box-shadow:none; }
+.fx7-col.part .bar { background:repeating-linear-gradient(135deg, var(--cc) 0 5px, color-mix(in srgb, var(--cc) 45%, transparent) 5px 9px); }
+.fx7-col:hover .bar, .fx7-col.on .bar { filter:brightness(1.3); }
+.fx7-col .vl { position:absolute; left:50%; transform:translateX(-50%); font-family:'DM Mono',monospace; font-size:.56rem; color:var(--text-main); white-space:nowrap; opacity:0; transition:opacity .15s; pointer-events:none; }
+.fx7-col:hover .vl, .fx7-col.show .vl, .fx7-col.on .vl { opacity:1; }
+.fx7-labs { display:flex; gap:5px; margin-top:4px; }
+.fx7-labs span { flex:1 1 0; min-width:0; font-size:.58rem; color:var(--text-muted); text-align:center; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.fx7-labs span.on { color:var(--text-main); font-weight:700; }
+.fx7-cols .avg { position:absolute; left:0; right:0; border-top:1.5px dashed rgba(226,232,240,.45); pointer-events:none; }
+body.light-mode .fx7-cols .avg { border-color:rgba(15,23,42,.4); }
+.fx7-cols .avg span { position:absolute; right:0; top:-15px; font-size:.56rem; color:var(--text-muted); background:var(--bg-main, #0b1012); padding:0 4px; border-radius:4px; }
+body.light-mode .fx7-cols .avg span { background:#fff; }
+.fx7-colwrap { }
+@keyframes fx7Rise { from { transform:scaleY(0); } }
+.fx7-chg { display:flex; gap:5px; margin-top:6px; }
+.fx7-chg span { flex:1 1 0; min-width:0; text-align:center; font-family:'DM Mono',monospace; font-size:.56rem; font-weight:700; border-radius:6px; padding:2px 0; }
+.fx7-chg .up { color:#f472b6; background:rgba(244,114,182,.1); }
+.fx7-chg .dn { color:#34d399; background:rgba(52,211,153,.1); }
+.fx7-chg .nil { color:var(--text-muted); }
+/* rhythm radial */
+.fx7-rad { display:grid; grid-template-columns:130px minmax(0,1fr); gap:10px; align-items:center; margin:4px 0; }
+.fx7-rad svg { width:130px; height:130px; overflow:visible; }
+.fx7-rad path { cursor:default; transition:opacity .2s, filter .2s; }
+.fx7-rad svg.hl path:not(.on) { opacity:.3; }
+.fx7-rad text { font-family:'DM Sans',sans-serif; font-size:9px; font-weight:700; fill:var(--text-muted); pointer-events:none; }
+.fx7-rad .ct { font-family:'DM Mono',monospace; font-size:11px; fill:var(--text-main); }
+.fx7-legd { display:flex; flex-direction:column; gap:3px; font-size:.64rem; }
+.fx7-legd div { display:grid; grid-template-columns:28px minmax(0,1fr) auto; gap:6px; align-items:center; padding:2px 5px; border-radius:6px; }
+.fx7-legd div.on, .fx7-legd div:hover { background:color-mix(in srgb, var(--cc) 14%, transparent); }
+.fx7-legd i { height:5px; border-radius:3px; background:var(--cc); display:block; }
+.fx7-legd b { font-family:'DM Mono',monospace; color:var(--text-main); font-weight:600; }
+/* paired bars (current vs previous, outstanding vs emi) */
+.fx7-pairs { display:flex; flex-direction:column; gap:7px; }
+.fx7-pr { display:grid; grid-template-columns:var(--lw, minmax(70px, 26%)) minmax(0,1fr) var(--vw, auto); gap:9px; align-items:center; padding:4px 6px; border-radius:9px; }
+.fx7-pr:hover { background:color-mix(in srgb, var(--cc, #20cdb5) 9%, transparent); }
+.fx7-pr .n { font-size:.72rem; font-weight:600; color:var(--text-main); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; display:flex; align-items:center; gap:7px; }
+.fx7-pr .n i { width:8px; height:8px; border-radius:50%; background:var(--cc); box-shadow:0 0 8px var(--cc); flex-shrink:0; }
+.fx7-pr .t { display:flex; flex-direction:column; gap:3px; }
+.fx7-pr .t > div { position:relative; height:9px; border-radius:5px; background:rgba(255,255,255,.04); }
+body.light-mode .fx7-pr .t > div { background:rgba(15,23,42,.06); }
+.fx7-pr .t > div > span { position:absolute; left:0; top:0; bottom:0; border-radius:5px; transform-origin:left center; animation:fx7Grow 1s cubic-bezier(.22,1,.36,1) both; }
+.fx7-pr .t > div.ghost > span { background:repeating-linear-gradient(135deg, rgba(148,163,184,.55) 0 4px, rgba(148,163,184,.2) 4px 8px); }
+.fx7-pr .v { font-family:'DM Mono',monospace; font-size:.72rem; font-weight:700; text-align:right; white-space:nowrap; color:var(--text-main); }
+.fx7-pr .v small { display:block; font-size:.58rem; font-weight:600; color:var(--text-muted); }
+@keyframes fx7Grow { from { transform:scaleX(0); } }
+.fx7-d { font-family:'DM Mono',monospace; font-size:.6rem; font-weight:700; padding:1px 6px; border-radius:6px; margin-left:4px; }
+.fx7-d.up { color:#f472b6; background:rgba(244,114,182,.1); }
+.fx7-d.dn { color:#34d399; background:rgba(52,211,153,.1); }
+.fx7-d.eq { color:var(--text-muted); background:rgba(148,163,184,.1); }
+/* small multiples (trend lines) */
+.fx7-sm { display:flex; flex-direction:column; gap:6px; }
+.fx7-smr { display:grid; grid-template-columns:var(--lw, minmax(80px, 28%)) minmax(0,1fr) auto; gap:10px; align-items:center; padding:5px 7px; border-radius:10px; border:1px solid transparent; }
+.fx7-smr:hover { background:color-mix(in srgb, var(--cc) 8%, transparent); border-color:color-mix(in srgb, var(--cc) 25%, transparent); }
+.fx7-smr .n { font-size:.72rem; font-weight:600; color:var(--text-main); display:flex; gap:7px; align-items:center; min-width:0; }
+.fx7-smr .n span { white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.fx7-smr .n i { width:8px; height:8px; border-radius:50%; background:var(--cc); box-shadow:0 0 8px var(--cc); flex-shrink:0; }
+.fx7-smr svg { width:100%; height:38px; display:block; overflow:visible; }
+.fx7-smr .v { font-family:'DM Mono',monospace; font-size:.72rem; font-weight:700; text-align:right; white-space:nowrap; color:var(--text-main); }
+.fx7-smr .v small { display:block; font-size:.58rem; color:var(--text-muted); font-weight:600; }
+.fx7-axis { display:flex; justify-content:space-between; font-size:.56rem; color:var(--text-muted); margin:2px 0 0; padding-left:calc(var(--lwpx, 28%) + 17px); padding-right:70px; }
+/* month over month */
+.fx7-lc { display:flex; flex-direction:column; height:100%; min-height:0; }
+.fx7-lh { display:flex; justify-content:space-between; align-items:baseline; font-size:.62rem; font-weight:800; letter-spacing:.8px; text-transform:uppercase; color:var(--text-muted); margin:2px 2px 6px; }
+.fx7-lh b { font-family:'DM Mono',monospace; font-size:.95rem; letter-spacing:0; color:#f97316; text-shadow:0 0 14px rgba(249,115,22,.5); }
+.fx7-strip { display:flex; gap:3px; height:12px; margin:0 2px 8px; }
+.fx7-strip span { border-radius:4px; background:linear-gradient(180deg, var(--cc), color-mix(in srgb, var(--cc) 55%, transparent)); box-shadow:0 0 10px color-mix(in srgb, var(--cc) 50%, transparent); min-width:4px; cursor:default; transform-origin:left; animation:fx7Grow .9s cubic-bezier(.22,1,.36,1) both; }
+.fx7-lc .fr-rows { flex:1 1 auto; min-height:0; overflow:auto; scrollbar-width:none; }
+.fx7-lc .fr-row { padding:5px 7px; }
+#fx7-txa-donut { flex:0 0 min(290px,46%); height:290px; }
+.fx7-labs.many span, .fx7-labs.some span { white-space:nowrap; overflow:visible; }
+.fx7-labs.many span.sk { visibility:hidden; }
+@media (max-width:700px) { .fx7-labs.some span.sk { visibility:hidden; } }
+@media (max-width:900px) { #fx7-txa-donut { flex:0 0 auto; width:100%; height:250px; } }
+.fx7-mom-go { display:flex; gap:8px; flex-wrap:wrap; justify-content:center; margin-top:10px; }
+.fx7-mom-go button { font:inherit; font-size:.7rem; font-weight:700; padding:6px 12px; border-radius:99px; border:1px solid var(--glass-border); background:rgba(32,205,181,.08); color:var(--text-main); cursor:pointer; }
+.fx7-mom-go button:hover { border-color:#20cdb5; }
+/* Transactions › Analytics: Category vs Subcategory fills its row next to Payee-wise Comparison */
+#adv-cmp .txa-grid:nth-child(2) > .txa-card:first-child { display:flex; flex-direction:column; }
+#adv-cmp .txa-grid:nth-child(2) > .txa-card:first-child > .txa-list { flex:1 1 auto; display:flex; flex-direction:column; }
+#adv-cmp .txa-grid:nth-child(2) > .txa-card:first-child > .txa-list > div { flex:1 1 auto; display:flex; flex-direction:column; }
+#adv-cmp .txa-grid:nth-child(2) > .txa-card:first-child .txa-at:not(.txa-at-h) { flex:1 1 0; align-items:center; min-height:34px; }
+/* Analytics › Expense Breakdown: legend wraps into columns on wide screens instead of one row stretched across */
+#ana-expbreak .txa-legend { display:grid !important; grid-template-columns:repeat(auto-fill, minmax(230px, 1fr)); gap:2px 18px; align-content:center; }
+@media (max-width:700px) { #ana-expbreak .txa-legend { grid-template-columns:minmax(0,1fr); } }
+/* label column sized to the longest label (set per list by fos-fx7) */
+.fx-bars[style*="--lw"] .fx-br { grid-template-columns:var(--lw) minmax(0,1fr) var(--vw, auto); }
+.fx6-rows[style*="--lw"] .fx6-r { grid-template-columns:var(--lw) minmax(0,1fr) var(--vw, auto) !important; }
+@media (max-width:520px) { .fx6-rows.tg[style*="--lw"] .fx6-r { grid-template-columns:minmax(0,1fr) auto !important; } .fx7-rad { grid-template-columns:minmax(0,1fr); justify-items:center; } .fx7-tm { flex-basis:170px; } }
+@media (prefers-reduced-motion: reduce) { .fx7-tile, .fx7-col .bar, .fx7-pr .t > div > span, .fx7-sk .grow { animation:none; } }
+</style>
+<script id="fos-fx7-js">
+/* Round 7 chart upgrades, visual only. Values are read from what the original code hands over
+   (window.__fosDash, __fosLend*, __fosEmiLoans, __fosPulse, __fosRhythm, __txa*) or from its chart data. */
+(function () {
+  'use strict';
+  var $ = function (id) { return document.getElementById(id); };
+  var esc = function (s) { return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]; }); };
+  var F = function (n) { try { return fmt(n || 0); } catch (e) { return '₹' + Math.round(n || 0).toLocaleString('en-IN'); } };
+  var R = function (n) { return '₹' + Math.round(n || 0).toLocaleString('en-IN'); };
+  var K = function (n) { var a = Math.abs(n || 0); return (n < 0 ? '−' : '') + '₹' + (a >= 1e7 ? (a / 1e7).toFixed(2) + 'Cr' : a >= 1e5 ? (a / 1e5).toFixed(a >= 1e6 ? 1 : 2) + 'L' : a >= 1e3 ? (a / 1e3).toFixed(a >= 1e4 ? 0 : 1) + 'k' : Math.round(a)); };
+  var SG = function (n) { return (n > 0 ? '+' : n < 0 ? '−' : '') + K(Math.abs(n)).replace('−', ''); };
+  var PC = function (n, d) { return (n > 0 ? '+' : n < 0 ? '−' : '') + Math.abs(n).toFixed(d == null ? 1 : d) + '%'; };
+  var light = function () { return document.body.classList.contains('light-mode'); };
+  var col = function (t) { try { return assetColor(t); } catch (e) { return '#a78bfa'; } };
+  var lbl = function (t) { try { return assetTypeLabel(t); } catch (e) { return t; } };
+  var typ = function (e) { try { return normalizeAssetType(e.assetType) || 'Other'; } catch (e2) { return 'Other'; } };
+  var chip = function (l, v, c, vc) { return '<div class="fx-chip" style="--c:' + c + '"><em>' + esc(l) + '</em><b' + (vc ? ' style="color:' + vc + '"' : '') + '>' + esc(v) + '</b></div>'; };
+  var empty = function (ic, msg) { return '<div class="empty-state" style="padding-top:2rem"><i class="fas ' + ic + '"></i><p>' + esc(msg) + '</p></div>'; };
+  var PAL = ['#34d399', '#60a5fa', '#f472b6', '#fbbf24', '#a78bfa', '#2dd4bf', '#fb923c', '#38bdf8', '#f87171', '#4ade80', '#c084fc', '#facc15', '#22d3ee'];
+  function set(host, html) { var k = (light() ? 'L' : 'D') + html.replace(/fr\d+[a-z0-9]+|fx7g\d+/g, ''); if (host.__fxk === k && host.firstChild) return false; host.__fxk = k; host.innerHTML = html; return true; }
+  // Same swap as round 5: the old holder stays in the page (hidden with .fx-old, which the dashboard's
+  // "ready" check accepts) so the original code keeps running untouched; the new chart sits right after it.
+  function box(ids, newId) {
+    var el = null; for (var i = 0; i < ids.length && !el; i++) el = $(ids[i]);
+    var n = $(newId); if (n) return n;
+    if (!el) return null;
+    var holder = (el.tagName === 'CANVAS' || /-wrap$/.test(el.id)) ? el.parentNode : el;
+    n = document.createElement('div'); n.id = newId; n.className = 'fx-box'; n.setAttribute('data-no-count', ''); n.setAttribute('data-fr-group', '');
+    var h = holder.style && holder.style.height; if (h && holder !== el) n.style.height = h;
+    holder.classList.add('fx-old'); holder.parentNode.insertBefore(n, holder.nextSibling);
+    return n;
+  }
+  var gid = 0;
+
+  /* hover read-out: any element with data-t inside a [data-fx7] host writes its text into that host's .fx7-read */
+  function readOut(host, def) {
+    var rd = host.querySelector('.fx7-read'); if (!rd) return;
+    rd.innerHTML = def;
+    host.onmouseover = function (e) {
+      var t = e.target.closest && e.target.closest('[data-t]'); if (!t || !host.contains(t)) return;
+      rd.innerHTML = t.getAttribute('data-t'); rd.style.setProperty('--cc', t.getAttribute('data-c') || '');
+      var k = t.getAttribute('data-k'); host.querySelectorAll('.on').forEach(function (x) { x.classList.remove('on'); });
+      if (k != null) host.querySelectorAll('[data-k="' + k + '"]').forEach(function (x) { x.classList.add('on'); });
+      var g = host.querySelector('.fx7-hlg'); if (g) g.classList.add('hl');
+    };
+    host.onmouseleave = function () { rd.innerHTML = def; host.querySelectorAll('.on').forEach(function (x) { x.classList.remove('on'); }); var g = host.querySelector('.fx7-hlg'); if (g) g.classList.remove('hl'); };
+  }
+  var att = function (s) { return esc(s); };
+
+  /* ═════ Dashboard › Cash Flow Snapshot: where the money went (flow diagram) ═════ */
+  function cashFlow() {
+    var host = box(['dashChart-liquid-wrap', 'dashChart'], 'fx7-cf'); if (!host) return;
+    var D = window.__fosDash; if (!D) return;
+    var lent = Number(D.rv && D.rv.lent) || 0, rec = Number(D.rv && D.rv.received) || 0, bal = Number(D.balance) || 0;
+    var L = [{ k: 'in', t: 'Income', v: D.inc, c: '#34d399' }], Rn = [];
+    if (rec > 0) L.push({ k: 'rec', t: 'Repayments received', v: rec, c: '#2dd4bf' });
+    if (bal < 0) L.push({ k: 'sav', t: 'Drawn from savings', v: -bal, c: '#f87171' });
+    [['exp', 'Expenses', D.exp, '#f472b6'], ['loan', 'Loans / EMIs', D.loan, '#60a5fa'], ['inv', 'Investments', D.inv, '#fbbf24'], ['lent', 'Lent out', lent, '#fb923c'], ['left', 'Left over', bal > 0 ? bal : 0, '#a78bfa']]
+      .forEach(function (x) { if (x[2] > 0) Rn.push({ k: x[0], t: x[1], v: x[2], c: x[3] }); });
+    L = L.filter(function (x) { return x.v > 0; });
+    var tot = L.reduce(function (s, x) { return s + x.v; }, 0);
+    if (!(tot > 0)) { set(host, empty('fa-water', 'No cash flow in this period')); return; }
+    var W = Math.max(240, Math.round(host.clientWidth || 320)), H = Math.max(150, Math.round((host.clientHeight || 360) - (W < 420 ? 130 : 84))), nw = 10, gap = 7, lx = 0, rx = W - nw;
+    function lay(list) { var avail = H - gap * (list.length - 1), y = 0; list.forEach(function (x) { x.h = Math.max(2, x.v / tot * avail); x.y = y; y += x.h + gap; }); }
+    lay(L); lay(Rn);
+    // bands: fill left sources in order into right uses in order (proportional, never invents money)
+    var bands = [], li = 0, lo = 0, ri = 0, ro = 0;
+    while (li < L.length && ri < Rn.length) {
+      var a = L[li], b = Rn[ri], take = Math.min(a.v - lo, b.v - ro);
+      if (take > 0) bands.push({ a: a, b: b, v: take, ay: a.y + lo / a.v * a.h, by: b.y + ro / b.v * b.h, ah: take / a.v * a.h, bh: take / b.v * b.h });
+      lo += take; ro += take; if (a.v - lo < 1e-6) { li++; lo = 0; } if (b.v - ro < 1e-6) { ri++; ro = 0; }
+    }
+    var id = 'fx7g' + (++gid), defs = '', paths = '';
+    bands.forEach(function (x, i) {
+      var g = id + 'b' + i, x0 = lx + nw, x1 = rx, m = (x0 + x1) / 2;
+      defs += '<linearGradient id="' + g + '" x1="0" x2="1"><stop offset="0" stop-color="' + x.a.c + '"/><stop offset="1" stop-color="' + x.b.c + '"/></linearGradient>';
+      paths += '<path class="b grow" data-k="' + x.b.k + '" data-c="' + x.b.c + '" data-t="' + att('<em>' + esc(x.a.t) + ' → ' + esc(x.b.t) + '</em> · <b>' + R(x.v) + '</b>') + '" fill="url(#' + g + ')" d="M' + x0 + ',' + x.ay.toFixed(1) + ' C' + m + ',' + x.ay.toFixed(1) + ' ' + m + ',' + x.by.toFixed(1) + ' ' + x1 + ',' + x.by.toFixed(1) + ' L' + x1 + ',' + (x.by + x.bh).toFixed(1) + ' C' + m + ',' + (x.by + x.bh).toFixed(1) + ' ' + m + ',' + (x.ay + x.ah).toFixed(1) + ' ' + x0 + ',' + (x.ay + x.ah).toFixed(1) + ' Z" style="animation-delay:' + (i * 0.06).toFixed(2) + 's"/>';
+    });
+    var inTot = L.reduce(function (s, x) { return s + x.v; }, 0);
+    function node(x, left) {
+      var pct = (x.v / (D.inc || inTot) * 100);
+      var tip = '<em>' + esc(x.t) + '</em> · <b>' + R(x.v) + '</b>' + (D.inc > 0 && x.k !== 'in' ? ' · ' + pct.toFixed(1) + '% of income' : '');
+      var ty = x.y + x.h / 2, tx = left ? lx + nw + 8 : rx - 8, an = left ? 'start' : 'end';
+      return '<rect class="n" data-k="' + x.k + '" data-c="' + x.c + '" data-t="' + att(tip) + '" x="' + (left ? lx : rx) + '" y="' + x.y.toFixed(1) + '" width="' + nw + '" height="' + x.h.toFixed(1) + '" rx="4" fill="' + x.c + '" style="filter:drop-shadow(0 0 6px ' + x.c + ')"/>' +
+        (x.h >= 14 ? '<text x="' + tx + '" y="' + (ty - (x.h >= 30 ? 5 : 0)).toFixed(1) + '" text-anchor="' + an + '" dominant-baseline="middle">' + esc(x.t) + '</text>' + (x.h >= 30 ? '<text class="v" x="' + tx + '" y="' + (ty + 9).toFixed(1) + '" text-anchor="' + an + '" dominant-baseline="middle">' + esc(K(x.v)) + (left || !(D.inc > 0) ? '' : ' · ' + pct.toFixed(0) + '%') + '</text>' : '') : '');
+    }
+    var sr = Number(D.savingsRate) || 0, src = sr >= 20 ? '#34d399' : sr >= 0 ? '#fbbf24' : '#f87171';
+    var def = 'Hover a flow to see where each rupee went';
+    set(host, '<div class="fx7-cf" data-fx7><div class="fx-chips">' + chip('Money in', K(D.inc + rec), '#34d399') + chip('Spent + EMIs', K(D.exp + D.loan), '#f472b6') + chip(bal >= 0 ? 'Left over' : 'Overspent', K(Math.abs(bal)), bal >= 0 ? '#a78bfa' : '#f87171', bal >= 0 ? '' : '#f87171') + chip('Savings rate', sr + '%', src, src) + '</div><div class="fx7-read"></div>' +
+      '<svg class="fx7-sk fx7-hlg" viewBox="0 0 ' + W + ' ' + H + '" style="height:' + H + 'px;flex:0 0 auto" preserveAspectRatio="xMidYMid meet" role="img" aria-label="Cash flow: where income went"><defs>' + defs + '</defs>' + paths + L.map(function (x) { return node(x, true); }).join('') + Rn.map(function (x) { return node(x, false); }).join('') + '</svg></div>');
+    var cf = host.querySelector('.fx7-cf'); if (cf) readOut(cf, def);
+  }
+
+  /* ═════ Dashboard › Spending Mix: treemap + ranked list ═════ */
+  function treemap(items, x, y, w, h, out) {
+    if (!items.length) return; if (items.length === 1) { out.push({ it: items[0], x: x, y: y, w: w, h: h }); return; }
+    var tot = items.reduce(function (s, a) { return s + a.v; }, 0), acc = 0, i = 0;
+    for (; i < items.length - 1; i++) { if (acc + items[i].v > tot / 2 && i > 0) break; acc += items[i].v; }
+    var A = items.slice(0, i), B = items.slice(i), fa = acc / tot;
+    if (w >= h) { treemap(A, x, y, w * fa, h, out); treemap(B, x + w * fa, y, w * (1 - fa), h, out); }
+    else { treemap(A, x, y, w, h * fa, out); treemap(B, x, y + h * fa, w, h * (1 - fa), out); }
+  }
+  function spendingMix() {
+    var host = box(['dashDonut-mix-wrap', 'dashDonut'], 'fx7-mix'); if (!host) return;
+    var D = window.__fosDash; if (!D) return;
+    var E = (D.mix || []).filter(function (x) { return x[1] > 0; });
+    if (!E.length) { set(host, empty('fa-receipt', 'No expense data for this period')); return; }
+    var tot = E.reduce(function (s, x) { return s + x[1]; }, 0);
+    var items = E.map(function (x, i) { return { k: i, t: String(x[0]), v: x[1], c: PAL[i % PAL.length] }; }), out = [];
+    treemap(items, 0, 0, 100, 100, out);
+    var TW = Math.max(200, host.clientWidth || 400), TH = Math.max(170, (host.clientHeight || 360) - 150);
+    var top3 = items.slice(0, 3).reduce(function (s, x) { return s + x.v; }, 0);
+    var tip = function (x) { return att('<em>' + esc(x.t) + '</em> · <b>' + R(x.v) + '</b> · ' + (x.v / tot * 100).toFixed(1) + '% of spending · #' + (x.k + 1)); };
+    var def = items.length + ' categories · top 3 are <b>' + (top3 / tot * 100).toFixed(0) + '%</b> of ' + R(tot);
+    set(host, '<div class="fx7-mix" data-fx7><div class="fx7-read"></div><div class="fx7-tm fx7-hlg">' + out.map(function (r, i) {
+      var x = r.it, small = r.w / 100 * TW < 62 || r.h / 100 * TH < 36;
+      return '<div class="fx7-tile' + (small ? ' sm' : '') + '" data-k="' + x.k + '" data-c="' + x.c + '" data-t="' + tip(x) + '" style="--cc:' + x.c + ';left:' + r.x.toFixed(2) + '%;top:' + r.y.toFixed(2) + '%;width:' + r.w.toFixed(2) + '%;height:' + r.h.toFixed(2) + '%;animation-delay:' + (i * 0.04).toFixed(2) + 's"><b>' + esc(x.t) + '</b><span>' + esc(K(x.v)) + ' · ' + (x.v / tot * 100).toFixed(0) + '%</span></div>';
+    }).join('') + '</div><div class="fx7-list">' + items.map(function (x) { return '<div class="fx7-li" data-k="' + x.k + '" data-c="' + x.c + '" data-t="' + tip(x) + '" style="--cc:' + x.c + '"><i></i><span>' + esc(x.t) + '</span><em>' + esc(R(x.v)) + ' · ' + (x.v / tot * 100).toFixed(1) + '%</em></div>'; }).join('') + '</div></div>');
+    var m = host.querySelector('.fx7-mix'); if (m) readOut(m, def);
+  }
+
+  /* ═════ Dashboard › ROI % by Asset: same chart as Summary › ROI by Asset Type ═════ */
+  function dashRoi() {
+    var host = box(['dash-roi-bar'], 'fx7-droi'); if (!host) return;
+    var D = window.__fosDash; if (!D || !D.roiInv) return;
+    var inv = D.roiInv, gain = D.roiGain || {};
+    var rows = Object.keys(inv).filter(function (k) { return inv[k] > 0; }).map(function (k) { return { k: k, r: gain[k] / inv[k] * 100, g: gain[k] }; }).sort(function (a, b) { return b.r - a.r; });
+    if (!rows.length) { set(host, empty('fa-percent', 'No portfolio data')); return; }
+    var hasNeg = rows.some(function (x) { return x.r < 0; }), hasPos = rows.some(function (x) { return x.r > 0; });
+    var negMax = Math.max.apply(null, rows.map(function (x) { return x.r < 0 ? -x.r : 0; }).concat([0])), posMax = Math.max.apply(null, rows.map(function (x) { return x.r > 0 ? x.r : 0; }).concat([0]));
+    var z = negMax + posMax > 0 ? negMax / (negMax + posMax) * 100 : 50; z = hasNeg && hasPos ? Math.min(70, Math.max(18, z)) : z;
+    var tInv = rows.reduce(function (s, x) { return s + inv[x.k]; }, 0), tG = rows.reduce(function (s, x) { return s + x.g; }, 0);
+    set(host, '<div class="fx-chips">' + chip('Best', lbl(rows[0].k) + ' ' + PC(rows[0].r), '#34d399') + chip('Weakest', lbl(rows[rows.length - 1].k) + ' ' + PC(rows[rows.length - 1].r), rows[rows.length - 1].r < 0 ? '#f87171' : '#fbbf24') + chip('Overall', PC(tInv ? tG / tInv * 100 : 0), '#38bdf8', tG >= 0 ? '#34d399' : '#f87171') + '</div>' +
+      '<div class="fx-bars" style="max-height:132px">' + rows.map(function (x) {
+        var pos = x.r >= 0, span = pos ? (100 - z) : z, mxs = pos ? (posMax || 1) : (negMax || 1), w = Math.max(1.5, Math.abs(x.r) / mxs * span);
+        var c = pos ? '#34d399' : '#f87171', bg = pos ? 'linear-gradient(90deg, rgba(52,211,153,.35), #34d399)' : 'linear-gradient(270deg, rgba(248,113,113,.35), #f87171)';
+        return '<div class="fx-br" style="--cc:' + col(x.k) + '" title="' + esc(lbl(x.k) + ': ' + PC(x.r) + ' · ' + SG(x.g) + ' on ' + F(inv[x.k]) + ' invested') + '"><span class="fx-br-n"><i></i>' + esc(lbl(x.k)) + '</span><div class="fx-trk"><span class="fx-zero" style="left:' + z.toFixed(1) + '%"></span><span class="fx-fill ' + (pos ? 'r' : 'l') + '" style="' + (pos ? 'left:' + z.toFixed(1) + '%' : 'right:' + (100 - z).toFixed(1) + '%') + ';width:' + w.toFixed(1) + '%;background:' + bg + ';--g:' + c + '80"></span></div><span class="fx-br-v" style="color:' + c + '">' + PC(x.r) + '</span></div>';
+      }).join('') + '</div>');
+  }
+
+  /* ═════ Dashboard › Top 3 Holdings: same podium as Summary › Best Performers ═════ */
+  function dashTop3() {
+    var host = box(['dash-top3'], 'fx7-dtop'); if (!host) return;
+    var D = window.__fosDash; if (!D || !D.top3) return;
+    var top = D.top3; if (!top.length) { set(host, empty('fa-trophy', 'No portfolio data')); return; }
+    var best = Math.max(Math.abs(Number(top[0].roi) || 0), 1), MED = ['1ST', '2ND', '3RD'];
+    var name = function (s) { var u = s.unit === 'grams' ? 'g' : s.unit === 'units' ? 'u' : ''; return String(s.subType || '').trim() || (lbl(s.assetType) + (s.quantity ? ' ' + s.quantity + u : '')); };
+    set(host, '<div class="fx-pod">' + top.map(function (s, i) {
+      var roi = Number(s.roi) || 0, c = roi >= 0 ? col(s.assetType) : '#f87171', f = Math.min(1, Math.abs(roi) / best), C = 2 * Math.PI * 20, len = (f * C).toFixed(1);
+      return '<div class="fx-pc" style="--cc:' + c + '"><svg viewBox="0 0 52 52" aria-hidden="true"><circle cx="26" cy="26" r="20" fill="none" stroke="rgba(148,163,184,.14)" stroke-width="5"/><circle class="fx-arc" cx="26" cy="26" r="20" fill="none" stroke="' + c + '" stroke-width="5" stroke-linecap="round" stroke-dasharray="' + len + ' ' + C.toFixed(1) + '" style="filter:drop-shadow(0 0 4px ' + c + ');animation-delay:' + (i * 0.15) + 's"/><text x="26" y="29.5" text-anchor="middle" font-family="DM Mono, monospace" font-size="10" font-weight="700" fill="' + c + '">' + (i + 1) + '</text></svg>' +
+        '<div style="min-width:0"><div class="nm" title="' + esc(name(s)) + '">' + esc(name(s)) + '</div><div class="sb">' + esc(lbl(s.assetType)) + ' · ' + K(s.totalInvestment) + ' → ' + K(s.currentValue) + (String(s.status || '').toLowerCase() === 'sold' ? ' · sold' : '') + '</div></div>' +
+        '<div class="rv" style="color:' + c + '">' + roi.toFixed(1) + '%<small>' + R(s.gainLoss) + '</small></div><span class="rk">' + MED[i] + '</span></div>';
+    }).join('') + '</div>');
+  }
+
+  /* ═════ Outstanding by Lender (dashboard + Debt Tracker): share ring + ranked lenders ═════ */
+  function lenderInfo(name) {
+    var n = 0, emi = 0; (window.creditDb || (typeof creditDb !== 'undefined' ? creditDb : [])).forEach(function (c) { if (c.lenderName === name) { n++; if (c.status === 'Active') emi += Number(c.monthlyEmi) || 0; } });
+    return { n: n, emi: emi };
+  }
+  function lenders(ids, newId, src, compact) {
+    var host = box(ids, newId); if (!host) return; var S = window[src]; if (!S) return;
+    var list = (S.list || []).filter(function (c) { return c.outstandingBalance > 0; }), all = S.list || [];
+    if (!all.length) { set(host, empty('fa-credit-card', 'No credit data')); return; }
+    if (!list.length) { set(host, empty('fa-circle-check', 'Nothing outstanding')); return; }
+    var OR = ['#f97316', '#fbbf24', '#ef4444', '#fb7185', '#f59e0b', '#fdba74', '#e879f9', '#a78bfa'];
+    var tot = list.reduce(function (s, c) { return s + c.outstandingBalance; }, 0), top = list[0].outstandingBalance;
+    var segs = list.map(function (c, i) { var I = lenderInfo(c.lenderName); return { key: newId + i, v: c.outstandingBalance, c: OR[i % OR.length], t: c.lenderName, vs: R(c.outstandingBalance), s: (c.outstandingBalance / tot * 100).toFixed(1) + '% of the total' + (I.emi ? ' · EMI ' + R(I.emi) + '/mo' : ''), I: I }; });
+    var more = S.groups > all.length ? ' (top ' + all.length + ' of ' + S.groups + ')' : '';
+    var ring = fosRing({ size: compact ? 150 : 190, core: 'rgba(249,115,22,.16)', rings: [{ r: compact ? 58 : 74, w: compact ? 13 : 16, segs: segs }], center: { k: 'Outstanding', v: K(tot), s: list.length + ' lender' + (list.length === 1 ? '' : 's') + more, col: '#f97316' }, label: 'Outstanding by lender' });
+    var rows = segs.map(function (x) { return fosRingRow({ key: x.key, c: x.c, t: x.t, vs: compact ? K(x.v) : R(x.v), pct: (x.v / tot * 100).toFixed(x.v / tot < 0.1 ? 1 : 0) + '%', bar: x.v / top * 100, sub: (x.I.n > 1 ? x.I.n + ' loans' : x.I.n === 1 ? '1 loan' : '') + (x.I.emi ? (x.I.n ? ' · ' : '') + 'EMI ' + R(x.I.emi) + '/mo' : '') }); }).join('');
+    if (compact) {
+      var strip = '<div class="fx7-strip">' + segs.map(function (x) { return '<span data-fr="' + x.key + '" style="--cc:' + x.c + ';flex:' + x.v + ' 1 0" onmouseenter="fosRingHi(this)" onmouseleave="fosRingHi(this,1)" title="' + esc(x.t + ' · ' + x.vs + ' · ' + x.s) + '"></span>'; }).join('') + '</div>';
+      set(host, '<div class="fx7-lc"><div class="fx7-lh"><span>Total outstanding' + esc(more) + '</span><b>' + esc(R(tot)) + '</b></div>' + strip + '<div class="fr-rows">' + rows + '</div></div>');
+      return;
+    }
+    set(host, '<div class="fx-split">' + ring + '<div class="fr-rows">' + rows + '</div></div>');
+  }
+  function dashLenders() { lenders(['dash-credit-bar-wrap', 'dash-credit-bar'], 'fx7-dlend', '__fosLendDash', true); }
+  function pageLenders() { lenders(['credit-bar-chart-wrap', 'credit-bar-chart'], 'fx7-clend', '__fosLendPage', false); }
+
+  /* ═════ Dashboard › EMI vs Outstanding: paired bars per loan ═════ */
+  function emiVs() {
+    var host = box(['dash-credit-emi'], 'fx7-demi'); if (!host) return;
+    var A = window.__fosEmiLoans; if (!A) return;
+    if (!A.length) { set(host, empty('fa-scale-balanced', 'No active loans')); return; }
+    var mo = Math.max.apply(null, A.map(function (c) { return Number(c.outstandingBalance) || 0; }).concat([1])), me = Math.max.apply(null, A.map(function (c) { return Number(c.monthlyEmi) || 0; }).concat([1]));
+    var big = A.slice().sort(function (a, b) { return (b.monthlyEmi || 0) - (a.monthlyEmi || 0); })[0];
+    void big;
+    set(host, '<div class="fx7-pairs" style="max-height:160px;overflow:auto;scrollbar-width:none;padding-top:6px">' + A.map(function (c) {
+        var o = Number(c.outstandingBalance) || 0, e = Number(c.monthlyEmi) || 0;
+        return '<div class="fx7-pr" style="--cc:#f97316" title="' + esc(c.lenderName + (c.type ? ' · ' + c.type : '') + ': ' + R(o) + ' outstanding, EMI ' + R(e) + '/month') + '"><span class="n"><i></i>' + esc(c.lenderName) + '</span><div class="t">' +
+          '<div><span style="width:' + Math.max(o > 0 ? 1.5 : 0, o / mo * 100).toFixed(1) + '%;background:linear-gradient(90deg, rgba(239,68,68,.35), #ef4444);box-shadow:0 0 9px rgba(239,68,68,.5)"></span></div>' +
+          '<div><span style="width:' + Math.max(e > 0 ? 1.5 : 0, e / me * 100).toFixed(1) + '%;background:linear-gradient(90deg, rgba(251,191,36,.35), #fbbf24);box-shadow:0 0 9px rgba(251,191,36,.5);animation-delay:.25s"></span></div></div>' +
+          '<span class="v" style="color:#f87171">' + K(o) + '<small style="color:#fbbf24">' + K(e) + '/mo</small></span></div>';
+      }).join('') + '</div><div class="fx-legend"><span><i style="background:#ef4444"></i>Outstanding (scaled to the largest balance)</span><span><i style="background:#fbbf24"></i>Monthly EMI (scaled to the largest EMI)</span></div>');
+  }
+
+  /* ═════ column chart helper (HTML, responsive) ═════ */
+  function columns(o) {
+    // o: { vals, labels, tips, colors, dim:[], part:[], show:[], avg, avgLabel, h, short }
+    var mx = Math.max.apply(null, o.vals.concat(o.avg ? [o.avg] : []).concat([1])) * 1.12;
+    var bars = o.vals.map(function (v, i) {
+      var hp = Math.max(v > 0 ? 1.5 : 0, v / mx * 100), c = (o.colors && o.colors[i]) || '#20cdb5';
+      return '<div class="fx7-col' + (o.dim && o.dim[i] ? ' dim' : '') + (o.part && o.part[i] ? ' part' : '') + (o.show && o.show[i] ? ' show' : '') + '" data-k="' + i + '" data-c="' + c + '" data-t="' + att(o.tips[i]) + '" style="--cc:' + c + '"><span class="vl" style="bottom:calc(' + hp.toFixed(1) + '% + 3px)">' + esc(o.short ? o.short(v) : K(v)) + '</span><div class="bar" style="height:' + hp.toFixed(1) + '%;animation-delay:' + (i * 0.03).toFixed(2) + 's"></div></div>';
+    }).join('');
+    var avg = o.avg > 0 ? '<div class="avg" style="bottom:' + (o.avg / mx * 100).toFixed(1) + '%"><span>' + esc(o.avgLabel || ('avg ' + K(o.avg))) + '</span></div>' : '';
+    var nL = o.labels.length, stp = nL > 8 ? Math.ceil(nL / 7) : 1;
+    var labs = '<div class="fx7-labs' + (nL > 14 ? ' many' : nL > 8 ? ' some' : '') + '">' + o.labels.map(function (l, i) { return '<span' + (stp > 1 && i % stp ? ' class="sk"' : '') + ' data-k="' + i + '" data-c="' + ((o.colors && o.colors[i]) || '') + '" data-t="' + att(o.tips[i]) + '">' + esc(l) + '</span>'; }).join('') + '</div>';
+    return '<div class="fx7-cols" style="height:' + (o.h || 120) + 'px">' + bars + avg + '</div>' + labs;
+  }
+
+  /* ═════ Dashboard › Consistency journey › Weekly Pulse ═════ */
+  var MN = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+  function pulse() {
+    var el = $('pol-lh'), P = window.__fosPulse; if (!el || !P) return;
+    var blk = null; el.querySelectorAll('.pol-rh').forEach(function (r) { var h = r.parentNode && r.parentNode.querySelector('.fa-heart-pulse'); if (h) blk = r; });
+    if (!blk) return;
+    var ks = P.ks.concat([P.cw]), vals = P.vals.concat([P.cur]), lb = function (k) { return +k.slice(8) + ' ' + MN[+k.slice(5, 7) - 1]; };
+    var hi = -1, lo = -1; vals.slice(0, 8).forEach(function (v, i) { if (v > 0 && (hi < 0 || v > vals[hi])) hi = i; if (v > 0 && (lo < 0 || v < vals[lo])) lo = i; });
+    var tips = ks.map(function (k, i) { var v = vals[i]; return (i === 8 ? '<em>This week so far</em> (from ' + lb(k) + ')' : '<em>Week of ' + lb(k) + '</em>') + ' · <b>' + R(v) + '</b>' + (P.avg4 > 0 ? ' · ' + (v >= P.avg4 ? '+' : '−') + Math.abs((v - P.avg4) / P.avg4 * 100).toFixed(0) + '% vs usual' : ''); });
+    var colors = vals.map(function (v, i) { return i === 8 ? '#20cdb5' : i === hi ? '#f472b6' : i === lo ? '#34d399' : '#38bdf8'; });
+    var n = document.createElement('div'); n.className = 'fx7-pulse'; n.setAttribute('data-no-count', '');
+    n.innerHTML = '<div class="fx7-read"></div><div class="fx7-colwrap">' + columns({ vals: vals, labels: ks.map(function (k, i) { return i === 8 ? 'now' : String(+k.slice(8)); }), tips: tips, colors: colors, part: vals.map(function (v, i) { return i === 8; }), show: vals.map(function (v, i) { return i === 8 || i === hi; }), avg: P.avg4, avgLabel: 'usual ' + K(P.avg4) + '/wk', h: 110 }) + '</div>' +
+      '<div class="fx-legend" style="justify-content:flex-start"><span><i style="background:#f472b6"></i>Priciest</span><span><i style="background:#34d399"></i>Lightest</span><span><i style="background:repeating-linear-gradient(135deg,#20cdb5 0 3px,transparent 3px 6px)"></i>This week so far</span></div>';
+    blk.parentNode.replaceChild(n, blk);
+    readOut(n, 'Last 8 weeks of spending · hover a week');
+  }
+
+  /* ═════ Dashboard › Unlocked insights › Spending Rhythm (radial week) ═════ */
+  var DN = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+  function rhythm() {
+    var el = $('pol-ms'), Rr = window.__fosRhythm; if (!el || !Rr || !Rr.ready) return;
+    var blk = el.querySelector('.pol-rh'); if (!blk) return;
+    var by = Rr.by, mx = Math.max.apply(null, by.concat([1])), t = Rr.t || 1, cx = 65, cy = 65, r0 = 22, r1 = 60, seg = 2 * Math.PI / 7, pad = 0.05;
+    var order = [1, 2, 3, 4, 5, 6, 0];
+    function arc(a0, a1, ri, ro) { var p = function (a, r) { return (cx + r * Math.sin(a)).toFixed(2) + ',' + (cy - r * Math.cos(a)).toFixed(2); }; var lg = a1 - a0 > Math.PI ? 1 : 0; return 'M' + p(a0, ri) + ' L' + p(a0, ro) + ' A' + ro + ',' + ro + ' 0 ' + lg + ' 1 ' + p(a1, ro) + ' L' + p(a1, ri) + ' A' + ri + ',' + ri + ' 0 ' + lg + ' 0 ' + p(a0, ri) + ' Z'; }
+    var svg = '<svg class="fx7-hlg" viewBox="0 0 130 130" aria-label="Spending by weekday">';
+    svg += '<circle cx="' + cx + '" cy="' + cy + '" r="' + r1 + '" fill="none" stroke="rgba(148,163,184,.12)" stroke-dasharray="2 3"/>';
+    order.forEach(function (d, i) {
+      var a0 = i * seg + pad, a1 = (i + 1) * seg - pad, ro = r0 + (r1 - r0) * Math.max(0.04, by[d] / mx), we = d === 0 || d === 6, c = d === Rr.pk ? '#20cdb5' : we ? '#a78bfa' : '#38bdf8';
+      var tip = '<em>' + DN[d] + '</em> · <b>' + R(by[d]) + '</b> · ' + (by[d] / t * 100).toFixed(1) + '% of all spending' + (we ? ' · weekend' : '');
+      svg += '<path data-k="' + d + '" data-c="' + c + '" data-t="' + att(tip) + '" d="' + arc(a0, a1, r0, ro) + '" fill="' + c + '" fill-opacity=".75" style="filter:drop-shadow(0 0 4px ' + c + ')"/>';
+      var am = (a0 + a1) / 2, lr = r1 + 7; svg += '<text x="' + (cx + lr * Math.sin(am)).toFixed(1) + '" y="' + (cy - lr * Math.cos(am) + 3).toFixed(1) + '" text-anchor="middle">' + DN[d].slice(0, 2) + '</text>';
+    });
+    svg += '<text class="ct" x="' + cx + '" y="' + (cy - 2) + '" text-anchor="middle">' + DN[Rr.pk].slice(0, 3) + '</text><text x="' + cx + '" y="' + (cy + 10) + '" text-anchor="middle">peak</text></svg>';
+    var leg = '<div class="fx7-legd">' + order.map(function (d) { var we = d === 0 || d === 6, c = d === Rr.pk ? '#20cdb5' : we ? '#a78bfa' : '#38bdf8'; return '<div data-k="' + d + '" data-c="' + c + '" data-t="' + att('<em>' + DN[d] + '</em> · <b>' + R(by[d]) + '</b> · ' + (by[d] / t * 100).toFixed(1) + '%') + '" style="--cc:' + c + '"><span>' + DN[d].slice(0, 3) + '</span><i style="width:' + Math.max(3, by[d] / mx * 100).toFixed(0) + '%"></i><b>' + (by[d] / t * 100).toFixed(0) + '%</b></div>'; }).join('') + '</div>';
+    var n = document.createElement('div'); n.className = 'fx7-rhy'; n.setAttribute('data-no-count', '');
+    n.innerHTML = '<div class="fx7-read"></div><div class="fx7-rad">' + svg + leg + '</div>';
+    blk.parentNode.replaceChild(n, blk);
+    readOut(n, 'Weekends <b>' + Math.round(Rr.we) + '%</b> of spend · hover a day');
+  }
+
+  /* ═════ Transactions › Analytics: charts redrawn from the original Chart.js data ═════ */
+  function swapCanvas(cv, newId, h) {
+    var wrap = cv.parentNode, n = $(newId);
+    if (n && n.parentNode === wrap.parentNode && n.previousSibling === wrap) { wrap.classList.add('fx-old'); return n; }
+    if (n) n.remove();
+    n = document.createElement('div'); n.id = newId; n.className = 'fx-box'; n.setAttribute('data-no-count', ''); n.setAttribute('data-fr-group', '');
+    if (h) n.style.minHeight = h; wrap.classList.add('fx-old'); wrap.parentNode.insertBefore(n, wrap.nextSibling); return n;
+  }
+  function ds0(ch, i) { return (ch.data.datasets[i || 0] || {}).data || []; }
+  function txaDonut(ch) {
+    var host = swapCanvas(ch.canvas, 'fx7-txa-donut'); var L = ch.data.labels || [], V = ds0(ch), C = (ch.data.datasets[0] || {}).backgroundColor || PAL;
+    var tot = V.reduce(function (s, x) { return s + (Number(x) || 0); }, 0); if (!(tot > 0)) { set(host, ''); return; }
+    var legs = Array.prototype.slice.call(document.querySelectorAll('#txa-legend .txa-leg')), sel = -1; legs.forEach(function (b, i) { if (b.classList.contains('sel')) sel = i; });
+    var segs = L.map(function (l, i) { return { key: 'td' + i, v: Number(V[i]) || 0, c: (function () { var c0 = Array.isArray(C) ? C[i % C.length] : C; if (typeof c0 === 'string') return c0; var lg = legs[i] && (legs[i].style.getPropertyValue('--cc') || getComputedStyle(legs[i]).getPropertyValue('--cc')); return (lg && lg.trim()) || PAL[i % PAL.length]; })(), t: String(l), vs: R(V[i]), s: (V[i] / tot * 100).toFixed(1) + '% · click to inspect', sel: i === sel, click: 'fosFx7.txaPick(' + i + ')' }; });
+    var cen = sel >= 0 ? { k: L[sel], v: K(V[sel]), s: (V[sel] / tot * 100).toFixed(1) + '% of spending', col: segs[sel].c } : { k: 'Total expenses', v: K(tot), s: L.length + ' categor' + (L.length === 1 ? 'y' : 'ies'), col: '#20cdb5' };
+    set(host, '<div style="display:flex;align-items:center;justify-content:center;height:100%;padding:6px 0">' + fosRing({ size: 230, core: 'rgba(32,205,181,.16)', rings: [{ r: 92, w: 20, segs: segs }, { r: 70, w: 5, full: tot, segs: sel >= 0 ? [{ key: 'td' + sel, v: V[sel], c: segs[sel].c, t: L[sel], vs: R(V[sel]), s: '' }] : [] }], center: cen, label: 'Expense categories' }) + '</div>');
+  }
+  window.fosFx7 = window.fosFx7 || {};
+  window.fosFx7.txaPick = function (i) { var b = document.querySelectorAll('#txa-legend .txa-leg')[i]; if (b) b.click(); };
+  function txaMonth(ch) {
+    var host = swapCanvas(ch.canvas, 'fx7-txa-month'); var L = ch.data.labels || [], V = ds0(ch).map(Number), M = window.__txaMonth || {}, ins = M.inside || [];
+    var used = V.filter(function (v, i) { return ins[i] !== false && v > 0; }), avg = used.length ? used.reduce(function (s, v) { return s + v; }, 0) / used.length : 0;
+    var tips = V.map(function (v, i) { var t = '<em>' + esc(L[i]) + '</em> · <b>' + R(v) + '</b>' + (ins[i] === false ? ' · before the selected range' : ''); if (i > 0 && V[i - 1] > 0) { var c = (v - V[i - 1]) / V[i - 1] * 100; t += ' · ' + (c >= 0 ? '▲ ' : '▼ ') + Math.abs(c).toFixed(1) + '% vs previous month'; } return t; });
+    var hi = V.indexOf(Math.max.apply(null, V));
+    var chg = '<div class="fx7-chg">' + V.map(function (v, i) { if (!i || !(V[i - 1] > 0)) return '<span class="nil">·</span>'; var c = (v - V[i - 1]) / V[i - 1] * 100; return '<span class="' + (c > 0.5 ? 'up' : c < -0.5 ? 'dn' : 'nil') + '" title="vs previous month">' + (c > 0 ? '▲' : c < 0 ? '▼' : '') + Math.abs(c).toFixed(0) + '%</span>'; }).join('') + '</div>';
+    set(host, '<div data-fx7 class="fx7-tipbox"><div class="fx7-read"></div><div class="fx7-colwrap">' + columns({ vals: V, labels: L, tips: tips, colors: V.map(function (v, i) { return i === hi ? '#f472b6' : '#20cdb5'; }), dim: ins.map(function (x) { return x === false; }), show: V.map(function (v, i) { return i === hi || i === V.length - 1; }), avg: avg, avgLabel: 'avg ' + K(avg), h: 190 }) + '</div>' + chg + '</div>');
+    var b = host.querySelector('[data-fx7]'); readOut(b, 'Hover a month · pink = highest · % = change vs the month before');
+  }
+  function txaWeek(ch) {
+    var host = swapCanvas(ch.canvas, 'fx7-txa-week'); var L = ch.data.labels || [], V = ds0(ch).map(Number), Wk = window.__txaWeek || {};
+    var order = Wk.order || [], hi = V.indexOf(Math.max.apply(null, V));
+    var tips = V.map(function (v, i) { var d = order[i], we = d === 0 || d === 6; return '<em>' + esc(L[i]) + (we ? ' (weekend)' : '') + '</em> · avg <b>' + R(v) + '</b>/day' + (Wk.tot ? ' · total ' + R(Wk.tot[d]) + ' over ' + Wk.occ[d] + ' day' + (Wk.occ[d] === 1 ? '' : 's') : ''); });
+    var colors = V.map(function (v, i) { var d = order[i]; return (d === 0 || d === 6) ? '#a78bfa' : '#20cdb5'; });
+    set(host, '<div data-fx7><div class="fx7-read"></div><div class="fx7-colwrap">' + columns({ vals: V, labels: L, tips: tips, colors: colors, show: V.map(function (v, i) { return i === hi; }), h: 150 }) + '</div><div class="fx-legend"><span><i style="background:#20cdb5"></i>Weekday</span><span><i style="background:#a78bfa"></i>Weekend</span><span>Bar = average spend on that day</span></div></div>');
+    readOut(host.querySelector('[data-fx7]'), 'Hover a day for its average and total');
+  }
+  // Subcategory current vs previous (horizontal grouped bars → paired rows with change)
+  function pairs(ch, newId) {
+    var host = swapCanvas(ch.canvas, newId); var L = ch.data.labels || [], C = ds0(ch, 0).map(Number), P = ch.data.datasets[1] ? ds0(ch, 1).map(Number) : null;
+    var mx = Math.max.apply(null, C.concat(P || []).concat([1])), cc = (ch.data.datasets[0] || {}).backgroundColor; cc = typeof cc === 'string' ? cc : '#20cdb5';
+    set(host, '<div class="fx7-pairs">' + L.map(function (l, i) {
+      var c = C[i] || 0, p = P ? (P[i] || 0) : null, d = p == null ? '' : p > 0 ? ((c - p) / p * 100) : null;
+      var badge = p == null ? '' : d === null ? '<span class="fx7-d up">new</span>' : '<span class="fx7-d ' + (d > 0.5 ? 'up' : d < -0.5 ? 'dn' : 'eq') + '">' + (d > 0.5 ? '▲' : d < -0.5 ? '▼' : '≈') + Math.abs(d).toFixed(0) + '%</span>';
+      return '<div class="fx7-pr" style="--cc:' + cc + '" title="' + esc(l + ': ' + R(c) + (p != null ? ' now, ' + R(p) + ' before' : '')) + '"><span class="n"><i></i><span style="overflow:hidden;text-overflow:ellipsis">' + esc(l) + '</span></span><div class="t">' +
+        '<div><span style="width:' + Math.max(c > 0 ? 1.5 : 0, c / mx * 100).toFixed(1) + '%;background:linear-gradient(90deg, color-mix(in srgb, ' + cc + ' 30%, transparent), ' + cc + ');box-shadow:0 0 9px color-mix(in srgb, ' + cc + ' 55%, transparent)"></span></div>' +
+        (p != null ? '<div class="ghost"><span style="width:' + Math.max(p > 0 ? 1.5 : 0, p / mx * 100).toFixed(1) + '%;animation-delay:.2s"></span></div>' : '') + '</div>' +
+        '<span class="v">' + K(c) + badge + (p != null ? '<small>before ' + K(p) + '</small>' : '') + '</span></div>';
+    }).join('') + '</div>' + (P ? '<div class="fx-legend"><span><i style="background:' + cc + '"></i>This period</span><span><i style="background:repeating-linear-gradient(135deg,#94a3b8 0 3px,transparent 3px 6px)"></i>Previous period</span><span>▲ spent more · ▼ spent less</span></div>' : ''));
+  }
+  // Trend lines (top subcategories, top payees) → small multiples: one sparkline per series on a shared time axis
+  function multiples(ch, newId) {
+    var host = swapCanvas(ch.canvas, newId); var L = ch.data.labels || [], S = ch.data.datasets || [];
+    if (!S.length || !L.length) { set(host, ''); return; }
+    var W = 200, Hh = 38;
+    var rows = S.map(function (d, si) {
+      var v = (d.data || []).map(function (x) { return Number(x) || 0; }), c = typeof d.borderColor === 'string' ? d.borderColor : PAL[si % PAL.length], n = v.length;
+      var mx = Math.max.apply(null, v.concat([1])), mn = Math.min.apply(null, v); mn = mn > 0 && (mx - mn) / mx < 0.9 ? mn * 0.85 : 0;   // each line on its own scale so its shape shows
+      var pts = v.map(function (x, i) { return [(n === 1 ? W / 2 : i / (n - 1) * W), Hh - 3 - (x - mn) / ((mx - mn) || 1) * (Hh - 6)]; });
+      var line = pts.map(function (p, i) { return (i ? 'L' : 'M') + p[0].toFixed(1) + ',' + p[1].toFixed(1); }).join(' ');
+      var area = line + ' L' + pts[pts.length - 1][0].toFixed(1) + ',' + Hh + ' L' + pts[0][0].toFixed(1) + ',' + Hh + ' Z', g = 'fx7g' + (++gid);
+      var tot = v.reduce(function (s, x) { return s + x; }, 0), pk = v.indexOf(Math.max.apply(null, v));
+      var first = v.find(function (x) { return x > 0; }), last = v[n - 1];
+      var dots = pts.map(function (p, i) { return '<circle cx="' + p[0].toFixed(1) + '" cy="' + p[1].toFixed(1) + '" r="' + (i === pk ? 3 : 1.6) + '" fill="' + c + '"><title>' + esc(L[i] + ': ' + R(v[i])) + '</title></circle>'; }).join('');
+      return '<div class="fx7-smr" style="--cc:' + c + '"><span class="n"><i></i><span title="' + esc(d.label) + '">' + esc(d.label) + '</span></span><svg viewBox="0 0 ' + W + ' ' + Hh + '" preserveAspectRatio="none"><defs><linearGradient id="' + g + '" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="' + c + '" stop-opacity=".4"/><stop offset="1" stop-color="' + c + '" stop-opacity="0"/></linearGradient></defs><path d="' + area + '" fill="url(#' + g + ')"/><path d="' + line + '" fill="none" stroke="' + c + '" stroke-width="2" vector-effect="non-scaling-stroke" stroke-linejoin="round"/>' + dots + '</svg>' +
+        '<span class="v">' + K(tot) + '<small>peak ' + esc(L[pk]) + ' · ' + K(v[pk]) + '</small></span></div>';
+    }).join('');
+    set(host, '<div class="fx7-sm">' + rows + '</div><div class="fx-legend" style="justify-content:space-between;padding:0 8px"><span>' + esc(L[0]) + '</span><span>Each line is scaled to itself to show its shape · total for the range and the busiest period on the right</span><span>' + esc(L[L.length - 1]) + '</span></div>');
+  }
+  // Monthly / weekly spending pattern (bars) → columns with average line, highest / lowest and per-day hint
+  function pattern(ch, newId, mode) {
+    var host = swapCanvas(ch.canvas, newId); var L = ch.data.labels || [], V = ds0(ch).map(Number), T = window.__txaTrend || {}, days = (mode === 'm' ? T.m : T.w) || [];
+    var used = V.filter(function (v) { return v > 0; }), avg = used.length ? used.reduce(function (s, v) { return s + v; }, 0) / used.length : 0;
+    var hi = V.indexOf(Math.max.apply(null, V)), lo = -1; V.forEach(function (v, i) { if (v > 0 && (lo < 0 || v < V[lo])) lo = i; });
+    var tips = V.map(function (v, i) { return '<em>' + (mode === 'w' ? 'Week from ' : '') + esc(L[i]) + '</em> · <b>' + R(v) + '</b>' + (days[i] ? ' · ' + R(v / days[i]) + '/day over ' + days[i] + ' day' + (days[i] === 1 ? '' : 's') : ''); });
+    var part = V.map(function (v, i) { return days[i] && (mode === 'm' ? days[i] < 28 : days[i] < 7); });
+    set(host, '<div data-fx7><div class="fx7-read"></div><div class="fx7-colwrap">' + columns({ vals: V, labels: L, tips: tips, colors: V.map(function (v, i) { return i === hi ? '#f472b6' : i === lo ? '#34d399' : '#38bdf8'; }), part: part, show: V.map(function (v, i) { return i === hi || i === lo; }), avg: avg, avgLabel: 'avg ' + K(avg), h: 190 }) + '</div>' +
+      '<div class="fx-legend"><span><i style="background:#f472b6"></i>Highest</span><span><i style="background:#34d399"></i>Lowest</span><span><i style="background:repeating-linear-gradient(135deg,#38bdf8 0 3px,transparent 3px 6px)"></i>Partial ' + (mode === 'm' ? 'month' : 'week') + '</span><span><i style="border-top:2px dashed #94a3b8;height:0"></i>Average</span></div></div>');
+    readOut(host.querySelector('[data-fx7]'), 'Hover a bar for the total and the daily average');
+  }
+  var CHARTS = {
+    'txa-c-donut': txaDonut, 'txa-c-month': txaMonth, 'txa-c-week': txaWeek,
+    'adv-c-sub': function (c) { pairs(c, 'fx7-adv-sub'); }, 'adv-c-subtr': function (c) { multiples(c, 'fx7-adv-subtr'); },
+    'adv-c-paytr': function (c) { multiples(c, 'fx7-adv-paytr'); },
+    'adv-c-m': function (c) { pattern(c, 'fx7-adv-m', 'm'); }, 'adv-c-w': function (c) { pattern(c, 'fx7-adv-w', 'w'); }
+  };
+  var pend = {};
+  function later(ch) {
+    var id = ch && ch.canvas && ch.canvas.id; if (!CHARTS[id]) return;
+    pend[id] = ch; if (pend.__t) return;
+    pend.__t = requestAnimationFrame(function () { var p = pend; pend = {}; Object.keys(p).forEach(function (k) { if (k === '__t') return; var c = p[k]; if (!c.canvas || !c.canvas.isConnected) return; try { CHARTS[k](c); } catch (e) { console.warn('Chart upgrade failed:', k, e); } }); });
+  }
+  if (window.Chart && !window.__fx7Plug) { window.__fx7Plug = 1; Chart.register({ id: 'fx7Swap', afterUpdate: function (ch) { later(ch); } }); }
+
+  /* ═════ Transactions › Analytics › Month-over-Month Changes: chart above the table ═════ */
+  function momChart() {
+    var sec = $('adv-cmp'); if (!sec) return;
+    var card = null; sec.querySelectorAll('.txa-card').forEach(function (c) { var h = c.querySelector('.txa-h'); if (h && /Month-over-Month/.test(h.textContent)) card = c; });
+    if (!card || card.querySelector('.fx7-mom')) return;
+    var M = window.__txaMoM || [];
+    var n = document.createElement('div'); n.className = 'fx7-mom'; n.setAttribute('data-no-count', '');
+    if (M.length < 2) {
+      n.innerHTML = '<div class="fx7-mom-go">' + ['Last 3 Months', 'Last 6 Months', 'Last 12 Months'].map(function (t) { return '<button type="button" data-r="' + t + '">Show ' + t.toLowerCase() + '</button>'; }).join('') + '</div>';
+      n.addEventListener('click', function (e) { var b = e.target.closest('button[data-r]'); if (!b) return; var c = Array.prototype.find.call(document.querySelectorAll('#txa-chips button'), function (x) { return x.textContent.trim() === b.getAttribute('data-r'); }); if (c) { c.click(); var bd = $('txa-body'); if (bd) bd.scrollTop = 0; } });
+      card.appendChild(n); return;
+    }
+    var pv = M.map(function (m) { return m.d ? m.t / m.d : 0; });
+    var tips = M.map(function (m, i) { var t = '<em>' + esc(m.l) + '</em> · <b>' + R(m.t) + '</b> total · ' + R(pv[i]) + '/day' + (m.d < 28 ? ' (' + m.d + ' days)' : ''); if (i && pv[i - 1] > 0) { var c = (pv[i] - pv[i - 1]) / pv[i - 1] * 100; t += ' · per day ' + (c >= 0 ? '▲ ' : '▼ ') + Math.abs(c).toFixed(1) + '%'; } return t; });
+    var chg = '<div class="fx7-chg">' + pv.map(function (v, i) { if (!i || !(pv[i - 1] > 0)) return '<span class="nil">·</span>'; var c = (v - pv[i - 1]) / pv[i - 1] * 100; return '<span class="' + (c > 0.5 ? 'up' : c < -0.5 ? 'dn' : 'nil') + '">' + (c > 0 ? '▲' : c < 0 ? '▼' : '') + Math.abs(c).toFixed(1) + '%</span>'; }).join('') + '</div>';
+    n.innerHTML = '<div data-fx7><div class="fx7-read"></div><div class="fx7-colwrap">' + columns({ vals: pv, labels: M.map(function (m) { return m.l; }), tips: tips, colors: pv.map(function () { return '#20cdb5'; }), part: M.map(function (m) { return m.d < 28; }), show: pv.map(function () { return true; }), h: 150, short: function (v) { return K(v); } }) + '</div>' + chg + '<div class="fx-legend" style="margin-bottom:10px"><span>Bars = average spend per day, so partial months compare fairly</span><span><i style="background:repeating-linear-gradient(135deg,#20cdb5 0 3px,transparent 3px 6px)"></i>Partial month</span></div></div>';
+    var h = card.querySelector('.txa-h'); h.parentNode.insertBefore(n, h.nextSibling);
+    readOut(n.querySelector('[data-fx7]'), 'Hover a month for its total and daily average');
+  }
+  var mo = null;
+  function watchAdv() {
+    var a = $('txa-adv'); if (!a || a.__fx7) return; a.__fx7 = 1;
+    mo = new MutationObserver(function () { clearTimeout(mo.t); mo.t = setTimeout(function () { try { momChart(); } catch (e) { console.warn('Chart upgrade failed: momChart', e); } }, 30); });
+    mo.observe(a, { childList: true, subtree: true });
+  }
+
+  /* ═════ spacing: size each list's label column to its longest label ═════ */
+  function tighten(root) {
+    (root || document).querySelectorAll('.fx-bars, .fx6-rows, .fx7-pairs').forEach(function (L) {
+      if (!L.offsetParent) return;
+      var ns = L.querySelectorAll(':scope > .fx-br > .fx-br-n, :scope > .fx6-r > .fx6-n, :scope > .fx7-pr > .n'), vs = L.querySelectorAll(':scope > .fx-br > .fx-br-v, :scope > .fx6-r > .fx6-v, :scope > .fx7-pr > .v');
+      if (!ns.length) return;
+      var w = 0, v = 0, W = L.clientWidth;
+      ns.forEach(function (n) { var r = document.createRange(); r.selectNodeContents(n); w = Math.max(w, Math.ceil(r.getBoundingClientRect().width)); });
+      vs.forEach(function (n) { var r = document.createRange(); r.selectNodeContents(n); v = Math.max(v, Math.ceil(r.getBoundingClientRect().width)); });
+      var lw = Math.min(Math.round(W * 0.4), w + 6), vw = Math.min(Math.round(W * 0.35), v + 2);
+      if (lw > 20) { L.style.setProperty('--lw', lw + 'px'); L.style.setProperty('--vw', vw + 'px'); }
+    });
+  }
+  var tt = null, tt2 = null; function tightenSoon() { clearTimeout(tt); clearTimeout(tt2); tt = setTimeout(function () { try { tighten(); } catch (e) { } }, 60); tt2 = setTimeout(function () { try { tighten(); } catch (e) { } }, 700); }
+
+  function run(list) { list.forEach(function (f) { try { f(); } catch (e) { console.warn('Chart upgrade failed:', f.name, e); } }); tightenSoon(); }
+  function wrap(name, list) {
+    var o = window[name]; if (typeof o !== 'function' || o.__fx7) return false;
+    var w = function () { var r = o.apply(this, arguments); run(list); return r; };
+    Object.keys(o).forEach(function (k) { try { w[k] = o[k]; } catch (e) { } }); w.__fx7 = 1; window[name] = w; return true;
+  }
+  var DASH = [cashFlow, spendingMix, dashRoi, dashTop3];
+  function hookAll() {
+    wrap('renderDashboardImmediate', DASH);
+    wrap('renderDashboard', [pulse, rhythm]);
+    wrap('renderDashCreditCharts', [dashLenders, emiVs]);
+    wrap('renderCreditCharts', [pageLenders]);
+    ['renderPortOverview', 'renderPortAnalytics', 'renderPortIntel', 'switchView'].forEach(function (n) { wrap(n, []); });
+    watchAdv();
+  }
+  hookAll();
+  window.addEventListener('load', function () { setTimeout(function () { hookAll(); try {
+    if (activeView === 'dashboard') run(DASH.concat([pulse, rhythm, dashLenders, emiVs])); else if (activeView === 'credit') run([pageLenders]); else tightenSoon();
+  } catch (e) { } }, 0); });
+  window.addEventListener('resize', tightenSoon);
+  Object.assign(window.fosFx7, { run: run, cashFlow: cashFlow, spendingMix: spendingMix, dashRoi: dashRoi, dashTop3: dashTop3, dashLenders: dashLenders, pageLenders: pageLenders, emiVs: emiVs, pulse: pulse, rhythm: rhythm, momChart: momChart, tighten: tighten });
 })();
 </script>
 <script id="fos-tour-js">
