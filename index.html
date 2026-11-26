@@ -11,7 +11,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="fos-integrity" content="1747556d5e828a3aeba87595dbcb6d9ad574f40b49095aa920ceae2eac476e35">
+<meta name="fos-integrity" content="680b84c77d5352c30230dbeb673ab8180ff7a97be5cd141586010472c7f5ffff">
 <script id="fos-tamper-guard">
 /*! \u00a9 2026 MC Enterprise. Integrity check: detects a copy of this file that no longer matches the
     official release and locks it with a notice. This checks the FILE as served, not live memory --
@@ -9391,7 +9391,7 @@ function _passAppLockGateOnce() {
           </div>
           <div style="font-size:0.65rem; color:var(--text-muted); display:flex; align-items:center; gap:6px;">
             <div class="live-dot"></div> TradingView Live Feed
-            <button type="button" class="tv-min-btn" id="tv-min-btn" onclick="toggleTvPanel()" aria-expanded="true" aria-controls="tv-body" title="Minimize chart" aria-label="Minimize chart"><i class="fas fa-chevron-up"></i></button>
+            <button type="button" class="tv-min-btn fos-min-btn" id="tv-min-btn" onclick="toggleTvPanel()" aria-expanded="true" aria-controls="tv-body" title="Minimize chart" aria-label="Minimize chart"><i class="fas fa-chevron-up"></i></button>
           </div>
         </div>
 
@@ -9496,8 +9496,7 @@ function _passAppLockGateOnce() {
       <script>
       (function () {
         var K = 'fos_rem_minimized', p = document.getElementById('dash-rem-panel'), t = p.querySelector('.fhs-title');
-        var b = document.createElement('button'); b.type = 'button'; b.id = 'dash-rem-min';
-        b.style.cssText = 'margin-left:auto;margin-right:34px;background:rgba(255,255,255,.06);border:1px solid var(--border-color,rgba(255,255,255,.12));color:var(--text-muted);border-radius:8px;width:28px;height:28px;cursor:pointer;flex:none';
+        var b = document.createElement('button'); b.type = 'button'; b.id = 'dash-rem-min'; b.className = 'fos-min-btn';
         t.style.display = 'flex'; t.style.alignItems = 'center'; t.style.gap = '8px'; t.appendChild(b);
         function apply(min) { document.getElementById('dash-rem').style.display = min ? 'none' : ''; b.innerHTML = '<i class="fas fa-chevron-' + (min ? 'down' : 'up') + '"></i>'; b.title = min ? 'Expand' : 'Minimize'; b.setAttribute('aria-expanded', String(!min)); }
         b.onclick = function () { var m = localStorage.getItem(K) !== '1'; localStorage.setItem(K, m ? '1' : '0'); apply(m); };
@@ -18557,16 +18556,19 @@ function checkAlerts() {
   });
 
   // ── 2. Budget Over-limit Alerts ──────────────────────────────────────
+  // Round 11: always this calendar month against the monthly limit. It used to follow the dashboard
+  // filter, so picking a past month or "All" could raise or hide alerts for the wrong period.
+  const _bMk = localMonthKey(), _bRows = dbNow().filter(r => r && String(r.date || '').slice(0, 7) === _bMk);
   if (isNotifEnabled('budget-limits')) Object.entries(budgets).filter(([, v]) => Number(v) > 0).forEach(([cat, monthlyLimit]) => {
-    const limit = monthlyLimit * budgetMonthsInScope(data);
-    const spent = budgetSpent(data, cat);
+    const limit = Number(monthlyLimit);
+    const spent = budgetSpent(_bRows, cat);
     const pct   = limit > 0 ? (spent / limit) * 100 : (spent > 0 ? 100 : 0);
     if (pct >= 100) {
       addNotification(
         `budget-over-${cat}-${today}`,
         'fa-exclamation-triangle', '#ef4444',
         `Budget Exceeded: ${cat}`,
-        `You've spent ₹${spent.toLocaleString('en-IN')} against a budget of ₹${limit.toLocaleString('en-IN')} for "${cat}" — ${(pct - 100).toFixed(0)}% over limit.`,
+        `You've spent ${fmt(Math.round(spent))} this month against your ${fmt(Math.round(limit))} budget for "${cat}" — ${(pct - 100).toFixed(0)}% over limit.`,
         'budget-over'
       );
     } else if (pct >= 80) {
@@ -18574,7 +18576,7 @@ function checkAlerts() {
         `budget-warn-${cat}-${today}`,
         'fa-chart-pie', '#f59e0b',
         `Budget Warning: ${cat}`,
-        `You've used ${pct.toFixed(0)}% of your "${cat}" budget (₹${spent.toLocaleString('en-IN')} of ₹${limit.toLocaleString('en-IN')}).`,
+        `You've used ${pct.toFixed(0)}% of your "${cat}" budget this month (${fmt(Math.round(spent))} of ${fmt(Math.round(limit))}).`,
         'budget-warn'
       );
     }
@@ -18793,7 +18795,7 @@ function checkAlerts() {
   // ── 8. No Income Logged This Month ───────────────────────────────────
   const thisMonth = localMonthKey();
   const incomeThisMonth = dbNow().filter(r => r.type === 'Income' && r.date.startsWith(thisMonth));
-  if (incomeThisMonth.length === 0) {
+  if (incomeThisMonth.length === 0 && new Date().getDate() >= 7) {   // Round 11: from day 7, not day 1
     addNotification(
       `no-income-${thisMonth}`,
       'fa-wallet', '#a78bfa',
@@ -18842,8 +18844,11 @@ function checkAlerts() {
   const _nowNW = new Date();   // first-of-month Date: setMonth(-1) on the 31st would overflow into the wrong month
   const prevMonthStr = localMonthKey(new Date(_nowNW.getFullYear(), _nowNW.getMonth() - 1, 1));
 
+  // Round 11: compare like with like, this month so far vs last month up to the same day
+  // (it used to compare a part month with a whole month, so it nearly always showed a drop early on).
+  const _nwDay = String(_nowNW.getDate()).padStart(2, '0');
   const calcNW = (monthStr) => {
-    const items = dbNow().filter(r => r.date.startsWith(monthStr));
+    const items = dbNow().filter(r => r.date.startsWith(monthStr) && r.date.slice(8, 10) <= _nwDay);
     return items.filter(r => r.type === 'Income').reduce((a,b) => a + _amt(b.amount), 0)
          - items.filter(r => r.type === 'Expense').reduce((a,b) => a + _amt(b.amount), 0);
   };
@@ -18856,7 +18861,7 @@ function checkAlerts() {
       `nw-drop-${thisMonth}`,
       'fa-chart-area', '#f59e0b',
       `📊 Net Worth Declined This Month`,
-      `Your monthly net position dropped by ₹${drop.toLocaleString('en-IN')} (${dropPct}%) compared to last month. Last month: ₹${nwPrev.toLocaleString('en-IN')}, this month: ₹${nwThis.toLocaleString('en-IN')}.`,
+      `Your net position so far this month is ${fmt(Math.round(drop))} (${dropPct}%) lower than at the same point last month. Last month to day ${_nowNW.getDate()}: ${fmt(Math.round(nwPrev))}, this month: ${fmt(Math.round(nwThis))}.`,
       'nw-drop'
     );
   }
@@ -25729,6 +25734,7 @@ function openBudgetModal() {
     ? `<div class="budget-suggest-bar"><span>Smart budgets from your 3-month median</span><button type="button" class="budget-suggest-btn" onclick="acceptAllBudgetSuggestions()">Accept ${_unsetIds.length} new</button></div>`
     : (Object.keys(_budgetSug.items).length ? '' : `<div class="budget-suggest-bar muted"><span>${_budgetSug.months < BUDGET_SUGGEST_MIN_MONTHS ? 'Smart budget suggestions appear once you have 3 completed months of expenses.' : 'No category has enough repeat spending for a suggestion yet.'}</span></div>`);
 
+  const _bgtYm = (typeof localISO === 'function' ? localISO() : new Date().toISOString()).slice(0, 7);
   document.getElementById('budget-modal-list').innerHTML = allSubs.map(sub => {
     const id = sanitizeId(sub);
     const existing = Number(budgets[sub] || 0);
@@ -25739,6 +25745,7 @@ function openBudgetModal() {
     const ceilVal = Math.max(globalCeil, niceCeil(Math.max(existing * 1.2, maxSpend * 1.5, 1)));
     const step = ceilVal === globalCeil ? globalStep : (ceilVal <= 2000 ? 50 : ceilVal <= 10000 ? 100 : ceilVal <= 50000 ? 500 : 1000);
     const metaText = existing > 0 ? `Alert at ${fmt(Math.round(existing * 0.8))}` : 'No limit set';
+    const spentNow = Number((monthlyBySub[sub] || {})[_bgtYm] || 0);
     const sg = _budgetSug.items[sub];
     const sugHtml = (sg && sg.limit !== existing) ? `
       <div class="budget-suggest" id="bgtsug-${id}">
@@ -25748,7 +25755,7 @@ function openBudgetModal() {
     return `
     <div class="budget-row-v2 ${existing > 0 ? 'has-limit' : ''}" data-name="${sub.toLowerCase()}">
       <div class="budget-row-head">
-        <label title="${sub}">${sub}</label>
+        <label title="${sub}">${sub}<small class="bgt-now" data-spent="${spentNow}">${spentNow > 0 ? fmt(Math.round(spentNow)) + ' spent this month' : 'Nothing spent this month'}</small></label>
         <div class="budget-row-val-wrap">
           <span class="budget-row-currency">${userCurrency}</span>
           <input type="number" class="budget-row-num" id="bgtnum-${id}" value="${existing || ''}" placeholder="0" min="0" step="${step}" oninput="finaiSyncBudgetNum('${id}')">
@@ -25767,6 +25774,7 @@ function openBudgetModal() {
 
   document.getElementById('budget-search-input').value = '';
   document.querySelectorAll('.budget-row-slider').forEach(finaiFillBudgetSlider);
+  fosBudgetTotals();
   document.getElementById('budget-modal').style.display = 'flex';
 }
 
@@ -25795,6 +25803,20 @@ function acceptAllBudgetSuggestions() {
   if (bar) { bar.classList.add('muted'); bar.innerHTML = `<span>${n} budget${n === 1 ? '' : 's'} set from your history</span>`; }
 }
 
+/* Round 11: a live summary above the list (total of the limits you are setting, and this month's spend in those categories) */
+function fosBudgetTotals() {
+  const box = document.querySelector('#budget-modal .modal-box'); if (!box) return;
+  let strip = document.getElementById('bgt-totals');
+  if (!strip) { strip = document.createElement('div'); strip.id = 'bgt-totals'; strip.className = 'bgt-totals'; const ref = box.querySelector('.budget-search-box'); box.insertBefore(strip, ref); }
+  let total = 0, n = 0, spent = 0, all = 0;
+  document.querySelectorAll('#budget-modal-list .budget-row-v2').forEach(r => {
+    all++; const v = Number((r.querySelector('.budget-row-num') || {}).value) || 0;
+    if (v > 0) { total += v; n++; const sp = r.querySelector('.bgt-now'); spent += Number(sp && sp.dataset.spent) || 0; }
+  });
+  const pct = total > 0 ? Math.round(spent / total * 100) : 0, c = pct > 100 ? '#f87171' : pct >= 80 ? '#fbbf24' : '#34d399';
+  strip.innerHTML = '<div><em>Monthly budget</em><b>' + fmt(Math.round(total)) + '</b><small>' + n + ' of ' + all + ' categories have a limit</small></div>' +
+    '<div><em>Spent so far this month</em><b style="color:' + (total > 0 ? c : 'inherit') + '">' + fmt(Math.round(spent)) + '</b><small>' + (total > 0 ? pct + '% of the limits set' : 'Set a limit to track it') + '</small></div>';
+}
 function finaiFillBudgetSlider(slider) {
   const min = Number(slider.min) || 0;
   const max = Number(slider.max) || 100;
@@ -25814,6 +25836,7 @@ function finaiSyncBudgetSlider(id) {
   if (meta) meta.textContent = val > 0 ? `Alert at ${fmt(Math.round(val * 0.8))}` : 'No limit set';
   if (row) row.classList.toggle('has-limit', val > 0);
   finaiFillBudgetSlider(slider);
+  fosBudgetTotals();
 }
 
 function finaiSyncBudgetNum(id) {
@@ -25831,9 +25854,11 @@ function finaiSyncBudgetNum(id) {
   if (meta) meta.textContent = val > 0 ? `Alert at ${fmt(Math.round(val * 0.8))}` : 'No limit set';
   if (row) row.classList.toggle('has-limit', val > 0);
   finaiFillBudgetSlider(slider);
+  fosBudgetTotals();
 }
 
-function finaiClearBudgetRow(id) {
+function finaiClearBudgetRow(id) { _finaiClearBudgetRow(id); fosBudgetTotals(); }
+function _finaiClearBudgetRow(id) {
   const slider = document.getElementById('bgt-' + id);
   const num = document.getElementById('bgtnum-' + id);
   const meta = document.getElementById('bgtmeta-' + id);
@@ -27815,6 +27840,7 @@ function renderDashCreditCharts() {
 
       destroyChart('dash-credit-donut');
       setTimeout(() => {
+        destroyChart('dash-credit-donut');   // Round 11: two quick redraws (e.g. a cloud sync) could both draw on the same canvas
         const ringCtx = document.getElementById('dash-credit-donut')?.getContext('2d');
         if (!ringCtx) return;
         charts['dash-credit-donut'] = new Chart(ringCtx, {
@@ -30731,72 +30757,89 @@ function initDragAndDrop() {
     const view = wrapSectionsInView(viewId);
     if (!view) return;
     
-    const sections = view.querySelectorAll('.draggable-section');
-    let draggedElement = null;
-    
-    sections.forEach(section => {
-      section.setAttribute('draggable', 'true');
-      
-      section.addEventListener('dragstart', function(e) {
-        draggedElement = this;
-        this.classList.add('dragging');
-        e.dataTransfer.effectAllowed = 'move';
-        e.dataTransfer.setData('text/html', this.innerHTML);
-        
-        // Make this slightly transparent
-        setTimeout(() => {
-          this.style.opacity = '0.4';
-        }, 0);
-      });
-      
-      section.addEventListener('dragend', function(e) {
-        this.style.opacity = '';
-        this.classList.remove('dragging');
-        
-        // Remove all drag-over classes
-        sections.forEach(s => s.classList.remove('drag-over'));
-        
-        // Save the new layout
-        saveLayout(viewId, view);
-      });
-      
-      section.addEventListener('dragover', function(e) {
-        e.preventDefault();
-        e.dataTransfer.dropEffect = 'move';
-        
-        if (this === draggedElement) return;
-        
-        // Get bounding rectangle
-        const rect = this.getBoundingClientRect();
-        const midY = rect.top + rect.height / 2;
-        
-        // Determine if we should insert before or after
-        const insertBefore = e.clientY < midY;
-        
-        if (insertBefore) {
-          view.insertBefore(draggedElement, this);
-        } else {
-          view.insertBefore(draggedElement, this.nextSibling);
-        }
-      });
-      
-      section.addEventListener('dragenter', function(e) {
-        e.preventDefault();
-        if (this !== draggedElement) {
-          this.classList.add('drag-over');
-        }
-      });
-      
-      section.addEventListener('dragleave', function(e) {
-        this.classList.remove('drag-over');
-      });
-      
-      section.addEventListener('drop', function(e) {
-        e.preventDefault();
-        e.stopPropagation();
-      });
+    /* Round 11: smoother drag and drop.
+       - A card is picked up by its grip (top-right dots) or its title row, not from anywhere inside it,
+         so dragging over a chart or selecting text never starts a move by accident.
+       - While dragging nothing moves: a glowing line shows where the card will land. The old version moved the
+         whole card on every mouse movement, which re-laid-out the dashboard many times a second (the lag and the
+         flickering) and copied the card's full HTML at the start (the stall).
+       - On drop the card moves once and the cards around it slide into place. */
+    const sections = () => Array.from(view.querySelectorAll(':scope > .draggable-section'));
+    let dragged = null, target = null, before = true, raf = 0, lastY = 0, line = null, ghost = null;
+    const GRAB_ZONE = 56;
+    const grabbable = (sec, e) => {
+      if (e.target.closest('button, a, input, select, textarea, label, canvas, [contenteditable="true"], .fos-min-btn')) return false;
+      const r = sec.getBoundingClientRect();
+      return e.clientY - r.top <= GRAB_ZONE;
+    };
+    view.addEventListener('mousedown', e => {
+      const sec = e.target.closest && e.target.closest('.draggable-section');
+      if (!sec || sec.parentElement !== view) return;
+      sections().forEach(s => s.setAttribute('draggable', 'false'));
+      if (grabbable(sec, e)) sec.setAttribute('draggable', 'true');
+    }, true);
+    const titleOf = sec => { const t = sec.querySelector('.panel-title, .fhs-title, h3, b'); return ((t && t.textContent) || 'Card').replace(/\s+/g, ' ').trim().slice(0, 40) || 'Card'; };
+    const showLine = () => {
+      raf = 0;
+      if (!dragged) return;
+      const list = sections().filter(s => s !== dragged && s.offsetParent !== null);
+      let t = null, b4 = false;
+      for (const s of list) { const r = s.getBoundingClientRect(); if (lastY < r.top + r.height / 2) { t = s; b4 = true; break; } t = s; b4 = false; }
+      // dropping right next to where the card already is changes nothing
+      if (t && ((b4 && t.previousElementSibling === dragged) || (!b4 && t.nextElementSibling === dragged))) t = null;
+      target = t; before = b4;
+      if (!line) { line = document.createElement('div'); line.className = 'fos-dnd-line'; document.body.appendChild(line); }
+      if (!t) { line.style.opacity = '0'; return; }
+      const r = t.getBoundingClientRect(), vr = view.getBoundingClientRect();
+      const y = b4 ? r.top - 6 : r.bottom + 6;
+      line.style.cssText = 'top:' + Math.round(y - 2) + 'px;left:' + Math.round(vr.left) + 'px;width:' + Math.round(vr.width) + 'px;opacity:1';
+    };
+    view.addEventListener('dragstart', e => {
+      const sec = e.target.closest && e.target.closest('.draggable-section');
+      if (!sec || sec.parentElement !== view || sec.getAttribute('draggable') !== 'true') return;
+      dragged = sec; target = null;
+      e.dataTransfer.effectAllowed = 'move';
+      try { e.dataTransfer.setData('text/plain', sec.dataset.dragId || ''); } catch (x) { }
+      ghost = document.createElement('div'); ghost.className = 'fos-dnd-ghost';
+      ghost.innerHTML = '<i class="fas fa-up-down-left-right"></i><span></span>'; ghost.querySelector('span').textContent = titleOf(sec);
+      document.body.appendChild(ghost);
+      try { e.dataTransfer.setDragImage(ghost, 18, 18); } catch (x) { }
+      requestAnimationFrame(() => { if (dragged) { dragged.classList.add('dragging'); document.documentElement.classList.add('fos-dnd-on'); } });
     });
-    
+    view.addEventListener('dragover', e => {
+      if (!dragged) return;
+      e.preventDefault(); e.dataTransfer.dropEffect = 'move';
+      lastY = e.clientY;
+      if (!raf) raf = requestAnimationFrame(showLine);
+    });
+    view.addEventListener('drop', e => {
+      if (!dragged) return;
+      e.preventDefault(); e.stopPropagation();
+      if (raf) { cancelAnimationFrame(raf); showLine(); }
+      if (!target) return;
+      const list = sections(), first = new Map();
+      list.forEach(s => first.set(s, s.getBoundingClientRect().top));
+      view.insertBefore(dragged, before ? target : target.nextSibling);
+      const vh = window.innerHeight;
+      list.forEach(s => {
+        const r = s.getBoundingClientRect(), dy = first.get(s) - r.top;
+        if (!dy || r.bottom < -200 || r.top > vh + 200) return;   // only cards you can see slide; the rest just move
+        s.style.setProperty('transition', 'none', 'important'); s.style.setProperty('transform', 'translateY(' + dy + 'px)', 'important');
+        void s.offsetHeight;
+        requestAnimationFrame(() => { s.style.setProperty('transition', 'transform .32s cubic-bezier(.22,1,.36,1)', 'important'); s.style.removeProperty('transform'); setTimeout(() => { s.style.removeProperty('transition'); }, 380); });
+      });
+      saveLayout(viewId, view);
+    });
+    view.addEventListener('dragend', () => {
+      if (raf) { cancelAnimationFrame(raf); raf = 0; }
+      if (dragged) { dragged.classList.remove('dragging'); dragged.style.opacity = ''; dragged.setAttribute('draggable', 'false'); }
+      document.documentElement.classList.remove('fos-dnd-on');
+      if (line) line.style.opacity = '0';
+      if (ghost) { ghost.remove(); ghost = null; }
+      dragged = null; target = null;
+    });
+    sections().forEach(s => s.setAttribute('draggable', 'false'));
+
     // Load saved layout
     loadLayout(viewId, view);
   }
@@ -38704,7 +38747,7 @@ function paintME(){var el=$('pol-me');if(!el)return;var s=dataStats();
   if(!ME.m||ks.indexOf(ME.m)<0)ME.m=(n.getDate()>=26&&ks.indexOf(cur)>=0)?cur:ks.indexOf(last)>=0?last:ks[ks.length-1];
   var m=ME.m,c=mStats(m),p=mStats(addM(m,-1)),i=ks.indexOf(m),hid=localStorage.getItem(LSM)==='1';
   el.style.display='';
-  var head='<div class="pol-me-h"><button class="pol-nav" '+(i>0?'':'disabled')+' onclick="polMeStep(-1)">‹</button><b>'+mLabel(m)+(m===cur?' · so far':'')+' summary</b><button class="pol-nav" '+(i<ks.length-1?'':'disabled')+' onclick="polMeStep(1)">›</button><span style="flex:1"></span><a class="pol-lnk2" onclick="polMeToggle()">'+(hid?'Show':'Hide')+'</a></div>';
+  var head='<div class="pol-me-h"><button class="pol-nav" '+(i>0?'':'disabled')+' onclick="polMeStep(-1)">‹</button><b>'+mLabel(m)+(m===cur?' · so far':'')+' summary</b><button class="pol-nav" '+(i<ks.length-1?'':'disabled')+' onclick="polMeStep(1)">›</button><span style="flex:1"></span><button type="button" class="fos-min-btn" onclick="polMeToggle()" title="'+(hid?'Expand':'Minimize')+'" aria-expanded="'+(!hid)+'"><i class="fas fa-chevron-'+(hid?'down':'up')+'"></i></button></div>';
   if(hid){el.innerHTML=head;return}
   var tp=Object.keys(c.pays).map(function(k){return c.pays[k]}).sort(function(a,b){return b.t-a.t})[0];
   var tile=function(l,v,sub,col){return '<div class="pol-tile"><span>'+l+'</span><b'+(col?' style="color:'+col+'"':'')+'>'+v+'</b><small>'+(sub||'&nbsp;')+'</small></div>'};
@@ -45947,6 +45990,54 @@ body.light-mode .fx10-bs .o, body.light-mode .fx10-bc.over .chip { color:#dc2626
 @media (max-width:600px) { .fx10-bgrid { grid-template-columns:1fr 1fr; gap:8px; } .fx10-bc { padding:11px 11px 10px; } .fx10-bc .a b { font-size:.98rem; } .fx10-bc .a { flex-wrap:wrap; gap:2px 6px; } }
 @media (max-width:360px) { .fx10-bgrid { grid-template-columns:1fr; } }
 @media (prefers-reduced-motion: reduce) { .fx10-bc .t i { animation:none; } }
+
+/* Round 11: every minimise arrow sits in the same spot on its card (16px from the top, 48px from the right),
+   clear of the drag grip, which is centred on the same line */
+.draggable-section::before { top:16px !important; right:18px !important; line-height:28px; height:28px; }
+:is(.glass-panel):has(> * .fos-min-btn, > .fos-min-btn) { position:relative; }
+.fos-min-btn { position:absolute !important; top:16px; right:48px; width:28px !important; height:28px !important; margin:0 !important; padding:0; z-index:101;
+  display:inline-flex; align-items:center; justify-content:center; font-size:.7rem; border-radius:9px; cursor:pointer;
+  color:var(--text-mid); background:rgba(180,220,218,0.06); border:1px solid rgba(180,220,218,0.14); transition:background .15s, color .15s, border-color .15s; }
+.fos-min-btn:hover { background:rgba(32,205,181,0.12); border-color:rgba(32,205,181,0.40); color:#43E0CC; }
+body.light-mode .fos-min-btn { background:#f1f5f9; border-color:#cbd5e1; color:#475569; }
+body.light-mode .fos-min-btn:hover { background:#e2e8f0; color:#0f172a; }
+#dash-rem-panel > .fhs-title, #tv-panel > div:first-child, .pol-card > .pol-me-h { padding-right:62px; min-height:28px; }
+@media (max-width:900px) { .fos-min-btn { top:12px; right:14px; } #dash-rem-panel > .fhs-title, .pol-card > .pol-me-h { padding-right:34px; } }
+
+/* Round 11: drag and drop */
+.draggable-section { transition:opacity .2s ease !important; }
+.draggable-section::before { top:18px !important; }
+.draggable-section.dragging { opacity:.45 !important; transform:none !important; }
+.draggable-section.drag-over { outline:none !important; background:none !important; }
+html.fos-dnd-on .scroll-area * { cursor:grabbing !important; }
+.fos-dnd-line { position:fixed; z-index:9000; height:4px; border-radius:4px; pointer-events:none; opacity:0;
+  background:linear-gradient(90deg, transparent, var(--accent, #20cdb5) 12%, var(--accent, #20cdb5) 88%, transparent);
+  box-shadow:0 0 14px rgba(32,205,181,.55); transition:top .12s cubic-bezier(.22,1,.36,1), opacity .12s; }
+.fos-dnd-ghost { position:fixed; top:-300px; left:-300px; display:inline-flex; align-items:center; gap:9px; padding:9px 14px; border-radius:12px;
+  background:#0f1a1c; color:#e6efed; border:1px solid rgba(32,205,181,.45); font:600 .8rem 'DM Sans', system-ui, sans-serif; white-space:nowrap; box-shadow:0 10px 30px rgba(0,0,0,.45); }
+.fos-dnd-ghost i { color:#43E0CC; }
+
+/* Round 11: full-screen dark backdrops without the blur on computers. Blurring the whole live dashboard behind
+   a window made Chrome redo style and paint work on every frame (the lag when scrolling Budget Limits). */
+@media (min-width:901px) {
+  .modal-overlay, .search-overlay, .fxb-modal, #fj-modal, #fos-sup, #fos-ne .ne-bg, #advanced-export-modal, .fa-dim, .mobile-menu-overlay {
+    -webkit-backdrop-filter:none !important; backdrop-filter:none !important; }
+  .modal-overlay { background:rgba(0,0,0,.82); }
+  body.light-mode .modal-overlay { background:rgba(15,23,42,.55); }
+}
+/* Round 11: Budget Limits window, wider with two columns on a computer and a live total */
+@media (min-width:900px) {
+  .modal-box.budget-modal { width:min(820px, calc(100vw - 48px)); }
+  .budget-modal-list { display:grid !important; grid-template-columns:1fr 1fr; align-content:start; max-height:min(58vh, 620px); }
+  .budget-modal-list > .budget-suggest-bar { grid-column:1 / -1; }
+}
+.bgt-totals { display:grid; grid-template-columns:1fr 1fr; gap:10px; margin:0 0 12px; }
+.bgt-totals > div { padding:11px 14px; border-radius:12px; background:rgba(255,255,255,.03); border:1px solid var(--glass-border, rgba(255,255,255,.08)); min-width:0; }
+.bgt-totals em { display:block; font-style:normal; font-size:.6rem; font-weight:700; letter-spacing:.8px; text-transform:uppercase; color:var(--text-muted); }
+.bgt-totals b { display:block; font-family:'DM Mono', monospace; font-size:1.15rem; color:var(--text-main); margin:4px 0 2px; }
+.bgt-totals small { display:block; font-size:.68rem; color:var(--text-muted); }
+.budget-row-head label small.bgt-now { display:block; font-size:.66rem; font-weight:500; color:var(--text-muted); margin-top:2px; }
+body.light-mode .bgt-totals > div { background:#f8fafc; border-color:#e2e8f0; }
 </style>
 <script id="fos-fx9-js">
 /* Round 9: a tiny portfolio snapshot for the weekly push summary. It uses the app's own portCalc, so the server never
