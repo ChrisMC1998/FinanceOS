@@ -11,7 +11,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="fos-integrity" content="d4896379f90b0e9b28ba5ceb5ec6a8dc9a1a81a73295a7f012fff65969c1a9f5">
+<meta name="fos-integrity" content="1747556d5e828a3aeba87595dbcb6d9ad574f40b49095aa920ceae2eac476e35">
 <script id="fos-tamper-guard">
 /*! \u00a9 2026 MC Enterprise. Integrity check: detects a copy of this file that no longer matches the
     official release and locks it with a notice. This checks the FILE as served, not live memory --
@@ -1722,6 +1722,7 @@ function fosBrandRgba(a){return 'rgba('+fosBrandRgb()+','+a+')';}
     { id: 'nav-glide', g: 'card', t: 'Menu highlight glide', d: 'The sliding highlight behind the active menu item.', s: '.fos-glide' },
 
     { id: 'page-fade', g: 'page', t: 'Page transitions', d: 'Fade when you switch between FinanceOS and PortfolioOS pages.', s: '.view-section' },
+    { id: 'smooth-scroll', g: 'page', t: 'Smooth scrolling (computer)', d: 'Mouse-wheel scrolling glides to a stop instead of jumping in steps. Phones keep their own scrolling.' },
     { id: 'modal', g: 'page', t: 'Windows and dialogs', d: 'Settings window and pop-up dialogs opening and closing.', s: '#settings-modal|#settings-modal .settings-modal-box|.modal-overlay|.modal-box|.search-overlay|.txa-inspect|.onboard-step|.onboard-final-icon' },
     { id: 'smoke', g: 'page', t: 'Smoke dropdown menus', d: 'The smoky reveal on custom dropdown lists.', s: '.fos-smoke-menu|.fos-smoke-menu::before|.fos-smoke-menu::after|.fos-smoke-list' },
     { id: 'notif', g: 'page', t: 'Notification pop-ups', d: 'Pop-ups and toasts sliding in at the bottom-right.', s: '.fos-np|#fos-toast-stack>div|.fos-np .np-bar' },
@@ -18875,23 +18876,33 @@ function renderBudgetAlerts(data) {
   const isAllMonths = fM === 'all' && fY === 'all';
   const multiplier = isAllMonths ? 12 : 1;
   
-  let html = '<div data-no-count style="margin-bottom:1.3rem"><div class="panel-title">Budget Status</div><div class="budget-status-grid">';
-  cats.forEach(cat => {
-    const monthlyLimit = Number(budgets[cat]);
-    const _scope = data || getFilteredData();
-    const limit = monthlyLimit * budgetMonthsInScope(_scope);
+  // Round 10 makeover: one card per budget with the real percentage (over-budget used to stop at 100%),
+  // the amount left or over, and a mark at the 80% alert line. The numbers are worked out exactly as before.
+  const E = v => String(v).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+  const _scope = data || getFilteredData(), _months = budgetMonthsInScope(_scope);
+  let tSpent = 0, tLimit = 0, nOver = 0, nWarn = 0;
+  const cards = cats.map(cat => {
+    const limit = Number(budgets[cat]) * _months;
     const spent = budgetSpent(_scope, cat);
-    const pct = limit > 0 ? Math.min(Math.round((spent/limit)*100), 100) : (spent > 0 ? 100 : 0);
+    const real = limit > 0 ? Math.round((spent / limit) * 100) : (spent > 0 ? 100 : 0);
+    const pct = Math.min(real, 100);
     const over = spent > limit, warn = pct >= 80 && !over;
+    tSpent += spent; tLimit += limit; if (over) nOver++; else if (warn) nWarn++;
     const color = over ? '#ef4444' : warn ? '#f59e0b' : '#34d399';
-    html += `<div class="budget-alert-item ${over?'over':warn?'warn':''}">
-      <div class="budget-label">${cat}</div>
-      <div class="budget-progress-bar"><div class="budget-progress-fill" style="width:${pct}%;background:${color}"></div></div>
-      <div class="budget-pct" style="color:${color}">${pct}%</div>
-      <div class="budget-amounts">${fmt(spent)} / ${fmt(limit)}</div>
-    </div>`;
+    const chip = over ? 'Over budget' : warn ? 'Near limit' : 'On track';
+    const left = over ? fmt(spent - limit) + ' over' : fmt(limit - spent) + ' left';
+    return { real, html: `<div class="fx10-bc ${over ? 'over' : warn ? 'warn' : ''}" style="--bc:${color}">
+      <div class="h"><span class="n">${E(cat)}</span><span class="chip">${chip}</span></div>
+      <div class="a"><b>${fmt(spent)}</b><span>of ${fmt(limit)}</span></div>
+      <div class="t" title="Alert at 80%"><i style="width:${pct}%"></i><em></em></div>
+      <div class="f"><span>${left}</span><span class="p">${real}%</span></div>
+    </div>` };
   });
-  container.innerHTML = html + '</div></div>';
+  cards.sort((x, y) => y.real - x.real);   // the budgets that need attention come first
+  const tPct = tLimit > 0 ? Math.round(tSpent / tLimit * 100) : 0;
+  const sum = `<div class="fx10-bs"><span><b>${fmt(tSpent)}</b> of ${fmt(tLimit)} used · ${tPct}%</span>` +
+    (nOver ? `<span class="o">${nOver} over</span>` : '') + (nWarn ? `<span class="w">${nWarn} near limit</span>` : '') + (!nOver && !nWarn ? '<span class="g">All on track</span>' : '') + '</div>';
+  container.innerHTML = '<div data-no-count style="margin-bottom:1.3rem"><div class="fx10-bhd"><div class="panel-title" style="margin-bottom:0">Budget Status</div>' + sum + '</div><div class="fx10-bgrid">' + cards.map(c => c.html).join('') + '</div></div>';
 }
 
 // ── BUDGET SIDEBAR BADGE ────────────────────────────────────────────────────
@@ -32201,146 +32212,112 @@ function rbSaveData() {
   }));
 }
 
+/* Round 10: a small Excel-style formula reader. It never runs the text as JavaScript (the old version did,
+   which also meant ^ meant XOR and lowercase refs broke). Supported, like Excel:
+     + - * / ^ (power), % (=50*10% → 5), brackets, = <> < > <= >= comparisons, "text"
+     A1 / a1 / AA12 references, ranges A1:B5, SUM AVERAGE MIN MAX COUNT ROUND ABS IF, with comma-separated arguments.
+   Kept from the old version: an empty or text cell counts as 0, ₹ and thousands commas are ignored, a loop of
+   references returns #REF, anything it cannot read returns #ERR. */
+function rbColIndex(letters) {
+  let n = 0; const L = String(letters).toUpperCase();
+  for (let i = 0; i < L.length; i++) n = n * 26 + (L.charCodeAt(i) - 64);
+  return n - 1;
+}
 function rbEvalFormula(expr, depth) {
   if (depth > 10) return '#REF';
-
-  // Clean the expression first — strip currency symbols, commas, spaces around operators
-  expr = expr
-    .replace(/₹/g, '')
-    .replace(/,/g, '')
-    .replace(/−/g, '-')   // em-dash to minus
-    .replace(/–/g, '-')   // en-dash to minus
-    .replace(/×/g, '*')
-    .replace(/÷/g, '/')
-    .trim();
-
-  // Handle SUM(A1:A10) range syntax
-  expr = expr.replace(/SUM\(([A-Z]+)(\d+):([A-Z]+)(\d+)\)/gi, (_, c1, r1, c2, r2) => {
-    let sum = 0;
-    const colStart = c1.toUpperCase().charCodeAt(0) - 65;
-    const colEnd   = c2.toUpperCase().charCodeAt(0) - 65;
-    const rowStart = parseInt(r1) - 1;
-    const rowEnd   = parseInt(r2) - 1;
-    for (let r = rowStart; r <= rowEnd; r++) {
-      for (let c = colStart; c <= colEnd; c++) {
-        const ref = rbCellId(r, c);
-        const raw = RB.data[ref];
-        if (raw === undefined || raw === '') continue;
-        let v = String(raw).startsWith('=') ? rbEvalFormula(String(raw).slice(1), depth + 1) : raw;
-        const n = parseFloat(String(v).replace(/[₹,\s]/g, ''));
-        if (!isNaN(n)) sum += n;
-      }
-    }
-    return sum;
-  });
-
-  // Handle AVERAGE(A1:A10)
-  expr = expr.replace(/AVERAGE\(([A-Z]+)(\d+):([A-Z]+)(\d+)\)/gi, (_, c1, r1, c2, r2) => {
-    let sum = 0, count = 0;
-    const colStart = c1.toUpperCase().charCodeAt(0) - 65;
-    const colEnd   = c2.toUpperCase().charCodeAt(0) - 65;
-    const rowStart = parseInt(r1) - 1;
-    const rowEnd   = parseInt(r2) - 1;
-    for (let r = rowStart; r <= rowEnd; r++) {
-      for (let c = colStart; c <= colEnd; c++) {
-        const ref = rbCellId(r, c);
-        const raw = RB.data[ref];
-        if (raw === undefined || raw === '') continue;
-        let v = String(raw).startsWith('=') ? rbEvalFormula(String(raw).slice(1), depth + 1) : raw;
-        const n = parseFloat(String(v).replace(/[₹,\s]/g, ''));
-        if (!isNaN(n)) { sum += n; count++; }
-      }
-    }
-    return count > 0 ? sum / count : 0;
-  });
-
-  // Handle MAX(A1:A10) and MIN(A1:A10)
-  expr = expr.replace(/(MAX|MIN)\(([A-Z]+)(\d+):([A-Z]+)(\d+)\)/gi, (_, fn, c1, r1, c2, r2) => {
-    const vals = [];
-    const colStart = c1.toUpperCase().charCodeAt(0) - 65;
-    const colEnd   = c2.toUpperCase().charCodeAt(0) - 65;
-    const rowStart = parseInt(r1) - 1;
-    const rowEnd   = parseInt(r2) - 1;
-    for (let r = rowStart; r <= rowEnd; r++) {
-      for (let c = colStart; c <= colEnd; c++) {
-        const ref = rbCellId(r, c);
-        const raw = RB.data[ref];
-        if (raw === undefined || raw === '') continue;
-        let v = String(raw).startsWith('=') ? rbEvalFormula(String(raw).slice(1), depth + 1) : raw;
-        const n = parseFloat(String(v).replace(/[₹,\s]/g, ''));
-        if (!isNaN(n)) vals.push(n);
-      }
-    }
-    if (!vals.length) return 0;
-    return fn.toUpperCase() === 'MAX' ? Math.max(...vals) : Math.min(...vals);
-  });
-
-  // Handle COUNT(A1:A10)
-  expr = expr.replace(/COUNT\(([A-Z]+)(\d+):([A-Z]+)(\d+)\)/gi, (_, c1, r1, c2, r2) => {
-    let count = 0;
-    const colStart = c1.toUpperCase().charCodeAt(0) - 65;
-    const colEnd   = c2.toUpperCase().charCodeAt(0) - 65;
-    const rowStart = parseInt(r1) - 1;
-    const rowEnd   = parseInt(r2) - 1;
-    for (let r = rowStart; r <= rowEnd; r++) {
-      for (let c = colStart; c <= colEnd; c++) {
-        const ref = rbCellId(r, c);
-        const raw = RB.data[ref];
-        if (raw !== undefined && raw !== '') {
-          const n = parseFloat(String(raw).replace(/[₹,\s]/g, ''));
-          if (!isNaN(n)) count++;
-        }
-      }
-    }
-    return count;
-  });
-
-  // Handle IF(condition, true_val, false_val)
-  expr = expr.replace(/IF\((.+?),(.+?),(.+?)\)/gi, (_, cond, t, f) => {
-    try {
-      const condResult = Function('"use strict"; return (' + cond + ')')();
-      return condResult ? t.trim() : f.trim();
-    } catch(e) { return 0; }
-  });
-
-  // Replace ALL cell references like A1, B12, AA3 — AFTER range functions are done
-  expr = expr.replace(/([A-Z]{1,2})(\d{1,3})/g, (match, col, row) => {
-    const ref = col.toUpperCase() + row;
-    const raw = RB.data[ref];
-
-    // If cell is empty or missing, return 0
-    if (raw === undefined || raw === null || raw === '') return 0;
-
-    const strVal = String(raw).trim();
-    if (strVal === '') return 0;
-
-    // If cell itself contains a formula, resolve it recursively
-    if (strVal.startsWith('=')) {
-      const resolved = rbEvalFormula(strVal.slice(1), depth + 1);
-      if (resolved === '#ERR' || resolved === '#REF') return 0;
-      const n = parseFloat(String(resolved).replace(/[₹,\s]/g, ''));
-      return isNaN(n) ? 0 : n;
-    }
-
-    // Strip ₹ and commas from the value before parsing
-    const cleaned = strVal.replace(/[₹,\s]/g, '');
-    const n = parseFloat(cleaned);
-    return isNaN(n) ? 0 : n;
-  });
-
-  // Final evaluation
-  try {
-    // Clean up any remaining ₹ symbols that might have snuck through
-    expr = expr.replace(/[₹]/g, '').replace(/,/g, '');
-    const result = Function('"use strict"; return (' + expr + ')')();
-    if (result === undefined || result === null) return 0;
-    if (typeof result === 'boolean') return result ? 1 : 0;
-    if (typeof result === 'number' && isNaN(result)) return '#ERR';
-    if (typeof result === 'number' && !isFinite(result)) return '#ERR';
-    return parseFloat(result.toFixed(10));
-  } catch(e) {
+  const ERR = { e: '#ERR' }, REF = { e: '#REF' };
+  let src = String(expr).replace(/₹/g, '').replace(/[−–]/g, '-').replace(/×/g, '*').replace(/÷/g, '/').trim();
+  // thousands separators (=1,20,000+500) only when there is no function call, where commas separate arguments
+  if (!/[A-Za-z]\s*\(/.test(src)) src = src.replace(/,/g, '');
+  const toks = []; let i = 0;
+  while (i < src.length) {
+    const ch = src[i];
+    if (/\s/.test(ch)) { i++; continue; }
+    let m;
+    if ((m = /^(\d+\.?\d*|\.\d+)(e[+-]?\d+)?/i.exec(src.slice(i)))) { toks.push({ t: 'n', v: parseFloat(m[0]) }); i += m[0].length; continue; }
+    if ((m = /^\$?([A-Za-z]{1,3})\$?(\d{1,5})(?![A-Za-z0-9(])/.exec(src.slice(i)))) { toks.push({ t: 'ref', c: rbColIndex(m[1]), r: parseInt(m[2], 10) - 1 }); i += m[0].length; continue; }
+    if ((m = /^[A-Za-z][A-Za-z0-9.]*/.exec(src.slice(i)))) { toks.push({ t: 'id', v: m[0].toUpperCase() }); i += m[0].length; continue; }
+    if (ch === '"') { const j = src.indexOf('"', i + 1); if (j < 0) return '#ERR'; toks.push({ t: 's', v: src.slice(i + 1, j) }); i = j + 1; continue; }
+    if ((m = /^(<=|>=|<>|!=|==)/.exec(src.slice(i)))) { toks.push({ t: 'op', v: m[0] === '!=' ? '<>' : m[0] === '==' ? '=' : m[0] }); i += 2; continue; }
+    if ('+-*/^%(),:<>=&'.indexOf(ch) > -1) { toks.push({ t: 'op', v: ch }); i++; continue; }
     return '#ERR';
   }
+  let k = 0;
+  const peek = () => toks[k], isOp = (v) => toks[k] && toks[k].t === 'op' && toks[k].v === v;
+  const eat = (v) => { if (!isOp(v)) throw ERR; k++; };
+  const cellVal = (r, c) => {   // the value of a referenced cell: number, text, or '' when empty
+    const raw = RB.data[rbCellId(r, c)];
+    if (raw === undefined || raw === null) return '';
+    const sv = String(raw).trim(); if (sv === '') return '';
+    if (sv.startsWith('=')) { const res = rbEvalFormula(sv.slice(1), depth + 1); if (res === '#REF') throw REF; return res === '#ERR' ? 0 : res; }
+    const n = parseFloat(sv.replace(/[₹,\s]/g, ''));
+    return isNaN(n) || !/^[₹\s]*[-+]?[\d,]*\.?\d+(e[-+]?\d+)?\s*%?\s*$/i.test(sv) ? (isNaN(n) ? sv : n) : (/%\s*$/.test(sv) ? n / 100 : n);
+  };
+  const num = (v) => { if (typeof v === 'number') return v; if (typeof v === 'boolean') return v ? 1 : 0; if (v === '') return 0; const n = parseFloat(String(v).replace(/[₹,\s]/g, '')); return isNaN(n) ? 0 : n; };
+  function primary() {
+    const t = peek(); if (!t) throw ERR;
+    if (t.t === 'n') { k++; return t.v; }
+    if (t.t === 's') { k++; return t.v; }
+    if (t.t === 'ref') {
+      k++;
+      if (isOp(':')) { k++; const t2 = peek(); if (!t2 || t2.t !== 'ref') throw ERR; k++; return { range: [t, t2] }; }
+      return cellVal(t.r, t.c);
+    }
+    if (t.t === 'id') {
+      k++;
+      if (t.v === 'TRUE') return true; if (t.v === 'FALSE') return false;
+      if (!isOp('(')) throw ERR;
+      k++; const args = [];
+      if (!isOp(')')) { do { args.push(cmp()); } while (isOp(',') && ++k); }
+      eat(')');
+      return callFn(t.v, args);
+    }
+    if (isOp('(')) { k++; const v = cmp(); eat(')'); return v; }
+    throw ERR;
+  }
+  const flat = (args) => { const out = []; args.forEach((a) => {
+    if (a && a.range) { const [p, q] = a.range; for (let r = Math.min(p.r, q.r); r <= Math.max(p.r, q.r); r++) for (let c = Math.min(p.c, q.c); c <= Math.max(p.c, q.c); c++) { const v = cellVal(r, c); if (typeof v === 'number') out.push(v); } }
+    else if (typeof a === 'number') out.push(a); else if (typeof a === 'boolean') out.push(a ? 1 : 0);
+    else if (a !== '' && !isNaN(parseFloat(a))) out.push(parseFloat(a));
+  }); return out; };
+  const scalar = (v) => { if (v && v.range) { const [p, q] = v.range; if (p.r === q.r && p.c === q.c) return cellVal(p.r, p.c); throw ERR; } return v; };
+  function callFn(name, args) {
+    const v = flat(args);
+    switch (name) {
+      case 'SUM': return v.reduce((x, y) => x + y, 0);
+      case 'AVERAGE': case 'AVG': return v.length ? v.reduce((x, y) => x + y, 0) / v.length : 0;
+      case 'MIN': return v.length ? Math.min(...v) : 0;
+      case 'MAX': return v.length ? Math.max(...v) : 0;
+      case 'COUNT': return v.length;
+      case 'ABS': return Math.abs(num(scalar(args[0])));
+      case 'ROUND': { const d = args.length > 1 ? Math.trunc(num(scalar(args[1]))) : 0, f = Math.pow(10, d), x = num(scalar(args[0])); return Math.sign(x) * Math.round(Math.abs(x) * f + 1e-9) / f; }
+      case 'IF': { if (args.length < 2) throw ERR; const c = scalar(args[0]); const yes = typeof c === 'string' ? c !== '' : num(c) !== 0; return yes ? scalar(args[1]) : (args.length > 2 ? scalar(args[2]) : false); }
+    }
+    throw ERR;
+  }
+  function postfix() { let v = primary(); while (isOp('%')) { k++; v = num(scalar(v)) / 100; } return v; }
+  function sign() { if (isOp('-')) { k++; return -num(scalar(sign())); } if (isOp('+')) { k++; return num(scalar(sign())); } return postfix(); }
+  function power() { let v = sign(); while (isOp('^')) { k++; v = Math.pow(num(scalar(v)), num(scalar(sign()))); } return v; }
+  function mul() { let v = power(); while (isOp('*') || isOp('/')) { const o = toks[k++].v, r = num(scalar(power())); v = o === '*' ? num(scalar(v)) * r : num(scalar(v)) / r; } return v; }
+  function add() { let v = mul(); while (isOp('+') || isOp('-')) { const o = toks[k++].v, r = num(scalar(mul())); v = o === '+' ? num(scalar(v)) + r : num(scalar(v)) - r; } return v; }
+  function cat() { let v = add(); while (isOp('&')) { k++; const r = scalar(add()); v = String(scalar(v)) + String(r); } return v; }
+  function cmp() {
+    let v = cat();
+    const t = peek(); if (t && t.t === 'op' && ['=', '<>', '<', '>', '<=', '>='].indexOf(t.v) > -1) {
+      k++; const r = scalar(cat()), l = scalar(v);
+      const both = typeof l !== 'string' && typeof r !== 'string', a = both ? num(l) : String(l).toLowerCase(), b = both ? num(r) : String(r).toLowerCase();
+      v = t.v === '=' ? a === b : t.v === '<>' ? a !== b : t.v === '<' ? a < b : t.v === '>' ? a > b : t.v === '<=' ? a <= b : a >= b;
+    }
+    return v;
+  }
+  let result;
+  try { result = scalar(cmp()); if (k < toks.length) return '#ERR'; }
+  catch (e) { return e === REF ? '#REF' : '#ERR'; }
+  if (result === undefined || result === null) return 0;
+  if (typeof result === 'boolean') return result ? 1 : 0;
+  if (typeof result === 'string') return result;
+  if (typeof result !== 'number' || !isFinite(result)) return '#ERR';
+  return parseFloat(result.toFixed(10));
 }
 
 function rbGetDisplayValue(cellId) {
@@ -32559,12 +32536,14 @@ function initRoughBoard() {
           onfocus="rbFocus('${id}')"
           onblur="rbBlur('${id}',this.value)"
           onkeydown="rbKeyNav(event,'${id}')"
-          oninput="rbFormulaBarInput(this.value)">
+          oninput="rbCellTyping(this.value)">
       </td>`;
     }
     bodyHtml += '</tr>';
   }
 
+  // a rebuild removes the focused cell, and the blur that follows must not save its stale text over the new value
+  table.querySelectorAll('.rb-cell').forEach(el => { delete el.dataset.editing; });
   table.innerHTML = headerRow + bodyHtml;
   if (RB.selectedCell) rbSelectCell(RB.selectedCell);
   if (RB.selectedCell) rbSelectCell(RB.selectedCell);
@@ -32623,8 +32602,9 @@ function rbSelectCell(id) {
   const input = document.getElementById('rb-' + id);
   if (input) {
     input.focus();
-    // Excel UX: Auto-select text so typing overwrites and Backspace/Delete clears the cell instantly
-    setTimeout(() => input.select(), 10);
+    // Excel UX: Auto-select text so typing overwrites and Backspace/Delete clears the cell instantly.
+    // Only while the cell still has focus: select() also focuses, and two pending selects used to bounce focus between cells forever.
+    setTimeout(() => { if (document.activeElement === input) input.select(); }, 10);
   }
 }
 
@@ -32638,14 +32618,23 @@ function rbFocus(id) {
   const td = document.getElementById('rbtd-' + id);
   if (td) td.classList.add('rb-selected');
   
-  // Also highlight text if they physically click into the cell
+  // Excel: while editing, the cell shows what you typed (the formula), not its result
   const input = document.getElementById('rb-' + id);
   if (input) {
-    setTimeout(() => input.select(), 10);
+    const raw = RB.data[id] !== undefined ? String(RB.data[id]) : '';
+    if (input.value !== raw) input.value = raw;
+    input.dataset.orig = raw;
+    input.dataset.editing = '1';
+    setTimeout(() => { if (document.activeElement === input) input.select(); }, 10);
   }
 }
 
-function rbBlur(id, value) {
+function rbBlur(id, value, force) {
+  // Only an edit in progress is saved. Without this, the second blur that follows Enter/Tab saved the shown
+  // result over the formula (=A1*2 turned into a plain 10).
+  const inp = document.getElementById('rb-' + id);
+  if (!force && inp && inp.dataset.editing !== '1') return;
+  if (inp) delete inp.dataset.editing;
   if (value === '') { delete RB.data[id]; }
   else { RB.data[id] = value; }
   const input = document.getElementById('rb-' + id);
@@ -32666,6 +32655,11 @@ function rbRefreshAll() {
   }
 }
 
+function rbCellTyping(val) {
+  const bar = document.getElementById('rb-formula-bar');
+  if (bar && document.activeElement !== bar) bar.value = val;
+}
+
 function rbFormulaBarInput(val) {
   if (!RB.selectedCell) return;
   const input = document.getElementById('rb-' + RB.selectedCell);
@@ -32675,16 +32669,22 @@ function rbFormulaBarInput(val) {
 function rbFormulaBarCommit() {
   if (!RB.selectedCell) return;
   const bar = document.getElementById('rb-formula-bar');
-  if (bar) rbBlur(RB.selectedCell, bar.value);
+  if (bar) rbBlur(RB.selectedCell, bar.value, true);
 }
 
 function rbKeyNav(e, id) {
   const match = id.match(/([A-Z]+)(\d+)/);
   if (!match) return;
-  const col = id.charCodeAt(0) - 65;
+  const col = rbColIndex(match[1]);
   const row = parseInt(match[2]) - 1;
 
-  const moves = { 'ArrowRight':[0,1], 'ArrowLeft':[0,-1], 'ArrowDown':[1,0], 'ArrowUp':[-1,0], 'Enter':[1,0], 'Tab':[0,1] };
+  if (e.key === 'Escape') {   // cancel the edit, like Excel
+    e.preventDefault(); e.stopPropagation();
+    const orig = e.target.dataset.orig !== undefined ? e.target.dataset.orig : (RB.data[id] !== undefined ? String(RB.data[id]) : '');
+    e.target.value = orig; rbCellTyping(orig); e.target.select();
+    return;
+  }
+  const moves = { 'ArrowRight':[0,1], 'ArrowLeft':[0,-1], 'ArrowDown':[1,0], 'ArrowUp':[-1,0], 'Enter':[e.shiftKey ? -1 : 1,0], 'Tab':[0,e.shiftKey ? -1 : 1] };
   if (moves[e.key]) {
     e.preventDefault();
     rbBlur(id, e.target.value);
@@ -32775,7 +32775,7 @@ function rbDeleteCol() {
   if (RB.selectedCol !== null) deleteAt = RB.selectedCol;
   else if (RB.selectedCell !== null) {
     const match = RB.selectedCell.match(/([A-Z]+)(\d+)/);
-    if (match) deleteAt = match[1].charCodeAt(0) - 65;
+    if (match) deleteAt = rbColIndex(match[1]);
   }
 
   if (!confirm(`Delete Column ${RB.colHeaders?.[deleteAt] || rbColLetter(deleteAt)}?`)) return;
@@ -32784,7 +32784,7 @@ function rbDeleteCol() {
   Object.keys(RB.data).forEach(key => {
     const m = key.match(/([A-Z]+)(\d+)/);
     if (!m) return;
-    const c = m[1].charCodeAt(0) - 65;
+    const c = rbColIndex(m[1]);
     
     if (c === deleteAt) return; // Drop it
     if (c > deleteAt) newData[rbColLetter(c - 1) + m[2]] = RB.data[key]; // Shift left
@@ -32852,6 +32852,20 @@ function rbClearCellStyle() {
   setTimeout(() => rbSelectCell(RB.selectedCell), 50);
 }
 
+/* =SUM(A1:A4,A6:A20): the whole column (or row) except the cell that holds the result */
+function rbRangeFormula(fn, col, row, self) {
+  const parts = [];
+  if (col !== null) {   // column: self is the 1-based row of the result cell
+    if (self > 1) parts.push(col + '1' + (self > 2 ? ':' + col + (self - 1) : ''));
+    if (self < RB.rows) parts.push(col + (self + 1) + (self + 1 < RB.rows ? ':' + col + RB.rows : ''));
+  } else {              // row: self is the 0-based column of the result cell
+    const L = rbColLetter;
+    if (self > 0) parts.push(L(0) + row + (self > 1 ? ':' + L(self - 1) + row : ''));
+    if (self < RB.cols - 1) parts.push(L(self + 1) + row + (self + 1 < RB.cols - 1 ? ':' + L(RB.cols - 1) + row : ''));
+  }
+  return '=' + fn + '(' + parts.join(',') + ')';
+}
+
 function rbSumColumn() {
   if (!RB.selectedCell) { alert('Select a cell first to place the SUM result.'); return; }
   const match = RB.selectedCell.match(/([A-Z]+)(\d+)/);
@@ -32865,7 +32879,7 @@ function rbSumColumn() {
     if (!isNaN(val)) { sum += val; count++; }
   }
   if (count === 0) { alert('No numeric values found in column ' + col); return; }
-  RB.data[RB.selectedCell] = sum;
+  RB.data[RB.selectedCell] = rbRangeFormula('SUM', col, null, parseInt(match[2], 10));
   rbSaveData();
   initRoughBoard();
   setTimeout(() => rbSelectCell(RB.selectedCell), 50);
@@ -32884,7 +32898,7 @@ function rbSumRow() {
     if (!isNaN(val)) { sum += val; count++; }
   }
   if (count === 0) { alert('No numeric values found in row ' + row); return; }
-  RB.data[RB.selectedCell] = sum;
+  RB.data[RB.selectedCell] = rbRangeFormula('SUM', null, parseInt(row, 10), rbColIndex(match[1]));
   rbSaveData();
   initRoughBoard();
   setTimeout(() => rbSelectCell(RB.selectedCell), 50);
@@ -32903,7 +32917,7 @@ function rbAverageCol() {
     if (!isNaN(val)) { sum += val; count++; }
   }
   if (count === 0) { alert('No numeric values found.'); return; }
-  RB.data[RB.selectedCell] = parseFloat((sum / count).toFixed(4));
+  RB.data[RB.selectedCell] = rbRangeFormula('AVERAGE', col, null, parseInt(match[2], 10));
   rbSaveData();
   initRoughBoard();
   setTimeout(() => rbSelectCell(RB.selectedCell), 50);
@@ -33239,7 +33253,7 @@ function rbInsertColLeft() {
   if (RB.selectedCol !== null) insertColIdx = RB.selectedCol;
   else if (RB.selectedCell !== null) {
     const match = RB.selectedCell.match(/([A-Z]+)(\d+)/);
-    if (match) insertColIdx = match[1].charCodeAt(0) - 65;
+    if (match) insertColIdx = rbColIndex(match[1]);
   }
 
   if (insertColIdx === -1) { alert('Click a column letter at the top first.'); return; }
@@ -33248,7 +33262,7 @@ function rbInsertColLeft() {
   Object.keys(RB.data).forEach(key => {
     const m = key.match(/([A-Z]+)(\d+)/);
     if (!m) return;
-    const c = m[1].charCodeAt(0) - 65;
+    const c = rbColIndex(m[1]);
     // Shift data right
     if (c >= insertColIdx) newData[rbColLetter(c + 1) + m[2]] = RB.data[key];
     else newData[key] = RB.data[key];
@@ -33295,7 +33309,12 @@ function rbShowFormulaHelp() {
               =A1+B1+C1 → Sum three<br>
               =A1*0.18 → GST 18%<br>
               =A1-A1*0.1 → 10% discount<br>
-              =(A1+B1)/2 → Average two
+              =(A1+B1)/2 → Average two<br>
+              =SUM(A1:A10) → Total a range<br>
+              =AVERAGE(A1:A10), MIN, MAX, COUNT<br>
+              =ROUND(A1,2), =ABS(A1)<br>
+              =IF(A1>100,"High","Low")<br>
+              =A1^2 → Power · =A1*18% → Percent
             </div>
           </div>
           <div>
@@ -33350,20 +33369,35 @@ function rbShowFormulaHelp() {
 const Calc = { display: '', history: '', operand: null, operator: null, justEvaled: false };
 
 function calcFn(key) {
+  window.__calcLast = 'basic';   // keys typed with neither display focused go to the calculator used last
   const digits = '0123456789.';
   const ops = ['+', '−', '×', '÷'];
 
   if (key === 'C') { Calc.display = ''; Calc.history = ''; Calc.operand = null; Calc.operator = null; Calc.justEvaled = false; }
-  else if (key === '⌫') { Calc.display = Calc.display.length > 1 ? Calc.display.slice(0, -1) : ''; }
-  else if (key === '+/-') { Calc.display = Calc.display ? String(parseFloat(Calc.display) * -1) : ''; }
-  else if (key === '%') { Calc.display = Calc.display ? String(parseFloat(Calc.display) / 100) : ''; }
+  else if (key === '⌫') {
+    if (Calc.justEvaled && Calc.operator === null) { Calc.display = ''; Calc.justEvaled = false; }   // backspace on a result clears it, like a phone calculator
+    else { Calc.display = Calc.display.length > 1 ? Calc.display.slice(0, -1) : ''; if (Calc.display === '-' || Calc.display === '-0') Calc.display = ''; }
+  }
+  else if (key === '+/-') { if (Calc.display && Calc.display !== 'Error') { Calc.display = String(parseFloat(Calc.display) * -1); Calc.justEvaled = false; } }
+  else if (key === '%') {
+    // 200 + 10% = 220 and 200 − 10% = 180 (percent of the first number); 200 × 10% = 20; on its own 10% = 0.1
+    if (Calc.display && Calc.display !== 'Error') {
+      const x = parseFloat(Calc.display);
+      const v = (Calc.operator === '+' || Calc.operator === '−') && Calc.operand !== null ? Calc.operand * x / 100 : x / 100;
+      Calc.display = String(parseFloat(v.toFixed(10))); Calc.justEvaled = false;
+    }
+  }
   else if (digits.includes(key)) {
-    if (Calc.justEvaled) { Calc.display = key === '.' ? '0.' : key; Calc.justEvaled = false; }
+    if (Calc.justEvaled || Calc.display === 'Error') { Calc.display = key === '.' ? '0.' : key; Calc.justEvaled = false; }
     else if (key === '.' && Calc.display.includes('.')) {}
+    else if (key === '.' && (Calc.display === '' || Calc.display === '-')) { Calc.display += '0.'; }
     else { Calc.display = (Calc.display === '' || Calc.display === '0') && key !== '.' ? key : Calc.display + key; }
   }
   else if (ops.includes(key)) {
+    // pressing a second operator before typing a number just swaps it (5 + then − gives 5 −, not 0 −)
+    if (Calc.operator && Calc.justEvaled && Calc.display === '') { Calc.operator = key; Calc.history = Calc.history.replace(/\S+$/, key); calcUpdateDisplay(); return; }
     if (Calc.operator && !Calc.justEvaled) calcDoEquals();
+    if (Calc.display === 'Error') { Calc.display = ''; }
     Calc.operand = parseFloat(Calc.display || '0');
     Calc.operator = key;
     Calc.history = (Calc.display || '0') + ' ' + key;
@@ -33384,11 +33418,12 @@ function calcDoEquals() {
   else if (Calc.operator === '×') result = a * b;
   else if (Calc.operator === '÷') result = b !== 0 ? a / b : 'Error';
 
-  const expr = `${a} ${Calc.operator} ${b} = ${result}`;
+  const shown = typeof result === 'number' ? String(parseFloat(result.toFixed(10))) : 'Error';   // ÷ 0 used to crash here
+  const expr = `${a} ${Calc.operator} ${b} = ${shown}`;
   const log = document.getElementById('calc-log');
   if (log) log.innerHTML = `<div>${expr}</div>` + log.innerHTML;
   Calc.history = expr;
-  Calc.display = String(parseFloat(result.toFixed(10)));
+  Calc.display = shown;
   Calc.operand = null; Calc.operator = null; Calc.justEvaled = true;
 }
 
@@ -33399,9 +33434,22 @@ function calcUpdateDisplay() {
   if (h) h.textContent = Calc.history || '\u00a0';
 }
 
+/* the character just typed, wherever the caret was (the old code took the last character, so typing 4 with the
+   caret inside "15" gave 5) */
+function calcTypedChar(before, after) {
+  before = String(before || ''); after = String(after || '');
+  if (after.length !== before.length + 1) return after.slice(-1);
+  let i = 0; while (i < before.length && before[i] === after[i]) i++;
+  return after[i];
+}
 function calcHandleInput(val) {
-  Calc.display = val;
+  // typing straight into the display: digits, one dot, a leading minus; a fresh number after a result or operator
+  let v = String(val).replace(/[^0-9.\-]/g, '');
+  if (Calc.justEvaled) { const ch = calcTypedChar(Calc.display, String(val)); v = ch === '.' ? '0.' : /[0-9]/.test(ch) ? ch : ''; }
+  v = v.replace(/(?!^)-/g, ''); const i = v.indexOf('.'); if (i > -1) v = v.slice(0, i + 1) + v.slice(i + 1).replace(/\./g, '');
+  Calc.display = v;
   Calc.justEvaled = false;
+  const d = document.getElementById('calc-display'); if (d && d.value !== v) d.value = v;
 }
 
 // ══════════════════════════════════════════════
@@ -33410,6 +33458,7 @@ function calcHandleInput(val) {
 const Sci = { display: '', history: '', buffer: '', justEvaled: false };
 
 function sciFn(key) {
+  window.__calcLast = 'sci';
   const digits = '0123456789.';
   const ops = ['+', '−', '×', '÷'];
   const unary = ['sin','cos','tan','log','ln','√','x²','x³','1/x','abs','!','π','e'];
@@ -33437,28 +33486,37 @@ function sciFn(key) {
       result = f;
     }
     Sci.history = `${key}(${n})`;
-    Sci.display = String(parseFloat(result.toFixed(10)));
+    Sci.display = isFinite(result) ? String(parseFloat(result.toFixed(10))) : 'Error';
     Sci.justEvaled = true;
   }
   else if (key === 'EXP') { Sci.display += 'e'; }
-  else if (brackets.includes(key)) { Sci.buffer += (Sci.display || '0') + key; Sci.display = ''; }
+  else if (key === '(') { Sci.buffer += (Sci.display && !Sci.justEvaled ? Sci.display + ' × ' : '') + '('; Sci.display = ''; Sci.history = Sci.buffer; Sci.justEvaled = false; }
+  else if (key === ')') {
+    const open = (Sci.buffer.match(/\(/g) || []).length - (Sci.buffer.match(/\)/g) || []).length;
+    if (open > 0) { Sci.buffer += (Sci.display || (/[(]\s*$|[+−×÷]\s*$/.test(Sci.buffer) ? '0' : '')) + ')'; Sci.display = ''; Sci.history = Sci.buffer; }
+  }
   else if (digits.includes(key)) {
     if (key === '.' && Sci.display.includes('.')) return;
     Sci.display = Sci.justEvaled ? key : ((Sci.display === '' || Sci.display === '0') && key !== '.' ? key : Sci.display + key);
     Sci.justEvaled = false;
   }
   else if (ops.includes(key)) {
-    Sci.buffer += (Sci.display || '0') + ' ' + key + ' ';
+    if (Sci.display === '' && /[+−×÷]\s*$/.test(Sci.buffer)) Sci.buffer = Sci.buffer.replace(/[+−×÷]\s*$/, key + ' ');   // swap the operator
+    else Sci.buffer += (Sci.display === '' && /\)\s*$/.test(Sci.buffer) ? '' : (Sci.display === 'Error' ? '0' : (Sci.display || '0'))) + ' ' + key + ' ';
     Sci.history = Sci.buffer;
     Sci.display = '';
     Sci.justEvaled = true;
   }
   else if (key === '=') {
     try {
-      const expr = (Sci.buffer + (Sci.display || '0'))
-        .replace(/×/g, '*').replace(/÷/g, '/').replace(/−/g, '-');
+      let tail = Sci.display === '' && /\)\s*$/.test(Sci.buffer) ? '' : (Sci.display || '0');
+      let expr = (Sci.buffer + tail).replace(/×/g, '*').replace(/÷/g, '/').replace(/−/g, '-');
+      const open = (expr.match(/\(/g) || []).length - (expr.match(/\)/g) || []).length;
+      if (open > 0) { expr += ')'.repeat(open); tail += ')'.repeat(open); }   // close any brackets left open
+      if (!/^[0-9.eE+\-*/()\s]*$/.test(expr)) throw new Error('bad input');
       const result = Function('"use strict"; return (' + expr + ')')();
-      Sci.history = Sci.buffer + (Sci.display || '0') + ' =';
+      if (typeof result !== 'number' || !isFinite(result)) throw new Error('not a number');
+      Sci.history = Sci.buffer + tail + ' =';
       Sci.display = String(parseFloat(result.toFixed(10)));
       Sci.buffer = ''; Sci.justEvaled = true;
     } catch(e) { Sci.display = 'Error'; Sci.buffer = ''; }
@@ -33474,7 +33532,8 @@ function sciHandleInput(val) {
   if (Sci.justEvaled) {
     // Starting a fresh number after a result/operator — ignore whatever
     // leftover text the browser left in the box and start clean.
-    Sci.display = val.slice(-1) === '.' ? '0.' : val.slice(-1) || '';
+    const ch = calcTypedChar(Sci.display, val);
+    Sci.display = ch === '.' ? '0.' : ch || '';
     Sci.justEvaled = false;
     const d = document.getElementById('sci-display');
     if (d) d.value = Sci.display;
@@ -33676,7 +33735,7 @@ document.addEventListener('keydown', (e) => {
                 sciFn(keyMap[e.key]);
             } else if (isCalcInput) {
                 calcFn(keyMap[e.key]);
-            } else if (document.getElementById('adv-panel-sci').style.display !== 'none') {
+            } else if (window.__calcLast === 'sci' && document.getElementById('adv-panel-sci').style.display !== 'none') {
                 sciFn(keyMap[e.key]);
             } else {
                 calcFn(keyMap[e.key]);
@@ -33684,7 +33743,12 @@ document.addEventListener('keydown', (e) => {
             return;
         }
         // Digits and '.' typed directly into the display input are handled fine by
-        // calcHandleInput/sciHandleInput via their oninput attribute — no need to intercept here.
+        // calcHandleInput/sciHandleInput via their oninput attribute. When neither display has focus, send them in here.
+        if (!isCalcInput && !isSciInput) {
+            e.preventDefault();
+            if (window.__calcLast === 'sci' && document.getElementById('adv-panel-sci').style.display !== 'none') sciFn(keyMap[e.key]); else calcFn(keyMap[e.key]);
+            return;
+        }
     }
 }
 
@@ -43480,7 +43544,7 @@ body.light-mode .tx-bar select option,body.light-mode .tx-cls option{color:#111}
       const k = c[0], r = rule(k), s = stRate(k);
       const lt = k === 'vda' ? 'No holding-period test' : r.ltM > 0 ? 'After ' + r.ltM + ' months' : 'Never — always short-term';
       const st = r.stSlab ? 'Your slab (' + slab() + '%)' : s + '%';
-      const l = k === 'vda' ? '30% flat' : r.ltM > 0 ? r.lt + '%' + (r.ex ? ' above ₹' + fmt(r.ex) + ' a year' : '') : '—';
+      const l = k === 'vda' ? '30% flat' : r.ltM > 0 ? r.lt + '%' + (r.ex ? ' above ' + fmt(r.ex) + ' a year' : '') : '—';
       return [_esc(c[1]) + (mod(k) ? '<span class="tx-chip ed">edited</span>' : ''), lt, st, l];
     });
     return tbl(['Asset class', 'Long-term', 'Short-term rate', 'Long-term rate'], rows) +
@@ -43509,7 +43573,7 @@ body.light-mode .tx-bar select option,body.light-mode .tx-cls option{color:#111}
 
     h += `<div class="pi-kpis">${kpi('Realised gain, FY ' + fyLbl(fySel), `<span class="${col(calc.gain)}">${sgn(calc.gain)}</span>`, real.length + ' sale lot' + (real.length === 1 ? '' : 's'), true, true)}
       ${kpi('Estimated tax', money(calc.tax), 'incl. ' + cess() + '% cess, after loss set-off', true, true)}
-      ${kpi('Equity gains still exempt', money(calc.eqLeft), 'of ₹' + fmt(rule('eq').ex) + ' yearly limit' + (isCur && eqLTunreal > 0 ? ' · ₹' + fmt(Math.round(eqLTunreal)) + ' long-term equity gain unrealised' : ''), true, true)}
+      ${kpi('Equity gains still exempt', money(calc.eqLeft), 'of ' + fmt(rule('eq').ex) + ' yearly limit' + (isCur && eqLTunreal > 0 ? ' · ' + fmt(Math.round(eqLTunreal)) + ' long-term equity gain unrealised' : ''), true, true)}
       ${kpi('Turning long-term in 90 days', money(in90.reduce((s, r) => s + r.gain, 0)), in90.length + ' lot' + (in90.length === 1 ? '' : 's') + ' with a gain', true, true)}</div>`;
 
     // realised by class
@@ -45105,18 +45169,18 @@ body.light-mode .fx7-pr .t > div { background:rgba(15,23,42,.06); }
       var rest = items.slice(5), rv = rest.reduce(function (s, x) { return s + x.v; }, 0);
       items = items.slice(0, 5).concat([{ k: 'o', t: 'Other (' + rest.length + ')', v: rv, c: '#64748b', tip: rest.map(function (x) { return x.t + ' ' + R(x.v); }).join(' · ') }]);
     }
-    var r = 40, C = 2 * Math.PI * r, gap = items.length > 1 ? 1.4 : 0, off = 0;
-    var segs = items.map(function (x, i) {
-      var len = Math.max(0.6, x.v / tot * C - gap), s = '<circle class="s" data-k="' + x.k + '" cx="50" cy="50" r="' + r + '" fill="none" stroke="' + x.c + '" stroke-width="11" stroke-dasharray="' + len.toFixed(2) + ' ' + (C - len).toFixed(2) + '" stroke-dashoffset="' + (-off).toFixed(2) + '" style="animation-delay:' + (i * 0.05).toFixed(2) + 's"><title>' + esc(x.t + ': ' + R(x.v) + ' · ' + P0(x.v / tot * 100)) + '</title></circle>';
-      off += x.v / tot * C; return s;
-    }).join('');
-    var n = E.length, ctrDef = '<em>Spent</em><b>' + esc(K(tot)) + '</b><small>' + n + ' categor' + (n === 1 ? 'y' : 'ies') + '</small>';
-    var ring = '<div class="fx9-donut"><svg viewBox="0 0 100 100" role="img" aria-label="Spending by category"><circle cx="50" cy="50" r="' + r + '" fill="none" class="trk" stroke-width="11"/>' + segs + '</svg><div class="fx9-ctr">' + ctrDef + '</div></div>';
-    var rows = '<div class="fx9-rows">' + items.map(function (x) { return '<div class="fx9-row" data-k="' + x.k + '" style="--cc:' + x.c + '"' + (x.tip ? ' title="' + esc(x.tip) + '"' : '') + '><span class="n"><i></i><span>' + esc(x.t) + '</span></span><span class="v">' + esc(R(x.v)) + '</span><span class="p">' + P0(x.v / tot * 100) + '</span></div>'; }).join('') + '</div>';
-    set(host, '<div class="fx9-mix">' + ring + rows + '</div>');
-    var m = host.querySelector('.fx9-mix'); if (!m) return;
-    var ctr = m.querySelector('.fx9-ctr'), byK = {}; items.forEach(function (x) { byK[x.k] = x; });
-    hov(m, function (k) { var x = k && byK[k]; ctr.innerHTML = x ? '<em>' + esc(x.t) + '</em><b>' + esc(K(x.v)) + '</b><small>' + P0(x.v / tot * 100) + ' of spending</small>' : ctrDef; });
+    /* round 10: ranked bars instead of a ring. Each bar's length is its share of the biggest category, so the
+       ranking reads at a glance and the panel is filled edge to edge. Amounts and percentages are unchanged. */
+    var mx = Math.max.apply(null, items.map(function (x) { return x.v; })), n = E.length, top = items[0];
+    var head = '<div class="fx10-mh"><div><em>Total spent</em><b>' + esc(R(tot)) + '</b><small>across ' + n + ' categor' + (n === 1 ? 'y' : 'ies') + '</small></div>' +
+      '<span class="fx9-pill" style="--pc:' + top.c + '" title="Biggest category">' + esc(top.t) + ' · ' + P0(top.v / tot * 100) + '</span></div>';
+    var bars = '<div class="fx10-bars">' + items.map(function (x, i) {
+      return '<div class="fx10-b" data-k="' + x.k + '" style="--cc:' + x.c + '"' + (x.tip ? ' title="' + esc(x.tip) + '"' : ' title="' + esc(x.t + ': ' + R(x.v) + ' · ' + P0(x.v / tot * 100) + ' of spending') + '"') + '>' +
+        '<div class="l"><span class="n"><i></i><span>' + esc(x.t) + '</span></span><span class="v">' + esc(R(x.v)) + '</span><span class="p">' + P0(x.v / tot * 100) + '</span></div>' +
+        '<div class="t"><span style="width:' + Math.max(1.5, x.v / mx * 100).toFixed(2) + '%;animation-delay:' + (i * 0.06).toFixed(2) + 's"></span></div></div>';
+    }).join('') + '</div>';
+    set(host, '<div class="fx10-mix">' + head + bars + '</div>');
+    var m = host.querySelector('.fx10-mix'); if (m) hov(m);
   }
 
   /* ═════ Dashboard › ROI % by Asset: same chart as Summary › ROI by Asset Type ═════ */
@@ -45828,6 +45892,61 @@ body.light-mode .fx8-disc { background:rgba(var(--brand-rgb),.06); color:#475569
 body.light-mode .fx9-donut .trk { stroke:rgba(15,23,42,.07); }
 body.light-mode .fx9-row { border-top-color:#e2e8f0; }
 @media (prefers-reduced-motion: reduce) { .fx9-bar span, .fx9-donut .s { animation:none; } }
+/* Round 10: Spending Mix as ranked bars; both dashboard panels sized to their content (no empty band top and bottom) */
+@media (min-width:901px) { #fx7-cf, #fx7-mix { height:auto !important; } }
+.fx9-cf { justify-content:flex-start; padding-top:6px; }
+.fx9-bar { margin:16px 0 8px; }
+.fx10-mix { display:flex; flex-direction:column; gap:14px; padding:6px 2px 0; }
+.fx10-mh { display:flex; justify-content:space-between; align-items:flex-start; gap:12px; }
+.fx10-mh em { display:block; font-style:normal; font-size:.62rem; font-weight:700; letter-spacing:.9px; text-transform:uppercase; color:var(--text-muted); }
+.fx10-mh b { display:block; font-family:'DM Mono', monospace; font-size:1.6rem; font-weight:700; color:var(--text-main); line-height:1.15; margin-top:5px; letter-spacing:-.5px; }
+.fx10-mh small { display:block; font-size:.7rem; color:var(--text-muted); margin-top:4px; }
+.fx10-mh .fx9-pill { max-width:55%; overflow:hidden; text-overflow:ellipsis; }
+.fx10-bars { display:flex; flex-direction:column; gap:11px; }
+.fx10-b { cursor:default; transition:opacity .2s; }
+.fx10-b .l { display:grid; grid-template-columns:minmax(0,1fr) auto 3.2em; align-items:center; gap:10px; font-size:.78rem; margin-bottom:6px; }
+.fx10-b .n { display:flex; align-items:center; gap:9px; min-width:0; color:var(--text-main); font-weight:600; }
+.fx10-b .n span { overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.fx10-b .n i { width:9px; height:9px; border-radius:3px; background:var(--cc); flex:0 0 auto; }
+.fx10-b .v { font-family:'DM Mono', monospace; font-weight:600; color:var(--text-main); text-align:right; white-space:nowrap; }
+.fx10-b .p { font-family:'DM Mono', monospace; font-size:.7rem; color:var(--text-muted); text-align:right; white-space:nowrap; }
+.fx10-b .t { height:7px; border-radius:99px; background:rgba(148,163,184,.10); overflow:hidden; }
+.fx10-b .t span { display:block; height:100%; border-radius:99px; background:linear-gradient(90deg, color-mix(in srgb, var(--cc) 55%, transparent), var(--cc)); transform-origin:left center; animation:fx7Grow .8s cubic-bezier(.22,1,.36,1) both; }
+.fx10-mix.hl .fx10-b:not(.on) { opacity:.38; }
+body.light-mode .fx10-b .t { background:rgba(15,23,42,.06); }
+@media (prefers-reduced-motion: reduce) { .fx10-b .t span { animation:none; } }
+
+/* Round 10: Budget Status cards */
+.fx10-bhd { display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:8px 14px; margin-bottom:10px; }
+.fx10-bs { display:flex; align-items:center; flex-wrap:wrap; gap:6px; font-size:.74rem; color:var(--text-muted); }
+.fx10-bs b { color:var(--text-main); font-family:'DM Mono', monospace; }
+.fx10-bs > span:first-child { margin-right:4px; }
+.fx10-bs .o, .fx10-bs .w, .fx10-bs .g { padding:3px 9px; border-radius:99px; font-weight:700; font-size:.66rem; }
+.fx10-bs .o { color:#f87171; background:rgba(239,68,68,.12); }
+.fx10-bs .w { color:#fbbf24; background:rgba(245,158,11,.12); }
+.fx10-bs .g { color:#34d399; background:rgba(52,211,153,.12); }
+.fx10-bgrid { display:grid; grid-template-columns:repeat(auto-fill, minmax(230px, 1fr)); gap:10px; }
+.fx10-bc { position:relative; padding:13px 14px 12px; border-radius:14px; border:1px solid var(--glass-border, rgba(255,255,255,.08)); background:linear-gradient(180deg, color-mix(in srgb, var(--bc) 6%, transparent), transparent 70%), rgba(255,255,255,.02); overflow:hidden; }
+.fx10-bc::before { content:''; position:absolute; left:0; top:12px; bottom:12px; width:3px; border-radius:0 3px 3px 0; background:var(--bc); opacity:.85; }
+.fx10-bc .h { display:flex; align-items:center; justify-content:space-between; gap:8px; }
+.fx10-bc .n { font-weight:700; font-size:.84rem; color:var(--text-main); overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.fx10-bc .chip { flex:0 0 auto; font-size:.6rem; font-weight:800; letter-spacing:.4px; text-transform:uppercase; color:var(--bc); background:color-mix(in srgb, var(--bc) 13%, transparent); padding:3px 8px; border-radius:99px; }
+.fx10-bc .a { display:flex; align-items:baseline; gap:6px; margin:9px 0 9px; }
+.fx10-bc .a b { font-family:'DM Mono', monospace; font-size:1.12rem; color:var(--text-main); letter-spacing:-.3px; }
+.fx10-bc .a span { font-size:.72rem; color:var(--text-muted); }
+.fx10-bc .t { position:relative; height:7px; border-radius:99px; background:rgba(148,163,184,.12); }
+.fx10-bc .t i { position:absolute; left:0; top:0; bottom:0; border-radius:99px; background:linear-gradient(90deg, color-mix(in srgb, var(--bc) 60%, transparent), var(--bc)); transform-origin:left center; animation:fx7Grow .8s cubic-bezier(.22,1,.36,1) both; }
+.fx10-bc .t em { position:absolute; left:80%; top:-3px; bottom:-3px; width:2px; margin-left:-1px; border-radius:2px; background:var(--text-muted); opacity:.55; }
+.fx10-bc .f { display:flex; justify-content:space-between; margin-top:8px; font-size:.7rem; color:var(--text-muted); }
+.fx10-bc.over .f span:first-child { color:#f87171; font-weight:700; }
+.fx10-bc .f .p { font-family:'DM Mono', monospace; font-weight:700; color:var(--bc); }
+body.light-mode .fx10-bc { background:#fff; border-color:#e2e8f0; }
+body.light-mode .fx10-bc .t { background:#eef2f6; }
+body.light-mode .fx10-bs .w, body.light-mode .fx10-bc.warn .chip, body.light-mode .fx10-bc.warn .f .p { color:#b45309; }
+body.light-mode .fx10-bs .o, body.light-mode .fx10-bc.over .chip { color:#dc2626; }
+@media (max-width:600px) { .fx10-bgrid { grid-template-columns:1fr 1fr; gap:8px; } .fx10-bc { padding:11px 11px 10px; } .fx10-bc .a b { font-size:.98rem; } .fx10-bc .a { flex-wrap:wrap; gap:2px 6px; } }
+@media (max-width:360px) { .fx10-bgrid { grid-template-columns:1fr; } }
+@media (prefers-reduced-motion: reduce) { .fx10-bc .t i { animation:none; } }
 </style>
 <script id="fos-fx9-js">
 /* Round 9: a tiny portfolio snapshot for the weekly push summary. It uses the app's own portCalc, so the server never
@@ -47314,7 +47433,7 @@ function fosPushRefreshUI() {
      to ONE device (sign-in session, Face ID / PC lock credentials, caches, device logs, the auto-sync switch itself).
      The finance data itself syncs through its own tables (CLOUD_TABLES), not here. */
   var DEVICE_SET = ['fos_set_app-theme', 'fos_set_auto-sync', 'fos_set_code-protect'];   // theme follows the account through its own sign-in setting
-  var NEVER = /^(fos_db_v3|fos_port_v3|fos_credit_v1|fos_insurance_v1|fos_notes_v1|fos_subscriptions_v1|financeOS_ccCards|fos_budgets|fos_current_user|fos_users|fos_last_cloud_uid|fos_last_cloud_sync|fos_last_login_method|fos_kv_meta_u_.*|fos_kv_reloaded|fos_prefs_u_.*|fos_theme|fos_theme_u_.*|fos_theme_migrated|fos_biometric_.*|fos_pc_lock_.*|fos_idle_locked|fos_device_id|fos_mkt_last_v1|fos_fx_v1|fos_refresh_v1|fos_notifications|fos_notes_media|fos_docs_v1|fos_tracking_mode|fos_sync_report_pending|fos_last_active_view|fos_mobile_full_view|fos_tv_minimized|fos_rem_minimized|fos_remind_toast|fos_push_prompt_off|fos_master_topup_v2|financeOS_backupDismissed|financeOS_lastBackup|fos_admin_sess|fos_admin_boot_v1|fos_admin_safe_v1|fos_admin_snapshots_v1|fos_admin_audit_v1|fos_admin_dev_v1|fos_admin_integrity_.*|fos_admin_.*_(log|undo|quar)_v1)$/;
+  var NEVER = /^(fos_db_v3|fos_port_v3|fos_credit_v1|fos_insurance_v1|fos_notes_v1|fos_subscriptions_v1|financeOS_ccCards|fos_budgets|fos_current_user|fos_users|fos_last_cloud_uid|fos_last_cloud_sync|fos_last_login_method|fos_kv_meta_u_.*|fos_kv_reloaded|fos_prefs_u_.*|fos_theme|fos_theme_u_.*|fos_theme_migrated|fos_biometric_.*|fos_pc_lock_.*|fos_idle_locked|fos_device_id|fos_mkt_last_v1|fos_fx_v1|fos_refresh_v1|fos_notifications|fos_notes_media|fos_docs_v1|fos_tracking_mode|fos_sync_report_pending|fos_sync_fail_sent|fos_last_active_view|fos_mobile_full_view|fos_tv_minimized|fos_rem_minimized|fos_remind_toast|fos_push_prompt_off|fos_master_topup_v2|financeOS_backupDismissed|financeOS_lastBackup|fos_admin_sess|fos_admin_boot_v1|fos_admin_safe_v1|fos_admin_snapshots_v1|fos_admin_audit_v1|fos_admin_dev_v1|fos_admin_integrity_.*|fos_admin_.*_(log|undo|quar)_v1)$/;
   var TOMB = ['fos_admin_pin_v1', 'fos_set_anim-master', 'fos_set_anim-groups', 'fos_set_anim-items'];   // keys whose REMOVAL means something (PIN reset, "all animations on")
   var MAXLEN = 1500000;   // a single setting larger than ~1.5 MB stays on this device
   function syncable(k) { return typeof k === 'string' && (SYNC.indexOf(k) > -1 || (/^(fos_|financeOS_|pol_|pos_)/.test(k) && !NEVER.test(k) && DEVICE_SET.indexOf(k) < 0)); }
@@ -47741,24 +47860,48 @@ body.light-mode #fos-privacy-shield .fps-t{color:#25363d}
     } catch (e) { }
   };
 
-  /* Sync / backup alerts: failures are reported to the server; if offline they wait and are sent when the connection returns */
-  var wasErr = false, PEND = 'fos_sync_report_pending';
+  /* Sync / backup alerts (round 10). A short blip is normal: iPhones pause the app in the background, Wi-Fi
+     drops for a second, a request times out. So a failure is pushed to your devices only when sync has kept
+     failing for 15 minutes while this device is online. "Sync Restored" is sent only if a failure alert was
+     really sent. When sync works again, any failure alert still waiting on the server is withdrawn, so an old
+     warning never arrives late. */
+  var FAIL_AFTER = 15 * 60e3, SENT = 'fos_sync_fail_sent', failSince = 0, failTimer = null;
+  try { localStorage.removeItem('fos_sync_report_pending'); } catch (e) { }   /* the old "send when back online" note is no longer used */
   async function report(kind) {
-    var u = uid(); if (!u) return;
+    var u = uid(); if (!u || typeof sb === 'undefined') return false;
     var hour = new Date().toISOString().slice(0, 13);
     var row = kind === 'fail'
-      ? { category: 'sync', priority: 'critical', dedupe_key: 'sync-fail:' + hour, title: 'Data Synchronization Failed', body: 'Your latest financial data could not be synchronized with the cloud. Open FinanceOS and check your connection.', safe_body: 'FinanceOS: A data sync problem needs your attention.' }
+      ? { category: 'sync', priority: 'critical', dedupe_key: 'sync-fail:' + hour, title: 'Data Synchronization Failed', body: 'Your latest financial data has not synced with the cloud for over 15 minutes. Open FinanceOS and check your connection.', safe_body: 'FinanceOS: A data sync problem needs your attention.' }
       : { category: 'sync', priority: 'normal', dedupe_key: 'sync-ok:' + hour, title: 'Sync Restored', body: 'Your financial data has successfully synchronized.', safe_body: 'FinanceOS: Your data is syncing again.' };
     row.user_id = u;
-    var r = await sb.from('notification_queue').insert(row);
-    if (r.error && !/duplicate|unique/i.test(r.error.message || '')) { try { localStorage.setItem(PEND, JSON.stringify({ kind: kind, at: Date.now() })); } catch (e) { } }
-    else { try { localStorage.removeItem(PEND); } catch (e) { } }
+    try { var r = await sb.from('notification_queue').insert(row); return !r.error || /duplicate|unique/i.test(r.error.message || ''); } catch (e) { return false; }
+  }
+  async function checkFail() {
+    failTimer = null;
+    if (!failSince || Date.now() - failSince < FAIL_AFTER) return;
+    if (navigator.onLine === false) return;                       /* offline is not a sync fault: the status pill already says Offline */
+    var sent = 0; try { sent = +localStorage.getItem(SENT) || 0; } catch (e) { }
+    if (sent && Date.now() - sent < 6 * 36e5) return;            /* one failure alert per 6 hours is enough */
+    if (await report('fail')) { try { localStorage.setItem(SENT, String(Date.now())); } catch (e) { } }
+  }
+  function arm() { if (failTimer) clearTimeout(failTimer); failTimer = setTimeout(checkFail, Math.max(1000, FAIL_AFTER - (Date.now() - failSince))); }
+  async function recovered() {
+    failSince = 0; if (failTimer) { clearTimeout(failTimer); failTimer = null; }
+    var u = uid(); if (!u || typeof sb === 'undefined') return;
+    var withdrawn = false;
+    try {
+      var w = await sb.from('notification_queue').select('id').eq('user_id', u).eq('category', 'sync').eq('status', 'queued').like('dedupe_key', 'sync-fail:%');
+      if (w && w.data && w.data.length) { withdrawn = true; await sb.from('notification_queue').delete().in('id', w.data.map(function (x) { return x.id; })); }
+    } catch (e) { }
+    var sent = 0; try { sent = +localStorage.getItem(SENT) || 0; } catch (e) { }
+    if (sent) { try { localStorage.removeItem(SENT); } catch (e) { } if (!withdrawn) report('ok'); }   /* a warning that never went out needs no "restored" */
   }
   window.fosSyncWatch = function (state) {
-    if (state === 'error') { if (!wasErr) { wasErr = true; report('fail'); } }
-    else if (state === 'synced' && wasErr) { wasErr = false; report('ok'); }
+    if (state === 'error') { if (navigator.onLine === false) return; if (!failSince) failSince = Date.now(); if (!failTimer) arm(); }
+    else if (state === 'synced') { if (failSince || (function () { try { return localStorage.getItem(SENT); } catch (e) { return null; } })()) recovered(); }
   };
-  window.addEventListener('online', function () { try { var p = JSON.parse(localStorage.getItem(PEND) || 'null'); if (p && Date.now() - p.at < 864e5) report(p.kind); } catch (e) { } });
+  /* timers sleep while the phone is locked, so check again when the app comes back */
+  document.addEventListener('visibilitychange', function () { if (document.visibilityState === 'visible' && failSince) arm(); });
 
   /* Tapping a notification: go to the right section, but only after sign-in and the app lock have been cleared */
   var ROUTE = { overview: ['dashboard', 'finance'], spend: ['transactions', 'finance'], budget: ['dashboard', 'finance'], bills: ['credit', 'finance'], portfolio: ['port-overview', 'portfolio'], goals: ['finai', 'finance'] };
@@ -50323,6 +50466,56 @@ html body .view-section :is(.glass-panel, .finai-panel, .cc-panel-box, .finai-sc
 }
 @media (prefers-reduced-motion:reduce) { .view-section, .view-section * { scroll-behavior:auto !important; } }
 </style>
+<script id="fos-smooth-scroll-js">
+/* Round 10: smooth wheel scrolling on computers. A mouse wheel moves the page in hard 100px steps, which
+   reads as lag; here each notch sets a target and the page glides to it (eased, about 0.3 s). Phones and
+   touch screens keep their native momentum scrolling. Inner lists, tables, pop-ups, text boxes, pinch-zoom
+   and sideways scrolling are left to the browser. It switches off with Settings › Animations
+   (Smooth scrolling) and with the system "reduce motion" setting. */
+(function () {
+  'use strict';
+  var fine = window.matchMedia('(hover: hover) and (pointer: fine)'), wide = window.matchMedia('(min-width: 901px)'), rm = window.matchMedia('(prefers-reduced-motion: reduce)');
+  function enabled() {
+    if (!fine.matches || !wide.matches) return false;
+    var M = window.FosMotion; if (M && typeof M.on === 'function') return M.on('smooth-scroll');
+    return !rm.matches;
+  }
+  function scrollsY(el, dy) {
+    if (el.scrollHeight <= el.clientHeight + 1) return false;
+    var oy = getComputedStyle(el).overflowY; if (!/(auto|scroll|overlay)/.test(oy)) return false;
+    return dy > 0 ? el.scrollTop + el.clientHeight < el.scrollHeight - 1 : el.scrollTop > 0;
+  }
+  var S = new WeakMap();
+  document.addEventListener('wheel', function (e) {
+    if (e.defaultPrevented || e.ctrlKey || e.metaKey || e.shiftKey || !e.deltaY || Math.abs(e.deltaX) > Math.abs(e.deltaY)) return;
+    var t = e.target; if (!t || !t.closest) return;
+    var sc = t.closest('.scroll-area'); if (!sc || !enabled()) return;
+    for (var n = t; n && n !== sc; n = n.parentElement) {
+      if (/^(TEXTAREA|SELECT)$/.test(n.tagName)) return;
+      if (scrollsY(n, e.deltaY)) return;                                  // an inner list or table scrolls itself
+      if (getComputedStyle(n).position === 'fixed') return;               // pop-ups and overlays
+    }
+    var max = sc.scrollHeight - sc.clientHeight; if (max <= 0) return;
+    var d = e.deltaY * (e.deltaMode === 1 ? 16 : e.deltaMode === 2 ? sc.clientHeight * 0.9 : 1);
+    var s = S.get(sc);
+    if (!s || !s.raf) { s = { cur: sc.scrollTop, target: sc.scrollTop, set: sc.scrollTop, raf: 0, t: 0 }; S.set(sc, s); }
+    var nt = Math.max(0, Math.min(max, s.target + d));
+    if (nt === s.target && !s.raf) return;                                 // already at the top or bottom
+    e.preventDefault();
+    s.target = nt;
+    if (s.raf) return;
+    s.t = performance.now();
+    s.raf = requestAnimationFrame(function step(now) {
+      if (Math.abs(sc.scrollTop - s.set) > 2) { s.raf = 0; return; }       // the scrollbar, a key or a jump took over
+      var dt = Math.min(48, Math.max(1, now - s.t)); s.t = now;
+      s.cur += (s.target - s.cur) * (1 - Math.exp(-dt / 90));
+      if (Math.abs(s.target - s.cur) < 0.5) s.cur = s.target;
+      sc.scrollTop = s.cur; s.set = sc.scrollTop;
+      s.raf = s.cur !== s.target ? requestAnimationFrame(step) : 0;
+    });
+  }, { passive: false });
+})();
+</script>
 <script id="fos-premium-layout-js">
 (function () {
   'use strict';
