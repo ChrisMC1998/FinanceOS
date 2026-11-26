@@ -11,7 +11,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="fos-integrity" content="de0d98af6f233bea6138e2172d51dc5490e85c5c99ed23a946528935281d07f9">
+<meta name="fos-integrity" content="914b7cdc8deafd8d201ac09f0cc675786f62063e560637bf4ed8cb9339b488a6">
 <script id="fos-tamper-guard">
 /*! \u00a9 2026 MC Enterprise. Integrity check: detects a copy of this file that no longer matches the
     official release and locks it with a notice. This checks the FILE as served, not live memory --
@@ -3528,6 +3528,9 @@ body.light-mode .cin-pur select option { background:#fff; color:#0f172a; }
 .mc-st { font-weight:700; white-space:nowrap; }
 .mc-st::before { content:''; display:inline-block; width:6px; height:6px; border-radius:50%; margin-right:5px; vertical-align:1px; background:currentColor; }
 .mc-st-live { color:#34d399; } .mc-st-saved { color:#38bdf8; } .mc-st-sample { color:#f59e0b; } .mc-st-fixed { color:var(--text-muted); }
+.mc-st-delayed { color:#a3e635; } .mc-st-closed { color:#94a3b8; } .mc-st-daily { color:#38bdf8; } .mc-st-stale { color:#f87171; }
+.mc-chg-lbl { font-weight:600; font-size:.85em; opacity:.7; margin-left:3px; }
+.market-card.mc-is-stale .mc-price { opacity:.55; }
 .market-pulse-grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(230px, 1fr));
@@ -9276,7 +9279,7 @@ function _passAppLockGateOnce() {
         <i class="fas fa-plus"></i> New Entry
       </button>
       <button type="button" class="fos-bell-btn" id="fin-nav-notifications" onclick="openNotificationsPanel()" title="Notifications" aria-label="Notifications" aria-haspopup="dialog" aria-expanded="false">
-        <i class="fas fa-bell" aria-hidden="true"></i>
+        <i class="fa-regular fa-bell" aria-hidden="true"></i>
         <span id="notif-dot" style="display:none"></span>
         <span id="notif-count-badge" style="display:none"></span>
       </button>
@@ -9289,38 +9292,46 @@ function _passAppLockGateOnce() {
     <div id="view-dashboard" class="view-section active">
       <div class="kpi-grid" style="grid-template-columns:repeat(auto-fit,minmax(160px,1fr))">
         <div class="kpi-card">
+          <i class="fas fa-scale-balanced kpi-ico" aria-hidden="true" style="--ic:var(--c-inc)"></i>
           <div class="kpi-label">Net Balance</div>
           <div class="kpi-value" id="kpi-balance" style="color:var(--c-inc)">₹0</div>
           <div class="kpi-sub">Income minus outflows</div>
         </div>
         <div class="kpi-card">
+          <i class="fas fa-arrow-trend-up kpi-ico" aria-hidden="true" style="--ic:var(--c-inc)"></i>
           <div class="kpi-label">Total Income</div>
           <div class="kpi-value" id="kpi-income" style="color:var(--c-inc)">₹0</div>
         </div>
         <div class="kpi-card">
+          <i class="fas fa-building-columns kpi-ico" aria-hidden="true" style="--ic:var(--c-loan)"></i>
           <div class="kpi-label">Loan Outflow</div>
           <div class="kpi-value" id="kpi-loans" style="color:var(--c-loan)">₹0</div>
         </div>
         <div class="kpi-card">
+          <i class="fas fa-chart-line kpi-ico" aria-hidden="true" style="--ic:var(--c-inv)"></i>
           <div class="kpi-label">Investments</div>
           <div class="kpi-value" id="kpi-invest" style="color:var(--c-inv)">₹0</div>
         </div>
         <div class="kpi-card">
+          <i class="fas fa-piggy-bank kpi-ico" aria-hidden="true" style="--ic:var(--c-net)"></i>
           <div class="kpi-label">Savings Rate</div>
           <div class="kpi-value" id="kpi-savings-rate" style="color:var(--c-net)">0%</div>
           <div class="kpi-sub" id="kpi-savings-sub">of income saved</div>
         </div>
         <div class="kpi-card" style="border-color:rgba(249,115,22,0.2);background:rgba(249,115,22,0.04)">
+          <i class="fas fa-credit-card kpi-ico" aria-hidden="true" style="--ic:#f97316"></i>
           <div class="kpi-label" style="color:#f97316">Credit Outstanding <span class="kpi-cnt" id="kpi-credit-count" data-no-count hidden></span></div>
           <div class="kpi-value" id="kpi-credit-outstanding" style="color:#f97316">₹0</div>
           <div class="kpi-sub" id="kpi-credit-sub">total balance due</div>
         </div>
         <div class="kpi-card" id="kpi-lent-card" onclick="fosRecvOpen('lent')" title="Tap to see who you lent money to" style="cursor:pointer;border-color:rgba(45,212,191,0.25);background:rgba(45,212,191,0.05)">
+          <i class="fas fa-handshake kpi-ico" aria-hidden="true" style="--ic:#2dd4bf"></i>
           <div class="kpi-label" style="color:#2dd4bf">Lent Money</div>
           <div class="kpi-value" id="kpi-lent" style="color:#2dd4bf">₹0</div>
           <div class="kpi-sub" id="kpi-lent-sub">to get back</div>
         </div>
         <div class="kpi-card" id="kpi-exp-card" onclick="fosRecvOpen('exp')" title="Tap to see income people owe you" style="cursor:pointer;border-color:rgba(56,189,248,0.25);background:rgba(56,189,248,0.05)">
+          <i class="fas fa-hourglass-half kpi-ico" aria-hidden="true" style="--ic:#38bdf8"></i>
           <div class="kpi-label" style="color:#38bdf8">Expected Income</div>
           <div class="kpi-value" id="kpi-exp" style="color:#38bdf8">₹0</div>
           <div class="kpi-sub" id="kpi-exp-sub">owed to you</div>
@@ -9334,20 +9345,24 @@ function _passAppLockGateOnce() {
 
       <div class="glass-panel" style="margin-bottom:1.3rem">
         <div class="panel-title" style="color:#a78bfa">Portfolio Snapshot</div>
-        <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:.9rem">
-          <div>
+        <div class="fx8-snap">
+          <div class="fx8-pcard" style="--ic:#a78bfa">
+            <i class="fas fa-sack-dollar kpi-ico" aria-hidden="true"></i>
             <div class="kpi-label">Total Invested</div>
             <div class="kpi-value" id="dash-port-invested" style="color:#a78bfa;font-size:1.2rem">₹0</div>
           </div>
-          <div>
+          <div class="fx8-pcard" style="--ic:var(--c-inc)">
+            <i class="fas fa-gem kpi-ico" aria-hidden="true"></i>
             <div class="kpi-label">Current Value</div>
             <div class="kpi-value" id="dash-port-value" style="color:var(--c-inc);font-size:1.2rem">₹0</div>
           </div>
-          <div>
+          <div class="fx8-pcard" style="--ic:var(--c-inc)">
+            <i class="fas fa-arrow-trend-up kpi-ico" aria-hidden="true"></i>
             <div class="kpi-label">Total Gain/Loss</div>
             <div class="kpi-value" id="dash-port-gain" style="font-size:1.2rem">₹0</div>
           </div>
-          <div>
+          <div class="fx8-pcard" style="--ic:var(--c-inc)">
+            <i class="fas fa-percent kpi-ico" aria-hidden="true"></i>
             <div class="kpi-label">Portfolio ROI %</div>
             <div class="kpi-value" id="dash-port-roi" style="font-size:1.2rem">0%</div>
           </div>
@@ -12507,7 +12522,7 @@ function _passAppLockGateOnce() {
             <div style="width:32px; height:32px; border-radius:50%; background:rgba(var(--brand-rgb),0.15); color:var(--accent); display:flex; align-items:center; justify-content:center"><i class="fas fa-cube"></i></div>
             <div class="set-label-block">
               <div class="set-lbl readable-white">What is FinanceOS?</div>
-              <div class="set-desc" style="margin-top:0">Version v7.2.0 &middot; Nov 2026 &middot; &copy; 2026 MC Enterprise</div>
+              <div class="set-desc" style="margin-top:0">Version 8.2.0 &middot; Nov 2026 &middot; &copy; 2026 MC Enterprise</div>
             </div>
           </div>
           <div class="set-desc" style="font-size:0.78rem; line-height:1.6; margin-top:0;">FinanceOS is a personal finance dashboard that runs in your browser on computer, tablet and phone and can be installed like an app. Record what you earn, spend, owe, insure and invest, and it turns that into live charts, a proactive Fin AI assistant, reminders and reports so you can see where you stand at a glance. You sign in with your own account (email and password, or Face ID / fingerprint passkey). Your data is kept on your device first, and can also be synced to your private cloud account or backed up as JSON &mdash; you choose in Data Tracking Mode.</div>
@@ -12524,7 +12539,7 @@ function _passAppLockGateOnce() {
           <div class="about-feat-grid">
           <div style="display:flex; gap:10px; align-items:flex-start; padding:9px 10px; border:1px solid var(--glass-border); border-radius:10px; background:rgba(255,255,255,0.02);">
             <i class="fas fa-chart-pie" style="color:var(--accent); width:18px; text-align:center; margin-top:2px;"></i>
-            <div><div class="set-lbl readable-white" style="font-size:0.78rem">Dashboard</div><div class="set-desc" style="margin-top:2px">Live totals and cash flow, an interactive expense doughnut (category &rarr; subcategory &rarr; payee), portfolio and credit charts, market ticker, milestone badges and the Consistency journey (Weekly Pulse, Half-Year Report, Year in Review).</div></div>
+            <div><div class="set-lbl readable-white" style="font-size:0.78rem">Dashboard</div><div class="set-desc" style="margin-top:2px">Live totals and cash flow, an interactive expense doughnut (category &rarr; subcategory &rarr; payee), portfolio and credit charts, a cash-flow chart and spending-mix map, Live Market Overview with source and time on every price, milestone badges and the Consistency journey (Weekly Pulse, Half-Year Report, Year in Review).</div></div>
           </div>
           <div style="display:flex; gap:10px; align-items:flex-start; padding:9px 10px; border:1px solid var(--glass-border); border-radius:10px; background:rgba(255,255,255,0.02);">
             <i class="fas fa-list" style="color:var(--c-inc); width:18px; text-align:center; margin-top:2px;"></i>
@@ -12532,7 +12547,7 @@ function _passAppLockGateOnce() {
           </div>
           <div style="display:flex; gap:10px; align-items:flex-start; padding:9px 10px; border:1px solid var(--glass-border); border-radius:10px; background:rgba(255,255,255,0.02);">
             <i class="fas fa-coins" style="color:var(--c-inv); width:18px; text-align:center; margin-top:2px;"></i>
-            <div><div class="set-lbl readable-white" style="font-size:0.78rem">Investments</div><div class="set-desc" style="margin-top:2px">Gold, silver, real estate, mutual funds, bonds, stocks, crypto, FDs and RDs with holdings table, portfolio analytics, live prices where available and goal tagging.</div></div>
+            <div><div class="set-lbl readable-white" style="font-size:0.78rem">Investments</div><div class="set-desc" style="margin-top:2px">Gold, silver, real estate, mutual funds, bonds, stocks, crypto, FDs and RDs with holdings table, Portfolio Analytics (capital gains, ROI and timeline), Portfolio Intelligence (target allocation and rebalancing, concentration and health), live prices where available and goal tagging.</div></div>
           </div>
           <div style="display:flex; gap:10px; align-items:flex-start; padding:9px 10px; border:1px solid var(--glass-border); border-radius:10px; background:rgba(255,255,255,0.02);">
             <i class="fas fa-landmark" style="color:var(--c-loan); width:18px; text-align:center; margin-top:2px;"></i>
@@ -12548,7 +12563,7 @@ function _passAppLockGateOnce() {
           </div>
           <div style="display:flex; gap:10px; align-items:flex-start; padding:9px 10px; border:1px solid var(--glass-border); border-radius:10px; background:rgba(255,255,255,0.02);">
             <i class="fas fa-chart-line" style="color:#38bdf8; width:18px; text-align:center; margin-top:2px;"></i>
-            <div><div class="set-lbl readable-white" style="font-size:0.78rem">Analytics & Net Worth</div><div class="set-desc" style="margin-top:2px">Spending patterns, payee insights and assets-minus-liabilities over time, with net-worth milestones.</div></div>
+            <div><div class="set-lbl readable-white" style="font-size:0.78rem">Analytics & Net Worth</div><div class="set-desc" style="margin-top:2px">Spending patterns, payee insights and assets-minus-liabilities over time, with net-worth milestones. Transactions Analytics compares any period with the one before it (month over month, weekday vs weekend, subcategories and payees).</div></div>
           </div>
           <div style="display:flex; gap:10px; align-items:flex-start; padding:9px 10px; border:1px solid var(--glass-border); border-radius:10px; background:rgba(255,255,255,0.02);">
             <i class="fas fa-flask" style="color:var(--c-gold); width:18px; text-align:center; margin-top:2px;"></i>
@@ -12564,7 +12579,7 @@ function _passAppLockGateOnce() {
           </div>
           <div style="display:flex; gap:10px; align-items:flex-start; padding:9px 10px; border:1px solid var(--glass-border); border-radius:10px; background:rgba(255,255,255,0.02);">
             <svg class="fos-ai" viewBox="0 0 24 24" width="18" height="18" aria-hidden="true" style="margin-top:2px"><use href="#fos-ai"/></svg>
-            <div><div class="set-lbl readable-white" style="font-size:0.78rem">Fin AI</div><div class="set-desc" style="margin-top:2px">Financial health score, a &ldquo;Coming up&rdquo; view for today / this week / this month, a 30-day cash forecast, Debt Command Center, savings goals, suggestions, what-if answers and ask-me-anything questions &mdash; all worked out on your device from your own data.</div></div>
+            <div><div class="set-lbl readable-white" style="font-size:0.78rem">Fin AI</div><div class="set-desc" style="margin-top:2px">A chat assistant that handles everyday conversation as well as money questions: spending by category and month with follow-ups (&ldquo;and the month before?&rdquo;), affordability, debt priority, saving for a goal (it asks for the cost and timeline if you leave them out), a risk check, and what-if answers, each with its working. Also a financial health score, a &ldquo;Coming up&rdquo; view, a 30-day cash forecast, Debt Command Center, savings goals and AI Insights. Everything is worked out on your device from your own data; personal suggestions carry a short note that Fin AI is not a certified financial advisor.</div></div>
           </div>
           <div style="display:flex; gap:10px; align-items:flex-start; padding:9px 10px; border:1px solid var(--glass-border); border-radius:10px; background:rgba(255,255,255,0.02);">
             <i class="fas fa-bell" style="color:var(--warning); width:18px; text-align:center; margin-top:2px;"></i>
@@ -12576,11 +12591,11 @@ function _passAppLockGateOnce() {
           </div>
           <div style="display:flex; gap:10px; align-items:flex-start; padding:9px 10px; border:1px solid var(--glass-border); border-radius:10px; background:rgba(255,255,255,0.02);">
             <i class="fas fa-cloud" style="color:var(--accent); width:18px; text-align:center; margin-top:2px;"></i>
-            <div><div class="set-lbl readable-white" style="font-size:0.78rem">Cloud, JSON & Drive saving</div><div class="set-desc" style="margin-top:2px">Cloud sync, manual JSON backup/restore and Drive auto-save, chosen via Data Tracking Mode.</div></div>
+            <div><div class="set-lbl readable-white" style="font-size:0.78rem">Cloud, JSON & local file saving</div><div class="set-desc" style="margin-top:2px">Cloud sync, manual JSON backup/restore, and Connect Drive, which keeps saving to a JSON file you pick on this computer (Chrome / Edge). Chosen via Data Tracking Mode.</div></div>
           </div>
           <div style="display:flex; gap:10px; align-items:flex-start; padding:9px 10px; border:1px solid var(--glass-border); border-radius:10px; background:rgba(255,255,255,0.02);">
             <i class="fas fa-fingerprint" style="color:var(--c-inc); width:18px; text-align:center; margin-top:2px;"></i>
-            <div><div class="set-lbl readable-white" style="font-size:0.78rem">Sign-in & Device Lock</div><div class="set-desc" style="margin-top:2px">Email sign-in with a password reset link, Face ID / fingerprint passkeys, and PC Lock to protect this device.</div></div>
+            <div><div class="set-lbl readable-white" style="font-size:0.78rem">Sign-in & Device Lock</div><div class="set-desc" style="margin-top:2px">Email sign-in with a password reset link, Face ID / fingerprint passkeys, PC Lock, an idle auto-lock, a Privacy Screen that covers the app when you switch away, and a file integrity check that locks a copy that no longer matches the official release.</div></div>
           </div>
           <div style="display:flex; gap:10px; align-items:flex-start; padding:9px 10px; border:1px solid var(--glass-border); border-radius:10px; background:rgba(255,255,255,0.02);">
             <i class="fas fa-user-shield" style="color:var(--c-net); width:18px; text-align:center; margin-top:2px;"></i>
@@ -12594,7 +12609,7 @@ function _passAppLockGateOnce() {
             <div style="width:32px; height:32px; border-radius:50%; background:rgba(167,139,250,0.15); color:var(--c-net); display:flex; align-items:center; justify-content:center"><i class="fas fa-book-open"></i></div>
             <div class="set-label-block">
               <div class="set-lbl readable-white">User Guide (PDF)</div>
-              <div class="set-desc" style="margin-top:0">Updated for v7.2: getting started, every section, Fin AI, insurance, backups, password reset and security. Works offline.</div>
+              <div class="set-desc" style="margin-top:0">Written for v7.2 (the main steps still apply to 8.2): getting started, every section, Fin AI, insurance, backups, password reset and security. Works offline.</div>
             </div>
           </div>
           <div class="trk-actions">
@@ -12672,7 +12687,7 @@ function _passAppLockGateOnce() {
           <div class="set-row">
             <div class="set-label-block">
               <div class="set-lbl readable-white" style="font-size:0.8rem">Live Market Data & Logos</div>
-              <div class="set-desc">To show prices and logos, FinanceOS contacts public services directly from your browser: CoinGecko (gold/silver proxy and crypto prices), Yahoo Finance (index and stock quotes), open.er-api.com (exchange rates), TradingView (ticker and chart widgets) and Google / Clearbit (bank and card logos). Requests only name public things such as a currency, coin or ticker symbol — never your amounts, transactions, notes or account details. TradingView widgets load from TradingView and follow its own policies.</div>
+              <div class="set-desc">To show prices and logos, FinanceOS contacts public services directly from your browser: CoinGecko (gold and silver via gold- and silver-backed tokens, and crypto prices), Yahoo Finance (Nifty 50, Sensex, crude oil and stock quotes &mdash; most browsers need the optional CORS proxy set in Live prices), open.er-api.com (daily exchange rates), mfapi.in (mutual fund NAVs), Alpha Vantage (only if you add your own free key), TradingView (ticker and chart widgets) and Google / DuckDuckGo favicon services (bank and card logos). Petrol, diesel and LPG are fixed reference rates, because there is no free official live feed. Requests only name public things such as a currency, coin, fund or ticker symbol &mdash; never your amounts, transactions, notes or account details. TradingView widgets load from TradingView and follow its own policies.</div>
             </div>
             <div class="badge bg-loan">Public data only</div>
           </div>
@@ -12687,7 +12702,7 @@ function _passAppLockGateOnce() {
 
           <div class="set-row" style="border-top:1px solid var(--glass-border); padding-top:0.7rem; margin-top:0.2rem;">
             <div class="set-label-block" style="max-width:100%;">
-              <div class="set-desc" style="font-size:0.68rem; line-height:1.5;"><i class="fas fa-circle-info" style="margin-right:4px;color:var(--text-muted)"></i>FinanceOS is local-first for speed and cloud-backed for continuity. This page was last reviewed for v7.2.0 (Nov 2026).</div>
+              <div class="set-desc" style="font-size:0.68rem; line-height:1.5;"><i class="fas fa-circle-info" style="margin-right:4px;color:var(--text-muted)"></i>FinanceOS is local-first for speed and cloud-backed for continuity. This page was last reviewed for Version 8.2.0 (Nov 2026).</div>
             </div>
           </div>
         </div>
@@ -12763,7 +12778,7 @@ function _passAppLockGateOnce() {
           <div class="set-row">
             <div class="set-label-block">
               <div class="set-lbl readable-white" style="font-size:0.8rem">Row-Level Access Control</div>
-              <div class="set-desc">Your records are scoped to your account at the database level — no other FinanceOS user can query, see, or export your data.</div>
+              <div class="set-desc">Every record is saved with your account ID and the app only ever asks the database for your own rows. Keeping other accounts out is enforced by the row-level security rules on the Supabase project, which live on the server rather than in this app.</div>
             </div>
             <div class="badge" style="background:rgba(167,139,250,0.15); color:#a78bfa;">Account-scoped</div>
           </div>
@@ -12771,7 +12786,7 @@ function _passAppLockGateOnce() {
           <div class="set-row">
             <div class="set-label-block">
               <div class="set-lbl readable-white" style="font-size:0.8rem">Sign-In & Passwords</div>
-              <div class="set-desc">Accounts use email and password through Supabase Auth, with email confirmation on sign-up. Your password is handled and hashed by Supabase — FinanceOS never stores it or shows it to you, so it can be changed but not viewed.</div>
+              <div class="set-desc">Accounts use email and password through Supabase Auth; new accounts are asked to confirm their email before signing in. Your password is handled and hashed by Supabase — FinanceOS never stores it or shows it to you, so it can be changed but not viewed.</div>
             </div>
             <div class="badge bg-inc">Supabase Auth</div>
           </div>
@@ -12860,7 +12875,7 @@ function _passAppLockGateOnce() {
           <div class="set-row">
             <div class="set-label-block">
               <div class="set-lbl readable-white" style="font-size:0.8rem">Drive Auto-Sync</div>
-              <div class="set-desc">Link a local folder to seamlessly background-save while connected.</div>
+              <div class="set-desc">Pick a JSON file on this computer (Connect Drive) and FinanceOS keeps saving to it in the background while connected. Works in Chrome and Edge on desktop.</div>
             </div>
             <div class="badge bg-loan">Active when connected</div>
           </div>
@@ -12881,7 +12896,7 @@ function _passAppLockGateOnce() {
               <div class="set-desc">Local client version.</div>
             </div>
             <div style="display:flex; align-items:center; gap:10px;">
-              <div class="set-desc" style="font-family:'DM Mono',monospace; font-weight:700;">v7.2.0</div>
+              <div class="set-desc" style="font-family:'DM Mono',monospace; font-weight:700;">v8.2.0</div>
               <div class="badge bg-inc">Up to date</div>
             </div>
           </div>
@@ -20431,8 +20446,9 @@ function renderPortAnalytics() {
 
     const cx = 50, cy = 50;
     const ringCount = pulseAssetKeys.length;
-    const maxRadius = 42, minRadius = 14;
+    const maxRadius = 45, minRadius = ringCount > 1 ? 25 : 32;   // layout only: leaves a clear hole for the Net ROI text
     const ringGap = ringCount > 1 ? (maxRadius - minRadius) / (ringCount - 1) : 0;
+    const ringW = ringCount > 1 ? Math.max(1.6, Math.min(3.2, ringGap * 0.72)) : 3.2;
 
     let svgRings = '';
     let labelHtml = '';
@@ -20445,7 +20461,7 @@ function renderPortAnalytics() {
       let angleStart = -90;
 
       // faint background track for the ring
-      svgRings += `<circle cx="${cx}" cy="${cy}" r="${radius}" fill="none" stroke="${assetHex}1a" stroke-width="3.2" />`;
+      svgRings += `<circle cx="${cx}" cy="${cy}" r="${radius}" fill="none" stroke="${assetHex}1a" stroke-width="${ringW}" />`;
 
       items.forEach(item => {
         const sweep = Math.max(4, (item.totalInvestment / ringInv) * 340);
@@ -20458,7 +20474,7 @@ function renderPortAnalytics() {
         const x1 = cx + radius * Math.cos(a1), y1 = cy + radius * Math.sin(a1);
         const largeArc = sweep > 180 ? 1 : 0;
         svgRings += `<path d="M ${x0} ${y0} A ${radius} ${radius} 0 ${largeArc} 1 ${x1} ${y1}"
-          fill="none" stroke="${segColor}" stroke-width="3.2" stroke-linecap="round"
+          fill="none" stroke="${segColor}" stroke-width="${ringW}" stroke-linecap="round"
           opacity="${intensity}"
           style="cursor:pointer;filter:drop-shadow(0 0 3px ${segColor})"
           onmousemove="showMatrixTooltip(event,'${assetTypeLabel(key)}','${item.date}',${item.totalInvestment},${item.currentValue},${item.gainLoss},${item.roi},'${assetHex}')"
@@ -20472,15 +20488,18 @@ function renderPortAnalytics() {
       </div>`;
     });
 
+    pulseDiv.classList.add('cpg-host');
     pulseDiv.innerHTML = `
-      <svg viewBox="0 0 100 100" style="width:240px;height:240px;flex-shrink:0;animation:pulseSpin 60s linear infinite">
+      <div class="cpg-ring">
+      <svg viewBox="0 0 100 100" style="width:100%;height:100%;display:block;animation:pulseSpin 60s linear infinite">
         ${svgRings}
       </svg>
-      <div style="position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);text-align:center;pointer-events:none">
+      <div class="cpg-center" style="position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);text-align:center;pointer-events:none">
         <div style="font-family:'DM Mono',monospace;font-weight:800;font-size:1.05rem;color:${pulseCenterColor};text-shadow:0 0 14px ${pulseCenterColor}80">${pulseTotalPct>=0?'+':''}${pulseTotalPct.toFixed(1)}%</div>
         <div style="font-size:0.55rem;color:var(--text-muted);font-weight:600;text-transform:uppercase;letter-spacing:0.5px">Net ROI</div>
       </div>
-      <div style="position:absolute;right:6px;top:50%;transform:translateY(-50%);display:flex;flex-direction:column;gap:8px">
+      </div>
+      <div class="cpg-labels" style="display:flex;flex-direction:column;gap:8px">
         ${labelHtml}
       </div>
       <style>@keyframes pulseSpin{from{transform:rotate(0deg)}to{transform:rotate(360deg)}}</style>
@@ -29927,28 +29946,66 @@ const MarketEngine = {
   ],
   store() { try { return JSON.parse(localStorage.getItem(this.LS) || '{}') || {}; } catch (e) { return {}; } },
   save(a, src) {
-    const s = this.store(); s[a.id] = { p: a.price, at: Date.now(), src: src || '', hist: a.hist.slice(-15) };
+    const s = this.store(); s[a.id] = { p: a.price, at: Date.now(), src: src || '', hist: a.hist.slice(-15), prev: a.prev || null, chg: a.chg != null ? a.chg : null, qt: a.qt || null, chgKind: a.chgKind || '' };
     try { localStorage.setItem(this.LS, JSON.stringify(s)); } catch (e) { }
   },
   premium() {   // % added to the world price to get the Indian price (import duty), set in Live prices
     try { const c = JSON.parse(localStorage.getItem('fos_refresh_v1') || '{}') || {}; const v = Number(c.metalPrem); return isFinite(v) && v >= 0 && v <= 30 ? v : 6; } catch (e) { return 6; }
   },
   proxy() { try { const c = JSON.parse(localStorage.getItem('fos_refresh_v1') || '{}') || {}; return String(c.proxy || '').trim(); } catch (e) { return ''; } },
-  status: {},   // id → 'live' | 'saved' | 'sample' | 'fixed'
+  status: {},   // id → 'live' | 'delayed' | 'closed' | 'daily' | 'saved' | 'stale' | 'sample' | 'fixed'
+  KIND: { gold24: 'metal', gold22: 'metal', silver: 'metal', nifty: 'index', sensex: 'index', crude: 'future', usd: 'fx' },
+  istParts(t) {   // weekday / minutes in India time, whatever this device's time zone is
+    const d = new Date((t || Date.now()) + 5.5 * 3600000);
+    return { wd: d.getUTCDay(), min: d.getUTCHours() * 60 + d.getUTCMinutes(), day: d.toISOString().slice(0, 10) };
+  },
+  nseOpen(t) { const p = this.istParts(t); return p.wd >= 1 && p.wd <= 5 && p.min >= 555 && p.min <= 930; },   // NSE / BSE: Mon–Fri 09:15–15:30 IST (exchange holidays are caught by the quote time)
+  fmtT(t) {
+    const d = new Date(t), hm = d.toLocaleTimeString('en-IN', { hour: 'numeric', minute: '2-digit' });
+    return d.toDateString() === new Date().toDateString() ? hm : d.toLocaleDateString('en-IN', { day: 'numeric', month: 'short' }) + ' ' + hm;
+  },
+  liveState(a) {   // what an arrived price really is, from its own quote time
+    const k = this.KIND[a.id], now = Date.now(), qt = a.qt || now;
+    if (k === 'index') { if (!this.nseOpen(now)) return 'closed'; return now - qt > 30 * 60000 ? 'closed' : 'delayed'; }
+    if (k === 'future') return now - qt > 3 * 3600000 ? 'closed' : 'delayed';
+    if (k === 'fx') return 'daily';
+    return 'live';
+  },
   stamp(a) {
     const el = document.getElementById('mc-time-' + a.id); if (!el) return;
-    const st = this.status[a.id], s = this.store()[a.id];
-    const t = s && s.at ? new Date(s.at) : null;
-    const hm = t ? t.toLocaleTimeString('en-IN', { hour: 'numeric', minute: '2-digit' }) : '';
-    const day = t && t.toDateString() !== new Date().toDateString() ? t.toLocaleDateString('en-IN', { day: 'numeric', month: 'short' }) + ' ' : '';
+    let st = this.status[a.id];
+    const s = this.store()[a.id], at = s && s.at ? s.at : 0, qt = (s && s.qt) || at;
+    const STALE = { metal: 6 * 3600000, index: 4 * 86400000, future: 4 * 86400000, fx: 3 * 86400000 }[this.KIND[a.id]] || 86400000;
+    if (st === 'live' || st === 'delayed' || st === 'closed' || st === 'daily') {   // re-judge every minute: an old price never keeps a "Live" label
+      st = this.liveState(a);
+      if (st === 'live' && Date.now() - at > 10 * 60000) st = 'saved';
+      if (st === 'daily' && Date.now() - qt > 2 * 86400000) st = 'stale';
+      if (st === 'closed' && Date.now() - qt > STALE) st = 'stale';
+    }
+    if (st === 'saved' && at && Date.now() - at > STALE) st = 'stale';
     const map = {
-      live: ['mc-st-live', 'Live · ' + hm],
-      saved: ['mc-st-saved', 'Last real · ' + day + hm],
+      live: ['mc-st-live', 'Live · ' + this.fmtT(at || Date.now())],
+      delayed: ['mc-st-delayed', 'Delayed · ' + this.fmtT(qt)],
+      closed: ['mc-st-closed', 'Closed · last ' + this.fmtT(qt)],
+      daily: ['mc-st-daily', 'Daily rate · ' + this.fmtT(qt)],
+      saved: ['mc-st-saved', 'Last real · ' + this.fmtT(at)],
+      stale: ['mc-st-stale', 'Stale · ' + this.fmtT(at)],
       sample: ['mc-st-sample', 'Sample · not live yet'],
-      fixed: ['mc-st-fixed', 'Fixed rate · Chennai']
+      fixed: ['mc-st-fixed', 'Reference · Chennai']
     }[st || 'sample'];
     el.className = 'mc-st ' + map[0]; el.textContent = map[1];
-    el.title = st === 'sample' ? (['nifty', 'sensex', 'crude'].indexOf(a.id) >= 0 ? 'Your browser blocks Yahoo Finance. Add a CORS proxy in Live prices to make this live.' : 'No real price has arrived yet on this device.') : (s && s.src ? 'Source: ' + s.src : '');
+    const tips = {
+      live: 'Fetched ' + this.fmtT(at) + ' from ' + ((s && s.src) || 'the provider') + '. Refreshes every 2 minutes while the app is open.',
+      delayed: 'Exchange quote from ' + ((s && s.src) || 'Yahoo Finance') + ' at ' + this.fmtT(qt) + '. Free quotes can lag the exchange by up to 15 minutes.',
+      closed: 'The market is closed (or on a holiday). Showing the last traded price from ' + this.fmtT(qt) + '. Change is against the previous close.',
+      daily: 'Reference exchange rate from ' + ((s && s.src) || 'open.er-api.com') + ', published once a day (last update ' + this.fmtT(qt) + '). Not a live dealing rate.',
+      saved: 'The provider could not be reached just now. This is the last real price, from ' + this.fmtT(at) + '.',
+      stale: 'Out of date: the provider has not answered since ' + this.fmtT(at) + '. Do not rely on this price.',
+      sample: ['nifty', 'sensex', 'crude'].indexOf(a.id) >= 0 ? 'Your browser blocks Yahoo Finance. Add a CORS proxy in Live prices to make this live.' : 'No real price has arrived yet on this device.',
+      fixed: 'Fixed Chennai retail reference rate. There is no free official live feed for petrol, diesel or LPG, so this is not updated automatically. Check your oil company for today’s price in your city.'
+    };
+    el.title = tips[st || 'sample'];
+    const card = document.getElementById('mc-card-' + a.id); if (card) card.classList.toggle('mc-is-stale', st === 'stale' || st === 'sample');
   },
 
   init() {
@@ -29959,14 +30016,14 @@ const MarketEngine = {
     this.assets.forEach(a => {
       const s = saved[a.id];
       if (a.fixed) { this.status[a.id] = 'fixed'; a.hist = new Array(15).fill(a.price); }
-      else if (s && s.p > 0) { a.price = s.p; a.hist = Array.isArray(s.hist) && s.hist.length ? s.hist.slice(-15) : [s.p]; this.status[a.id] = 'saved'; }
+      else if (s && s.p > 0) { a.price = s.p; a.hist = Array.isArray(s.hist) && s.hist.length ? s.hist.slice(-15) : [s.p]; a.prev = s.prev || null; a.chg = s.chg != null ? s.chg : null; a.qt = s.qt || null; a.chgKind = s.chgKind || ''; this.status[a.id] = 'saved'; }
       else { a.hist = new Array(15).fill(a.price); this.status[a.id] = 'sample'; }
       html += `
         <div class="market-card" id="mc-card-${a.id}" onclick="selectMarketCard('${a.id}')" style="cursor: pointer;">
           <div class="mc-header">
             <div>
               <div class="mc-cat">${a.cat}</div>
-              <div class="mc-name">${a.name}</div>
+              <div class="mc-name" data-no-count>${a.name}</div>
             </div>
             <div class="mc-icon-wrap" style="background:${a.color}20; color:${a.color}; border: 1px solid ${a.color}40">
               <i class="fas ${a.icon}"></i>
@@ -30006,18 +30063,26 @@ const MarketEngine = {
 
     // First real prices right away, then every minute while the app is visible
     setTimeout(() => this.fetchUpdates(true), 1200);
-    setInterval(() => { if (!document.hidden) this.fetchUpdates(true); }, 60000);
-    document.addEventListener('visibilitychange', () => { if (!document.hidden && Date.now() - (this._last || 0) > 55000) this.fetchUpdates(true); });
+    setInterval(() => { if (!document.hidden) this.fetchUpdates(false); }, 60000);   // each source decides if it is due (see due())
+    setInterval(() => { this.assets.forEach(a => this.stamp(a)); }, 60000);          // labels age honestly (live → stale) even with no new data
+    document.addEventListener('visibilitychange', () => { if (!document.hidden && Date.now() - (this._last || 0) > 55000) this.fetchUpdates(false); });
   },
 
   paintChange(a) {
     const changeEl = document.getElementById(`mc-change-${a.id}`), diffEl = document.getElementById(`mc-diff-${a.id}`);
-    if (!changeEl || a.hist.length < 2) return;
-    const first = a.hist[0], diff = a.price - first, pct = first ? diff / first * 100 : 0;
-    if (Math.abs(diff) < 1e-9) return;
+    if (!changeEl) return;
+    let diff = null, pct = null, lbl = '';
+    if (a.prev > 0) { diff = a.price - a.prev; pct = diff / a.prev * 100; lbl = a.chgKind || 'today'; }
+    else if (a.chg != null && isFinite(a.chg)) { pct = a.chg; diff = a.price - a.price / (1 + pct / 100); lbl = a.chgKind || '24h'; }
+    else if (a.hist.length >= 2) { const first = a.hist[0]; diff = a.price - first; pct = first ? diff / first * 100 : 0; lbl = 'since first reading'; }
+    if (a.fixed) { changeEl.className = 'mc-change mc-neutral'; changeEl.innerHTML = '<i class="fas fa-thumbtack"></i> Fixed reference rate <span class="mc-chg-lbl">not live</span>'; return; }
+    if (diff == null || Math.abs(diff) < 1e-9) {
+      if (diff != null) { changeEl.className = 'mc-change mc-neutral'; changeEl.innerHTML = lbl === 'since first reading' ? '<i class="fas fa-minus"></i> No change yet' : '<i class="fas fa-minus"></i> 0.00 (0.00%) <span class="mc-chg-lbl">' + lbl + '</span>'; }
+      return;
+    }
     const up = diff >= 0;
     changeEl.className = `mc-change ${up ? 'mc-up' : 'mc-down'}`;
-    changeEl.innerHTML = `<i class="fas ${up ? 'fa-arrow-trend-up' : 'fa-arrow-trend-down'}"></i> ${a.prefix}${Math.abs(diff).toFixed(2)} (${up ? '+' : ''}${pct.toFixed(2)}%)`;
+    changeEl.innerHTML = `<i class="fas ${up ? 'fa-arrow-trend-up' : 'fa-arrow-trend-down'}"></i> ${a.prefix}${Math.abs(diff).toFixed(2)} (${up ? '+' : ''}${pct.toFixed(2)}%) <span class="mc-chg-lbl">${lbl}</span>`;
     if (diffEl) diffEl.innerHTML = `Change: <span style="color:${up ? '#34d399' : '#ef4444'}">${up ? '+' : '−'}${a.prefix}${Math.abs(diff).toFixed(2)}</span>`;
   },
 
@@ -30041,22 +30106,26 @@ const MarketEngine = {
     try { const r = await fetch(url, ctl ? { signal: ctl.signal } : {}); if (!r.ok) throw new Error('HTTP ' + r.status); return await r.json(); }
     finally { if (t) clearTimeout(t); }
   },
-  async yahoo(sym) {
+  async yahooQ(sym) {
     let url = 'https://query1.finance.yahoo.com/v8/finance/chart/' + encodeURIComponent(sym) + '?range=1d&interval=1d';
     const px = this.proxy();
     if (px) url = px.indexOf('{url}') >= 0 ? px.replace('{url}', encodeURIComponent(url)) : px + encodeURIComponent(url);
     const j = await this.getJSON(url), m = j && j.chart && j.chart.result && j.chart.result[0] && j.chart.result[0].meta;
     const p = m ? Number(m.regularMarketPrice) : 0;
     if (!(p > 0)) throw new Error('no price for ' + sym);
-    return p;
+    const prev = Number(m.chartPreviousClose || m.previousClose) || null, t = Number(m.regularMarketTime) > 0 ? Number(m.regularMarketTime) * 1000 : null;
+    return { p, prev: prev > 0 ? prev : null, t };
   },
+  async yahoo(sym) { return (await this.yahooQ(sym)).p; },
 
-  update(asset, newPrice, src) {
+  update(asset, newPrice, src, ex) {
     if (!(newPrice > 0) || !isFinite(newPrice)) return;
     const wasSample = this.status[asset.id] === 'sample';
-    this.status[asset.id] = 'live';
     const oldPrice = asset.price;
     asset.price = newPrice;
+    ex = ex || {};
+    asset.prev = ex.prev > 0 ? ex.prev : null; asset.chg = ex.chg != null && isFinite(ex.chg) ? ex.chg : null; asset.qt = ex.t || Date.now(); asset.chgKind = ex.kind || '';
+    this.status[asset.id] = this.liveState(asset);
     if (wasSample) asset.hist = [];   // the sample values were never real, so they do not count as history
     asset.hist.push(newPrice); if (asset.hist.length > 15) asset.hist.shift();
     this.save(asset, src);
@@ -30069,34 +30138,56 @@ const MarketEngine = {
   },
 
   // Returns { gold24, silver } in ₹ per gram (null when unavailable). Also used by Live prices › Refresh now.
-  async fetchUpdates() {
+  due(src, force) {   // per-source refresh interval, so we never hammer a free API
+    if (force) return true;
+    const last = (this._at || {})[src] || 0, now = Date.now();
+    const iv = src === 'fx' ? 6 * 3600000 : src === 'metal' ? 2 * 60000 : (this.nseOpen(now) ? 60000 : 30 * 60000);
+    return now - last >= iv - 2000;
+  },
+  mark(src) { (this._at = this._at || {})[src] = Date.now(); },
+  async fetchUpdates(force) {
+    if (force === undefined) force = true;
     this._last = Date.now();
     const A = id => this.assets.find(a => a.id === id);
     const OZ = 31.1034768, prem = 1 + this.premium() / 100;
     let usdInr = A('usd').price, gold24 = null, silver = null;
+    const keep = id => this.stamp(A(id));   // provider did not answer: the label ages from the last real price
 
-    try {
-      const fx = await this.getJSON('https://open.er-api.com/v6/latest/USD');
-      if (fx && fx.rates && fx.rates.INR > 0) { usdInr = fx.rates.INR; this.update(A('usd'), usdInr, 'open.er-api.com'); }
-    } catch (e) { }
+    if (this.due('fx', force)) {
+      try {
+        const fx = await this.getJSON('https://open.er-api.com/v6/latest/USD');
+        if (fx && fx.rates && fx.rates.INR > 0) { usdInr = fx.rates.INR; this.mark('fx'); const s0 = this.store().usd; const prevDay = s0 && s0.p > 0 && s0.qt && fx.time_last_update_unix && s0.qt < fx.time_last_update_unix * 1000 - 3600000 ? s0.p : (A('usd').prev || null); this.update(A('usd'), usdInr, 'open.er-api.com', { t: fx.time_last_update_unix ? fx.time_last_update_unix * 1000 : null, prev: prevDay, kind: 'vs previous day' }); }
+      } catch (e) { keep('usd'); }
+    }
 
-    try {
-      const m = await this.getJSON('https://api.coingecko.com/api/v3/simple/price?ids=pax-gold,tether-gold,kinesis-silver&vs_currencies=inr');
-      const g = (m['pax-gold'] && m['pax-gold'].inr) || (m['tether-gold'] && m['tether-gold'].inr);
-      if (g > 0) gold24 = g / OZ * prem;
-      if (m['kinesis-silver'] && m['kinesis-silver'].inr > 0) silver = m['kinesis-silver'].inr / OZ * prem;
-      if (gold24) { this.update(A('gold24'), gold24, 'CoinGecko · PAX Gold +' + this.premium() + '% India premium'); this.update(A('gold22'), gold24 * 22 / 24, 'CoinGecko · 22/24 of 24K'); }
-      if (silver) this.update(A('silver'), silver, 'CoinGecko · Kinesis Silver +' + this.premium() + '% India premium');
-    } catch (e) { }
+    let metalsTried = false;
+    if (this.due('metal', force)) {
+      metalsTried = true;
+      try {
+        const m = await this.getJSON('https://api.coingecko.com/api/v3/simple/price?ids=pax-gold,tether-gold,kinesis-silver&vs_currencies=inr&include_24hr_change=true&include_last_updated_at=true');
+        const gk = m['pax-gold'] && m['pax-gold'].inr ? 'pax-gold' : (m['tether-gold'] && m['tether-gold'].inr ? 'tether-gold' : null);
+        const g = gk ? m[gk].inr : 0;
+        if (g > 0) gold24 = g / OZ * prem;
+        if (m['kinesis-silver'] && m['kinesis-silver'].inr > 0) silver = m['kinesis-silver'].inr / OZ * prem;
+        const ex = k => (k && m[k] ? { chg: m[k].inr_24h_change != null ? Number(m[k].inr_24h_change) : null, t: m[k].last_updated_at ? m[k].last_updated_at * 1000 : null, kind: '24h' } : {});
+        if (gold24) { this.mark('metal'); this.update(A('gold24'), gold24, 'CoinGecko · PAX Gold +' + this.premium() + '% India premium', ex(gk)); this.update(A('gold22'), gold24 * 22 / 24, 'CoinGecko · 22/24 of 24K', ex(gk)); }
+        if (silver) this.update(A('silver'), silver, 'CoinGecko · Kinesis Silver +' + this.premium() + '% India premium', ex('kinesis-silver'));
+      } catch (e) { }
+      if (!gold24) { keep('gold24'); keep('gold22'); } if (!silver) keep('silver');
+    }
 
     // Yahoo Finance: indices, crude, and a second route for metals. Works only through a CORS proxy in most browsers.
-    const yq = async s => { try { return await this.yahoo(s); } catch (e) { return 0; } };
-    const [nifty, sensex, crude, gcf, sif] = await Promise.all(['^NSEI', '^BSESN', 'CL=F'].concat(gold24 && silver ? [] : ['GC=F', 'SI=F']).map(yq));
-    if (nifty) this.update(A('nifty'), nifty, 'Yahoo Finance');
-    if (sensex) this.update(A('sensex'), sensex, 'Yahoo Finance');
-    if (crude) this.update(A('crude'), crude * usdInr, 'Yahoo Finance · WTI × USD/INR');
-    if (!gold24 && gcf > 0) { gold24 = gcf * usdInr / OZ * prem; this.update(A('gold24'), gold24, 'Yahoo Finance · gold futures'); this.update(A('gold22'), gold24 * 22 / 24, 'Yahoo Finance · 22/24 of 24K'); }
-    if (!silver && sif > 0) { silver = sif * usdInr / OZ * prem; this.update(A('silver'), silver, 'Yahoo Finance · silver futures'); }
+    if (this.due('yahoo', force)) {
+      const yq = async s => { try { return await this.yahooQ(s); } catch (e) { return null; } };
+      const syms = ['^NSEI', '^BSESN', 'CL=F'].concat(metalsTried && !(gold24 && silver) ? ['GC=F', 'SI=F'] : []);
+      const [nifty, sensex, crude, gcf, sif] = await Promise.all(syms.map(yq));
+      if (nifty || sensex || crude) this.mark('yahoo');
+      if (nifty) this.update(A('nifty'), nifty.p, 'Yahoo Finance', { prev: nifty.prev, t: nifty.t, kind: 'vs prev close' }); else keep('nifty');
+      if (sensex) this.update(A('sensex'), sensex.p, 'Yahoo Finance', { prev: sensex.prev, t: sensex.t, kind: 'vs prev close' }); else keep('sensex');
+      if (crude) this.update(A('crude'), crude.p * usdInr, 'Yahoo Finance · WTI × USD/INR', { prev: crude.prev ? crude.prev * usdInr : null, t: crude.t, kind: 'vs prev close' }); else keep('crude');
+      if (!gold24 && gcf && gcf.p > 0) { gold24 = gcf.p * usdInr / OZ * prem; const e1 = { prev: gcf.prev ? gcf.prev * usdInr / OZ * prem : null, t: gcf.t, kind: 'vs prev close' }; this.update(A('gold24'), gold24, 'Yahoo Finance · gold futures', e1); this.update(A('gold22'), gold24 * 22 / 24, 'Yahoo Finance · 22/24 of 24K', { prev: e1.prev ? e1.prev * 22 / 24 : null, t: gcf.t, kind: 'vs prev close' }); }
+      if (!silver && sif && sif.p > 0) { silver = sif.p * usdInr / OZ * prem; this.update(A('silver'), silver, 'Yahoo Finance · silver futures', { prev: sif.prev ? sif.prev * usdInr / OZ * prem : null, t: sif.t, kind: 'vs prev close' }); }
+    }
 
     if (gold24 || silver) { try { syncMetalPricesToPortfolio(gold24, silver); } catch (e) { console.warn('Metal price sync failed', e); } }
     return { gold24, silver };
@@ -44983,7 +45074,7 @@ body.light-mode .fx7-pr .t > div { background:rgba(15,23,42,.06); }
     L = L.filter(function (x) { return x.v > 0; });
     var tot = L.reduce(function (s, x) { return s + x.v; }, 0);
     if (!(tot > 0)) { set(host, empty('fa-water', 'No cash flow in this period')); return; }
-    var W = Math.max(240, Math.round(host.clientWidth || 320)), H = Math.max(150, Math.round((host.clientHeight || 360) - (W < 420 ? 130 : 84))), nw = 10, gap = 7, lx = 0, rx = W - nw;
+    var W = Math.max(240, Math.round(host.clientWidth || 320)), H = Math.max(150, Math.round((host.clientHeight || 360) - (W < 420 ? 178 : 122))), nw = 10, gap = 7, lx = 0, rx = W - nw;
     function lay(list) { var avail = H - gap * (list.length - 1), y = 0; list.forEach(function (x) { x.h = Math.max(2, x.v / tot * avail); x.y = y; y += x.h + gap; }); }
     lay(L); lay(Rn);
     // bands: fill left sources in order into right uses in order (proportional, never invents money)
@@ -45010,7 +45101,8 @@ body.light-mode .fx7-pr .t > div { background:rgba(15,23,42,.06); }
     var sr = Number(D.savingsRate) || 0, src = sr >= 20 ? '#34d399' : sr >= 0 ? '#fbbf24' : '#f87171';
     var def = 'Hover a flow to see where each rupee went';
     set(host, '<div class="fx7-cf" data-fx7><div class="fx-chips">' + chip('Money in', K(D.inc + rec), '#34d399') + chip('Spent + EMIs', K(D.exp + D.loan), '#f472b6') + chip(bal >= 0 ? 'Left over' : 'Overspent', K(Math.abs(bal)), bal >= 0 ? '#a78bfa' : '#f87171', bal >= 0 ? '' : '#f87171') + chip('Savings rate', sr + '%', src, src) + '</div><div class="fx7-read"></div>' +
-      '<svg class="fx7-sk fx7-hlg" viewBox="0 0 ' + W + ' ' + H + '" style="height:' + H + 'px;flex:0 0 auto" preserveAspectRatio="xMidYMid meet" role="img" aria-label="Cash flow: where income went"><defs>' + defs + '</defs>' + paths + L.map(function (x) { return node(x, true); }).join('') + Rn.map(function (x) { return node(x, false); }).join('') + '</svg></div>');
+      '<svg class="fx7-sk fx7-hlg" viewBox="0 0 ' + W + ' ' + H + '" style="height:' + H + 'px;flex:0 0 auto" preserveAspectRatio="xMidYMid meet" role="img" aria-label="Cash flow: where income went"><defs>' + defs + '</defs>' + paths + L.map(function (x) { return node(x, true); }).join('') + Rn.map(function (x) { return node(x, false); }).join('') + '</svg>' +
+      '<div class="fx8-cfleg">' + Rn.map(function (x) { return '<span data-k="' + x.k + '" data-c="' + x.c + '" data-t="' + att('<em>' + esc(x.t) + '</em> · <b>' + R(x.v) + '</b>' + (D.inc > 0 ? ' · ' + (x.v / D.inc * 100).toFixed(1) + '% of income' : '')) + '"><i style="background:' + x.c + '"></i>' + esc(x.t) + ' <b>' + esc(K(x.v)) + '</b></span>'; }).join('') + '</div></div>');
     var cf = host.querySelector('.fx7-cf'); if (cf) readOut(cf, def);
   }
 
@@ -45329,6 +45421,386 @@ body.light-mode .fx7-pr .t > div { background:rgba(15,23,42,.06); }
   } catch (e) { } }, 0); });
   window.addEventListener('resize', tightenSoon);
   Object.assign(window.fosFx7, { run: run, cashFlow: cashFlow, spendingMix: spendingMix, dashRoi: dashRoi, dashTop3: dashTop3, dashLenders: dashLenders, pageLenders: pageLenders, emiVs: emiVs, pulse: pulse, rhythm: rhythm, momChart: momChart, tighten: tighten });
+})();
+</script>
+<style id="fos-fx8-css">
+/* Round 8 (visual only) */
+/* Portfolio Summary capsules: wrap into even rows instead of a sideways ticker */
+.port-inventory-strip { display:grid !important; grid-template-columns:repeat(auto-fill, minmax(196px, 1fr)); gap:10px; overflow:visible !important; padding-bottom:0; -webkit-mask-image:none !important; mask-image:none !important; }
+.port-inventory-strip + .hs-meta { display:none !important; }
+.port-inventory-strip .inventory-pill { flex-shrink:1; min-width:0; justify-content:flex-start; box-sizing:border-box; height:46px; }
+.port-inventory-strip .inventory-pill > span:nth-child(2) { overflow:hidden; text-overflow:ellipsis; min-width:0; }
+.port-inventory-strip .inventory-pill > span:last-child { margin-left:auto !important; white-space:nowrap; }
+@media (max-width:600px) { .port-inventory-strip { grid-template-columns:repeat(2, minmax(0, 1fr)); gap:8px; } .port-inventory-strip .inventory-pill { padding:7px 11px !important; gap:6px; height:auto; min-height:44px; flex-wrap:wrap; row-gap:2px; } .port-inventory-strip .inventory-pill > span:nth-child(2) { font-size:.62rem !important; letter-spacing:.6px !important; } .port-inventory-strip .inventory-pill > span:last-child { font-size:.92rem !important; margin-left:14px !important; flex-basis:100%; } }
+/* Capital Pulse Grid: rings never cover the Net ROI centre; labels sit beside the chart */
+#port-pulse-grid.cpg-host { container-type:inline-size; flex-wrap:wrap; gap:22px; overflow:visible !important; height:auto !important; min-height:260px; padding:10px 4px; box-sizing:border-box; }
+.cpg-ring { position:relative; width:240px; height:240px; flex:0 0 auto; }
+.cpg-labels { flex:0 1 auto; min-width:0; }
+.cpg-labels span:last-child { white-space:nowrap; }
+@container (max-width:330px) { .cpg-ring { width:min(220px, 92cqw); height:min(220px, 92cqw); } .cpg-labels { flex-direction:row !important; flex-wrap:wrap; justify-content:center; gap:8px 14px !important; flex-basis:100%; } }
+@media (max-width:600px) { #port-pulse-grid.cpg-host { justify-content:flex-start !important; gap:14px; padding-left:0; } .cpg-ring { width:min(200px, 54vw); height:min(200px, 54vw); } .cpg-labels { gap:7px !important; } .cpg-labels > div { position:relative; padding-left:12px; } .cpg-labels > div::before { content:""; position:absolute; left:-2px; top:50%; width:9px; border-top:1px dashed rgba(148,163,184,.45); } }
+/* Dashboard summary cards: one static icon on the right of each card */
+.kpi-card > .kpi-ico, .fx8-pcard > .kpi-ico { position:absolute; top:12px; right:12px; width:30px; height:30px; border-radius:10px; display:flex; align-items:center; justify-content:center; font-size:.8rem; color:var(--ic); background:color-mix(in srgb, var(--ic) 13%, transparent); border:1px solid color-mix(in srgb, var(--ic) 26%, transparent); animation:none !important; transition:none !important; pointer-events:none; z-index:1; }
+.kpi-card:has(> .kpi-ico) > .kpi-label { padding-right:36px; }
+@media (max-width:600px) { .kpi-card > .kpi-ico, .fx8-pcard > .kpi-ico { width:24px; height:24px; top:9px; right:9px; font-size:.66rem; border-radius:8px; } .kpi-card:has(> .kpi-ico) > .kpi-label { padding-right:28px; } }
+/* Portfolio Snapshot: four separate metric cards */
+.fx8-snap { display:grid; grid-template-columns:repeat(4, minmax(0, 1fr)); gap:.8rem; }
+.fx8-pcard { position:relative; padding:.85rem 1rem .9rem; border-radius:16px; min-height:76px; box-sizing:border-box; background:linear-gradient(150deg, color-mix(in srgb, var(--ic) 8%, rgba(255,255,255,.02)), rgba(0,0,0,.18)); border:1px solid color-mix(in srgb, var(--ic) 20%, rgba(255,255,255,.06)); }
+.fx8-pcard > .kpi-label { padding-right:36px; }
+.fx8-pcard > .kpi-value { margin-top:6px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+body.light-mode .fx8-pcard { background:linear-gradient(150deg, color-mix(in srgb, var(--ic) 7%, #fff), #fff); border-color:color-mix(in srgb, var(--ic) 22%, #e2e8f0); }
+@media (max-width:900px) { .fx8-snap { grid-template-columns:repeat(2, minmax(0, 1fr)); gap:.6rem; } }
+@media (max-width:600px) { .fx8-pcard { padding:.7rem .75rem; min-height:68px; border-radius:13px; } .fx8-pcard > .kpi-label { padding-right:28px; } .fx8-pcard > .kpi-value { font-size:1.02rem !important; } }
+/* Notification bell + AI Insights badges: refined, on-theme unread indicators */
+.fos-bell-btn { background:linear-gradient(150deg, rgba(var(--brand-rgb),.10), rgba(255,255,255,.02)) !important; border:1px solid rgba(var(--brand-rgb),.22) !important; color:rgb(var(--brand-rgb)) !important; box-shadow:inset 0 1px 0 rgba(255,255,255,.06); }
+.fos-bell-btn:hover { background:linear-gradient(150deg, rgba(var(--brand-rgb),.18), rgba(255,255,255,.03)) !important; border-color:rgba(var(--brand-rgb),.42) !important; }
+.fos-bell-btn i { font-size:.92rem; }
+.fos-bell-btn #notif-count-badge { top:-5px !important; right:-5px !important; min-width:17px !important; height:17px !important; padding:0 4px !important; border-radius:999px !important; font-size:.58rem !important; font-family:'DM Mono', monospace; font-weight:700 !important; letter-spacing:-.02em;
+  background:linear-gradient(135deg, #fbbf24, #f97316) !important; color:#1a0f02 !important; border:2px solid var(--bg-main, #0b1012) !important; box-shadow:0 0 0 1px rgba(251,146,60,.35), 0 3px 10px rgba(249,115,22,.35); }
+body.light-mode .fos-bell-btn { background:#fff !important; border-color:rgba(15,23,42,.12) !important; color:rgb(var(--brand-rgb)) !important; }
+body.light-mode .fos-bell-btn #notif-count-badge { border-color:#fff !important; }
+.fai-ins-head h4 em { display:inline-flex; align-items:center; gap:4px; padding:2px 8px 2px 7px !important; border-radius:999px !important; font-size:.6rem !important; font-weight:700 !important; letter-spacing:.04em; text-transform:uppercase;
+  background:rgba(var(--brand-rgb),.12) !important; color:rgb(var(--brand-rgb)) !important; border:1px solid rgba(var(--brand-rgb),.32); }
+.fai-ins-head h4 em::before { content:""; width:6px; height:6px; border-radius:50%; background:#fbbf24; box-shadow:0 0 6px rgba(251,191,36,.8); }
+.fai-hbtn b { background:linear-gradient(135deg, #fbbf24, #f97316) !important; color:#1a0f02 !important; font-family:'DM Mono', monospace; font-weight:700; border-radius:999px !important; box-shadow:0 2px 8px rgba(249,115,22,.3); }
+.drawer-badge { width:8px; min-width:8px !important; background:#fbbf24 !important; box-shadow:0 0 0 3px rgba(251,191,36,.18), 0 0 8px rgba(251,191,36,.6); }
+/* Fin AI composer: the placeholder shows once, on one line, never as a clipped second line */
+.fai-compose textarea:placeholder-shown { white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.fai-compose textarea::placeholder { white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+@media (max-width:600px) { html body .fai-compose textarea { font-size:16px !important; line-height:1.4 !important; } .fai-compose { align-items:center; } }
+/* Transactions Analytics: a slim progress bar while a new date range is being prepared */
+#txn-analytics-modal .txa-busybar { position:absolute; left:0; right:0; top:0; height:2px; overflow:hidden; pointer-events:none; opacity:0; transition:opacity .15s; z-index:5; }
+#txn-analytics-modal .txa-busybar::before { content:""; position:absolute; top:0; bottom:0; width:34%; left:-34%; background:linear-gradient(90deg, transparent, rgb(var(--brand-rgb)), transparent); animation:fx8Busy 0.9s linear infinite; }
+#txn-analytics-modal .txa-busybar.on { opacity:1; }
+#txa-content.fx8-dim { opacity:.6; transition:opacity .12s; }
+@keyframes fx8Busy { to { left:100%; } }
+@media (prefers-reduced-motion:reduce) { #txn-analytics-modal .txa-busybar::before { animation:none; left:0; width:100%; opacity:.6; } }
+/* Fin AI: advice disclaimer + risk list */
+.fx8-disc { display:flex; gap:9px; align-items:flex-start; margin-top:12px; padding:10px 12px; border-radius:12px; font-size:.74rem; line-height:1.55; color:var(--text-muted); background:rgba(var(--brand-rgb),.06); border:1px solid rgba(var(--brand-rgb),.18); }
+.fx8-disc i { color:rgb(var(--brand-rgb)); margin-top:3px; flex:0 0 auto; }
+body.light-mode .fx8-disc { background:rgba(var(--brand-rgb),.06); color:#475569; }
+.fx8-risk ul { margin:4px 0 0; padding-left:18px; display:flex; flex-direction:column; gap:5px; }
+.fx8-risk li { line-height:1.5; }
+/* Cash Flow Snapshot: compact legend so the small flows are named on every screen; even KPI chips on phones */
+.fx8-cfleg { display:flex; flex-wrap:wrap; gap:6px 14px; margin-top:10px; font-size:.68rem; color:var(--text-muted); }
+.fx8-cfleg span { display:inline-flex; align-items:center; gap:6px; cursor:default; }
+.fx8-cfleg i { width:8px; height:8px; border-radius:3px; flex:0 0 auto; }
+.fx8-cfleg b { color:var(--text-main); font-family:'DM Mono', monospace; font-weight:600; }
+@media (max-width:600px) { .fx7-cf .fx-chips { display:grid !important; grid-template-columns:repeat(2, minmax(0, 1fr)); gap:6px; } .fx7-cf .fx-chips > * { min-width:0; } }
+</style>
+<script id="fos-fx8-js">
+(function () {
+  'use strict';
+  /* Portfolio Snapshot: gain and ROI cards take the colour and arrow of their sign (reads what the app already wrote) */
+  function snapSign() {
+    ['dash-port-gain', 'dash-port-roi'].forEach(function (id) {
+      var el = document.getElementById(id), card = el && el.closest('.fx8-pcard'); if (!card) return;
+      var neg = /^[^0-9]*[-−]/.test((el.textContent || '').trim()) || /danger/.test(el.style.color || '');
+      card.style.setProperty('--ic', neg ? 'var(--danger, #ef4444)' : 'var(--c-inc)');
+      var ic = card.querySelector('.kpi-ico'); if (ic && id === 'dash-port-gain') { ic.classList.toggle('fa-arrow-trend-up', !neg); ic.classList.toggle('fa-arrow-trend-down', neg); }
+    });
+  }
+  function watchSnap() {
+    var mo = new MutationObserver(snapSign);
+    ['dash-port-gain', 'dash-port-roi'].forEach(function (id) { var el = document.getElementById(id); if (el) mo.observe(el, { childList: true, characterData: true, subtree: true, attributes: true, attributeFilter: ['style'] }); });
+    snapSign();
+  }
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', watchSnap); else watchSnap();
+  /* Charts that were replaced by the newer visuals sit hidden in .fx-old. They still feed their numbers to the new
+     visuals (Chart.js update runs as before) but no longer spend time painting pixels nobody can see. */
+  function hiddenPlugin() {
+    if (!window.Chart || Chart.__fx8h) return; Chart.__fx8h = 1;
+    try { Chart.register({ id: 'fx8Hidden', beforeDraw: function (ch) { var c = ch && ch.canvas; if (c && c.closest && c.closest('.fx-old')) return false; } }); } catch (e) { }
+  }
+  hiddenPlugin(); window.addEventListener('load', hiddenPlugin);
+  /* Transactions Analytics: show a loading bar from the moment a range is tapped until the new numbers are on screen */
+  (function () {
+    var t = null;
+    function modal() { return document.getElementById('txn-analytics-modal'); }
+    function busy(on) { var m = modal(), b = m && m.querySelector('.txa-busybar'), c = document.getElementById('txa-content'); if (b) b.classList.toggle('on', on); if (c) c.classList.toggle('fx8-dim', on); }
+    function done() { busy(false); clearTimeout(t); }
+    document.addEventListener('click', function (e) {
+      var c = e.target && e.target.closest && e.target.closest('#txn-analytics-modal [data-txa-range]'); if (!c) return;
+      var m = modal(); if (!m) return;
+      if (!m.querySelector('.txa-busybar')) { var host = document.getElementById('txa-body'); if (host && host.parentNode) { var b = document.createElement('div'); b.className = 'txa-busybar'; b.setAttribute('aria-hidden', 'true'); host.parentNode.style.position = host.parentNode.style.position || 'relative'; host.parentNode.insertBefore(b, host); } }
+      if (c.getAttribute('data-txa-range') === 'custom') return;
+      busy(true); clearTimeout(t); t = setTimeout(done, 4000);
+    }, true);
+    function watch() {
+      var l = document.getElementById('txa-range-label'); if (!l) return;
+      new MutationObserver(function () { requestAnimationFrame(function () { requestAnimationFrame(done); }); }).observe(l, { childList: true, characterData: true, subtree: true });
+    }
+    if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', watch); else watch();
+  })();
+  /* ════════════════════════════════════════════════════════════════════
+     Fin AI conversation layer (round 8)
+     Sits in front of the existing engine. It answers casual conversation itself, fills a few gaps in money
+     questions (a category in a named month, "and the month before?", saving for a goal, a fuller risk check),
+     keeps a little context between turns, and adds the advice disclaimer when an answer gives personal
+     suggestions. Every number comes from the records in this account; anything else goes to the engine as before.
+     ════════════════════════════════════════════════════════════════════ */
+  (function () {
+    var C = { cat: null, ym: null, goal: null, turn: 0, discAt: -99, used: {}, mood: null };
+    function reset() { C.cat = null; C.ym = null; C.goal = null; C.turn = 0; C.discAt = -99; C.used = {}; C.mood = null; }
+    function esc(s) { return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]; }); }
+    function money(v) { try { return fmt(Math.round(v)); } catch (e) { return '₹' + Math.round(v).toLocaleString('en-IN'); } }
+    function pick(key, arr) {   // rotate through replies so the same one does not come back twice in a row
+      var u = C.used[key] || [], left = arr.map(function (_, i) { return i; }).filter(function (i) { return u.indexOf(i) < 0; });
+      if (!left.length) { u = []; left = arr.map(function (_, i) { return i; }); }
+      var i = left[Math.floor(Math.random() * left.length)]; u.push(i); C.used[key] = u.slice(-Math.max(1, arr.length - 1)); return arr[i];
+    }
+    function chip(label, q) { return '<a href="#" class="finai-chip" onclick="finaiChipAsk(\'' + String(q).replace(/\\/g, '\\\\').replace(/'/g, "\\'") + '\');return false">' + esc(label) + '</a>'; }
+    function ans(lead, more, chips) { return '<div class="fai-ans"><p class="fai-lead">' + lead + '</p>' + (more || '') + (chips && chips.length ? '<div class="fai-follow">' + chips.join('') + '</div>' : '') + '</div>'; }
+    function norm(q) { return String(q || '').toLowerCase().replace(/[’‘]/g, "'").replace(/\s+/g, ' ').trim(); }
+
+    var MONEY = /\b(money|spend|spent|spending|expense|expenses|budget|loan|loans|emi|emis|debt|invest|investing|investment|portfolio|saving|savings|save|income|salary|card|cards|credit|afford|buy|purchase|bill|bills|rent|sip|fund|funds|gold|silver|stock|stocks|crypto|tax|insurance|bank|balance|net worth|networth|cash|pay|paid|owe|lent|interest|fd|rd|goal|goals|month|week|year|food|shopping|transport|fuel|groceries|budgets|finances|financial)\b|₹|\brs\.?\s?\d|\d+\s?(k|l|lakh|lakhs|cr|crore)\b/;
+    var JOKES = [
+      'Why did the banker switch careers? He lost interest.',
+      'I told my wallet a joke. It didn’t laugh — it’s been a bit empty lately.',
+      'What do you call a sad cup of coffee? A depresso.',
+      'Why don’t skeletons fight each other? They don’t have the guts.',
+      'I’m reading a book about anti-gravity. I can’t put it down.',
+      'Why did the scarecrow win an award? He was outstanding in his field.',
+      'My budget and I have a great relationship. We just don’t see eye to eye at month-end.',
+      'Why was the calculator so calm? It knew how to keep things in proportion.',
+      'Parallel lines have so much in common. It’s a shame they’ll never meet.',
+      'I wanted to start saving for a rainy day, but then I remembered I live in Chennai.'
+    ];
+    var FACTS = [
+      'The word “salary” comes from the Latin <i>salarium</i>, linked to salt, which was once valuable enough to be part of a Roman soldier’s pay.',
+      'India’s ₹1 note is issued by the Government of India, while every other note is issued by the Reserve Bank.',
+      'Compound interest is why starting early matters so much: money growing at 12% a year roughly doubles every 6 years.',
+      'Honey never spoils. Archaeologists have found 3,000-year-old honey in Egyptian tombs that was still edible.',
+      'Octopuses have three hearts and blue blood.',
+      'The first UPI transaction went through in 2016. India now makes billions of UPI payments every month.'
+    ];
+    function hourWord() { var h = new Date().getHours(); return h < 5 ? 'late night' : h < 12 ? 'morning' : h < 17 ? 'afternoon' : h < 21 ? 'evening' : 'night'; }
+
+    /* ── casual conversation ── */
+    function crisis(s) { return /\b(kill myself|suicide|suicidal|end my life|want to die|self[- ]?harm|hurt myself)\b/.test(s); }
+    function casual(s) {
+      if (crisis(s)) return ans('I’m really sorry you’re feeling this way, and I’m glad you said something. You don’t have to handle it alone. Please talk to someone you trust today, or call <b>Tele-MANAS on 14416</b> (free, 24×7 in India). If you’re in immediate danger, call <b>112</b>.', '<p class="fai-muted">I’m here to chat too, but a trained person can help in ways I can’t.</p>');
+      var hasMoney = MONEY.test(s);
+      if (/\b(stress(ed)?|anxious|worried|worry|scared|overwhelmed|panic(king)?)\b/.test(s) && hasMoney)
+        return ans('That sounds stressful, and it’s a very normal way to feel about money. Let’s take it one step at a time — I can show you exactly where things stand so it feels less like a fog.', '<p class="fai-muted">Nothing here is urgent unless your records say so. Pick one and we’ll look together.</p>', [chip('Biggest problems', 'What are my biggest financial problems right now?'), chip('My financial situation', 'What\'s my current financial situation?'), chip('Left after EMIs', 'How much money will I have left after paying my EMIs?')]);
+      if (hasMoney) return null;
+      var t = s.replace(/[!?.,]+/g, ' ').replace(/\s+/g, ' ').trim();
+      if (/^(hi|hey|hello|hii+|heya|yo|hola|namaste)?\s*(there\s*)?(fin ?ai\s*)?,?\s*(how are you|how r u|how are u|how're you|how are things|how's it going|how is it going|how you doing|how are you doing|hows it going|how do you do)( today)?( fin ?ai)?$/.test(t))
+        return ans(pick('hay', ['I’m doing well, thanks for asking! Running numbers all day keeps me surprisingly cheerful. How are you doing?', 'Pretty good, thank you! Quiet ' + hourWord() + ' on my side. How about you?', 'All good here — fully charged and ready to help. How’s your day going?']));
+      if (/^(i'?m|i am|im|doing|all|feeling)\s+(good|great|fine|well|ok|okay|alright|not bad|awesome|fantastic|good too|fine too|well too)( thanks| thank you)?$|^(good|great|fine|not bad|pretty good)( thanks| thank you)?( and you| you)?$/.test(t))
+        return ans(pick('fine', ['Glad to hear it! Anything you’d like to check, or just saying hi?', 'Love that. If anything’s on your mind — money or otherwise — I’m here.', 'Nice! I’m around whenever you need me.']));
+      if (/^(i'?m|i am|im|feeling)\s+(sad|down|low|tired|exhausted|not (good|great|ok|okay|well)|bad|upset|lonely)/.test(t) || /\b(bad day|rough day|long day)\b/.test(t))
+        return ans(pick('sad', ['I’m sorry — that sounds like a lot. Want to talk about it, or would a distraction help? I have a decent supply of terrible jokes.', 'That’s rough. Be kind to yourself today — rest counts as progress too. I’m here if you want to chat.', 'Sorry to hear that. Some days are just heavy. If it helps, I can tell you a joke or a fun fact.']), '', [chip('Tell me a joke', 'Tell me a joke'), chip('A fun fact', 'Tell me a fun fact')]);
+      if (/\b(what are you doing|what r u doing|wyd|what you doing|what's up|whats up|wassup|sup|what are you up to)\b/.test(t))
+        return ans(pick('doing', ['Just keeping an eye on your records and tidying up a few numbers. Nothing dramatic. What’s on your mind?', 'Honestly? Waiting for you to ask me something. It’s a calm job.', 'Double-checking some sums for fun. Yes, that’s my idea of fun. What can I do for you?']));
+      if (/\b(how did you get (so )?(smart|clever|intelligent)|you'?re (so )?(smart|clever|intelligent|genius|brilliant|awesome|amazing|the best)|you are (so )?(smart|clever|intelligent|awesome|amazing|the best)|good bot|well done|great job)\b/.test(t))
+        return ans(pick('smart', ['Ha, thank you! Honestly it’s mostly careful arithmetic and a lot of patience. I read only what’s in your FinanceOS account and work it out on this device, so the more you record, the sharper I get.', 'That’s kind of you! I’m just good at reading your records closely. You’re the one doing the hard part — actually tracking everything.', 'Thank you! No secret — I just never get tired of adding things up.']));
+      if (/\b(joke|make me laugh|something funny|cheer me up)\b/.test(t))
+        return ans(pick('joke', JOKES), '', [chip('Another one', 'Tell me another joke')]);
+      if (/\b(fun fact|random fact|tell me something (interesting|cool)|did you know)\b/.test(t))
+        return ans(pick('fact', FACTS), '', [chip('Another fact', 'Tell me another fun fact')]);
+      if (/\b(how was your day|how's your day|how is your day|how has your day been|had a good day)\b/.test(t))
+        return ans(pick('day', ['Pretty good, thanks! No surprises in the numbers, which is my favourite kind of day. How was yours?', 'Smooth so far — a few sums, no drama. How’s yours going?', 'Lovely, thank you for asking. Not many people ask the assistant. How was your day?']));
+      if (/\b(are you (a )?(human|real|person|robot|bot|ai|alive|chatgpt)|are you real)\b/.test(t))
+        return ans('I’m an AI assistant — Fin AI — not a person. I work only from the records in your FinanceOS account, on this device, and I can’t see or change anything else.');
+      if (/\b(who (made|created|built) you|who is your (creator|maker))\b/.test(t))
+        return ans('I was built into FinanceOS by MC Enterprise to help you make sense of your own money.');
+      if (/\b(what('?s| is) your name|your name)\b/.test(t)) return ans('I’m Fin AI, your finance assistant in FinanceOS. Nice to meet you!');
+      if (/\b(i'?m bored|im bored|i am bored|bored)\b/.test(t))
+        return ans(pick('bored', ['Want a quick challenge? Try a no-spend day tomorrow and see how it feels. Or I can tell you a joke.', 'Boredom is a great time for a 2-minute money check-up. Or a fun fact — your call.']), '', [chip('Tell me a joke', 'Tell me a joke'), chip('A fun fact', 'Tell me a fun fact'), chip('Quick check-up', 'What\'s my current financial situation?')]);
+      if (/\b(i love you|love you|marry me|be my friend|are we friends)\b/.test(t))
+        return ans(pick('love', ['That’s very sweet. I’m firmly committed… to your budget.', 'Aww. Let’s keep it professional — but yes, I’m always on your side.']));
+      if (/^(good night|gn|goodnight|night)( fin ?ai)?$/.test(t)) return ans('Good night! Sleep well — your numbers will be right here in the morning.');
+      if (/^(good morning|morning)( fin ?ai)?$/.test(t)) return ans('Good morning! Hope it’s a good one. Want a quick look at what’s coming up today?', '', [chip('Coming up', 'What bills are due this week?')]);
+      if (/\b(what (time|day) is it|what's the time|what is the time|what('?s| is) (the )?date( today)?|today'?s date)\b/.test(t)) {
+        var d = new Date(); return ans('It’s ' + d.toLocaleTimeString('en-IN', { hour: 'numeric', minute: '2-digit' }) + ' on ' + d.toLocaleDateString('en-IN', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' }) + ', going by this device’s clock.');
+      }
+      if (/^(sorry|my bad|oops)$/.test(t)) return ans('No worries at all!');
+      if (/^(ha+|haha+|lol+|lmao|hehe+|😂+|🤣+)$/.test(t)) return ans(pick('lol', ['Glad that landed! 😄', 'I’ll be here all week.', 'Ha! Want another?']), '', [chip('Another joke', 'Tell me another joke')]);
+      if (/\b(can you help me|help me|i need help)$/.test(t)) return ans('Of course. What’s on your mind? You can ask me about spending, savings, loans, cards, investments or a purchase — in your own words.', '', [chip('My financial situation', 'What\'s my current financial situation?'), chip('Am I overspending?', 'Am I spending too much?')]);
+      return null;
+    }
+
+    /* ── records helpers (read-only) ── */
+    var MONTHS = ['january', 'february', 'march', 'april', 'may', 'june', 'july', 'august', 'september', 'october', 'november', 'december'];
+    var MSHORT = ['jan', 'feb', 'mar', 'apr', 'may', 'jun', 'jul', 'aug', 'sep', 'oct', 'nov', 'dec'];
+    function ymKey(y, m) { return y + '-' + String(m + 1).padStart(2, '0'); }
+    function ymShift(k, n) { var y = +k.slice(0, 4), m = +k.slice(5, 7) - 1 + n; y += Math.floor(m / 12); m = ((m % 12) + 12) % 12; return ymKey(y, m); }
+    function ymLabel(k) { return MONTHS[+k.slice(5, 7) - 1].replace(/^./, function (c) { return c.toUpperCase(); }) + ' ' + k.slice(0, 4); }
+    function nowKey() { var d = new Date(); return ymKey(d.getFullYear(), d.getMonth()); }
+    function rows() { try { return Array.isArray(db) ? db : []; } catch (e) { return []; } }
+    function catOf(r) { try { return txCategory(r); } catch (e) { return String(r.category || r.sub || 'General'); } }
+    function amt(r) { var v = Number(r && r.amount); return isFinite(v) ? v : 0; }
+    function expenseCats() { var o = {}; rows().forEach(function (r) { if (r && r.type === 'Expense') o[catOf(r).toLowerCase()] = catOf(r); }); return o; }
+    function findCat(s) {
+      var cs = expenseCats(), best = null;
+      Object.keys(cs).forEach(function (k) { if (k.length < 3) return; var re = new RegExp('\\b' + k.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + '\\b'); if (re.test(s) && (!best || k.length > best.length)) best = k; });
+      return best ? cs[best] : null;
+    }
+    function findMonth(s) {   // a named month ("in october", "oct 2025"), or this / last month
+      var m = s.match(/\b(january|february|march|april|may|june|july|august|september|october|november|december|jan|feb|mar|apr|jun|jul|aug|sept|sep|oct|nov|dec)\b(?:\s*(?:'|of\s+)?(\d{2,4}))?/);
+      if (m && !(m[1] === 'may' && !/\b(in|for|during|of)\s+may\b|\bmay\s+\d{2,4}\b/.test(s))) {
+        var idx = MONTHS.indexOf(m[1]); if (idx < 0) idx = MSHORT.indexOf(m[1] === 'sept' ? 'sep' : m[1]);
+        var now = new Date(), y = m[2] ? (+m[2] < 100 ? 2000 + +m[2] : +m[2]) : now.getFullYear();
+        if (!m[2] && ymKey(y, idx) > nowKey()) y--;   // "in december" in November means last December
+        return ymKey(y, idx);
+      }
+      if (/\bthis month\b/.test(s)) return nowKey();
+      if (/\blast month\b|\bprevious month\b/.test(s)) return ymShift(nowKey(), -1);
+      return null;
+    }
+    function spendIn(cat, k) {
+      var tot = 0, n = 0, by = {};
+      rows().forEach(function (r) { if (!r || r.type !== 'Expense' || String(r.date || '').slice(0, 7) !== k) return; if (cat && catOf(r).toLowerCase() !== cat.toLowerCase()) return; tot += amt(r); n++; var p = (r.payee || r.name || '').trim(); if (p) by[p] = (by[p] || 0) + amt(r); });
+      var top = Object.keys(by).sort(function (a, b) { return by[b] - by[a]; })[0];
+      return { tot: tot, n: n, top: top, topV: top ? by[top] : 0 };
+    }
+    function monthAnswer(cat, k) {
+      var a = spendIn(cat, k), p = spendIn(cat, ymShift(k, -1)), cur = k === nowKey(), what = cat ? 'on <b>' + esc(cat) + '</b>' : 'in total';
+      C.cat = cat; C.ym = k;
+      if (!a.n) return ans('I don’t see any ' + (cat ? esc(cat) + ' ' : '') + 'expenses recorded for ' + ymLabel(k) + '.', p.n ? '<p class="fai-muted">The month before (' + ymLabel(ymShift(k, -1)) + ') had ' + money(p.tot) + '.</p>' : '', [chip('The month before', 'And the month before?')]);
+      var lead = 'You spent <b>' + money(a.tot) + '</b> ' + what + ' in ' + ymLabel(k) + (cur ? ' so far' : '') + '.';
+      var more = '<p>' + a.n + ' transaction' + (a.n === 1 ? '' : 's') + (a.top ? '; the biggest share went to ' + esc(a.top) + ' (' + money(a.topV) + ')' : '') + '.';
+      if (p.tot > 0 && !cur) { var d = a.tot - p.tot, pc = Math.abs(d) / p.tot * 100; more += ' That’s ' + (Math.abs(pc) < 0.5 ? 'about the same as' : (d > 0 ? 'up ' : 'down ') + pc.toFixed(0) + '% on') + ' ' + ymLabel(ymShift(k, -1)) + ' (' + money(p.tot) + ').'; }
+      else if (cur && p.tot > 0) more += ' Last month’s full total was ' + money(p.tot) + ' — this month isn’t finished yet, so it isn’t a like-for-like comparison.';
+      more += '</p>';
+      return ans(lead, more, [chip('The month before', 'And the month before?')].concat(cat ? [chip('All spending that month', 'How much did I spend in total in ' + ymLabel(k) + '?')] : []));
+    }
+
+    /* ── saving for a goal ── */
+    function amountOf(s) {
+      var m = s.match(/(?:₹|rs\.?|inr)?\s*(\d+(?:[.,]\d+)*)\s*(k|thousand|l|lac|lakh|lakhs|lacs|cr|crore|crores)?\b/);
+      if (!m) return null; var v = parseFloat(m[1].replace(/,/g, '')); if (!isFinite(v) || v <= 0) return null;
+      var u = m[2] || ''; if (/^k|thousand/.test(u)) v *= 1e3; else if (/^l/.test(u)) v *= 1e5; else if (/^cr/.test(u)) v *= 1e7;
+      return v >= 500 ? v : null;
+    }
+    function monthsOf(s) {
+      var m = s.match(/\b(\d+(?:\.\d+)?|a|one|two|three|four|five|six|seven|eight|nine|ten|twelve|eighteen|twenty four)\s*(year|years|yr|yrs|month|months|mo|mos)\b/);
+      if (!m) { if (/\bnext year\b/.test(s)) return 12; return null; }
+      var W = { a: 1, one: 1, two: 2, three: 3, four: 4, five: 5, six: 6, seven: 7, eight: 8, nine: 9, ten: 10, twelve: 12, eighteen: 18, 'twenty four': 24 };
+      var n = W[m[1]] != null ? W[m[1]] : parseFloat(m[1]); if (!(n > 0)) return null;
+      return Math.round(/^y/.test(m[2]) ? n * 12 : n);
+    }
+    function goalName(s) { var m = s.match(/\bsave (?:up )?(?:money )?for (?:a |an |my |the |our )?([a-z][a-z ]{1,28}?)(?=\s+(?:in|by|within|over|of|worth|costing|for|that)\b|[?.!,]|$)/) || s.match(/\b(?:buy|get|afford) (?:a |an |my |the )?(car|house|home|flat|bike|scooter|laptop|phone|wedding|trip|vacation|holiday)\b/); return m ? m[1].trim() : null; }
+    function goalPlan(name, total, months) {
+      var S = null; try { FinAIBrain.reset(); S = FinAIBrain.snapshot(); } catch (e) { }
+      var need = total / months, spare = S && S.leftover != null ? S.leftover - (S.invAvg || 0) : null;
+      var lead = 'To have <b>' + money(total) + '</b> for ' + (name ? 'the ' + esc(name) : 'this goal') + ' in ' + months + ' month' + (months === 1 ? '' : 's') + ', you’d need to set aside about <b>' + money(need) + ' a month</b>.';
+      var more = '';
+      if (spare != null) {
+        var share = spare > 0 ? need / spare * 100 : Infinity;
+        if (spare <= 0) more += '<p>Right now your records show nothing left over after spending, EMIs and investing (' + money(spare) + ' a month), so this would need cuts elsewhere or a longer timeline.</p>';
+        else if (share <= 60) more += '<p>That looks <b>comfortable</b>: it’s about ' + share.toFixed(0) + '% of the ' + money(spare) + ' you usually have left each month after spending, EMIs and the ' + money(S.invAvg || 0) + ' you already invest.</p>';
+        else if (share <= 100) more += '<p>That’s <b>doable but tight</b>: it would use about ' + share.toFixed(0) + '% of the ' + money(spare) + ' you usually have left each month after spending, EMIs and investing, leaving little cushion for surprises.</p>';
+        else { var mo = Math.ceil(total / (spare * 0.6)); more += '<p>That’s <b>more than you usually have spare</b> (' + money(spare) + ' a month after spending, EMIs and investing). Using about 60% of your spare cash, it would take roughly ' + mo + ' months instead.</p>'; }
+        more += '<p class="fai-muted">How I worked this out: ' + money(total) + ' ÷ ' + months + ' months = ' + money(need) + '. Spare cash = average income ' + money(S.incAvg || 0) + ' − spending ' + money(S.expAvg || 0) + ' − EMIs ' + money(S.emiUsed || 0) + ' − investing ' + money(S.invAvg || 0) + ', from your recent full months.</p>';
+      }
+      more += '<p>A few options: put the monthly amount into a recurring deposit or a low-risk debt fund on payday so it’s out of sight, and add it under <b>Savings goals</b> on this page so I can track it with you.' + (months <= 12 ? ' For a goal under a year away, safer options usually make more sense than shares.' : '') + '</p>';
+      return ans(lead, more, [chip('What if it takes longer?', 'What if I take ' + (months + 12) + ' months?'), chip('Where can I cut back?', 'Where can I cut back?')]);
+    }
+    function goal(s) {
+      var g = C.goal, name = goalName(s), total = amountOf(s), months = monthsOf(s);
+      var isGoal = /\b(save (up )?(money )?for|saving (up )?for|planning to buy|plan to buy|want to buy|wanna buy|thinking of buying)\b/.test(s);
+      if (!isGoal && !g) return null;
+      if (!isGoal && g) {   // a reply to my clarifying question, or a "what if" on the last plan
+        if (/\bwhat if\b|\binstead\b/.test(s) && g.total && months && C.turn - g.at <= 3) { g.months = months; g.at = C.turn; return goalPlan(g.name, g.total, months); }
+        if (g.ask !== C.turn - 1 || (total == null && months == null)) return null;   // only a direct answer to the question I just asked
+        if (total != null) g.total = total; if (months != null) g.months = months;
+      } else { g = C.goal = { name: name, total: total, months: months }; }
+      g.at = C.turn; if (!(g.total && g.months)) g.ask = C.turn;
+      if (!g.total && !g.months) return ans('Nice goal' + (g.name ? ' — a ' + esc(g.name) : '') + '! To plan it properly I need two things: <b>roughly how much</b> it will cost, and <b>when</b> you’d like to have the money.', '<p class="fai-muted">For example: “about 8 lakh in 2 years”.</p>', [chip('8 lakh in 2 years', 'about 8 lakh in 2 years'), chip('3 lakh in 12 months', '3 lakh in 12 months')]);
+      if (!g.total) return ans('Got it — ' + g.months + ' months. Roughly how much will ' + (g.name ? 'the ' + esc(g.name) : 'it') + ' cost?');
+      if (!g.months) return ans('Thanks — ' + money(g.total) + '. By when would you like to have it? For example “in 18 months” or “in 2 years”.');
+      return goalPlan(g.name, g.total, g.months);
+    }
+
+    /* ── risk check: adds what the classic answer leaves out ── */
+    function riskExtra() {
+      var out = [];
+      try {
+        var P = (typeof portDb !== 'undefined' && Array.isArray(portDb) ? portDb : []).filter(function (e) { return e && e.status !== 'sold'; }), by = {}, tot = 0, big = null;
+        P.forEach(function (e) { var v = 0; try { v = Number(portCalc(e).currentValue) || 0; } catch (x) { } if (!(v > 0)) return; var k = typeof assetTypeLabel === 'function' ? assetTypeLabel(normalizeAssetType(e.assetType)) : e.assetType; by[k] = (by[k] || 0) + v; tot += v; if (!big || v > big.v) big = { n: e.subType || e.name || k, v: v }; });
+        if (tot > 0) {
+          var top = Object.keys(by).sort(function (a, b) { return by[b] - by[a]; })[0], sh = by[top] / tot * 100;
+          if (sh >= 40) out.push('<b>Concentration:</b> ' + esc(top) + ' is ' + sh.toFixed(0) + '% of your portfolio (' + money(by[top]) + ' of ' + money(tot) + '). A big move in that one asset would swing your whole net worth.');
+          if (big && big.v / tot >= 0.25 && !(sh >= 40 && Object.keys(by).length && big.v === by[top])) out.push('<b>Single holding:</b> ' + esc(big.n) + ' alone is ' + (big.v / tot * 100).toFixed(0) + '% of the portfolio.');
+        }
+      } catch (e) { }
+      try {
+        FinAIBrain.reset(); var S = FinAIBrain.snapshot();
+        (S.loans || []).forEach(function (l) { if (l && l.rate >= 12 && l.bal > 0) out.push('<b>High-interest debt:</b> ' + esc(l.name) + ' charges ' + Number(l.rate).toFixed(1) + '% on ' + money(l.bal) + '. Paying it down early is a guaranteed return at that rate.'); });
+        if (S.emergencyMonths != null && S.emergencyMonths < 3) out.push('<b>Emergency cushion:</b> about ' + S.emergencyMonths.toFixed(1) + ' months of essential costs. 3–6 months is a common target.');
+        if (S.ccUtil != null && S.ccUtil > 30) out.push('<b>Card use:</b> ' + S.ccUtil.toFixed(0) + '% of your card limits is in use; under 30% is gentler on your credit score.');
+        if (S.incAvg && S.emiUsed / S.incAvg > 0.4) out.push('<b>EMI load:</b> EMIs take ' + (S.emiUsed / S.incAvg * 100).toFixed(0) + '% of income; above 40% leaves little room for surprises.');
+      } catch (e) { }
+      return out;
+    }
+
+    /* ── disclaimer for personal suggestions ── */
+    var ADVICE_Q = /\b(afford|should i|shall i|recommend|suggest|advice|advise|invest|prioriti[sz]e|pay (it )?(off|first)|prepay|which (loan|debt|card)|improve|cut back|cut down|reduce|plan|save for|saving for|buy|purchase|sip|mutual fund|stock|stocks|crypto|risk|risks|rebalance|allocation|emergency fund|retire|retirement|tax saving|good idea|worth it)\b/;
+    var ADVICE_A = /\b(prioriti[sz]e|i'?d suggest|consider|you could|you can afford|room to invest|wait and save|comfortable|recommend|options:|a few options|paying it down)\b/i;
+    var DISC = 'I’m providing insights based on the financial information currently available in your FinanceOS account. I’m an AI assistant, not a certified financial advisor. I can help you understand your financial position and explore possible options, but important financial decisions should be evaluated carefully, and you may wish to consult a qualified financial professional.';
+    function withDisc(q, a) {
+      if (!a || typeof a !== 'string') return a;
+      var text = a.replace(/<[^>]+>/g, ' ');
+      if (!(ADVICE_Q.test(q) && ADVICE_A.test(text)) && !/class="fai-verdict|WAIT AND SAVE|GO AHEAD|NOT NOW/i.test(a)) return a;
+      if (C.turn - C.discAt < 6) return a;   // once per conversation stretch, not on every answer
+      C.discAt = C.turn;
+      var d = '<div class="fx8-disc" role="note"><i class="fas fa-circle-info" aria-hidden="true"></i><span>' + DISC + ' Suggestions here are possibilities to weigh, not guaranteed outcomes or instructions.</span></div>';
+      return /<\/div>\s*$/.test(a) ? a.replace(/<\/div>\s*$/, d + '</div>') : a + d;
+    }
+
+    function front(q) {
+      var s = norm(q); C.turn++;
+      var r = casual(s); if (r) return r;
+      r = goal(s); if (r) return r;
+      var cat = findCat(s), k = findMonth(s), named = /\b(january|february|march|april|june|july|august|september|october|november|december|jan|feb|mar|apr|jun|jul|aug|sept|sep|oct|nov|dec)\b|\b(in|for|during) may\b/.test(s);
+      if (/^(and |what about |how about )?(the )?(month before( that)?|previous month|the one before|before that)\??$/.test(s.replace(/[?!.]+$/, '')) && C.ym) return monthAnswer(C.cat, ymShift(C.ym, -1));
+      if (/^(and |what about |how about )?(the )?(month after( that)?|next month|the one after)\??$/.test(s.replace(/[?!.]+$/, '')) && C.ym && ymShift(C.ym, 1) <= nowKey()) return monthAnswer(C.cat, ymShift(C.ym, 1));
+      var wa = s.replace(/[?!.]+$/, '').match(/^(and |what about |how about |and what about )(.+)$/);
+      if (wa && cat && C.ym && wa[2].split(' ').length <= 3 && !k) return monthAnswer(cat, C.ym);
+      if (named && k && /\b(spen[dt]|spending|expenses?|cost|paid|pay)\b/.test(s)) return monthAnswer(/\b(in total|total|overall|all spending|everything)\b/.test(s) && !cat ? null : cat, k);
+      if (cat) C.cat = cat; if (k) C.ym = k; else if (cat) C.ym = nowKey();
+      return null;
+    }
+    function after(q, a) {
+      var s = norm(q);
+      if (/\b(risk|risks|risky|danger|dangers|worry|worried about|weak spots?|vulnerab)/.test(s) && typeof a === 'string') {
+        var x = riskExtra();
+        if (x.length) { var block = '<div class="fx8-risk"><p class="fai-lead" style="margin-top:8px">Things worth watching:</p><ul>' + x.map(function (t) { return '<li>' + t + '</li>'; }).join('') + '</ul></div>';
+          a = /serious problems/.test(a) ? a.replace(/I don’t see any serious problems in your records right now\.\s*👍?/, 'Nothing urgent stands out, but a few things are worth keeping an eye on.') : a;
+          var fi = a.indexOf('<div class="fai-follow">');
+          a = fi > 0 ? a.slice(0, fi) + block + a.slice(fi) : (/<\/div>\s*$/.test(a) ? a.replace(/<\/div>\s*$/, block + '</div>') : a + block); }
+      }
+      return withDisc(s, a);
+    }
+    function install() {
+      var base = window.finaiAnswerQuestion; if (typeof base !== 'function' || base.__fx8) return;
+      var w = function (q) {
+        var r = null; try { r = front(q); } catch (e) { console.warn('Fin AI conversation layer skipped:', e); r = null; }
+        if (r) return withDisc(norm(q), r);
+        var a = base.apply(this, arguments);
+        try { a = after(q, a); } catch (e) { }
+        return a;
+      };
+      w.__fx8 = 1; window.finaiAnswerQuestion = w;
+      try { finaiAnswerQuestion = w; } catch (e) { }
+      var nc = window.faiNewChat; if (typeof nc === 'function' && !nc.__fx8) { var nw = function () { reset(); return nc.apply(this, arguments); }; nw.__fx8 = 1; window.faiNewChat = nw; }
+      var rs = window.finaiResetConversation; if (typeof rs === 'function' && !rs.__fx8) { var rw = function () { reset(); return rs.apply(this, arguments); }; rw.__fx8 = 1; window.finaiResetConversation = rw; try { finaiResetConversation = rw; } catch (e) { } }
+    }
+    window.addEventListener('load', function () { setTimeout(install, 0); });
+    if (document.readyState === 'complete') setTimeout(install, 0);
+    window.fosFx8Ai = { front: front, after: after, reset: reset, ctx: C };
+  })();
+  /* Fin AI: a shorter placeholder on narrow screens so it fits on one line */
+  function faiPh() {
+    var t = document.getElementById('finai-ask-input'); if (!t) return;
+    if (!t.__ph) t.__ph = t.getAttribute('placeholder') || '';
+    var want = window.innerWidth <= 600 ? 'Ask anything about your money' : t.__ph;
+    if (t.getAttribute('placeholder') !== want) t.setAttribute('placeholder', want);
+  }
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', faiPh); else faiPh();
+  window.addEventListener('resize', faiPh, { passive: true });
 })();
 </script>
 <script id="fos-tour-js">
@@ -46421,7 +46893,7 @@ body.light-mode .fa-fl{background:#fff}
 
   function syncDot() {
     var d = document.getElementById('notif-dot'), m = document.getElementById('mob-notif-dot');
-    if (d && m) m.style.display = getComputedStyle(d).display === 'none' ? 'none' : 'block';
+    if (d && m) { var want = (d.style.display || getComputedStyle(d).display) === 'none' ? 'none' : 'block'; if (m.style.display !== want) m.style.display = want; }   // inline display first: no forced style pass on every DOM change
   }
 
   function scan() {
