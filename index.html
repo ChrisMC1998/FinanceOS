@@ -11,7 +11,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="fos-integrity" content="914b7cdc8deafd8d201ac09f0cc675786f62063e560637bf4ed8cb9339b488a6">
+<meta name="fos-integrity" content="d4896379f90b0e9b28ba5ceb5ec6a8dc9a1a81a73295a7f012fff65969c1a9f5">
 <script id="fos-tamper-guard">
 /*! \u00a9 2026 MC Enterprise. Integrity check: detects a copy of this file that no longer matches the
     official release and locks it with a notice. This checks the FILE as served, not live memory --
@@ -9320,7 +9320,7 @@ function _passAppLockGateOnce() {
         </div>
         <div class="kpi-card" style="border-color:rgba(249,115,22,0.2);background:rgba(249,115,22,0.04)">
           <i class="fas fa-credit-card kpi-ico" aria-hidden="true" style="--ic:#f97316"></i>
-          <div class="kpi-label" style="color:#f97316">Credit Outstanding <span class="kpi-cnt" id="kpi-credit-count" data-no-count hidden></span></div>
+          <div class="kpi-label" style="color:#f97316">Credit Outstanding</div>
           <div class="kpi-value" id="kpi-credit-outstanding" style="color:#f97316">₹0</div>
           <div class="kpi-sub" id="kpi-credit-sub">total balance due</div>
         </div>
@@ -45061,77 +45061,62 @@ body.light-mode .fx7-pr .t > div { background:rgba(15,23,42,.06); }
   }
   var att = function (s) { return esc(s); };
 
-  /* ═════ Dashboard › Cash Flow Snapshot: where the money went (flow diagram) ═════ */
+  /* ═════ Dashboard › Cash Flow Snapshot (round 9: one hero number, one bar, one short list) ═════ */
+  function hov(root, onKey) {
+    root.onmouseover = function (e) {
+      var t = e.target.closest && e.target.closest('[data-k]'); if (!t || !root.contains(t)) return;
+      var k = t.getAttribute('data-k'); if (root.__k === k) return; root.__k = k; root.classList.add('hl');
+      root.querySelectorAll('[data-k]').forEach(function (x) { x.classList.toggle('on', x.getAttribute('data-k') === k); });
+      if (onKey) onKey(k);
+    };
+    root.onmouseleave = function () { root.__k = null; root.classList.remove('hl'); root.querySelectorAll('.on').forEach(function (x) { x.classList.remove('on'); }); if (onKey) onKey(null); };
+  }
+  var P0 = function (v) { return (v >= 10 || v === 0 ? Math.round(v) : v.toFixed(1)) + '%'; };
   function cashFlow() {
     var host = box(['dashChart-liquid-wrap', 'dashChart'], 'fx7-cf'); if (!host) return;
     var D = window.__fosDash; if (!D) return;
-    var lent = Number(D.rv && D.rv.lent) || 0, rec = Number(D.rv && D.rv.received) || 0, bal = Number(D.balance) || 0;
-    var L = [{ k: 'in', t: 'Income', v: D.inc, c: '#34d399' }], Rn = [];
-    if (rec > 0) L.push({ k: 'rec', t: 'Repayments received', v: rec, c: '#2dd4bf' });
-    if (bal < 0) L.push({ k: 'sav', t: 'Drawn from savings', v: -bal, c: '#f87171' });
-    [['exp', 'Expenses', D.exp, '#f472b6'], ['loan', 'Loans / EMIs', D.loan, '#60a5fa'], ['inv', 'Investments', D.inv, '#fbbf24'], ['lent', 'Lent out', lent, '#fb923c'], ['left', 'Left over', bal > 0 ? bal : 0, '#a78bfa']]
-      .forEach(function (x) { if (x[2] > 0) Rn.push({ k: x[0], t: x[1], v: x[2], c: x[3] }); });
-    L = L.filter(function (x) { return x.v > 0; });
-    var tot = L.reduce(function (s, x) { return s + x.v; }, 0);
-    if (!(tot > 0)) { set(host, empty('fa-water', 'No cash flow in this period')); return; }
-    var W = Math.max(240, Math.round(host.clientWidth || 320)), H = Math.max(150, Math.round((host.clientHeight || 360) - (W < 420 ? 178 : 122))), nw = 10, gap = 7, lx = 0, rx = W - nw;
-    function lay(list) { var avail = H - gap * (list.length - 1), y = 0; list.forEach(function (x) { x.h = Math.max(2, x.v / tot * avail); x.y = y; y += x.h + gap; }); }
-    lay(L); lay(Rn);
-    // bands: fill left sources in order into right uses in order (proportional, never invents money)
-    var bands = [], li = 0, lo = 0, ri = 0, ro = 0;
-    while (li < L.length && ri < Rn.length) {
-      var a = L[li], b = Rn[ri], take = Math.min(a.v - lo, b.v - ro);
-      if (take > 0) bands.push({ a: a, b: b, v: take, ay: a.y + lo / a.v * a.h, by: b.y + ro / b.v * b.h, ah: take / a.v * a.h, bh: take / b.v * b.h });
-      lo += take; ro += take; if (a.v - lo < 1e-6) { li++; lo = 0; } if (b.v - ro < 1e-6) { ri++; ro = 0; }
-    }
-    var id = 'fx7g' + (++gid), defs = '', paths = '';
-    bands.forEach(function (x, i) {
-      var g = id + 'b' + i, x0 = lx + nw, x1 = rx, m = (x0 + x1) / 2;
-      defs += '<linearGradient id="' + g + '" x1="0" x2="1"><stop offset="0" stop-color="' + x.a.c + '"/><stop offset="1" stop-color="' + x.b.c + '"/></linearGradient>';
-      paths += '<path class="b grow" data-k="' + x.b.k + '" data-c="' + x.b.c + '" data-t="' + att('<em>' + esc(x.a.t) + ' → ' + esc(x.b.t) + '</em> · <b>' + R(x.v) + '</b>') + '" fill="url(#' + g + ')" d="M' + x0 + ',' + x.ay.toFixed(1) + ' C' + m + ',' + x.ay.toFixed(1) + ' ' + m + ',' + x.by.toFixed(1) + ' ' + x1 + ',' + x.by.toFixed(1) + ' L' + x1 + ',' + (x.by + x.bh).toFixed(1) + ' C' + m + ',' + (x.by + x.bh).toFixed(1) + ' ' + m + ',' + (x.ay + x.ah).toFixed(1) + ' ' + x0 + ',' + (x.ay + x.ah).toFixed(1) + ' Z" style="animation-delay:' + (i * 0.06).toFixed(2) + 's"/>';
-    });
-    var inTot = L.reduce(function (s, x) { return s + x.v; }, 0);
-    function node(x, left) {
-      var pct = (x.v / (D.inc || inTot) * 100);
-      var tip = '<em>' + esc(x.t) + '</em> · <b>' + R(x.v) + '</b>' + (D.inc > 0 && x.k !== 'in' ? ' · ' + pct.toFixed(1) + '% of income' : '');
-      var ty = x.y + x.h / 2, tx = left ? lx + nw + 8 : rx - 8, an = left ? 'start' : 'end';
-      return '<rect class="n" data-k="' + x.k + '" data-c="' + x.c + '" data-t="' + att(tip) + '" x="' + (left ? lx : rx) + '" y="' + x.y.toFixed(1) + '" width="' + nw + '" height="' + x.h.toFixed(1) + '" rx="4" fill="' + x.c + '" style="filter:drop-shadow(0 0 6px ' + x.c + ')"/>' +
-        (x.h >= 14 ? '<text x="' + tx + '" y="' + (ty - (x.h >= 30 ? 5 : 0)).toFixed(1) + '" text-anchor="' + an + '" dominant-baseline="middle">' + esc(x.t) + '</text>' + (x.h >= 30 ? '<text class="v" x="' + tx + '" y="' + (ty + 9).toFixed(1) + '" text-anchor="' + an + '" dominant-baseline="middle">' + esc(K(x.v)) + (left || !(D.inc > 0) ? '' : ' · ' + pct.toFixed(0) + '%') + '</text>' : '') : '');
-    }
-    var sr = Number(D.savingsRate) || 0, src = sr >= 20 ? '#34d399' : sr >= 0 ? '#fbbf24' : '#f87171';
-    var def = 'Hover a flow to see where each rupee went';
-    set(host, '<div class="fx7-cf" data-fx7><div class="fx-chips">' + chip('Money in', K(D.inc + rec), '#34d399') + chip('Spent + EMIs', K(D.exp + D.loan), '#f472b6') + chip(bal >= 0 ? 'Left over' : 'Overspent', K(Math.abs(bal)), bal >= 0 ? '#a78bfa' : '#f87171', bal >= 0 ? '' : '#f87171') + chip('Savings rate', sr + '%', src, src) + '</div><div class="fx7-read"></div>' +
-      '<svg class="fx7-sk fx7-hlg" viewBox="0 0 ' + W + ' ' + H + '" style="height:' + H + 'px;flex:0 0 auto" preserveAspectRatio="xMidYMid meet" role="img" aria-label="Cash flow: where income went"><defs>' + defs + '</defs>' + paths + L.map(function (x) { return node(x, true); }).join('') + Rn.map(function (x) { return node(x, false); }).join('') + '</svg>' +
-      '<div class="fx8-cfleg">' + Rn.map(function (x) { return '<span data-k="' + x.k + '" data-c="' + x.c + '" data-t="' + att('<em>' + esc(x.t) + '</em> · <b>' + R(x.v) + '</b>' + (D.inc > 0 ? ' · ' + (x.v / D.inc * 100).toFixed(1) + '% of income' : '')) + '"><i style="background:' + x.c + '"></i>' + esc(x.t) + ' <b>' + esc(K(x.v)) + '</b></span>'; }).join('') + '</div></div>');
-    var cf = host.querySelector('.fx7-cf'); if (cf) readOut(cf, def);
+    var inc = Number(D.inc) || 0, lent = Number(D.rv && D.rv.lent) || 0, rec = Number(D.rv && D.rv.received) || 0, bal = Number(D.balance) || 0;
+    var U = [['exp', 'Expenses', D.exp, '#f472b6'], ['loan', 'Loans / EMIs', D.loan, '#60a5fa'], ['inv', 'Investments', D.inv, '#fbbf24'], ['lent', 'Lent out', lent, '#fb923c'], ['left', 'Left over', bal > 0 ? bal : 0, '#a78bfa']]
+      .map(function (x) { return { k: x[0], t: x[1], v: Number(x[2]) || 0, c: x[3] }; }).filter(function (x) { return x.v > 0; });
+    var moneyIn = inc + rec, base = U.reduce(function (s, x) { return s + x.v; }, 0);
+    if (!(base > 0) && !(moneyIn > 0)) { set(host, empty('fa-water', 'No cash flow in this period')); return; }
+    var sr = Number(D.savingsRate) || 0, pc = sr >= 20 ? '#34d399' : sr >= 0 ? '#fbbf24' : '#f87171', over = bal < 0;
+    var pct = function (v) { return moneyIn > 0 ? P0(v / moneyIn * 100) : '—'; };
+    var hero = '<div class="fx9-hero"><div><em>' + (over ? 'Overspent' : 'Left over') + '</em><b' + (over ? ' style="color:#f87171"' : '') + '>' + esc(R(Math.abs(bal))) + '</b>' +
+      '<small>' + (over ? 'more than the ' + esc(R(moneyIn)) + ' that came in' : 'of ' + esc(R(moneyIn)) + ' that came in') + '</small></div>' +
+      (inc > 0 ? '<span class="fx9-pill" style="--pc:' + pc + '" title="Income minus expenses and EMIs, as a share of income (investing counts as saving)">' + (sr >= 0 ? sr + '% saved' : 'Savings rate ' + sr + '%') + '</span>' : '') + '</div>';
+    var tick = over && base > 0 && moneyIn > 0 ? '<i class="tick" style="left:' + (moneyIn / base * 100).toFixed(2) + '%" title="Money in: ' + esc(R(moneyIn)) + '"></i>' : '';
+    var bar = '<div class="fx9-bar" role="img" aria-label="Where the money went">' + U.map(function (x, i) { return '<span data-k="' + x.k + '" style="--cc:' + x.c + ';--f:' + x.v + ';animation-delay:' + (i * 0.06).toFixed(2) + 's" title="' + esc(x.t + ': ' + R(x.v) + (moneyIn > 0 ? ' · ' + pct(x.v) + ' of money in' : '')) + '"></span>'; }).join('') + tick + '</div>';
+    var rows = '<div class="fx9-rows">' + U.map(function (x) { return '<div class="fx9-row" data-k="' + x.k + '" style="--cc:' + x.c + '"><span class="n"><i></i><span>' + esc(x.t) + '</span></span><span class="v">' + esc(R(x.v)) + '</span><span class="p">' + pct(x.v) + '</span></div>'; }).join('') + '</div>';
+    var note = rec > 0 ? '<div class="fx9-note">Money in includes ' + esc(R(rec)) + ' of repayments received</div>' : '';
+    set(host, '<div class="fx9-cf">' + hero + bar + rows + note + '</div>');
+    var r = host.querySelector('.fx9-cf'); if (r) hov(r);
   }
 
-  /* ═════ Dashboard › Spending Mix: treemap + ranked list ═════ */
-  function treemap(items, x, y, w, h, out) {
-    if (!items.length) return; if (items.length === 1) { out.push({ it: items[0], x: x, y: y, w: w, h: h }); return; }
-    var tot = items.reduce(function (s, a) { return s + a.v; }, 0), acc = 0, i = 0;
-    for (; i < items.length - 1; i++) { if (acc + items[i].v > tot / 2 && i > 0) break; acc += items[i].v; }
-    var A = items.slice(0, i), B = items.slice(i), fa = acc / tot;
-    if (w >= h) { treemap(A, x, y, w * fa, h, out); treemap(B, x + w * fa, y, w * (1 - fa), h, out); }
-    else { treemap(A, x, y, w, h * fa, out); treemap(B, x, y + h * fa, w, h * (1 - fa), out); }
-  }
+  /* ═════ Dashboard › Spending Mix (round 9: one ring, top categories, the rest grouped) ═════ */
   function spendingMix() {
     var host = box(['dashDonut-mix-wrap', 'dashDonut'], 'fx7-mix'); if (!host) return;
     var D = window.__fosDash; if (!D) return;
     var E = (D.mix || []).filter(function (x) { return x[1] > 0; });
     if (!E.length) { set(host, empty('fa-receipt', 'No expense data for this period')); return; }
     var tot = E.reduce(function (s, x) { return s + x[1]; }, 0);
-    var items = E.map(function (x, i) { return { k: i, t: String(x[0]), v: x[1], c: PAL[i % PAL.length] }; }), out = [];
-    treemap(items, 0, 0, 100, 100, out);
-    var TW = Math.max(200, host.clientWidth || 400), TH = Math.max(170, (host.clientHeight || 360) - 150);
-    var top3 = items.slice(0, 3).reduce(function (s, x) { return s + x.v; }, 0);
-    var tip = function (x) { return att('<em>' + esc(x.t) + '</em> · <b>' + R(x.v) + '</b> · ' + (x.v / tot * 100).toFixed(1) + '% of spending · #' + (x.k + 1)); };
-    var def = items.length + ' categories · top 3 are <b>' + (top3 / tot * 100).toFixed(0) + '%</b> of ' + R(tot);
-    set(host, '<div class="fx7-mix" data-fx7><div class="fx7-read"></div><div class="fx7-tm fx7-hlg">' + out.map(function (r, i) {
-      var x = r.it, small = r.w / 100 * TW < 62 || r.h / 100 * TH < 36;
-      return '<div class="fx7-tile' + (small ? ' sm' : '') + '" data-k="' + x.k + '" data-c="' + x.c + '" data-t="' + tip(x) + '" style="--cc:' + x.c + ';left:' + r.x.toFixed(2) + '%;top:' + r.y.toFixed(2) + '%;width:' + r.w.toFixed(2) + '%;height:' + r.h.toFixed(2) + '%;animation-delay:' + (i * 0.04).toFixed(2) + 's"><b>' + esc(x.t) + '</b><span>' + esc(K(x.v)) + ' · ' + (x.v / tot * 100).toFixed(0) + '%</span></div>';
-    }).join('') + '</div><div class="fx7-list">' + items.map(function (x) { return '<div class="fx7-li" data-k="' + x.k + '" data-c="' + x.c + '" data-t="' + tip(x) + '" style="--cc:' + x.c + '"><i></i><span>' + esc(x.t) + '</span><em>' + esc(R(x.v)) + ' · ' + (x.v / tot * 100).toFixed(1) + '%</em></div>'; }).join('') + '</div></div>');
-    var m = host.querySelector('.fx7-mix'); if (m) readOut(m, def);
+    var items = E.map(function (x, i) { return { k: 'c' + i, t: String(x[0]), v: x[1], c: PAL[i % PAL.length] }; });
+    if (items.length > 6) {
+      var rest = items.slice(5), rv = rest.reduce(function (s, x) { return s + x.v; }, 0);
+      items = items.slice(0, 5).concat([{ k: 'o', t: 'Other (' + rest.length + ')', v: rv, c: '#64748b', tip: rest.map(function (x) { return x.t + ' ' + R(x.v); }).join(' · ') }]);
+    }
+    var r = 40, C = 2 * Math.PI * r, gap = items.length > 1 ? 1.4 : 0, off = 0;
+    var segs = items.map(function (x, i) {
+      var len = Math.max(0.6, x.v / tot * C - gap), s = '<circle class="s" data-k="' + x.k + '" cx="50" cy="50" r="' + r + '" fill="none" stroke="' + x.c + '" stroke-width="11" stroke-dasharray="' + len.toFixed(2) + ' ' + (C - len).toFixed(2) + '" stroke-dashoffset="' + (-off).toFixed(2) + '" style="animation-delay:' + (i * 0.05).toFixed(2) + 's"><title>' + esc(x.t + ': ' + R(x.v) + ' · ' + P0(x.v / tot * 100)) + '</title></circle>';
+      off += x.v / tot * C; return s;
+    }).join('');
+    var n = E.length, ctrDef = '<em>Spent</em><b>' + esc(K(tot)) + '</b><small>' + n + ' categor' + (n === 1 ? 'y' : 'ies') + '</small>';
+    var ring = '<div class="fx9-donut"><svg viewBox="0 0 100 100" role="img" aria-label="Spending by category"><circle cx="50" cy="50" r="' + r + '" fill="none" class="trk" stroke-width="11"/>' + segs + '</svg><div class="fx9-ctr">' + ctrDef + '</div></div>';
+    var rows = '<div class="fx9-rows">' + items.map(function (x) { return '<div class="fx9-row" data-k="' + x.k + '" style="--cc:' + x.c + '"' + (x.tip ? ' title="' + esc(x.tip) + '"' : '') + '><span class="n"><i></i><span>' + esc(x.t) + '</span></span><span class="v">' + esc(R(x.v)) + '</span><span class="p">' + P0(x.v / tot * 100) + '</span></div>'; }).join('') + '</div>';
+    set(host, '<div class="fx9-mix">' + ring + rows + '</div>');
+    var m = host.querySelector('.fx9-mix'); if (!m) return;
+    var ctr = m.querySelector('.fx9-ctr'), byK = {}; items.forEach(function (x) { byK[x.k] = x; });
+    hov(m, function (k) { var x = k && byK[k]; ctr.innerHTML = x ? '<em>' + esc(x.t) + '</em><b>' + esc(K(x.v)) + '</b><small>' + P0(x.v / tot * 100) + ' of spending</small>' : ctrDef; });
   }
 
   /* ═════ Dashboard › ROI % by Asset: same chart as Summary › ROI by Asset Type ═════ */
@@ -45801,6 +45786,68 @@ body.light-mode .fx8-disc { background:rgba(var(--brand-rgb),.06); color:#475569
   }
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', faiPh); else faiPh();
   window.addEventListener('resize', faiPh, { passive: true });
+})();
+</script>
+<style id="fos-fx9-css">
+/* Round 9: Cash Flow Snapshot + Spending Mix, calmer layout (no glow, one bar / one ring, short lists) */
+@media (max-width:900px) { #fx7-cf, #fx7-mix { height:auto !important; } }
+.fx9-cf, .fx9-mix { height:100%; min-height:0; box-sizing:border-box; padding:2px 2px 0; }
+.fx9-cf { display:flex; flex-direction:column; justify-content:center; }
+.fx9-hero { display:flex; justify-content:space-between; align-items:flex-start; gap:12px; }
+.fx9-hero em { display:block; font-style:normal; font-size:.62rem; font-weight:700; letter-spacing:.9px; text-transform:uppercase; color:var(--text-muted); }
+.fx9-hero b { display:block; font-family:'DM Mono', monospace; font-size:1.6rem; font-weight:700; color:var(--text-main); line-height:1.15; margin-top:5px; letter-spacing:-.5px; }
+.fx9-hero small { display:block; font-size:.7rem; color:var(--text-muted); margin-top:4px; }
+.fx9-pill { flex:0 0 auto; padding:5px 10px; border-radius:99px; font-size:.68rem; font-weight:700; color:var(--pc); background:color-mix(in srgb, var(--pc) 12%, transparent); border:1px solid color-mix(in srgb, var(--pc) 32%, transparent); white-space:nowrap; cursor:default; }
+.fx9-bar { position:relative; display:flex; gap:3px; height:12px; margin:20px 0 12px; }
+.fx9-bar span { flex:var(--f) 1 0; min-width:4px; border-radius:3px; background:var(--cc); cursor:default; transform-origin:left center; animation:fx7Grow .8s cubic-bezier(.22,1,.36,1) both; transition:opacity .2s; }
+.fx9-bar span:first-child { border-top-left-radius:99px; border-bottom-left-radius:99px; }
+.fx9-bar span:last-of-type { border-top-right-radius:99px; border-bottom-right-radius:99px; }
+.fx9-bar .tick { position:absolute; top:-5px; bottom:-5px; width:2px; margin-left:-1px; border-radius:2px; background:var(--text-main); }
+.fx9-rows { display:flex; flex-direction:column; min-width:0; }
+.fx9-row { display:grid; grid-template-columns:minmax(0,1fr) auto 3.2em; align-items:center; gap:10px; padding:8px 4px; border-top:1px solid var(--glass-border, rgba(255,255,255,.07)); font-size:.78rem; cursor:default; transition:opacity .2s; }
+.fx9-row:first-child { border-top:0; }
+.fx9-row .n { display:flex; align-items:center; gap:9px; min-width:0; color:var(--text-main); font-weight:600; }
+.fx9-row .n span { overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.fx9-row .n i { width:9px; height:9px; border-radius:3px; background:var(--cc); flex:0 0 auto; }
+.fx9-row .v { font-family:'DM Mono', monospace; font-weight:600; color:var(--text-main); text-align:right; white-space:nowrap; }
+.fx9-row .p { font-family:'DM Mono', monospace; font-size:.7rem; color:var(--text-muted); text-align:right; white-space:nowrap; }
+.fx9-note { font-size:.66rem; color:var(--text-muted); padding-top:8px; }
+.fx9-cf.hl .fx9-bar span:not(.on), .fx9-cf.hl .fx9-row:not(.on), .fx9-mix.hl .fx9-row:not(.on) { opacity:.38; }
+.fx9-mix { display:flex; align-items:center; gap:26px; }
+.fx9-mix .fx9-rows { flex:1 1 auto; }
+.fx9-donut { position:relative; flex:0 0 auto; width:min(196px, 40%); aspect-ratio:1; }
+.fx9-donut svg { width:100%; height:100%; display:block; transform:rotate(-90deg); overflow:visible; }
+.fx9-donut .trk { stroke:rgba(148,163,184,.12); }
+.fx9-donut .s { cursor:default; transition:opacity .2s; animation:fx7Fade .6s ease both; }
+.fx9-mix.hl .fx9-donut .s:not(.on) { opacity:.25; }
+.fx9-ctr { position:absolute; inset:0; display:flex; flex-direction:column; align-items:center; justify-content:center; text-align:center; padding:0 20%; pointer-events:none; }
+.fx9-ctr em { font-style:normal; font-size:.6rem; font-weight:700; letter-spacing:.8px; text-transform:uppercase; color:var(--text-muted); max-width:100%; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.fx9-ctr b { font-family:'DM Mono', monospace; font-size:1.15rem; font-weight:700; color:var(--text-main); margin:4px 0 3px; }
+.fx9-ctr small { font-size:.62rem; color:var(--text-muted); }
+@container (max-width:430px) { .fx9-mix { flex-direction:column; align-items:stretch; gap:16px; } .fx9-donut { width:168px; align-self:center; } }
+body.light-mode .fx9-donut .trk { stroke:rgba(15,23,42,.07); }
+body.light-mode .fx9-row { border-top-color:#e2e8f0; }
+@media (prefers-reduced-motion: reduce) { .fx9-bar span, .fx9-donut .s { animation:none; } }
+</style>
+<script id="fos-fx9-js">
+/* Round 9: a tiny portfolio snapshot for the weekly push summary. It uses the app's own portCalc, so the server never
+   recalculates holdings; it syncs to your account with the other settings (user_kv). */
+(function () {
+  'use strict';
+  var KEY = 'fos_push_summary_v1';
+  function snap() {
+    try {
+      if (typeof cloudSession === 'undefined' || !cloudSession || typeof portDb === 'undefined' || !Array.isArray(portDb) || typeof portCalc !== 'function') return;
+      var inv = 0, cur = 0, n = 0;
+      portDb.forEach(function (p) { if (!p || p.status === 'sold') return; var c = portCalc(p); inv += Number(c.totalInvestment) || 0; cur += Number(c.currentValue) || 0; n++; });
+      var o = { inv: Math.round(inv), cur: Math.round(cur), n: n }, old = null;
+      try { old = JSON.parse(localStorage.getItem(KEY) || 'null'); } catch (e) { }
+      if (old && old.inv === o.inv && old.cur === o.cur && old.n === o.n) return;
+      o.at = new Date().toISOString(); localStorage.setItem(KEY, JSON.stringify(o));
+    } catch (e) { }
+  }
+  window.addEventListener('load', function () { setTimeout(snap, 20000); setInterval(snap, 10 * 60 * 1000); });
+  document.addEventListener('visibilitychange', function () { if (document.hidden) snap(); });
 })();
 </script>
 <script id="fos-tour-js">
@@ -47188,6 +47235,22 @@ function fosB64ToU8(b64) {
   return a;
 }
 function fosBgStatus(msg) { var el = document.getElementById('push-bg-status'); if (el) el.textContent = msg; }
+/* Round 9: the public VAPID key is read from your push server (Supabase secret VAPID_PUBLIC_KEY), so a new key
+   never needs an edit here. The constant above is only the fallback while the server can't be reached. */
+var _fosPk = null;
+async function fosPushPublicKey() {
+  if (_fosPk) return _fosPk;
+  try { var c = sessionStorage.getItem('fos_vapid_pk'); if (c) return (_fosPk = { k: c, server: true }); } catch (e) { }
+  try {
+    var r = await Promise.race([sb.functions.invoke('push-dispatch', { body: { action: 'vapid' } }), new Promise(function (res) { setTimeout(function () { res(null); }, 6000); })]);
+    var k = r && !r.error && r.data && r.data.publicKey;
+    if (k && /^[A-Za-z0-9_-]{80,100}$/.test(k)) { _fosPk = { k: k, server: true }; try { sessionStorage.setItem('fos_vapid_pk', k); } catch (e) { } return _fosPk; }
+  } catch (e) { }
+  return { k: FOS_VAPID_PUBLIC_KEY, server: false };
+}
+function fosPushSameKey(sub, u8) {
+  try { var a = sub.options && sub.options.applicationServerKey; if (!a) return true; a = new Uint8Array(a); if (a.length !== u8.length) return false; for (var i = 0; i < a.length; i++) if (a[i] !== u8[i]) return false; return true; } catch (e) { return true; }
+}
 async function fosPushSync() {
   try {
     if (fosPushState() !== 'granted') { fosBgStatus('Enable notifications on this device first.'); return false; }
@@ -47195,12 +47258,14 @@ async function fosPushSync() {
     var uid = (typeof cloudSession !== 'undefined' && cloudSession && cloudSession.user) ? cloudSession.user.id : null;
     if (!uid) { fosBgStatus('Sign in to your cloud account to receive notifications while the app is closed.'); return false; }
     var reg = await fosPushReg(); if (!reg || !reg.pushManager) { fosBgStatus('Background push is not supported here.'); return false; }
-    var key = fosB64ToU8(FOS_VAPID_PUBLIC_KEY), sub = await reg.pushManager.getSubscription();
+    var pk = await fosPushPublicKey(), key = fosB64ToU8(pk.k), sub = await reg.pushManager.getSubscription();
+    if (sub && pk.server && !fosPushSameKey(sub, key)) { try { await sub.unsubscribe(); } catch (e) { } sub = null; }   // the server's key changed: subscribe again with the new one
     if (!sub) { try { sub = await reg.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: key }); } catch (e) { fosBgStatus('Could not subscribe this device: ' + (e && e.message || e)); return false; } }
     var j = sub.toJSON(), k = j.keys || {};
     var res = await sb.from('push_subscriptions').upsert({ user_id: uid, endpoint: sub.endpoint, p256dh: k.p256dh, auth: k.auth, quiz: false, alerts: fosPushOn('push-alerts'), user_agent: navigator.userAgent.slice(0, 200), updated_at: new Date().toISOString() }, { onConflict: 'user_id,endpoint' });
     if (res.error) { fosBgStatus('Could not save this device to the cloud: ' + res.error.message); return false; }
     try { if (window.fosPushDeviceInfo) window.fosPushDeviceInfo(sub.endpoint); } catch (e) { }
+    window.__fosServerPush = pk.server;
     fosBgStatus('Active. Alerts will arrive even when the app is closed.');
     return true;
   } catch (e) { fosBgStatus('Background push error: ' + (e && e.message || e)); return false; }
@@ -47245,10 +47310,16 @@ function fosPushRefreshUI() {
     'fos_currency','fos_number_system','fos_time','fos_date','financeOS_roughboard_v1','fos_remind_v1','fos_port_customsubs_v1','fos_port_targets_v1',
     'fos_port_tgtband','fos_port_tgtnew','fos_pi_bench','fos_tax_cls_v1','fos_tax_slab','fos_tax_fy','fos_notif_dismissed','fos_reminders_v1','fos_onboarding_goal',
     'fos_last_nw_milestone','fos_last_portfolio_update','fos_lh_unlocked','fos_academy_v1','fos_stress_v1'];
-  var DEVICE_SET = ['fos_set_app-theme', 'fos_set_sidebar-animation', 'fos_set_auto-sync', 'fos_set_ui-motion', 'fos_set_chart-anim', 'fos_set_count-anim', 'fos_set_anim-items', 'fos_set_anim-master', 'fos_set_anim-groups', 'fos_set_code-protect'];   // per-device settings: never synced (push preferences DO sync; only the browser permission is per device)
-  function syncable(k) { return typeof k === 'string' && (SYNC.indexOf(k) > -1 || (k.indexOf('fos_set_') === 0 && DEVICE_SET.indexOf(k) < 0)); }
+  /* Round 9: every app setting, layout and admin store follows the account, except the few things below that belong
+     to ONE device (sign-in session, Face ID / PC lock credentials, caches, device logs, the auto-sync switch itself).
+     The finance data itself syncs through its own tables (CLOUD_TABLES), not here. */
+  var DEVICE_SET = ['fos_set_app-theme', 'fos_set_auto-sync', 'fos_set_code-protect'];   // theme follows the account through its own sign-in setting
+  var NEVER = /^(fos_db_v3|fos_port_v3|fos_credit_v1|fos_insurance_v1|fos_notes_v1|fos_subscriptions_v1|financeOS_ccCards|fos_budgets|fos_current_user|fos_users|fos_last_cloud_uid|fos_last_cloud_sync|fos_last_login_method|fos_kv_meta_u_.*|fos_kv_reloaded|fos_prefs_u_.*|fos_theme|fos_theme_u_.*|fos_theme_migrated|fos_biometric_.*|fos_pc_lock_.*|fos_idle_locked|fos_device_id|fos_mkt_last_v1|fos_fx_v1|fos_refresh_v1|fos_notifications|fos_notes_media|fos_docs_v1|fos_tracking_mode|fos_sync_report_pending|fos_last_active_view|fos_mobile_full_view|fos_tv_minimized|fos_rem_minimized|fos_remind_toast|fos_push_prompt_off|fos_master_topup_v2|financeOS_backupDismissed|financeOS_lastBackup|fos_admin_sess|fos_admin_boot_v1|fos_admin_safe_v1|fos_admin_snapshots_v1|fos_admin_audit_v1|fos_admin_dev_v1|fos_admin_integrity_.*|fos_admin_.*_(log|undo|quar)_v1)$/;
+  var TOMB = ['fos_admin_pin_v1', 'fos_set_anim-master', 'fos_set_anim-groups', 'fos_set_anim-items'];   // keys whose REMOVAL means something (PIN reset, "all animations on")
+  var MAXLEN = 1500000;   // a single setting larger than ~1.5 MB stays on this device
+  function syncable(k) { return typeof k === 'string' && (SYNC.indexOf(k) > -1 || (/^(fos_|financeOS_|pol_|pos_)/.test(k) && !NEVER.test(k) && DEVICE_SET.indexOf(k) < 0)); }
 
-  var origSet = Storage.prototype.setItem, origGet = Storage.prototype.getItem;
+  var origSet = Storage.prototype.setItem, origGet = Storage.prototype.getItem, origRem = Storage.prototype.removeItem;
   var uid = null, ready = false, busy = false, timer = null, meta = { e: {}, d: {} };
   function mk() { return 'fos_kv_meta_u_' + uid; }
   function loadMeta() { try { meta = JSON.parse(origGet.call(localStorage, mk()) || 'null') || { e: {}, d: {} }; } catch (x) { meta = { e: {}, d: {} }; } meta.e = meta.e || {}; meta.d = meta.d || {}; }
@@ -47268,7 +47339,13 @@ function fosPushRefreshUI() {
   Storage.prototype.setItem = function (k, v) {
     var prev = this === localStorage && syncable(k) ? origGet.call(this, k) : null;
     var r = origSet.apply(this, arguments);
-    if (this === localStorage && ready && syncable(k) && String(v) !== prev) { meta.e[k] = new Date().toISOString(); meta.d[k] = 1; saveMeta(); schedule(); }
+    if (this === localStorage && ready && syncable(k) && String(v) !== prev && active()) { meta.e[k] = new Date().toISOString(); meta.d[k] = 1; saveMeta(); schedule(); }
+    return r;
+  };
+  Storage.prototype.removeItem = function (k) {
+    var had = this === localStorage && TOMB.indexOf(k) > -1 ? origGet.call(this, k) : null;
+    var r = origRem.apply(this, arguments);
+    if (had !== null && ready && active()) { meta.e[k] = new Date().toISOString(); meta.d[k] = 1; saveMeta(); schedule(); }
     return r;
   };
 
@@ -47279,7 +47356,9 @@ function fosPushRefreshUI() {
   async function upsertKeys(keys) {
     if (!keys.length) return true;
     var now = new Date().toISOString();
-    var rows = keys.map(function (k) { return { user_id: uid, key: k, data: { v: origGet.call(localStorage, k) }, updated_at: now }; });
+    keys = keys.filter(function (k) { var v = origGet.call(localStorage, k); if (v !== null && v.length > MAXLEN) { delete meta.d[k]; console.warn('user_kv: ' + k + ' is too large to sync'); return false; } return v !== null || TOMB.indexOf(k) > -1; });
+    if (!keys.length) { saveMeta(); return true; }
+    var rows = keys.map(function (k) { var v = origGet.call(localStorage, k); return { user_id: uid, key: k, data: v === null ? { v: null, del: true } : { v: v }, updated_at: now }; });
     var res = await sb.from('user_kv').upsert(rows, { onConflict: 'user_id,key' });
     if (res.error) { console.warn('user_kv push failed', res.error.message); return false; }
     keys.forEach(function (k) { delete meta.d[k]; }); saveMeta(); return true;
@@ -47302,6 +47381,12 @@ function fosPushRefreshUI() {
       (q.data || []).forEach(function (r) { if (syncable(r.key)) cloud[r.key] = r; });
       Object.keys(cloud).forEach(function (k) {
         var cv = cloud[k].data && cloud[k].data.v, lv = origGet.call(localStorage, k);
+        if (cloud[k].data && cloud[k].data.del) {   // removed on another device (e.g. admin PIN reset)
+          if (lv === null) delete meta.d[k];
+          else if (meta.d[k] && (meta.e[k] || '') > (cloud[k].updated_at || '')) toPush.push(k);
+          else { origRem.call(localStorage, k); changed.push(k); delete meta.d[k]; }
+          return;
+        }
         if (cv == null || cv === lv || canon(cv) === canon(lv)) { delete meta.d[k]; return; }
         if (MERGE[k]) {
           var m = MERGE[k](lv, cv);
@@ -47351,6 +47436,10 @@ function fosPushRefreshUI() {
         if (k === 'fos_notif_dismissed') { /* nothing to redraw */ }
         // bookkeeping only (dates of the last weekly update, milestones, unlocked badges, cached insights): read on the next check, no reload needed
         else if (['fos_last_portfolio_update', 'fos_last_nw_milestone', 'fos_lh_unlocked', 'fos_finai_insights_v1', 'fos_finai_score_history', 'fos_onboarding_goal', 'fos_academy_v1'].indexOf(k) > -1) { }
+        else if (k === 'fos_admin_pin_v1' || k === 'fos_push_summary_v1' || k === 'fos_loan_asof' || k === 'pol_ms_seen' || k.indexOf('fos_tour_done_') === 0) { }   // read fresh when next needed
+        else if (/^(fos_sidebar_category_|pos_sidebar_)/.test(k)) { if (typeof applySidebarCategoryStates === 'function') applySidebarCategoryStates(); }
+        else if (/^fos_set_(anim-|ui-motion$|chart-anim$|count-anim$)/.test(k)) rest.push(k);   // motion settings apply on the next quiet reload
+        else if (k === 'fos_set_sidebar-animation') { if (typeof applySidebarAnimState === 'function') applySidebarAnimState(v !== 'false'); var sa = document.getElementById('tog-sidebar-animation'); if (sa && sa.type === 'checkbox') sa.checked = v !== 'false'; }
         else if (k === 'fos_reminders_v1') { if (window.fosRemReload) window.fosRemReload(); }
         else if (k === 'fos_game_stats') { gameStats = JSON.parse(v) || {}; if (typeof renderGameStats === 'function') renderGameStats(); }
         else if (k === 'fos_finai_goals_v1') { finaiGoals = JSON.parse(v) || []; if (activeView === 'finai' && typeof renderFinAI === 'function') renderFinAI(); }
@@ -47624,6 +47713,24 @@ body.light-mode #fos-privacy-shield .fps-t{color:#25363d}
   });
   var o = window.switchSettingsTab; if (typeof o === 'function') window.switchSettingsTab = function (t) { var r = o.apply(this, arguments); if (t === 'notifications') render(); return r; };
   window.addEventListener('load', function () { setTimeout(render, 1500); });
+
+  /* Round 9: put one notification on the server queue and ask the push server to send it now (the every-minute
+     schedule is the backup). A duplicate dedupe_key means another device already queued it: nothing more to do. */
+  window.fosQueuePush = async function (row) {
+    var u = uid(); if (!u || typeof sb === 'undefined') return false;
+    try {
+      row.user_id = u; var r = await sb.from('notification_queue').insert(row);
+      if (r.error) return /duplicate|unique/i.test(r.error.message || '');
+      try { await sb.functions.invoke('push-dispatch', { body: {} }); } catch (e) { }
+      return true;
+    } catch (e) { return false; }
+  };
+  /* the server needs your time zone for the daily summary, bills and quiet hours (an existing row is left as it is) */
+  async function ensurePrefs() {
+    var u = uid(); if (!u) return;
+    try { await sb.from('notification_preferences').upsert({ user_id: u, tz: (Intl.DateTimeFormat().resolvedOptions().timeZone || 'Asia/Kolkata') }, { onConflict: 'user_id', ignoreDuplicates: true }); } catch (e) { }
+  }
+  window.addEventListener('load', function () { setTimeout(ensurePrefs, 9000); });
 
   /* Device identity, saved once the subscription exists */
   window.fosPushDeviceInfo = async function (endpoint) {
@@ -47924,7 +48031,10 @@ body.light-mode .fos-np{background:#fff;color:#0f172a;box-shadow:0 8px 30px rgba
   function fire(r, late) {
     var title = r.title || 'Reminder', msg = r.message || '', id = 'rem-' + r.id + '-' + r.at;
     try { addNotification(id, 'fa-bell', '#38bdf8', '\u23F0 ' + title, msg + (late ? ' (scheduled for ' + fmtAt(r.at) + ')' : ''), 'reminder'); } catch (e) { }
-    try { if ((document.hidden || !document.hasFocus()) && typeof fosPushShow === 'function') { var qh = false; try { qh = FOS_CONFIG.quiet(); } catch (e) { } fosPushShow('\u23F0 ' + title, msg, 'fos-' + id, qh, './?notif=1'); } } catch (e) { }
+    // Round 9: with the push server set up, the reminder goes out through it to ALL your devices (one copy each);
+    // the local pop-up below is only used when this device has no server push yet.
+    if (!late) { try { if (window.fosQueuePush) window.fosQueuePush({ category: 'reminders', dedupe_key: 'rem:' + r.id + ':' + r.at, title: '\u23F0 ' + title, body: msg || 'Reminder', safe_body: 'FinanceOS: You have a reminder.', priority: 'normal' }); } catch (e) { } }
+    try { if (!window.__fosServerPush && (document.hidden || !document.hasFocus()) && typeof fosPushShow === 'function') { var qh = false; try { qh = FOS_CONFIG.quiet(); } catch (e) { } fosPushShow('\u23F0 ' + title, msg, 'fos-' + id, qh, './?notif=1'); } } catch (e) { }
   }
   function check() {
     if (!fosAppGateOpen()) return;
