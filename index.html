@@ -11,7 +11,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="fos-integrity" content="3b560a0334540cb9016eebdd3128fb4b2862a7f0bf03d49d6a57577a2c81d319">
+<meta name="fos-integrity" content="f3229eb2ea6d2be929c11b3f4a32628e4b5ca07df8c4a6e30f7fff3de7b259ed">
 <script id="fos-tamper-guard">
 /*! \u00a9 2026 MC Enterprise. Integrity check: detects a copy of this file that no longer matches the
     official release and locks it with a notice. This checks the FILE as served, not live memory --
@@ -70,7 +70,7 @@
   setInterval(stamp, 2500); stamp();
 })();
 </script>
-<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, interactive-widget=resizes-content">
 <meta name="theme-color" content="#050708">
 <meta name="description" content="Personal finance dashboard - track income, expenses, investments, loans and portfolio">
 <link rel="manifest" href="manifest.webmanifest">
@@ -54218,7 +54218,7 @@ html.fos-theme-swap *, html.fos-theme-swap *::before, html.fos-theme-swap *::aft
 (function () {
   var FN = 'fin-ai', LS_ON = 'fai_smart', SS_CONV = 'fai_conv_id';
   var $ = function (id) { return document.getElementById(id); };
-  var busy = false, avail = null;   // avail: null unknown, true ok, false not for this account
+  var busy = false, avail = null, left = null, limit = null, userScrolled = false;   // avail: null unknown, true ok, false not for this account
   function esc(s) { return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]; }); }
   function lsGet(k) { try { return localStorage.getItem(k); } catch (e) { return null; } }
   function lsSet(k, v) { try { localStorage.setItem(k, v); } catch (e) { } }
@@ -54363,9 +54363,9 @@ html.fos-theme-swap *, html.fos-theme-swap *::before, html.fos-theme-swap *::aft
       if (!box.querySelector('.fai-msg')) box.innerHTML = '';
       box.insertAdjacentHTML('beforeend', '<div class="fai-msg me"><div class="fai-bub">' + esc(q) + '</div></div>' +
         '<div class="fai-msg ai fai-typing" id="fai-smart-live">' + AV + '<div class="fai-bub"><span></span><span></span><span></span></div></div>');
-      box.scrollTop = box.scrollHeight; bub = document.querySelector('#fai-smart-live .fai-bub');
+      userScrolled = false; box.style.scrollBehavior = 'auto'; box.scrollTop = box.scrollHeight; bub = document.querySelector('#fai-smart-live .fai-bub');
     }
-    var html = engineHtml(q), finish = function (a) { busy = false; try { finaiPushHistory(q, a); } catch (e) { } try { finaiRenderSuggestions(); } catch (e) { } syncBtn(); };
+    var html = engineHtml(q), finish = function (a) { busy = false; if (box) box.style.scrollBehavior = ''; try { finaiPushHistory(q, a + (wantsForm(html) ? FORM_MARK : '')); } catch (e) { } try { finaiRenderSuggestions(); } catch (e) { } syncBtn(); };
     if (!navigator.onLine) return finish(html + note('offline'));
     var tk = await token(); if (!tk) return finish(html);
     var name = ''; try { var u = JSON.parse(lsGet('fos_current_user') || '{}'); name = (u.name || u.full_name || '').split(' ')[0] || ''; } catch (e) { }
@@ -54381,6 +54381,7 @@ html.fos-theme-swap *, html.fos-theme-swap *::before, html.fos-theme-swap *::aft
     if (!res.ok || ct.indexOf('text/event-stream') < 0) {
       var j = null; try { j = await res.json(); } catch (e) { }
       if (j && j.reason === 'plan') { avail = false; syncBtn(); }
+      if (j && j.reason === 'daily_limit') { left = 0; syncBtn(); }
       return finish(html + note(j && j.reason));
     }
     var reader = res.body.getReader(), dec = new TextDecoder(), buf = '', text = '', final = null, failed = false, live = $('fai-smart-live');
@@ -54394,8 +54395,8 @@ html.fos-theme-swap *, html.fos-theme-swap *::before, html.fos-theme-swap *::aft
           var chunk = buf.slice(0, i); buf = buf.slice(i + 2);
           if (chunk.indexOf('data:') !== 0) continue;
           var ev = null; try { ev = JSON.parse(chunk.slice(5).trim()); } catch (e) { continue; }
-          if (ev.type === 'delta') { text += ev.text; if (bub) { bub.innerHTML = md(text); if (box && box.scrollHeight - box.scrollTop - box.clientHeight < 160) box.scrollTop = box.scrollHeight; } }
-          else if (ev.type === 'done') final = ev;
+          if (ev.type === 'delta') { text += ev.text; if (bub) { bub.innerHTML = md(text); if (box && !userScrolled && box.scrollHeight - box.scrollTop - box.clientHeight < 160) box.scrollTop = box.scrollHeight; } }
+          else if (ev.type === 'done') { final = ev; if (ev.remaining != null) { left = ev.remaining; } }
           else if (ev.type === 'error') failed = true;
         }
       }
@@ -54417,7 +54418,7 @@ html.fos-theme-swap *, html.fos-theme-swap *::before, html.fos-theme-swap *::aft
     }
     var m = $('fai-mem-btn'); if (m) m.style.display = (avail === false || !isOn()) ? 'none' : '';
     if (st && !st.__base) st.__base = st.innerHTML;
-    if (st) st.innerHTML = isOn() && avail !== false ? '<i></i> Smart answers on · uses your FinanceOS records' : st.__base;
+    if (st) st.innerHTML = isOn() && avail !== false ? '<i></i> Smart on · ' + (left != null && limit ? esc(left + ' of ' + limit + ' smart answers left today') : 'uses a more advanced AI model') : st.__base;
   }
   function modal(inner) {
     var o = $('fai-smart-modal'); if (o) o.remove();
@@ -54426,15 +54427,19 @@ html.fos-theme-swap *, html.fos-theme-swap *::before, html.fos-theme-swap *::aft
     o.addEventListener('click', function (e) { if (e.target === o || e.target.closest('[data-x]')) o.remove(); });
     document.body.appendChild(o); return o;
   }
-  function consent() {
-    var o = modal('<h3>Turn on Smart answers?</h3>' +
-      '<p>Smart answers let Fin AI reply like a real advisor: it understands follow-ups, remembers your goals and explains things in plain words.</p>' +
-      '<p>Each time you ask, your question and a summary of your FinanceOS records (monthly totals, spending by category, your latest entries, loans, cards, investments, insurance, subscriptions, goals and budgets) are sent through FinanceOS’s server to an AI service to write the answer: <b>Groq</b>, or <b>Google Gemini</b> when Groq is busy. Each service handles what it receives under its own terms, and Google may use what its free service receives to improve its products. Don’t type card numbers, passwords or OTPs into the chat.</p>' +
-      '<p>You can turn this off any time with the <b>Smart</b> button. When it’s off, Fin AI works only on this device, as before.</p>' +
-      '<div class="fai-smart-acts"><button type="button" class="fai-hbtn" data-x>Not now</button><button type="button" class="fai-hbtn fai-smart-yes" id="fai-smart-yes">Turn on</button></div>');
-    $('fai-smart-yes').onclick = function () { lsSet(LS_ON, 'on'); o.remove(); syncBtn(); var i = $('finai-ask-input'); if (i) i.focus(); };
+  function turnOn() {
+    lsSet(LS_ON, 'on'); syncBtn();
+    var box = $('fai-thread');
+    if (box) {
+      var old = $('fai-smart-hi'); if (old) old.remove();
+      if (!box.querySelector('.fai-msg')) box.innerHTML = '';
+      box.insertAdjacentHTML('beforeend', '<div class="fai-msg ai" id="fai-smart-hi">' + AV + '<div class="fai-bub"><p><b><i class="fas fa-bolt" style="color:#fbbf24"></i> Smart answers are on.</b> Fin AI now uses a more advanced AI model to answer, understands follow-up questions and remembers your goals.</p><p class="fai-muted" id="fai-smart-left">' + creditsText() + '</p></div></div>');
+      box.scrollTop = box.scrollHeight;
+    }
+    checkAvail();
   }
-  function toggle() { if (isOn()) { lsSet(LS_ON, 'off'); syncBtn(); } else consent(); }
+  function creditsText() { return left != null && limit ? esc(left + ' of ' + limit + ' smart answers left today. They refill every day.') : 'Each person gets a daily number of smart answers. After that, Fin AI\u2019s built-in engine answers.'; }
+  function toggle() { if (isOn()) { lsSet(LS_ON, 'off'); var h = $('fai-smart-hi'); if (h) h.remove(); syncBtn(); } else turnOn(); }
   async function memory() {
     var o = modal('<h3>What Fin AI remembers</h3><div id="fai-mem-list"><p>Loading…</p></div>' +
       '<div class="fai-smart-acts"><button type="button" class="fai-hbtn" id="fai-mem-clear">Forget everything</button><button type="button" class="fai-hbtn fai-smart-yes" data-x>Done</button></div>');
@@ -54455,7 +54460,7 @@ html.fos-theme-swap *, html.fos-theme-swap *::before, html.fos-theme-swap *::aft
   function mountButtons() {
     var acts = document.querySelector('.fai-head-acts'); if (!acts || $('fai-smart-btn')) return;
     acts.insertAdjacentHTML('afterbegin',
-      '<button type="button" class="fai-hbtn fai-smart-btn" id="fai-smart-btn" title="Smart answers (AI)" aria-pressed="false"><i class="fas fa-bolt"></i><span>Smart: off</span></button>' +
+      '<button type="button" class="fai-hbtn fai-smart-btn" id="fai-smart-btn" title="Smart answers: a more advanced AI model" aria-pressed="false"><i class="fas fa-bolt"></i><span>Smart: off</span></button>' +
       '<button type="button" class="fai-hbtn" id="fai-mem-btn" title="What Fin AI remembers" style="display:none"><i class="fas fa-brain"></i><span>Memory</span></button>');
     $('fai-smart-btn').onclick = toggle; $('fai-mem-btn').onclick = memory;
     syncBtn();
@@ -54467,13 +54472,75 @@ html.fos-theme-swap *, html.fos-theme-swap *::before, html.fos-theme-swap *::aft
       if (r.status === 404) { avail = false; syncBtn(); return; }
       var j = await r.json();
       avail = !!(j && j.ok) ? true : (j && (j.reason === 'plan' || j.reason === 'not_configured')) ? false : avail;
+      if (j && j.ok && j.limit != null) { left = j.remaining; limit = j.limit; var cl = $('fai-smart-left'); if (cl) cl.textContent = left + ' of ' + limit + ' smart answers left today. They refill every day.'; }
     } catch (e) { }
     syncBtn();
+  }
+
+
+  /* ── purchase form inside the chat: "can I afford this purchase?" without a price, or "open the purchase form" ── */
+  var FORM_MARK = '<div class="fai-pf-slot"><button type="button" class="finai-chip fai-pf-open"><i class="fas fa-scale-balanced"></i> Open the purchase form</button></div>';
+  var FORM_RE = /\b(open|show|fill|give|bring)\b.{0,20}\b(purchase|affordability|buying)\s*(form|calculator|scenario)\b|^\s*(the\s+)?(purchase|affordability)\s*(form|calculator|scenario)\s*[.!?]*\s*$/i;
+  function wantsForm(html) { return /purchase form/i.test(String(html || '')); }
+  var pfN = 0;
+  function coarse() { try { return matchMedia('(pointer: coarse)').matches; } catch (e) { return false; } }
+  function openForm(slot) {
+    var box = $('fai-thread'); if (!box || typeof finaiScenarioFormHtml !== 'function') return false;
+    if (!slot) { var ss = box.querySelectorAll('.fai-pf-slot'); slot = ss[ss.length - 1]; }
+    if (!slot) {
+      if (!box.querySelector('.fai-msg')) box.innerHTML = '';
+      box.insertAdjacentHTML('beforeend', '<div class="fai-msg ai">' + AV + '<div class="fai-bub"><p>Fill in the purchase and I’ll tell you if you can afford it.</p>' + FORM_MARK + '</div></div>');
+      var s2 = box.querySelectorAll('.fai-pf-slot'); slot = s2[s2.length - 1];
+    }
+    box.querySelectorAll('.fai-pf-live').forEach(function (f) { f.remove(); });
+    box.querySelectorAll('.fai-pf-open').forEach(function (b) { b.style.display = ''; });
+    var x = 'faipf' + (++pfN), b = slot.querySelector('.fai-pf-open'); if (b) b.style.display = 'none';
+    var wrap = document.createElement('div'); wrap.className = 'fai-pf-live';
+    wrap.innerHTML = finaiScenarioFormHtml(x).replace('style="display:none"', '');
+    slot.appendChild(wrap);
+    requestAnimationFrame(function () {
+      var d = wrap.getBoundingClientRect().bottom - box.getBoundingClientRect().bottom + 12;
+      if (d > 0) { box.style.scrollBehavior = 'auto'; box.scrollTop += d; box.style.scrollBehavior = ''; }
+      if (!coarse()) { var p = $(x + '-sc-price'); if (p) p.focus({ preventScroll: true }); }
+    });
+    return true;
+  }
+  // every answer that asks for a price gets the form button, and the newest one opens straight away
+  var pushBase = window.finaiPushHistory;
+  if (typeof pushBase === 'function') {
+    window.finaiPushHistory = function (q, a) {
+      var add = wantsForm(a) && String(a).indexOf('fai-pf-slot') < 0 && !/^Purchase scenario:/.test(String(q || ''));
+      var r = pushBase.call(this, q, add ? a + FORM_MARK : a);
+      if (add || String(a).indexOf('fai-pf-slot') >= 0) setTimeout(function () { openForm(); }, 30);
+      return r;
+    };
+  }
+  var openBase = window.finaiOpenScenario;
+  window.finaiOpenScenario = function () {
+    var t = $('fai-thread');
+    if (t && t.offsetParent !== null && !(document.getElementById('liteai-ask-input') && document.getElementById('liteai-ask-input').offsetParent !== null)) return openForm();
+    if (typeof openBase === 'function') return openBase.apply(this, arguments);
+  };
+  document.addEventListener('click', function (e) {
+    var t = e.target && e.target.closest ? e.target.closest('#fai-thread .fai-pf-open, #fai-thread .finai-chip, #fai-thread a') : null;
+    if (!t) return;
+    var isOpen = t.classList.contains('fai-pf-open') || /purchase (form|scenario)/i.test(t.textContent || '');
+    if (!isOpen) return;
+    e.preventDefault(); e.stopPropagation();
+    var msg = t.closest('.fai-bub'), slot = msg && msg.querySelector('.fai-pf-slot');
+    if (!slot && msg) { msg.insertAdjacentHTML('beforeend', FORM_MARK); slot = msg.querySelector('.fai-pf-slot'); }
+    openForm(slot);
+  }, true);
+  function askForm(input, q) {
+    input.value = ''; try { input.dispatchEvent(new Event('input')); } catch (e) { }
+    finaiPushHistory(q, 'Sure. Fill in the purchase below and I’ll tell you if you can afford it. Nothing is saved to your records.' + FORM_MARK);
   }
 
   /* ── install ── */
   var baseAsk = window.finaiAsk;
   window.finaiAsk = function () {
+    var inp = $('finai-ask-input'), q = inp ? inp.value.trim() : '';
+    if (q && !busy && FORM_RE.test(q)) return askForm(inp, q);
     if (!isOn() || avail === false || busy) { if (busy) return; return baseAsk.apply(this, arguments); }
     smartAsk();
   };
@@ -54481,7 +54548,12 @@ html.fos-theme-swap *, html.fos-theme-swap *::before, html.fos-theme-swap *::aft
     var nc = window.faiNewChat; if (typeof nc !== 'function' || nc.__smart) return;
     var w = function () { newConv(); return nc.apply(this, arguments); }; w.__smart = 1; window.faiNewChat = w;
   }
-  function boot() { mountButtons(); wrapNewChat(); setTimeout(checkAvail, 3000); }
+  function watchScroll() {
+    var box = $('fai-thread'); if (!box || box.__fsw) return; box.__fsw = 1;
+    ['wheel', 'touchmove'].forEach(function (n) { box.addEventListener(n, function () { if (busy) userScrolled = true; }, { passive: true }); });
+    box.addEventListener('scroll', function () { if (busy && box.scrollHeight - box.scrollTop - box.clientHeight < 40) userScrolled = false; }, { passive: true });
+  }
+  function boot() { mountButtons(); wrapNewChat(); watchScroll(); setTimeout(checkAvail, 3000); }
   window.addEventListener('load', function () { setTimeout(boot, 50); });
   if (document.readyState === 'complete') setTimeout(boot, 50);
   window.fosSmartAi = { context: buildContext, md: md, engineNote: engineNote, status: checkAvail };
@@ -54504,6 +54576,260 @@ body.light-mode .fai-smart-card { background:#fff; color:#0f172a; border-color:#
 .fai-mem { list-style:none; margin:0; padding:0; } .fai-mem li { display:flex; gap:10px; align-items:flex-start; justify-content:space-between; padding:8px 0; border-bottom:1px solid rgba(127,127,127,.18); }
 .fai-mem-del { background:none; border:0; color:inherit; opacity:.6; cursor:pointer; padding:2px 6px; } .fai-mem-del:hover { opacity:1; }
 @media (max-width:640px) { .fai-smart-btn span, #fai-mem-btn span { display:none; } }
+
+.fai-pf-slot { margin-top:10px; }
+.fai-pf-live .finai-pvform { margin:0; padding:12px; border-radius:12px; background:rgba(0,0,0,.16); border:1px solid rgba(var(--brand-rgb),.25); }
+body.light-mode .fai-pf-live .finai-pvform { background:#fff; }
+.fai-pf-live .finai-goal-grid { display:grid; grid-template-columns:1fr 1fr; gap:8px; }
+.fai-pf-live .finai-goal-grid .full { grid-column:1 / -1; }
+.fai-pf-live .finai-ask-input { width:100%; min-width:0; box-sizing:border-box; }
+.fai-pf-live .finai-goal-form-row { display:flex; flex-wrap:wrap; align-items:center; gap:8px; margin-top:10px; }
+.fai-msg.ai:has(.fai-pf-live) { max-width:min(780px, 100%); }
+.fai-msg.ai:has(.fai-pf-live) .fai-bub { flex:1; }
+@media (max-width:600px) { .fai-pf-live .finai-ask-input { font-size:16px !important; } }
+.fai-thread { -webkit-overflow-scrolling:touch; touch-action:pan-y; }
 </style>
+<style id="fos-mobile-fix-css">
+/* ── Phones and installed app: the page always covers the whole screen (no black strip at the bottom) ──
+   The body is pinned to all four edges of the screen instead of being given a height worked out from the
+   window size. That height could be stale (keyboard closing, app starting, screen rotating) and left a strip. */
+@media (max-width:900px), (display-mode: standalone) and (pointer: coarse) {
+  html { height:100% !important; overflow:hidden !important; background-color:#050708; }
+  html body { position:fixed !important; top:0 !important; right:0 !important; bottom:0 !important; left:0 !important;
+    width:auto !important; height:auto !important; min-height:0 !important; max-height:none !important; margin:0 !important; overflow:hidden !important; }
+  /* keyboard open: the screen above the keyboard is the whole app, like WhatsApp */
+  html.fos-kb body { bottom:auto !important; height:var(--fos-kb-h, 100%) !important; }
+}
+html:has(body.light-mode) { background-color:#f4f6f8; }
+
+/* ── Fin AI on phones: the chat fills the screen, the message box sits at the bottom ── */
+@media (max-width:900px) {
+  body[data-fos-view="finai"] .main > .scroll-area { display:flex; flex-direction:column; overflow:hidden !important; padding-top:.6rem !important; padding-bottom:calc(8px + env(safe-area-inset-bottom, 0px)) !important; }
+  body[data-fos-view="finai"] #view-finai.active { flex:1 1 auto; min-height:0 !important; display:flex !important; flex-direction:column; animation:none; }
+  body[data-fos-view="finai"] #view-finai .fai-page { flex:1 1 auto; min-height:0; }
+  body[data-fos-view="finai"] #view-finai .fai-chat { flex:1 1 auto; min-height:0; display:flex; flex-direction:column; }
+  body[data-fos-view="finai"] #view-finai .fai-chat > .fai-body { flex:1 1 auto; min-height:0; }
+  html body[data-fos-view="finai"] #view-finai .fai-chat .fai-body-in { height:100% !important; min-height:0 !important; }
+  body[data-fos-view="finai"] #view-finai .fai-chat .fai-collapse { display:none !important; }
+  body[data-fos-view="finai"] .mobile-fab { display:none !important; }
+  html.fos-kb body[data-fos-view="finai"] #view-finai .fai-fine,
+  html.fos-kb body[data-fos-view="finai"] #view-finai .fai-chips { display:none !important; }
+  html.fos-kb body[data-fos-view="finai"] .main > .scroll-area { padding-bottom:6px !important; }
+}
+/* the chat is the only thing on the Fin AI page now */
+#view-finai .fai-plan { display:none !important; }
+#view-networth .fai-plan.fos-nw-plan { margin-top:var(--fxl-gap, 20px); }
+.fos-fast-offer { position:fixed; left:12px; right:12px; bottom:calc(14px + env(safe-area-inset-bottom, 0px)); z-index:100001; max-width:440px; margin:0 auto;
+  background:#0d1416; color:#e8f5f2; border:1px solid rgba(32,205,181,.35); border-radius:16px; padding:14px 14px 12px; box-shadow:0 18px 50px rgba(0,0,0,.5); font:500 .86rem/1.5 'DM Sans',sans-serif; }
+body.light-mode .fos-fast-offer { background:#fff; color:#0f1d1a; }
+.fos-fast-offer b { display:block; margin-bottom:4px; }
+.fos-fast-offer div { display:flex; justify-content:flex-end; gap:8px; margin-top:10px; }
+.fos-fast-offer button { border:0; border-radius:10px; padding:8px 14px; font:700 .84rem 'DM Sans',sans-serif; cursor:pointer; background:linear-gradient(135deg,#20CDB5,#0F9F86); color:#04130f; }
+.fos-fast-offer button.o { background:transparent; color:inherit; border:1px solid rgba(127,127,127,.35); }
+</style>
+<script id="fos-mobile-fix">
+/* ── Phones: keyboard like WhatsApp, full-screen Fin AI chat, Planning tools on Net Worth, direct Face ID / fingerprint ── */
+(function () {
+  var root = document.documentElement, $ = function (id) { return document.getElementById(id); };
+  var ua = navigator.userAgent || '';
+  var iOS = /iPad|iPhone|iPod/.test(ua) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1), android = /Android/i.test(ua);
+  function ls(k) { try { return localStorage.getItem(k); } catch (e) { return null; } }
+  function lsSet(k, v) { try { if (v == null) localStorage.removeItem(k); else localStorage.setItem(k, v); } catch (e) { } }
+  function phone() { try { return matchMedia('(max-width:900px)').matches || (matchMedia('(display-mode: standalone)').matches && matchMedia('(pointer: coarse)').matches); } catch (e) { return false; } }
+
+  /* ════════ keyboard ════════ */
+  var TEXT = /^(text|search|email|number|tel|url|password|date|datetime-local|month|time|week)$/i;
+  function isField(el) {
+    if (!el || el === document.body) return false;
+    if (el.tagName === 'TEXTAREA' || el.isContentEditable) return true;
+    return el.tagName === 'INPUT' && TEXT.test(el.type || 'text');
+  }
+  var vv = window.visualViewport, kbTimer = 0;
+  function fitKb() {
+    if (!root.classList.contains('fos-kb')) return;
+    var h = vv ? vv.height : window.innerHeight;
+    root.style.setProperty('--fos-kb-h', Math.round(h) + 'px');
+    // iPhone slides the whole page up to show the field: put it back so the header stays on screen
+    if (window.scrollY || (vv && vv.offsetTop)) window.scrollTo(0, 0);
+    var a = document.activeElement;
+    if (a && a.id === 'finai-ask-input') { var t = $('fai-thread'); if (t && t.__nearEnd) t.scrollTop = t.scrollHeight; }
+  }
+  function kbOn() {
+    if (!phone()) return;
+    var t = $('fai-thread'); if (t) t.__nearEnd = t.scrollHeight - t.scrollTop - t.clientHeight < 80;
+    root.classList.add('fos-kb'); fitKb(); setTimeout(fitKb, 120); setTimeout(fitKb, 320);
+  }
+  function kbOff() {
+    clearTimeout(kbTimer);
+    kbTimer = setTimeout(function () {
+      if (isField(document.activeElement)) return;
+      root.classList.remove('fos-kb'); root.style.removeProperty('--fos-kb-h');
+      if (window.scrollY) window.scrollTo(0, 0);
+    }, 120);
+  }
+  document.addEventListener('focusin', function (e) { if (isField(e.target)) { clearTimeout(kbTimer); kbOn(); } }, true);
+  document.addEventListener('focusout', kbOff, true);
+  if (vv) { vv.addEventListener('resize', fitKb); vv.addEventListener('scroll', fitKb); }
+  window.addEventListener('resize', fitKb);
+  // tapping anywhere outside the message box closes the keyboard (like WhatsApp)
+  document.addEventListener('pointerdown', function (e) {
+    var a = document.activeElement; if (!phone() || !isField(a)) return;
+    var v = $('view-finai'); if (!v || !v.contains(a)) return;
+    var t = e.target; if (!t || !t.closest) return;
+    if (t.closest('input, textarea, select, button, a, label, [contenteditable="true"]')) return;
+    if (a.id === 'finai-ask-input' && t.closest('.fai-compose')) return;
+    a.blur();
+  }, true);
+
+  /* ════════ Planning tools (Debt Command Center + Goals) live on Net Worth ════════ */
+  function movePlan() {
+    var plan = document.querySelector('section.fai-plan'), nw = $('view-networth'); if (!plan || !nw) return null;
+    if (plan.parentElement !== nw) { nw.appendChild(plan); }
+    plan.classList.add('fos-nw-plan');
+    var ok = true; try { if (typeof fosPlanAllows === 'function') ok = fosPlanAllows('finai') !== false; } catch (e) { }
+    plan.style.display = ok ? '' : 'none';
+    return ok ? plan : null;
+  }
+  function drawPlan() {
+    if (!movePlan()) return;
+    try { finaiRenderDebt(); } catch (e) { console.error('Debt Command Center render failed:', e); }
+    try { finaiRenderGoals(); } catch (e) { console.error('Goals render failed:', e); }
+  }
+  function wrapNetWorth() {
+    var base = window.renderNetWorth; if (typeof base !== 'function' || base.__plan) return;
+    var w = function () { var r = base.apply(this, arguments); drawPlan(); return r; }; w.__plan = 1;
+    window.renderNetWorth = w;
+  }
+
+  /* ════════ Passkey: straight to Face ID / fingerprint ════════ */
+  var CRED = 'fos_passkey_cred_id', lastId = null;
+  function b64u(buf) { var b = new Uint8Array(buf), s = ''; for (var i = 0; i < b.length; i++) s += String.fromCharCode(b[i]); return btoa(s).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, ''); }
+  function unb64u(s) { s = String(s).replace(/-/g, '+').replace(/_/g, '/'); while (s.length % 4) s += '='; var r = atob(s), a = new Uint8Array(r.length); for (var i = 0; i < r.length; i++) a[i] = r.charCodeAt(i); return a.buffer; }
+  function parseOpts(o) {
+    if (window.PublicKeyCredential && typeof PublicKeyCredential.parseRequestOptionsFromJSON === 'function') { try { return PublicKeyCredential.parseRequestOptionsFromJSON(o); } catch (e) { } }
+    var r = Object.assign({}, o); r.challenge = unb64u(o.challenge);
+    if (o.allowCredentials) r.allowCredentials = o.allowCredentials.map(function (c) { return Object.assign({}, c, { id: unb64u(c.id) }); });
+    return r;
+  }
+  function serialize(c) {
+    if (c && typeof c.toJSON === 'function') { try { return c.toJSON(); } catch (e) { } }
+    var r = c.response;
+    return { id: c.id, rawId: c.id, type: 'public-key', clientExtensionResults: c.getClientExtensionResults ? c.getClientExtensionResults() : {}, authenticatorAttachment: c.authenticatorAttachment || undefined,
+      response: { authenticatorData: b64u(r.authenticatorData), clientDataJSON: b64u(r.clientDataJSON), signature: b64u(r.signature), userHandle: r.userHandle ? b64u(r.userHandle) : undefined } };
+  }
+  // remember which passkey this device used, so next time the system goes straight to the face / fingerprint check
+  if (navigator.credentials && navigator.credentials.get) {
+    var nativeGet = navigator.credentials.get.bind(navigator.credentials);
+    navigator.credentials.get = function (opts) {
+      return nativeGet(opts).then(function (c) { try { if (c && c.id && opts && opts.publicKey) lastId = c.id; } catch (e) { } return c; });
+    };
+  }
+  async function directSignIn() {
+    var id = ls(CRED); if (!id || typeof sb === 'undefined' || !sb.auth || !sb.auth.passkey) return null;
+    var st = await sb.auth.passkey.startAuthentication({ options: {} });
+    if (st.error || !st.data || !st.data.options) return null;             // server side not ready: use the normal flow
+    var o = JSON.parse(JSON.stringify(st.data.options));
+    o.allowCredentials = [{ id: id, type: 'public-key', transports: ['internal'] }];
+    o.userVerification = 'required'; o.hints = ['client-device'];
+    var cred = await navigator.credentials.get({ publicKey: parseOpts(o) });  // throws when cancelled
+    if (!cred) return null;
+    var v = await sb.auth.passkey.verifyAuthentication({ challengeId: st.data.challenge_id, credential: serialize(cred) });
+    if (v.error) { if (/not found|unknown|invalid credential/i.test(v.error.message || '')) lsSet(CRED, null); throw v.error; }
+    return v.data;
+  }
+  function wrapPasskey() {
+    var base = window.handlePasskeyLogin; if (typeof base !== 'function' || base.__direct) return;
+    var w = async function (silent) {
+      var errEl = $('login-error'), btn = $('passkey-login-btn'), lab = $('passkey-login-btn-label');
+      if (ls(CRED)) {
+        if (errEl) errEl.style.display = 'none';
+        if (btn) btn.disabled = true; if (lab) lab.textContent = iOS ? 'Waiting for Face ID…' : 'Waiting for fingerprint / face…';
+        var cancelled = false, data = null;
+        try { data = await directSignIn(); }
+        catch (err) {
+          cancelled = err && (err.name === 'NotAllowedError' || err.name === 'AbortError');
+          console.warn('Direct passkey sign-in did not finish:', err);
+          if (cancelled && !silent && errEl) { errEl.textContent = '❌ Face ID / fingerprint was cancelled. Tap the button to try again, or sign in with your password.'; errEl.style.display = 'block'; }
+          if (!cancelled) lsSet(CRED, null);
+        } finally { if (btn) btn.disabled = false; label(); }
+        if (data && data.session) {
+          localStorage.setItem('fos_last_login_method', 'passkey');
+          try { _fosPasskeySignInAt = Date.now(); } catch (e) { }
+          await onCloudSignedIn(data.session);
+          if (typeof passAppLockGate === 'function') await passAppLockGate();
+          $('login-overlay').classList.add('hidden');
+          return true;
+        }
+        if (cancelled) return false;
+      }
+      lastId = null;
+      var ok = await base.apply(this, arguments);
+      if (ok && lastId) lsSet(CRED, lastId);
+      label();
+      return ok;
+    };
+    w.__direct = 1; window.handlePasskeyLogin = w;
+  }
+  function label() { var lab = $('passkey-login-btn-label'); if (lab && iOS && ls(CRED)) lab.textContent = 'Unlock with Face ID'; }
+
+  // Device lock: say it is this phone's own screen lock, so the system skips the "choose a passkey" sheet
+  function wrapDeviceLock() {
+    if (typeof window._verifyDeviceLockOnce !== 'function' || window._verifyDeviceLockOnce.__direct) return;
+    var v = async function () {
+      var credId = ls('fos_biometric_cred_id'); if (!credId) return true;
+      try {
+        var a = await navigator.credentials.get({ publicKey: {
+          challenge: crypto.getRandomValues(new Uint8Array(32)),
+          allowCredentials: [{ id: dlB64uToBuf(credId), type: 'public-key', transports: ['internal'] }],
+          userVerification: 'required', hints: ['client-device'], timeout: 60000 } });
+        if (a && android && !ls('fos_biometric_fast')) setTimeout(offerFaster, 900);
+        return !!a;
+      } catch (err) { console.error('Device lock verification failed:', err); return false; }
+    };
+    v.__direct = 1; window._verifyDeviceLockOnce = v;
+    if (typeof window.enableDeviceLock === 'function' && !window.enableDeviceLock.__direct) {
+      var en = async function () { var ok = await makeLockKey(true); if (ok) { try { renderDeviceLockSettings(); pushDeviceLockFlagsToCloud(); } catch (e) { } showDeviceLockToast('Face ID / fingerprint lock is on', 'success'); } };
+      en.__direct = 1; window.enableDeviceLock = en;
+    }
+  }
+  // a device-only key (not a synced passkey): Android then shows the fingerprint / face check straight away
+  async function makeLockKey(report) {
+    try {
+      if (!(await isPlatformAuthAvailable())) { if (report) showDeviceLockToast("This device doesn't have Face ID, fingerprint or a screen lock set up.", 'error'); return false; }
+      var u = {}; try { u = JSON.parse(ls('fos_current_user') || '{}'); } catch (e) { }
+      var cred = await navigator.credentials.create({ publicKey: {
+        challenge: crypto.getRandomValues(new Uint8Array(32)), rp: { name: 'FinanceOS' },
+        user: { id: crypto.getRandomValues(new Uint8Array(16)), name: u.identifier || 'financeos-user', displayName: 'FinanceOS unlock (this device)' },
+        pubKeyCredParams: [{ alg: -7, type: 'public-key' }, { alg: -257, type: 'public-key' }],
+        authenticatorSelection: { authenticatorAttachment: 'platform', userVerification: 'required', residentKey: 'discouraged', requireResidentKey: false },
+        hints: ['client-device'], timeout: 60000 } });
+      if (!cred) throw new Error('Setup was cancelled.');
+      localStorage.setItem('fos_biometric_cred_id', dlBufToB64u(cred.rawId));
+      localStorage.setItem('fos_biometric_enabled', 'true');
+      lsSet('fos_biometric_fast', '1');
+      return true;
+    } catch (err) {
+      console.error('Device lock setup failed:', err);
+      if (report) showDeviceLockToast('Could not turn on Face ID / fingerprint: ' + (err.message || 'cancelled'), 'error');
+      return false;
+    }
+  }
+  function offerFaster() {
+    if (document.querySelector('.fos-fast-offer') || ls('fos_biometric_fast')) return;
+    var d = document.createElement('div'); d.className = 'fos-fast-offer'; d.setAttribute('role', 'dialog');
+    d.innerHTML = '<b>Unlock in one step?</b>FinanceOS can skip the “Use passkey” screen on this phone and go straight to your fingerprint or face. It takes one quick check now.' +
+      '<div><button type="button" class="o" data-n>Not now</button><button type="button" data-y>Make it faster</button></div>';
+    d.addEventListener('click', async function (e) {
+      if (e.target.closest('[data-n]')) { lsSet('fos_biometric_fast', 'skip'); d.remove(); }
+      else if (e.target.closest('[data-y]')) { d.remove(); if (await makeLockKey(true)) { try { renderDeviceLockSettings(); } catch (x) { } showDeviceLockToast('Done. Next time it goes straight to your fingerprint or face.', 'success'); } }
+    });
+    document.body.appendChild(d);
+  }
+
+  function boot() { wrapNetWorth(); movePlan(); wrapPasskey(); wrapDeviceLock(); label(); }
+  boot();
+  window.addEventListener('load', function () { setTimeout(boot, 60); });
+})();
+</script>
 </body>
 </html>
