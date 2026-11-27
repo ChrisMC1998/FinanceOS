@@ -11,7 +11,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="fos-integrity" content="f3229eb2ea6d2be929c11b3f4a32628e4b5ca07df8c4a6e30f7fff3de7b259ed">
+<meta name="fos-integrity" content="071c7bda7b4c42c0223d1959547eec59f3333881bc23ccddf3c5b8663cc35d24">
 <script id="fos-tamper-guard">
 /*! \u00a9 2026 MC Enterprise. Integrity check: detects a copy of this file that no longer matches the
     official release and locks it with a notice. This checks the FILE as served, not live memory --
@@ -54409,16 +54409,15 @@ html.fos-theme-swap *, html.fos-theme-swap *::before, html.fos-theme-swap *::aft
 
   /* ── header buttons: Smart on/off and Memory ── */
   function syncBtn() {
-    var b = $('fai-smart-btn'), st = document.querySelector('.fai-status');
+    var b = $('fai-smart-btn'), st = document.querySelector('.fai-chat .fai-status');
     if (b) {
       b.style.display = avail === false ? 'none' : '';
       b.classList.toggle('on', isOn());
-      b.setAttribute('aria-pressed', isOn() ? 'true' : 'false');
-      b.querySelector('span').textContent = isOn() ? 'Smart: on' : 'Smart: off';
+      b.setAttribute('aria-checked', isOn() ? 'true' : 'false');
     }
     var m = $('fai-mem-btn'); if (m) m.style.display = (avail === false || !isOn()) ? 'none' : '';
     if (st && !st.__base) st.__base = st.innerHTML;
-    if (st) st.innerHTML = isOn() && avail !== false ? '<i></i> Smart on · ' + (left != null && limit ? esc(left + ' of ' + limit + ' smart answers left today') : 'uses a more advanced AI model') : st.__base;
+    if (st) st.innerHTML = isOn() && avail !== false ? '<i></i> Smart on · ' + (left != null && limit ? esc(left + ' of ' + limit + ' credits left today') : 'uses daily credits') : st.__base;
   }
   function modal(inner) {
     var o = $('fai-smart-modal'); if (o) o.remove();
@@ -54433,12 +54432,12 @@ html.fos-theme-swap *, html.fos-theme-swap *::before, html.fos-theme-swap *::aft
     if (box) {
       var old = $('fai-smart-hi'); if (old) old.remove();
       if (!box.querySelector('.fai-msg')) box.innerHTML = '';
-      box.insertAdjacentHTML('beforeend', '<div class="fai-msg ai" id="fai-smart-hi">' + AV + '<div class="fai-bub"><p><b><i class="fas fa-bolt" style="color:#fbbf24"></i> Smart answers are on.</b> Fin AI now uses a more advanced AI model to answer, understands follow-up questions and remembers your goals.</p><p class="fai-muted" id="fai-smart-left">' + creditsText() + '</p></div></div>');
+      box.insertAdjacentHTML('beforeend', '<div class="fai-msg ai" id="fai-smart-hi">' + AV + '<div class="fai-bub"><p><b>Smart mode is on.</b> Smarter answers that follow up and remember your goals. Each answer uses one credit.</p><p class="fai-muted" id="fai-smart-left">' + creditsText() + '</p></div></div>');
       box.scrollTop = box.scrollHeight;
     }
     checkAvail();
   }
-  function creditsText() { return left != null && limit ? esc(left + ' of ' + limit + ' smart answers left today. They refill every day.') : 'Each person gets a daily number of smart answers. After that, Fin AI\u2019s built-in engine answers.'; }
+  function creditsText() { return (left != null && limit ? esc(left + ' of ' + limit + ' credits left today.') : 'You get a set number of credits each day.') + ' Credits refill daily, so use them wisely.'; }
   function toggle() { if (isOn()) { lsSet(LS_ON, 'off'); var h = $('fai-smart-hi'); if (h) h.remove(); syncBtn(); } else turnOn(); }
   async function memory() {
     var o = modal('<h3>What Fin AI remembers</h3><div id="fai-mem-list"><p>Loading…</p></div>' +
@@ -54458,9 +54457,9 @@ html.fos-theme-swap *, html.fos-theme-swap *::before, html.fos-theme-swap *::aft
     load();
   }
   function mountButtons() {
-    var acts = document.querySelector('.fai-head-acts'); if (!acts || $('fai-smart-btn')) return;
+    var acts = document.querySelector('.fai-chat .fai-head-acts'); if (!acts || $('fai-smart-btn')) return;
     acts.insertAdjacentHTML('afterbegin',
-      '<button type="button" class="fai-hbtn fai-smart-btn" id="fai-smart-btn" title="Smart answers: a more advanced AI model" aria-pressed="false"><i class="fas fa-bolt"></i><span>Smart: off</span></button>' +
+      '<button type="button" class="fai-smart-tg" id="fai-smart-btn" role="switch" aria-checked="false" title="Smart mode: smarter answers, uses daily credits"><span class="fai-smart-lb">Smart</span><span class="fai-smart-sw" aria-hidden="true"><i></i></span></button>' +
       '<button type="button" class="fai-hbtn" id="fai-mem-btn" title="What Fin AI remembers" style="display:none"><i class="fas fa-brain"></i><span>Memory</span></button>');
     $('fai-smart-btn').onclick = toggle; $('fai-mem-btn').onclick = memory;
     syncBtn();
@@ -54469,10 +54468,10 @@ html.fos-theme-swap *, html.fos-theme-swap *::before, html.fos-theme-swap *::aft
     var tk = await token(); if (!tk) return;
     try {
       var r = await fetch(endpoint(), { method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + tk, apikey: SUPABASE_ANON_KEY }, body: JSON.stringify({ action: 'status', tz_offset: new Date().getTimezoneOffset() }) });
-      if (r.status === 404) { avail = false; syncBtn(); return; }
+      if (r.status === 404) { syncBtn(); return; }      // function not deployed yet: keep the switch, answers fall back to the built-in engine
       var j = await r.json();
-      avail = !!(j && j.ok) ? true : (j && (j.reason === 'plan' || j.reason === 'not_configured')) ? false : avail;
-      if (j && j.ok && j.limit != null) { left = j.remaining; limit = j.limit; var cl = $('fai-smart-left'); if (cl) cl.textContent = left + ' of ' + limit + ' smart answers left today. They refill every day.'; }
+      avail = !!(j && j.ok) ? true : (j && j.reason === 'plan') ? false : avail;   // only a plan without Fin AI hides the switch
+      if (j && j.ok && j.limit != null) { left = j.remaining; limit = j.limit; var cl = $('fai-smart-left'); if (cl) cl.textContent = creditsText(); }
     } catch (e) { }
     syncBtn();
   }
@@ -54560,8 +54559,14 @@ html.fos-theme-swap *, html.fos-theme-swap *::before, html.fos-theme-swap *::aft
 })();
 </script>
 <style id="fos-finai-smart-css">
-.fai-smart-btn.on { background:rgba(var(--brand-rgb),.16); border-color:rgba(var(--brand-rgb),.5); }
-.fai-smart-btn.on i { color:#fbbf24; }
+.fai-smart-tg { display:inline-flex; align-items:center; gap:8px; height:34px; padding:0 10px 0 12px; border-radius:999px; cursor:pointer; flex-shrink:0;
+  background:rgba(255,255,255,.04); border:1px solid rgba(180,220,218,.16); color:var(--text-main); font:700 .78rem 'DM Sans',sans-serif; }
+body.light-mode .fai-smart-tg { background:#f6f8fa; border-color:rgba(15,23,42,.12); }
+.fai-smart-sw { position:relative; width:34px; height:20px; border-radius:999px; background:rgba(148,163,184,.35); transition:background .2s; }
+.fai-smart-sw i { position:absolute; top:2px; left:2px; width:16px; height:16px; border-radius:50%; background:#fff; box-shadow:0 1px 3px rgba(0,0,0,.35); transition:transform .2s; }
+.fai-smart-tg.on .fai-smart-sw { background:rgb(var(--brand-rgb)); }
+.fai-smart-tg.on .fai-smart-sw i { transform:translateX(14px); }
+.fai-smart-tg:focus-visible { outline:2px solid rgb(var(--brand-rgb)); outline-offset:2px; }
 .fai-smart-ans p { margin:0 0 8px; } .fai-smart-ans p:last-child { margin-bottom:0; }
 .fai-smart-ans ul, .fai-smart-ans ol { margin:4px 0 8px; padding-left:20px; } .fai-smart-ans li { margin:3px 0; }
 .fai-smart-ans code { font-family:'DM Mono',monospace; font-size:.9em; }
@@ -54575,7 +54580,7 @@ body.light-mode .fai-smart-card { background:#fff; color:#0f172a; border-color:#
 .fai-smart-yes { background:rgba(var(--brand-rgb),.85) !important; color:#fff !important; border-color:transparent !important; }
 .fai-mem { list-style:none; margin:0; padding:0; } .fai-mem li { display:flex; gap:10px; align-items:flex-start; justify-content:space-between; padding:8px 0; border-bottom:1px solid rgba(127,127,127,.18); }
 .fai-mem-del { background:none; border:0; color:inherit; opacity:.6; cursor:pointer; padding:2px 6px; } .fai-mem-del:hover { opacity:1; }
-@media (max-width:640px) { .fai-smart-btn span, #fai-mem-btn span { display:none; } }
+@media (max-width:640px) { #fai-mem-btn span { display:none; } .fai-smart-tg { padding:0 8px 0 10px; gap:6px; } }
 
 .fai-pf-slot { margin-top:10px; }
 .fai-pf-live .finai-pvform { margin:0; padding:12px; border-radius:12px; background:rgba(0,0,0,.16); border:1px solid rgba(var(--brand-rgb),.25); }
@@ -54597,24 +54602,31 @@ body.light-mode .fai-pf-live .finai-pvform { background:#fff; }
   html { height:100% !important; overflow:hidden !important; background-color:#050708; }
   html body { position:fixed !important; top:0 !important; right:0 !important; bottom:0 !important; left:0 !important;
     width:auto !important; height:auto !important; min-height:0 !important; max-height:none !important; margin:0 !important; overflow:hidden !important; }
-  /* keyboard open: the screen above the keyboard is the whole app, like WhatsApp */
-  html.fos-kb body { bottom:auto !important; height:var(--fos-kb-h, 100%) !important; }
+  /* the bottom safe area (iPhone home bar, Android gesture bar) is filled by the page itself, never an empty band */
+  html body .main { padding-bottom:0 !important; }
+  html body .main > .scroll-area { padding-bottom:calc(1rem + env(safe-area-inset-bottom, 0px)) !important; }
+  html body:has(.mobile-fab) .main > .scroll-area { padding-bottom:calc(5.5rem + env(safe-area-inset-bottom, 0px)) !important; }
 }
+/* iPhone app and keyboard: an exact height set from the real screen (see the script below) */
+html.fos-h, html.fos-h body { height:var(--fos-h) !important; }
+html.fos-h body { bottom:auto !important; }
 html:has(body.light-mode) { background-color:#f4f6f8; }
 
-/* ── Fin AI on phones: the chat fills the screen, the message box sits at the bottom ── */
+/* ── Fin AI on every screen: the chat fills the page, the message box sits at the bottom, the chat scrolls ── */
+body[data-fos-view="finai"] .main > .scroll-area { display:flex; flex-direction:column; overflow:hidden !important; }
+body[data-fos-view="finai"] #view-finai.active { flex:1 1 auto; min-height:0 !important; display:flex !important; flex-direction:column; animation:none; }
+body[data-fos-view="finai"] #view-finai .fai-page { flex:1 1 auto; min-height:0; }
+body[data-fos-view="finai"] #view-finai .fai-chat { flex:1 1 auto; min-height:0; display:flex; flex-direction:column; }
+body[data-fos-view="finai"] #view-finai .fai-chat > .fai-body { flex:1 1 auto; min-height:0; }
+html body[data-fos-view="finai"] #view-finai .fai-chat .fai-body-in { height:100% !important; min-height:0 !important; max-height:none !important; }
+body[data-fos-view="finai"] #view-finai .fai-chat .fai-collapse { display:none !important; }
+body[data-fos-view="finai"] #view-finai .fai-thread { overflow-y:auto !important; overscroll-behavior:contain; }
 @media (max-width:900px) {
-  body[data-fos-view="finai"] .main > .scroll-area { display:flex; flex-direction:column; overflow:hidden !important; padding-top:.6rem !important; padding-bottom:calc(8px + env(safe-area-inset-bottom, 0px)) !important; }
-  body[data-fos-view="finai"] #view-finai.active { flex:1 1 auto; min-height:0 !important; display:flex !important; flex-direction:column; animation:none; }
-  body[data-fos-view="finai"] #view-finai .fai-page { flex:1 1 auto; min-height:0; }
-  body[data-fos-view="finai"] #view-finai .fai-chat { flex:1 1 auto; min-height:0; display:flex; flex-direction:column; }
-  body[data-fos-view="finai"] #view-finai .fai-chat > .fai-body { flex:1 1 auto; min-height:0; }
-  html body[data-fos-view="finai"] #view-finai .fai-chat .fai-body-in { height:100% !important; min-height:0 !important; }
-  body[data-fos-view="finai"] #view-finai .fai-chat .fai-collapse { display:none !important; }
+  html body[data-fos-view="finai"] .main > .scroll-area { padding-top:.6rem !important; padding-bottom:calc(8px + env(safe-area-inset-bottom, 0px)) !important; }
+  html.fos-kb body[data-fos-view="finai"] .main > .scroll-area { padding-bottom:6px !important; }
   body[data-fos-view="finai"] .mobile-fab { display:none !important; }
   html.fos-kb body[data-fos-view="finai"] #view-finai .fai-fine,
   html.fos-kb body[data-fos-view="finai"] #view-finai .fai-chips { display:none !important; }
-  html.fos-kb body[data-fos-view="finai"] .main > .scroll-area { padding-bottom:6px !important; }
 }
 /* the chat is the only thing on the Fin AI page now */
 #view-finai .fai-plan { display:none !important; }
@@ -54637,40 +54649,50 @@ body.light-mode .fos-fast-offer { background:#fff; color:#0f1d1a; }
   function lsSet(k, v) { try { if (v == null) localStorage.removeItem(k); else localStorage.setItem(k, v); } catch (e) { } }
   function phone() { try { return matchMedia('(max-width:900px)').matches || (matchMedia('(display-mode: standalone)').matches && matchMedia('(pointer: coarse)').matches); } catch (e) { return false; } }
 
-  /* ════════ keyboard ════════ */
+  /* ════════ screen height and keyboard ════════
+     Android: the browser resizes the page itself when the keyboard opens (interactive-widget=resizes-content)
+     and the body is pinned to the screen edges, so nothing needs measuring.
+     iPhone: the installed app can report a height shorter than the screen (that left the black strip), and
+     the keyboard only covers the page. So on iPhone the height is set from the real screen size, and from the
+     space above the keyboard while it is open. Everything is measured again whenever anything changes. */
   var TEXT = /^(text|search|email|number|tel|url|password|date|datetime-local|month|time|week)$/i;
   function isField(el) {
     if (!el || el === document.body) return false;
     if (el.tagName === 'TEXTAREA' || el.isContentEditable) return true;
     return el.tagName === 'INPUT' && TEXT.test(el.type || 'text');
   }
-  var vv = window.visualViewport, kbTimer = 0;
-  function fitKb() {
-    if (!root.classList.contains('fos-kb')) return;
-    var h = vv ? vv.height : window.innerHeight;
-    root.style.setProperty('--fos-kb-h', Math.round(h) + 'px');
-    // iPhone slides the whole page up to show the field: put it back so the header stays on screen
-    if (window.scrollY || (vv && vv.offsetTop)) window.scrollTo(0, 0);
+  var vv = window.visualViewport, iPhone = /iPhone|iPod/.test(ua);
+  function iosApp() { return iPhone && (navigator.standalone === true || matchMedia('(display-mode: standalone)').matches); }
+  function screenH() {
+    var w = screen.width, h = screen.height, land = window.innerWidth > window.innerHeight;
+    return land ? Math.min(w, h) : Math.max(w, h);
+  }
+  var fullSeen = 0;
+  function measure() {
+    var ih = window.innerHeight, vh = vv ? vv.height : ih;
+    var full = iosApp() ? Math.max(screenH(), ih) : ih;
+    if (!isField(document.activeElement)) fullSeen = Math.max(full, vh);
+    var focused = phone() && isField(document.activeElement);
+    // keyboard open = a text box has focus and the visible area shrank by more than 15%
+    var kb = focused && vh < Math.max(full, fullSeen) * 0.85;
+    root.classList.toggle('fos-kb', kb);
+    var h = null;
+    if (iOS && kb) h = vh;                 // iPhone / iPad: only the space above the keyboard
+    else if (iosApp()) h = full;           // iPhone app: the whole screen, never a short reported height
+    if (h) { root.style.setProperty('--fos-h', Math.round(h) + 'px'); root.classList.add('fos-h'); }
+    else { root.classList.remove('fos-h'); root.style.removeProperty('--fos-h'); }
+    if (iOS && (window.scrollY || (vv && vv.offsetTop))) window.scrollTo(0, 0);   // iPhone slid the page up: put it back
     var a = document.activeElement;
-    if (a && a.id === 'finai-ask-input') { var t = $('fai-thread'); if (t && t.__nearEnd) t.scrollTop = t.scrollHeight; }
+    if (kb && a && a.id === 'finai-ask-input') { var t = $('fai-thread'); if (t && t.__nearEnd) t.scrollTop = t.scrollHeight; }
   }
-  function kbOn() {
-    if (!phone()) return;
-    var t = $('fai-thread'); if (t) t.__nearEnd = t.scrollHeight - t.scrollTop - t.clientHeight < 80;
-    root.classList.add('fos-kb'); fitKb(); setTimeout(fitKb, 120); setTimeout(fitKb, 320);
-  }
-  function kbOff() {
-    clearTimeout(kbTimer);
-    kbTimer = setTimeout(function () {
-      if (isField(document.activeElement)) return;
-      root.classList.remove('fos-kb'); root.style.removeProperty('--fos-kb-h');
-      if (window.scrollY) window.scrollTo(0, 0);
-    }, 120);
-  }
-  document.addEventListener('focusin', function (e) { if (isField(e.target)) { clearTimeout(kbTimer); kbOn(); } }, true);
-  document.addEventListener('focusout', kbOff, true);
-  if (vv) { vv.addEventListener('resize', fitKb); vv.addEventListener('scroll', fitKb); }
-  window.addEventListener('resize', fitKb);
+  var mt = [];
+  function remeasure() { measure(); mt.forEach(clearTimeout); mt = [60, 180, 400, 800].map(function (d) { return setTimeout(measure, d); }); }
+  document.addEventListener('focusin', function (e) { if (isField(e.target)) { var t = $('fai-thread'); if (t) t.__nearEnd = t.scrollHeight - t.scrollTop - t.clientHeight < 80; remeasure(); } }, true);
+  document.addEventListener('focusout', remeasure, true);
+  if (vv) { vv.addEventListener('resize', measure); vv.addEventListener('scroll', measure); }
+  ['resize', 'orientationchange', 'pageshow'].forEach(function (n) { window.addEventListener(n, remeasure); });
+  document.addEventListener('visibilitychange', function () { if (!document.hidden) remeasure(); });
+  measure();
   // tapping anywhere outside the message box closes the keyboard (like WhatsApp)
   document.addEventListener('pointerdown', function (e) {
     var a = document.activeElement; if (!phone() || !isField(a)) return;
@@ -54678,8 +54700,28 @@ body.light-mode .fos-fast-offer { background:#fff; color:#0f1d1a; }
     var t = e.target; if (!t || !t.closest) return;
     if (t.closest('input, textarea, select, button, a, label, [contenteditable="true"]')) return;
     if (a.id === 'finai-ask-input' && t.closest('.fai-compose')) return;
-    a.blur();
+    a.blur(); remeasure();
   }, true);
+
+  /* ════════ mouse wheel and touchpad over the Fin AI chat always scroll the chat ════════ */
+  document.addEventListener('wheel', function (e) {
+    if (e.ctrlKey || e.defaultPrevented) return;
+    var t = $('fai-thread'); if (!t || !t.offsetParent || document.body.getAttribute('data-fos-view') !== 'finai') return;
+    var r = t.getBoundingClientRect();
+    if (e.clientX < r.left || e.clientX > r.right || e.clientY < r.top || e.clientY > r.bottom) return;
+    var top = document.elementFromPoint(e.clientX, e.clientY);
+    if (top && !t.contains(top)) { for (var n = top; n; n = n.parentElement) { if (n.id === 'view-finai') break; if (getComputedStyle(n).position === 'fixed') return; } }   // a pop-up is on top
+    for (var m = e.target; m && m !== t && m.nodeType === 1; m = m.parentElement) {   // a box inside the chat that scrolls itself
+      if (/^(TEXTAREA|SELECT)$/.test(m.tagName)) return;
+      if (m.scrollHeight > m.clientHeight + 1 && /(auto|scroll)/.test(getComputedStyle(m).overflowY)) return;
+    }
+    var dy = e.deltaY * (e.deltaMode === 1 ? 16 : e.deltaMode === 2 ? t.clientHeight * 0.9 : 1);
+    var dx = e.deltaX; if (Math.abs(dx) > Math.abs(dy)) return;
+    var max = t.scrollHeight - t.clientHeight; if (max <= 0) return;
+    e.preventDefault(); e.stopPropagation();
+    t.style.scrollBehavior = 'auto';
+    t.scrollTop = Math.max(0, Math.min(max, t.scrollTop + dy));
+  }, { passive: false, capture: true });
 
   /* ════════ Planning tools (Debt Command Center + Goals) live on Net Worth ════════ */
   function movePlan() {
@@ -54826,7 +54868,17 @@ body.light-mode .fos-fast-offer { background:#fff; color:#0f1d1a; }
     document.body.appendChild(d);
   }
 
-  function boot() { wrapNetWorth(); movePlan(); wrapPasskey(); wrapDeviceLock(); label(); }
+  // the phone or tablet, not FinanceOS, decides whether it asks for your face, fingerprint or PIN
+  function lockNote() {
+    var n = $('devicelock-support-note'); if (!n || $('fos-lock-how')) return;
+    var d = document.createElement('div'); d.id = 'fos-lock-how';
+    d.style.cssText = 'font-size:.68rem;opacity:.75;margin-top:4px;line-height:1.45';
+    d.textContent = android
+      ? 'Your device chooses face, fingerprint or PIN. Many Android face unlocks don\u2019t count as secure enough for passkeys, so Android asks for your fingerprint or PIN instead. To use your fingerprint, add one under Settings \u203a Security on this device.'
+      : 'Your device chooses Face ID, Touch ID or your passcode. If Face ID doesn\u2019t work, it falls back to your passcode.';
+    n.parentNode.insertBefore(d, n.nextSibling);
+  }
+  function boot() { wrapNetWorth(); movePlan(); wrapPasskey(); wrapDeviceLock(); label(); lockNote(); }
   boot();
   window.addEventListener('load', function () { setTimeout(boot, 60); });
 })();
