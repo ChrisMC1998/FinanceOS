@@ -11,7 +11,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="fos-integrity" content="fc18c1dbdcc183ad31075550546fe44441b061f67c3545a627e9c477e1eddfc2">
+<meta name="fos-integrity" content="b2be8dd290873199b26dbc38e31354ea0102cb9a7bb8b979a6ae703fab4ebda3">
 <script id="fos-tamper-guard">
 /*! \u00a9 2026 MC Enterprise. Integrity check: detects a copy of this file that no longer matches the
     official release and locks it with a notice. This checks the FILE as served, not live memory --
@@ -53802,7 +53802,9 @@ body.light-mode .pin-box { background:#f8fafc; border-color:#cbd5e1; color:#0f17
   html, body { height: var(--fos-app-h, 100dvh) !important; }
   html { background-color: #050708; }
 }
-html.fos-standalone .fos-install-btn { display: none !important; }
+/* Install APK shows only when this device can really install: Chrome/Edge/Brave/Samsung have the one-tap
+   install ready, or it is an iPhone/iPad. It hides again once FinanceOS is installed. */
+html:not(.fos-can-install) .fos-install-btn, html.fos-standalone .fos-install-btn { display: none !important; }
 .fos-inst-ov { position: fixed; inset: 0; z-index: 100000; display: flex; align-items: center; justify-content: center; padding: max(16px, env(safe-area-inset-top, 0px)) 16px max(16px, env(safe-area-inset-bottom, 0px)); background: rgba(2, 6, 8, .72); backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px); }
 .fos-inst { width: min(440px, 100%); max-height: 100%; overflow: auto; background: #0d1416; color: #e8f5f2; border: 1px solid rgba(32, 205, 181, .35); border-radius: 20px; padding: 22px 20px 18px; box-shadow: 0 24px 70px rgba(0, 0, 0, .5); font-family: 'DM Sans', sans-serif; }
 body.light-mode .fos-inst { background: #ffffff; color: #0f1d1a; border-color: rgba(15, 159, 134, .35); }
@@ -53831,25 +53833,29 @@ body.light-mode .fos-inst { background: #ffffff; color: #0f1d1a; border-color: r
   var prompt = null;
   function standalone() { try { return matchMedia('(display-mode: standalone)').matches || matchMedia('(display-mode: minimal-ui)').matches || navigator.standalone === true; } catch (e) { return false; } }
   function mark() { root.classList.toggle('fos-standalone', standalone()); }
+  function current() { return prompt || (typeof deferredPrompt !== 'undefined' && deferredPrompt && deferredPrompt.prompt ? deferredPrompt : null); }
+  function canInstall() { return !standalone() && location.protocol !== 'file:' && (!!current() || iOS); }
+  function update() { mark(); root.classList.toggle('fos-can-install', canInstall()); }
   function fit() { root.style.setProperty('--fos-app-h', window.innerHeight + 'px'); }
-  mark(); fit();
+  update(); fit();
   ['resize', 'orientationchange', 'pageshow'].forEach(function (e) { window.addEventListener(e, function () { fit(); setTimeout(fit, 350); }); });
   if (window.visualViewport) window.visualViewport.addEventListener('resize', fit);
-  try { matchMedia('(display-mode: standalone)').addEventListener('change', function () { mark(); fit(); }); } catch (e) { }
-  window.addEventListener('beforeinstallprompt', function (e) { e.preventDefault(); prompt = e; });
+  try { matchMedia('(display-mode: standalone)').addEventListener('change', function () { update(); fit(); }); } catch (e) { }
+  window.addEventListener('beforeinstallprompt', function (e) { e.preventDefault(); prompt = e; update(); });
+  window.addEventListener('load', update); setTimeout(update, 1500);
   window.addEventListener('appinstalled', function () {
-    prompt = null; close();
+    prompt = null; try { deferredPrompt = null; } catch (e) { } update(); close();
     try { showSettingsToast('FinanceOS is installed. Open it from your home screen or apps list.'); } catch (e) { }
   });
 
-  var ICON = (document.querySelector('link[rel="apple-touch-icon"]') || {}).href || 'icons/icon-192.png';
+  var ICON = (document.querySelector('link[rel="apple-touch-icon"]') || {}).href || 'icon-192.png';
   var SHARE = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3v12"/><path d="M7 8l5-5 5 5"/><path d="M5 12v7a2 2 0 002 2h10a2 2 0 002-2v-7"/></svg>';
   var DOTS = '<span aria-hidden="true">&#8942;</span>';
   function steps() {
     if (location.protocol === 'file:') return { t: 'Open FinanceOS from its website first', p: 'Installing works from the FinanceOS web address (https), not from a file saved on this device. Open the app’s link in your browser, sign in, then tap Install APK again.', s: [] };
     if (iOS) {
       var inApp = /CriOS|FxiOS|EdgiOS/.test(ua);
-      return { t: iPadish() ? 'Install on your iPad' : 'Install on your iPhone', p: 'Apple only allows this from the Share menu. It takes three taps:',
+      return { t: iPadish() ? 'Install on your iPad' : 'Install on your iPhone', p: 'Apple doesn’t let any website install itself in one tap, so on iPhone and iPad it’s done from the Share menu. It takes three taps:',
         s: [inApp ? 'Tap the <kbd>' + SHARE + ' Share</kbd> button in the address bar.' : 'Tap the <kbd>' + SHARE + ' Share</kbd> button ' + (iPadish() ? 'at the top of Safari.' : 'at the bottom of Safari.'),
             'Scroll down and tap <kbd>Add to Home Screen</kbd>.', 'Tap <kbd>Add</kbd>. FinanceOS appears on your home screen and opens full screen, like any other app.'] };
     }
@@ -53879,17 +53885,139 @@ body.light-mode .fos-inst { background: #ffffff; color: #0f1d1a; border-color: r
   document.addEventListener('keydown', function (e) { if (e.key === 'Escape' && ov) close(); });
   window.fosInstallApp = async function () {
     if (standalone()) { show({ t: 'FinanceOS is already installed', p: 'You are using the installed app right now. You can open it any time from your home screen or apps list.', s: [] }); return; }
-    var p = prompt || (typeof deferredPrompt !== 'undefined' ? deferredPrompt : null);
-    if (p && p.prompt) {
+    var p = current();
+    if (p) {
       try {
-        p.prompt();
-        var c = await p.userChoice; prompt = null; try { deferredPrompt = null; } catch (e) { }
-        if (c && c.outcome === 'accepted') return;
-        return;
-      } catch (e) { /* the browser refused: show the steps instead */ }
+        p.prompt();                                        // the browser's own one-tap install window
+        var c = await p.userChoice;
+        prompt = null; try { deferredPrompt = null; } catch (e) { }
+        update();                                          // a used prompt can't be shown twice; the browser offers a new one later
+        return c;
+      } catch (e) { prompt = null; update(); }
     }
-    show(steps());
+    if (iOS) show(steps());                                // iPhone / iPad: Apple's Share › Add to Home Screen
   };
+})();
+</script>
+<style id="fos-final-touch">
+/* ── 1. Add reminder: Date, Time and Repeat never overlap on phones ── */
+#rem-panel .rem-row > div { min-width: 0; }
+#rem-panel .rem-row .input-field { width: 100%; min-width: 0; max-width: 100%; box-sizing: border-box; }
+#rem-panel input[type="date"], #rem-panel input[type="time"] { -webkit-appearance: none; appearance: none; min-height: 40px; }
+#rem-panel input[type="date"]::-webkit-date-and-time-value, #rem-panel input[type="time"]::-webkit-date-and-time-value { text-align: left; }
+body:not(.light-mode) #rem-panel .input-field { color-scheme: dark; }
+@media (max-width: 600px) {
+  #rem-panel .rem-row { display: grid !important; grid-template-columns: 1fr; gap: 8px; }
+}
+
+/* ── 2. A soft green gradient on both sidebars (dark theme) ── */
+@media (min-width: 901px) {
+  html body:not(.light-mode) .sidebar,
+  html body:not(.light-mode) .port-sidebar {
+    background:
+      linear-gradient(115deg, transparent 18%, rgba(var(--t-accent-rgb), calc(var(--fos-spec) * 0.10)) 42%, transparent 62%),
+      radial-gradient(130% 55% at 0% 0%, rgba(32,205,181,0.15), transparent 62%),
+      radial-gradient(120% 45% at 100% 100%, rgba(22,127,117,0.12), transparent 62%),
+      linear-gradient(180deg, rgba(67,224,204,0.06) 0%, rgba(32,205,181,0.015) 45%, rgba(32,205,181,0) 100%),
+      var(--fos-glass-bg);
+    border-color: rgba(32,205,181,0.17);
+    box-shadow:
+      inset 0 1px 0 rgba(67,224,204,0.20),
+      inset 0 -1px 0 rgba(0,0,0,0.40),
+      0 12px 34px rgba(0,0,0,0.50),
+      0 0 26px rgba(32,205,181,0.06);
+  }
+  html body:not(.light-mode) .sidebar:hover,
+  html body:not(.light-mode) .port-sidebar:hover {
+    background-color: var(--t-glass-hover);
+    border-color: rgba(32,205,181,0.30);
+    box-shadow:
+      inset 0 1px 0 rgba(67,224,204,0.28),
+      inset 0 -1px 0 rgba(0,0,0,0.40),
+      0 20px 48px rgba(0,0,0,0.60),
+      0 0 34px rgba(32,205,181,0.10);
+  }
+}
+html body:not(.light-mode) .sidebar .nav-item:hover,
+html body:not(.light-mode) .port-sidebar .port-nav-item:hover {
+  background: linear-gradient(135deg, rgba(32,205,181,0.15), rgba(32,205,181,0.035));
+  border: 1px solid rgba(32,205,181,0.22);
+  box-shadow: inset 0 1px 0 rgba(67,224,204,0.14), 0 6px 16px rgba(0,0,0,0.35);
+}
+html body:not(.light-mode) .sidebar .nav-item.active,
+html body:not(.light-mode) .sidebar .nav-item.active:hover,
+html body:not(.light-mode) .port-sidebar .port-nav-item.active,
+html body:not(.light-mode) .port-sidebar .port-nav-item.active:hover {
+  background: linear-gradient(135deg, rgba(32,205,181,0.24), rgba(32,205,181,0.06));
+  border-color: rgba(32,205,181,0.34);
+  box-shadow: inset 0 1px 0 rgba(67,224,204,0.12), 0 0 18px rgba(32,205,181,0.16);
+}
+/* phone menu */
+html body:not(.light-mode) .mobile-drawer {
+  background:
+    radial-gradient(140% 40% at 0% 0%, rgba(32,205,181,0.13), transparent 60%),
+    radial-gradient(120% 35% at 100% 100%, rgba(22,127,117,0.10), transparent 60%),
+    #080c0d;
+}
+
+/* ── 3. Overview cards: green gradient glow on hover (dark theme) ── */
+html body:not(.light-mode) #view-dashboard :is(.glass-panel, .kpi-card, .fj-card, .spark-card, .market-card, .fx8-pcard) {
+  transition: border-color .22s ease, box-shadow .22s ease, background-color .22s ease, transform .22s ease;
+}
+html body:not(.light-mode) #view-dashboard :is(.glass-panel, .fj-card, .fx8-pcard):hover {
+  background: linear-gradient(150deg, rgba(32,205,181,0.10) 0%, rgba(32,205,181,0.02) 40%, rgba(32,205,181,0) 65%),
+              linear-gradient(160deg, rgba(16,23,25,0.96) 0%, rgba(11,16,18,0.96) 100%);
+  border-color: rgba(32,205,181,0.32);
+  box-shadow: inset 0 1px 0 rgba(67,224,204,0.10), 0 14px 34px rgba(0,0,0,0.45), 0 0 26px rgba(32,205,181,0.09);
+}
+html body:not(.light-mode) #view-dashboard :is(.kpi-card, .spark-card, .market-card):hover {
+  border-color: rgba(32,205,181,0.34);
+  box-shadow: inset 0 1px 0 rgba(67,224,204,0.12), 0 12px 30px rgba(0,0,0,0.45), 0 0 22px rgba(32,205,181,0.10);
+  background-image: linear-gradient(150deg, rgba(32,205,181,0.10), rgba(32,205,181,0) 60%);
+}
+
+/* ── 4. Light / dark switch: instant, with a quick circle reveal ── */
+html.fos-theme-swap *, html.fos-theme-swap *::before, html.fos-theme-swap *::after { transition: none !important; }
+::view-transition-old(root), ::view-transition-new(root) { animation: none; mix-blend-mode: normal; }
+::view-transition-new(root) { animation: fos-theme-reveal .5s cubic-bezier(.4, 0, .2, 1) both; }
+@keyframes fos-theme-reveal {
+  from { clip-path: circle(0 at var(--fos-tx, 50%) var(--fos-ty, 0%)); }
+  to   { clip-path: circle(var(--fos-tr, 150vmax) at var(--fos-tx, 50%) var(--fos-ty, 0%)); }
+}
+</style>
+<script id="fos-theme-swap">
+/* Switching light / dark: the new theme is drawn once, out of sight, and then revealed in one smooth
+   circle from the button you pressed. Nothing on the page animates its colours one by one. */
+(function () {
+  var root = document.documentElement, px = null, py = null, busy = false;
+  document.addEventListener('pointerdown', function (e) { px = e.clientX; py = e.clientY; }, true);
+  function frames(n) { return new Promise(function (r) { (function f(i) { if (!i) return r(); requestAnimationFrame(function () { f(i - 1); }); })(n); }); }
+  function wrap(name) {
+    var orig = window[name]; if (typeof orig !== 'function') return;
+    window[name] = function () {
+      var self = this, args = arguments;
+      var reduce = false; try { reduce = matchMedia('(prefers-reduced-motion: reduce)').matches; } catch (e) { }
+      var anim = null; try { if (window.Chart && Chart.defaults) { anim = Chart.defaults.animation; Chart.defaults.animation = false; } } catch (e) { }
+      function restore() { try { if (anim !== null) Chart.defaults.animation = anim; } catch (e) { } }
+      function apply() { root.classList.add('fos-theme-swap'); return orig.apply(self, args); }
+      function done() { frames(2).then(function () { root.classList.remove('fos-theme-swap'); restore(); busy = false; }); }
+      if (busy || reduce || typeof document.startViewTransition !== 'function') {
+        var r = apply(); frames(1).then(done); return r;
+      }
+      busy = true;
+      var x = px != null ? px : innerWidth - 80, y = py != null ? py : 40;
+      root.style.setProperty('--fos-tx', x + 'px'); root.style.setProperty('--fos-ty', y + 'px');
+      root.style.setProperty('--fos-tr', Math.ceil(Math.hypot(Math.max(x, innerWidth - x), Math.max(y, innerHeight - y))) + 'px');
+      var result;
+      try {
+        var vt = document.startViewTransition(function () { result = apply(); });   // the page is redrawn once, then revealed
+        vt.finished.then(done, done);
+      } catch (e) { result = apply(); done(); }
+      px = py = null;
+      return result;
+    };
+  }
+  wrap('toggleTheme'); wrap('handleThemeToggle');
 })();
 </script>
 <script id="fos-access-gate">
