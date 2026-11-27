@@ -1,12 +1,57 @@
 /* ════════════════════════════════════════════════════════════════════════════
-   FinanceOS service worker (sw.js): shows push notifications even when the app is closed.
-   Put this file in the SAME folder as index.html (next to manifest.webmanifest), so it is
-   served from https://your-site/…/sw.js. The app registers it by itself.
+   FinanceOS service worker (sw.js)
+   • lets FinanceOS install as an app (phone, tablet, PC) and open even when offline
+   • shows push notifications even when the app is closed
+   Put this file in the SAME folder as index.html (next to manifest.webmanifest and the
+   icons folder). The app registers it by itself.
    ════════════════════════════════════════════════════════════════════════════ */
-const SW_VERSION = 'fos-sw-9.0';
+const SW_VERSION = 'fos-sw-10.0';
+const SHELL = 'fos-shell-v10';      // the app page + icons, for opening offline
+const LIBS = 'fos-libs-v10';        // chart / pdf / font libraries from the CDNs
+const SHELL_FILES = ['./', './index.html', './manifest.webmanifest', './icons/icon-192.png', './icons/icon-512.png', './icons/apple-touch-icon.png'];
+const LIB_HOSTS = ['cdn.jsdelivr.net', 'cdnjs.cloudflare.com', 'unpkg.com', 'fonts.googleapis.com', 'fonts.gstatic.com'];
 
-self.addEventListener('install', () => self.skipWaiting());                       // a new version takes over straight away
-self.addEventListener('activate', (e) => e.waitUntil(self.clients.claim()));
+self.addEventListener('install', (e) => {
+  self.skipWaiting();                                                               // a new version takes over straight away
+  e.waitUntil(caches.open(SHELL).then((c) => Promise.all(SHELL_FILES.map((f) => c.add(new Request(f, { cache: 'reload' })).catch(() => {})))));
+});
+self.addEventListener('activate', (e) => e.waitUntil((async () => {
+  const keep = [SHELL, LIBS];
+  for (const k of await caches.keys()) if (k.startsWith('fos-') && !keep.includes(k)) await caches.delete(k);
+  await self.clients.claim();
+})()));
+
+/* Opening the app: always the newest version when online, the saved copy when offline.
+   Your data never goes through here: Supabase requests are left alone. */
+self.addEventListener('fetch', (e) => {
+  const req = e.request;
+  if (req.method !== 'GET') return;
+  const url = new URL(req.url);
+  if (req.mode === 'navigate' && url.origin === self.location.origin) {
+    e.respondWith((async () => {
+      try {
+        const fresh = await fetch(req);
+        if (fresh && fresh.ok) { const c = await caches.open(SHELL); c.put('./index.html', fresh.clone()).catch(() => {}); }
+        return fresh;
+      } catch (err) {
+        const c = await caches.open(SHELL);
+        return (await c.match('./index.html')) || (await c.match('./')) || Response.error();
+      }
+    })());
+    return;
+  }
+  if (url.origin === self.location.origin && /\/(icons\/|manifest\.webmanifest$)/.test(url.pathname)) {
+    e.respondWith(caches.open(SHELL).then(async (c) => (await c.match(req)) || fetch(req).then((r) => { if (r.ok) c.put(req, r.clone()); return r; })));
+    return;
+  }
+  if (LIB_HOSTS.includes(url.hostname)) {        // saved after the first load, refreshed in the background
+    e.respondWith(caches.open(LIBS).then(async (c) => {
+      const hit = await c.match(req);
+      const net = fetch(req).then((r) => { if (r && (r.ok || r.type === 'opaque')) c.put(req, r.clone()).catch(() => {}); return r; }).catch(() => hit);
+      return hit || net;
+    }));
+  }
+});
 
 /* The app icon for notifications, read from your manifest.webmanifest (no icon files needed here) */
 let iconUrl = null;
