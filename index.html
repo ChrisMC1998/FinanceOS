@@ -11,7 +11,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="fos-integrity" content="514880d647f7b74fce0b4146b2a817f162187230f7759dedce75981cc4b677b8">
+<meta name="fos-integrity" content="37ed6be68566a9ca008296cd8e37fd7b72ccccf58b4cf0c6b56951d717dc32a1">
 <script id="fos-tamper-guard">
 /*! \u00a9 2026 MC Enterprise. Integrity check: detects a copy of this file that no longer matches the
     official release and locks it with a notice. This checks the FILE as served, not live memory --
@@ -53740,54 +53740,147 @@ body.light-mode .pin-box { background:#f8fafc; border-color:#cbd5e1; color:#0f17
 })();
 </script>
 <script id="fos-access-gate">
-/* FinanceOS access gate: if the command center has blocked this login, the app shows a full-screen notice
-   asking the person to complete their monthly subscription. It only reads billing_my_access (the person's
-   own row). If the server cannot be reached, nothing is blocked. Unblocking or a confirmed payment lifts it. */
+/* FinanceOS plans: shows each person only what their plan includes (Starter / Pro / Pro Plus).
+   Features outside the plan are hidden, not locked. With no plan, an ended plan, or a block from the
+   command center, a full-screen notice explains what to do. It reads only the person's own billing row
+   (billing_my_access) and billing_is_admin. Admins see everything. If the server cannot be reached,
+   the last known plan on this device is used, and nobody is locked out. */
 (function () {
   var SITE = 'https://chrismc1998.github.io/Fin-Port-OS/', MAIL = 'financeosdesk@gmail.com';
-  var DEFAULT = 'Please complete your monthly subscription to access FinanceOS. If you have already paid or need help, email us at ' + MAIL + '.';
-  var lastUid = null, lastAt = 0, shown = false;
+  var BLOCK_DEFAULT = 'Please complete your monthly subscription to access FinanceOS. If you have already paid or need help, email us at ' + MAIL + '.';
+  var NAMES = { 1: 'Starter', 2: 'Pro', 3: 'Pro Plus' };
+  // which plan each page needs (anything not listed is in every plan)
+  var VIEW_RANK = { investments: 2, scenario: 2, roughboard: 2, analytics: 2, networth: 2, finai: 3,
+    'port-overview': 3, 'port-table': 3, 'port-analytics': 3, 'port-intel': 3, 'port-tax': 3, 'port-stress': 3 };
+  var FN_RANK = { openExportModal: 2, rfOpen: 3, openMobileLiteAI: 3 };
+  var HIDE = {
+    2: ['#fin-nav-investments', '#mob-investments', '#fin-nav-scenario', '#mob-scenario', '#fin-nav-roughboard', '#mob-roughboard',
+        '#fin-nav-analytics', '#mob-analytics', '#fin-nav-networth', '#mob-networth', '[onclick="openExportModal()"]',
+        '[aria-controls="fos-cat-tools"]', '#fos-cat-tools'],
+    3: ['#fin-nav-finai', '#mob-finai', '#portfolio-sidebar', '[id^="mob-port-"]', '[onclick="rfOpen()"]', '#tv-panel', '.drawer-cat',
+        '[data-fos-plan="3"]', '.drawer-section-label[style*="7c6eb3"]']
+  };
+  var st = { rank: null, known: false, row: null, admin: false, uid: null }, lastAt = 0, shown = false, busy = false;
+
+  function J(k) { try { return JSON.parse(localStorage.getItem(k)); } catch (e) { return null; } }
+  function W(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch (e) { } }
   function sess() { try { return (typeof cloudSession !== 'undefined' && cloudSession && cloudSession.user) ? cloudSession : null; } catch (e) { return null; } }
   function client() { try { return typeof sb !== 'undefined' && sb && sb.rpc ? sb : null; } catch (e) { return null; } }
-  function esc(s) { return String(s || '').replace(/[&<>"']/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]; }); }
+  function esc(s) { return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]; }); }
+  function rank() { return st.rank == null ? 1 : st.rank; }      // until the plan is known: Starter features only
+  function canSync() { return st.rank == null || st.rank >= 2; }   // unknown plan: let the server decide
+  function allowed(need) { return !need || rank() >= need; }
+  window.fosPlan = function () { return { rank: rank(), plan: NAMES[rank()] || '', known: st.known, admin: st.admin }; };
+  window.fosPlanAllows = function (view) { return allowed(VIEW_RANK[view]); };
+
+  // ── 1. hide what the plan does not include ──
+  function applyCss() {
+    var el = document.getElementById('fos-plan-style');
+    if (!el) { el = document.createElement('style'); el.id = 'fos-plan-style'; document.head.appendChild(el); }
+    var r = rank(), sel = [];
+    if (r < 2) sel = sel.concat(HIDE[2]);
+    if (r < 3) sel = sel.concat(HIDE[3]);
+    el.textContent = sel.length ? sel.map(function (s) { return 'html body ' + s; }).join(',') + '{display:none !important}' : '';
+    document.documentElement.setAttribute('data-fos-plan', String(r));
+  }
+  function leaveHiddenView() {
+    try {
+      if (typeof activeView === 'string' && !allowed(VIEW_RANK[activeView]) && typeof switchView === 'function')
+        switchView('dashboard', document.getElementById('fin-nav-dashboard'), 'finance');
+    } catch (e) { }
+  }
+  function wrap(name, test) {
+    var o = window[name]; if (typeof o !== 'function' || o.__fosPlan) return;
+    var w = function () { if (!test(arguments)) return; return o.apply(this, arguments); };
+    w.__fosPlan = true; try { window[name] = w; } catch (e) { }
+  }
+  function guards() {
+    wrap('switchView', function (a) {
+      if (allowed(VIEW_RANK[a[0]])) return true;
+      if (a[0] !== 'dashboard' && typeof switchView === 'function') setTimeout(function () { switchView('dashboard', document.getElementById('fin-nav-dashboard'), 'finance'); }, 0);
+      return false;
+    });
+    Object.keys(FN_RANK).forEach(function (n) { wrap(n, function () { return allowed(FN_RANK[n]); }); });
+    // Starter keeps data on this device: no uploads to the cloud (reading your own earlier cloud data still works)
+    ['syncNow', 'pushAllToCloud'].forEach(function (n) { wrap(n, function () { return canSync(); }); });
+    if (typeof window.isCloudTrackingOn === 'function' && !window.isCloudTrackingOn.__fosPlan2) {
+      var o = window.isCloudTrackingOn, w = function () { if (!canSync()) return false; return o.apply(this, arguments); };
+      w.__fosPlan = w.__fosPlan2 = true; window.isCloudTrackingOn = w;
+    }
+  }
+  function syncLabel() {
+    if (canSync()) return;
+    ['cloud-status-text', 'mob-cloud-status-text'].forEach(function (id) { var t = document.getElementById(id); if (t && t.textContent !== 'On this device') t.textContent = 'On this device'; });
+  }
+
+  // ── 2. no plan, ended plan or blocked: a full-screen notice ──
   function hide() { var o = document.getElementById('fos-gate'); if (o) o.remove(); document.documentElement.style.overflow = ''; shown = false; }
-  function show(msg, email) {
+  function show(kind, row, email) {
+    var t, m, cta;
+    if (kind === 'blocked') { t = 'Your FinanceOS access is paused'; m = row.block_message || BLOCK_DEFAULT; cta = 'Complete payment'; }
+    else if (kind === 'pending') { t = 'Your payment is being confirmed'; m = 'Thank you. Confirmation takes up to 24 hours at most, and you will be notified in your account. FinanceOS opens as soon as it is confirmed.'; cta = 'View my account'; }
+    else if (kind === 'ended') {
+      var d = row.expires_at ? new Date(row.expires_at).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' }) : '';
+      t = 'Your FinanceOS payment is due'; m = 'Your FinanceOS ' + (row.plan_name || '') + ' plan was due' + (d ? ' on ' + d : '') + '. Pay the amount due to keep using the app, or change your plan. Your data is kept safe.'; cta = 'Pay due';
+    } else { t = 'Choose your FinanceOS plan'; m = 'Your account does not have a plan yet. Choose Starter, Pro or Pro Plus to start using FinanceOS. Your login stays the same.'; cta = 'Choose a plan'; }
     var o = document.getElementById('fos-gate');
     if (!o) {
       o = document.createElement('div'); o.id = 'fos-gate'; o.setAttribute('role', 'alertdialog'); o.setAttribute('aria-modal', 'true'); o.setAttribute('aria-labelledby', 'fos-gate-t');
-      o.style.cssText = 'position:fixed;inset:0;z-index:2147483600;background:rgba(3,10,8,.97);color:#e9fff5;display:flex;align-items:center;justify-content:center;padding:24px;font-family:system-ui,-apple-system,Segoe UI,Roboto,sans-serif';
+      o.style.cssText = 'position:fixed;inset:0;z-index:2147483600;background:rgba(3,10,8,.97);color:#e9fff5;display:flex;align-items:center;justify-content:center;padding:24px;font-family:system-ui,-apple-system,Segoe UI,Roboto,sans-serif;overflow:auto';
       document.body.appendChild(o);
     }
+    var B = 'flex:1;padding:11px;border-radius:12px;border:1px solid #1f5244;background:none;color:#e9fff5;font:inherit;cursor:pointer';
     o.innerHTML = '<div style="max-width:440px;width:100%;background:#0b241d;border:1px solid #1f5244;border-radius:20px;padding:26px;text-align:center;box-shadow:0 20px 60px rgba(0,0,0,.5)">' +
       '<div style="width:56px;height:56px;margin:0 auto 14px;border-radius:50%;display:grid;place-items:center;background:rgba(251,191,36,.15);color:#fbbf24;font-size:26px;font-weight:800">!</div>' +
-      '<h2 id="fos-gate-t" style="margin:0 0 10px;font-size:1.3rem">Your FinanceOS access is paused</h2>' +
-      '<p style="margin:0 0 18px;color:#c6ecdc;line-height:1.55;font-size:.95rem">' + esc(msg || DEFAULT) + '</p>' +
+      '<h2 id="fos-gate-t" style="margin:0 0 10px;font-size:1.3rem">' + esc(t) + '</h2>' +
+      '<p style="margin:0 0 18px;color:#c6ecdc;line-height:1.55;font-size:.95rem">' + esc(m) + '</p>' +
       '<div style="display:grid;gap:10px">' +
-      '<a href="' + SITE + '#pricing" target="_blank" rel="noopener" style="display:block;padding:12px;border-radius:12px;background:#10b981;color:#022c1f;font-weight:700;text-decoration:none">Complete my subscription</a>' +
+      '<a href="' + SITE + (kind === 'none' ? '#pricing' : '#account') + '" target="_blank" rel="noopener" style="display:block;padding:12px;border-radius:12px;background:#10b981;color:#022c1f;font-weight:700;text-decoration:none">' + esc(cta) + '</a>' +
       '<a href="mailto:' + MAIL + '?subject=' + encodeURIComponent('FinanceOS access') + '&body=' + encodeURIComponent('Account: ' + (email || '')) + '" style="display:block;padding:12px;border-radius:12px;border:1px solid #1f5244;color:#e9fff5;font-weight:600;text-decoration:none">Email ' + MAIL + '</a>' +
-      '<div style="display:flex;gap:10px"><button type="button" id="fos-gate-re" style="flex:1;padding:11px;border-radius:12px;border:1px solid #1f5244;background:none;color:#e9fff5;font:inherit;cursor:pointer">Check again</button>' +
-      '<button type="button" id="fos-gate-out" style="flex:1;padding:11px;border-radius:12px;border:1px solid #1f5244;background:none;color:#e9fff5;font:inherit;cursor:pointer">Sign out</button></div></div>' +
-      '<p style="margin:14px 0 0;font-size:.8rem;color:#8db5a5">Signed in as ' + esc(email) + '. Your data is kept safe while access is paused.</p></div>';
+      '<div style="display:flex;gap:10px"><button type="button" id="fos-gate-re" style="' + B + '">Check again</button>' +
+      '<button type="button" id="fos-gate-out" style="' + B + '">Sign out</button></div></div>' +
+      '<p style="margin:14px 0 0;font-size:.8rem;color:#8db5a5">Signed in as ' + esc(email) + '. Your data is kept safe.</p></div>';
+    o.setAttribute('data-kind', kind);
     document.documentElement.style.overflow = 'hidden'; shown = true;
     document.getElementById('fos-gate-re').onclick = function () { lastAt = 0; check(true); };
     document.getElementById('fos-gate-out').onclick = function () { var c = client(); Promise.resolve(c && c.auth.signOut()).catch(function () { }).then(function () { location.reload(); }); };
   }
+
+  function setRank(r, known) {
+    var before = rank(); st.rank = r; st.known = known;
+    applyCss(); guards(); syncLabel();
+    if (rank() < before) leaveHiddenView();
+  }
+
   async function check(force) {
     var s = sess(), c = client();
-    if (!s || !c) { if (shown) hide(); lastUid = null; return; }
+    if (!s || !c) { if (shown) hide(); st.uid = null; return; }
+    if (s.user.id !== st.uid) {                                   // new person on this device: start from their last known plan
+      st.uid = s.user.id; var cached = J('fos_plan_' + s.user.id);
+      setRank(cached && typeof cached.rank === 'number' ? cached.rank : null, false); force = true;
+    }
     var now = Date.now();
-    if (!force && s.user.id === lastUid && now - lastAt < (shown ? 60000 : 300000)) return;
-    lastUid = s.user.id; lastAt = now;
+    if (busy || (!force && now - lastAt < (shown ? 60000 : 300000))) return;
+    busy = true; lastAt = now;
     try {
-      var r = await c.rpc('billing_my_access');
-      if (r.error) return;                        // server not ready or offline: never block
-      var row = (r.data || [])[0];
-      if (row && (row.blocked || row.locked)) show(row.block_message, s.user.email); else if (shown) hide();
-    } catch (e) { }
+      var res = await Promise.all([c.rpc('billing_my_access'), c.rpc('billing_is_admin')]);
+      if (res[0].error) return;                                   // server not ready or offline: keep the last known plan
+      var row = (res[0].data || [])[0] || {}, admin = !res[1].error && res[1].data === true;
+      var r = admin ? 3 : (row.blocked ? 0 : (row.active && row.plan_rank ? Number(row.plan_rank) : 0));
+      st.admin = admin; st.row = row;
+      W('fos_plan_' + s.user.id, { rank: r, at: now });
+      setRank(r, true);
+      if (r > 0) { if (shown) hide(); }
+      else show(row.blocked ? 'blocked' : row.pending_payment ? 'pending' : row.plan_id ? 'ended' : 'none', row, s.user.email);
+    } catch (e) { } finally { busy = false; }
   }
-  setInterval(check, 5000);
+
+  applyCss();
+  guards();
+  setInterval(function () { guards(); syncLabel(); check(); }, 5000);
+  setInterval(function () { if (!st.uid && sess()) check(true); }, 1000);
   document.addEventListener('visibilitychange', function () { if (!document.hidden) { lastAt = 0; check(); } });
-  setTimeout(check, 1500);
+  setTimeout(function () { check(true); }, 800);
 })();
 </script>
 </body>
