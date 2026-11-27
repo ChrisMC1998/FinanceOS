@@ -11,7 +11,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="fos-integrity" content="b2be8dd290873199b26dbc38e31354ea0102cb9a7bb8b979a6ae703fab4ebda3">
+<meta name="fos-integrity" content="5f84b9e113ecdb3de56fc1c634de3d4b109223347d078d65091c18e26497dcba">
 <script id="fos-tamper-guard">
 /*! \u00a9 2026 MC Enterprise. Integrity check: detects a copy of this file that no longer matches the
     official release and locks it with a notice. This checks the FILE as served, not live memory --
@@ -12662,6 +12662,15 @@ function _passAppLockGateOnce() {
             </div>
             <select id="sel-privacy-relock" class="set-input" style="max-width:150px" onchange="fosShieldRelockSet(this.value)">
               <option value="off">Never</option><option value="0">Immediately</option><option value="5">5 seconds</option><option value="15">15 seconds</option><option value="30">30 seconds</option><option value="60">1 minute</option>
+            </select>
+          </div>
+          <div class="set-row">
+            <div class="set-label-block">
+              <div class="set-lbl readable-white" style="font-size:0.8rem">Phones and tablets: cover after no touch</div>
+              <div class="set-desc">Phones take the recent-apps picture before a website can hide itself. So on a phone or tablet, the cover also comes up after this long without a touch, and recent apps shows the lock screen. Tap once to carry on.</div>
+            </div>
+            <select id="sel-privacy-idle" class="set-input" style="max-width:150px" onchange="fosShieldIdleSet(this.value)">
+              <option value="5">5 seconds</option><option value="10">10 seconds</option><option value="20">20 seconds</option><option value="30">30 seconds</option><option value="60">1 minute</option><option value="off">Off</option>
             </select>
           </div>
         </div>
@@ -47842,7 +47851,8 @@ body.light-mode #fos-privacy-shield .fps-t{color:#25363d}
 (function () {
   var KEY = 'fos_set_privacy_shield', RKEY = 'fos_set_privacy_relock', el = document.getElementById('fos-privacy-shield');
   if (!el) return;
-  var awayAt = 0, previewing = false, relocking = false;
+  var awayAt = 0, previewing = false, relocking = false, idleCover = false, lastTouch = Date.now();
+  var IKEY = 'fos_set_privacy_idle';
   function on() { try { return localStorage.getItem(KEY) !== 'false'; } catch (e) { return true; } }
   // Re-lock delay in ms: null = never ask again, 0 = immediately, otherwise seconds away.
   function relockMs() { try { var v = localStorage.getItem(RKEY); if (v === null || v === 'off') return null; var n = Number(v); return isFinite(n) ? n * 1000 : null; } catch (e) { return null; } }
@@ -47854,10 +47864,11 @@ body.light-mode #fos-privacy-shield .fps-t{color:#25363d}
     el.classList.add('on');
     try { void el.offsetHeight; } catch (e) { }   // forced reflow: commit the cover to the screen before the snapshot
   }
-  function reveal() { el.classList.remove('on'); awayAt = 0; relocking = false; }
+  function reveal() { el.classList.remove('on'); awayAt = 0; relocking = false; idleCover = false; lastTouch = Date.now(); }
 
   function hide() {
     if (previewing || relocking || !inFront() || !el.classList.contains('on')) return;
+    if (idleCover && !awayAt) return;            // covered for no touch: stays until a tap
     var ms = relockMs(), away = awayAt ? Date.now() - awayAt : 0;
     var lockEl = document.getElementById('app-lock-overlay');
     if (ms !== null && away >= ms && typeof passAppLockGate === 'function' && lockEl && lockEl.classList.contains('hidden')) {
@@ -47894,7 +47905,32 @@ body.light-mode #fos-privacy-shield .fps-t{color:#25363d}
   setInterval(function () { if (previewing) return; if (!inFront()) show(); else hide(); }, 250);
 
   // Failsafe: a tap on the panel while the app really is in front always dismisses it.
-  function tapDismiss() { if (!document.hidden) { awayAt = Date.now(); hide(); } }
+  function tapDismiss() {
+    if (document.hidden) return;
+    if (idleCover && !awayAt) { reveal(); return; }   // covered only for no touch: a tap brings it straight back
+    idleCover = false; awayAt = Date.now(); hide();
+  }
+
+  // 4) Phones and tablets: cover after a few seconds without a touch, so the recent-apps picture shows the lock screen.
+  function touchDevice() { try { return matchMedia('(hover: none) and (pointer: coarse)').matches; } catch (e) { return false; } }
+  function idleMs() { try { var v = localStorage.getItem(IKEY); if (v === 'off') return null; var n = Number(v || 10); return isFinite(n) && n > 0 ? n * 1000 : 10000; } catch (e) { return 10000; } }
+  function busy() {
+    var a = document.activeElement, t = a && a.tagName;
+    if (t === 'INPUT' || t === 'TEXTAREA' || t === 'SELECT' || (a && a.isContentEditable)) return true;   // typing, keyboard open
+    var lock = document.getElementById('app-lock-overlay'); if (lock && !lock.classList.contains('hidden')) return true;
+    if (document.querySelector('video:not([paused]), audio') && [].some.call(document.querySelectorAll('video, audio'), function (m) { return !m.paused; })) return true;
+    return false;
+  }
+  function touched(e) { if (e && e.target && el.contains(e.target)) return; lastTouch = Date.now(); }
+  ['touchstart', 'touchmove', 'pointerdown', 'keydown', 'wheel', 'input'].forEach(function (n) { document.addEventListener(n, touched, { passive: true, capture: true }); });
+  window.addEventListener('scroll', touched, { passive: true, capture: true });
+  setInterval(function () {
+    if (previewing || !on() || el.classList.contains('on') || document.hidden || !touchDevice()) return;
+    var ms = idleMs(); if (ms === null) return;
+    if (busy()) { lastTouch = Date.now(); return; }
+    if (Date.now() - lastTouch >= ms) { idleCover = true; el.classList.add('on'); try { void el.offsetHeight; } catch (e) { } }
+  }, 500);
+  window.fosShieldIdleSet = function (v) { try { localStorage.setItem(IKEY, v); } catch (e) { } lastTouch = Date.now(); };
   el.addEventListener('click', tapDismiss);
   el.addEventListener('touchstart', tapDismiss, { passive: true });
 
@@ -47903,6 +47939,7 @@ body.light-mode #fos-privacy-shield .fps-t{color:#25363d}
   window.fosShieldPreview = function () { previewing = true; el.classList.add('on'); setTimeout(function () { previewing = false; reveal(); }, 1800); };
   var cb = document.getElementById('tog-privacy-shield'); if (cb) cb.checked = on();
   var sel = document.getElementById('sel-privacy-relock'); if (sel) { try { sel.value = localStorage.getItem(RKEY) || 'off'; } catch (e) { } }
+  var isel = document.getElementById('sel-privacy-idle'); if (isel) { try { isel.value = localStorage.getItem(IKEY) || '10'; } catch (e) { } }
 })();
 </script>
 <script>
