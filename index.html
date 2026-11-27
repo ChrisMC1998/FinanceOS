@@ -11,7 +11,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="fos-integrity" content="5f84b9e113ecdb3de56fc1c634de3d4b109223347d078d65091c18e26497dcba">
+<meta name="fos-integrity" content="6fa583e95970e4bf1be9dffa54a2b601904531bcdc87a7f22f1bcff7d58162f7">
 <script id="fos-tamper-guard">
 /*! \u00a9 2026 MC Enterprise. Integrity check: detects a copy of this file that no longer matches the
     official release and locks it with a notice. This checks the FILE as served, not live memory --
@@ -54013,6 +54013,12 @@ html body:not(.light-mode) #view-dashboard :is(.kpi-card, .spark-card, .market-c
   background-image: linear-gradient(150deg, rgba(32,205,181,0.10), rgba(32,205,181,0) 60%);
 }
 
+/* ── 5. Phones: content runs all the way to the bottom edge. The old bottom fade band (about 10% of
+   the screen, white in light mode) covered the content, so it is gone; the page background
+   already fills the screen, including the strip under the iPhone home bar. ── */
+@media (max-width: 900px) {
+  html body .fos-atmosphere { display: none !important; }
+}
 /* ── 4. Light / dark switch: instant, with a quick circle reveal ── */
 html.fos-theme-swap *, html.fos-theme-swap *::before, html.fos-theme-swap *::after { transition: none !important; }
 ::view-transition-old(root), ::view-transition-new(root) { animation: none; mix-blend-mode: normal; }
