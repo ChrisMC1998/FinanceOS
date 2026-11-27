@@ -3,12 +3,12 @@
    • lets FinanceOS install as an app (phone, tablet, PC) and open even when offline
    • shows push notifications even when the app is closed
    Put this file in the SAME folder as index.html (next to manifest.webmanifest and the
-   icons folder). The app registers it by itself.
+   six icon PNGs). The app registers it by itself.
    ════════════════════════════════════════════════════════════════════════════ */
-const SW_VERSION = 'fos-sw-10.0';
-const SHELL = 'fos-shell-v10';      // the app page + icons, for opening offline
-const LIBS = 'fos-libs-v10';        // chart / pdf / font libraries from the CDNs
-const SHELL_FILES = ['./', './index.html', './manifest.webmanifest', './icons/icon-192.png', './icons/icon-512.png', './icons/apple-touch-icon.png'];
+const SW_VERSION = 'fos-sw-11.0';
+const SHELL = 'fos-shell-v11';      // the app page + icons, for opening offline
+const LIBS = 'fos-libs-v11';        // chart / pdf / font libraries from the CDNs
+const SHELL_FILES = ['./', './index.html', './manifest.webmanifest', './icon-192.png', './icon-512.png', './apple-touch-icon.png'];
 const LIB_HOSTS = ['cdn.jsdelivr.net', 'cdnjs.cloudflare.com', 'unpkg.com', 'fonts.googleapis.com', 'fonts.gstatic.com'];
 
 self.addEventListener('install', (e) => {
@@ -40,7 +40,7 @@ self.addEventListener('fetch', (e) => {
     })());
     return;
   }
-  if (url.origin === self.location.origin && /\/(icons\/|manifest\.webmanifest$)/.test(url.pathname)) {
+  if (url.origin === self.location.origin && /\/(icon-[\w-]+|apple-touch-icon|favicon-32)\.png$/.test(url.pathname)) {   // the app icons
     e.respondWith(caches.open(SHELL).then(async (c) => (await c.match(req)) || fetch(req).then((r) => { if (r.ok) c.put(req, r.clone()); return r; })));
     return;
   }
