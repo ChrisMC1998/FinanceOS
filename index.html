@@ -11,7 +11,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="fos-integrity" content="071c7bda7b4c42c0223d1959547eec59f3333881bc23ccddf3c5b8663cc35d24">
+<meta name="fos-integrity" content="558dc0425247d2094b2ef99e50d55b1221b2211efee42603b9a3807609b01127">
 <script id="fos-tamper-guard">
 /*! \u00a9 2026 MC Enterprise. Integrity check: detects a copy of this file that no longer matches the
     official release and locks it with a notice. This checks the FILE as served, not live memory --
@@ -51879,6 +51879,7 @@ body.light-mode .fai-pri.p3 { color:#b91c1c; } body.light-mode .fai-pri.p2 { col
     Object.keys(st.items).forEach(function (k) { if (!seen[k]) delete st.items[k]; });   // resolved: if it comes back later it is a new alert
     store(IKEY, st);
     updateBadge(); if (isOpen()) renderInsights();
+    try { if (window.fosInsightPush) Object.keys(st.items).forEach(function (k) { var x = st.items[k]; if (fresh.indexOf(x) >= 0 && x.p >= 3) window.fosInsightPush(k, x); }); } catch (e) { }
     // a gentle pop-up only for brand-new high-priority insights, and only in the open app
     try { var gate = typeof fosAppGateOpen === 'function' ? fosAppGateOpen() : true; if (gate && !isOpen()) fresh.filter(function (x) { return x.p >= 3; }).slice(0, 1).forEach(function (x) { if (typeof fosNotifPopup === 'function') fosNotifPopup({ icon: x.icon, color: x.color, title: x.title, message: x.what }); }); } catch (e) { }
   }
@@ -54878,7 +54879,76 @@ body.light-mode .fos-fast-offer { background:#fff; color:#0f1d1a; }
       : 'Your device chooses Face ID, Touch ID or your passcode. If Face ID doesn\u2019t work, it falls back to your passcode.';
     n.parentNode.insertBefore(d, n.nextSibling);
   }
-  function boot() { wrapNetWorth(); movePlan(); wrapPasskey(); wrapDeviceLock(); label(); lockNote(); }
+  /* ════════ alerts reach the phone's notification drawer ════════
+     The app works out most alerts itself (overspending, cards, loans, investments, goals…) while it is open
+     on any of your devices. Each new one now also goes to the push server, which sends it to every device
+     that allowed notifications (the phone too, even when the app there is closed). Alerts the push server
+     already makes on its own (budgets, EMIs, large spends, reminders, sync) are not sent twice. */
+  var SERVER_MAKES = /^(budget-over|budget-warn|emi-due|big-expense|sync-fail|reminder|support|finai)$/;
+  function alertCat(t) {
+    t = String(t || '');
+    if (/^(cc-|high-interest|loan-ending)/.test(t)) return 'bills';
+    if (/^budget/.test(t)) return 'budget';
+    if (/^port|portfolio/.test(t)) return 'portfolio';
+    if (/goal|^nw-/.test(t)) return 'goals';
+    return 'spending';
+  }
+  function plain(h) { var d = document.createElement('div'); d.innerHTML = String(h == null ? '' : h); return (d.textContent || '').replace(/\s+/g, ' ').trim(); }
+  function serverPush(key, title, body, cat, critical) {
+    if (typeof window.fosQueuePush !== 'function') return;
+    try { if (typeof cloudSession === 'undefined' || !cloudSession) return; } catch (e) { return; }
+    window.fosQueuePush({ category: cat, dedupe_key: String(key).slice(0, 180), title: plain(title).slice(0, 120) || 'FinanceOS', body: plain(body).slice(0, 300),
+      safe_body: 'FinanceOS: You have a new alert. Open the app to see it.', priority: critical ? 'critical' : 'normal', url: './?notif=1' });
+  }
+  window.fosInsightPush = function (key, x) {   // high-priority Fin AI insights
+    if (!x) return; serverPush('ins:' + key + ':' + (x.pmax || x.p || 0), x.title, x.what || x.why || '', 'goals', false);
+  };
+  function wrapAlerts() {
+    var base = window.addNotification; if (typeof base !== 'function' || base.__srv) return;
+    var w = function (id, icon, color, title, message, type) {
+      var list = null; try { list = notifications; } catch (e) { }
+      var had = !!(list && list.some(function (n) { return n.id === id; }));
+      var r = base.apply(this, arguments);
+      try {
+        var now = notifications; var isNew = !had && now && now[0] && now[0].id === id;
+        var gate = typeof fosAppGateOpen === 'function' ? fosAppGateOpen() : true;
+        if (isNew && gate && !SERVER_MAKES.test(type || '')) serverPush('app:' + id, title, message, alertCat(type), /danger|over|loss|drop/.test(type || ''));
+      } catch (e) { }
+      return r;
+    };
+    w.__srv = 1; window.addNotification = w;
+    // when the push server sends it, this device gets it from there too: don't also pop a second, local copy
+    var lp = window.fosPushNotify;
+    if (typeof lp === 'function' && !lp.__srv) {
+      var w2 = function () { try { if (typeof cloudSession !== 'undefined' && cloudSession && typeof window.fosQueuePush === 'function') return; } catch (e) { } return lp.apply(this, arguments); };
+      w2.__srv = 1; window.fosPushNotify = w2;
+    }
+  }
+
+  /* ════════ light / dark switch: instant ════════
+     The circle reveal took a picture of the whole page twice and animated it, which lagged on phones
+     and busy pages. The colours now switch in one step. */
+  try { Object.defineProperty(document, 'startViewTransition', { value: undefined, configurable: true, writable: true }); } catch (e) { }
+
+  /* ════════ after Face ID / fingerprint / PIN: the page scrolls straight away ════════
+     The unlock animation kept the lock screen over the page for about two seconds, so the first swipes
+     went nowhere. The lock screen now lets touches through the moment you are verified. */
+  function wrapUnlock() {
+    var base = window.fosLockDismiss; if (typeof base !== 'function' || base.__fast) return;
+    var w = function () {
+      var ov = $('app-lock-overlay');
+      if (ov) {
+        ov.style.pointerEvents = 'none';
+        var n = 0, t = setInterval(function () { if (++n > 40 || ov.classList.contains('hidden')) { clearInterval(t); if (ov.classList.contains('hidden')) ov.style.pointerEvents = ''; } }, 100);
+      }
+      return base.apply(this, arguments);
+    };
+    w.__fast = 1; window.fosLockDismiss = w;
+    var ov2 = $('app-lock-overlay');
+    if (ov2 && 'MutationObserver' in window) new MutationObserver(function () { if (!ov2.classList.contains('hidden') && ov2.style.pointerEvents === 'none' && !ov2.getAnimations().length) ov2.style.pointerEvents = ''; }).observe(ov2, { attributes: true, attributeFilter: ['class'] });
+  }
+
+  function boot() { wrapNetWorth(); movePlan(); wrapPasskey(); wrapDeviceLock(); label(); lockNote(); wrapAlerts(); wrapUnlock(); }
   boot();
   window.addEventListener('load', function () { setTimeout(boot, 60); });
 })();
