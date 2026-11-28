@@ -11,7 +11,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="fos-integrity" content="558dc0425247d2094b2ef99e50d55b1221b2211efee42603b9a3807609b01127">
+<meta name="fos-integrity" content="5a90394d3fab4ba5a0120e4c59d8bcb0d44ab93becf990011445afa38c61e419">
 <script id="fos-tamper-guard">
 /*! \u00a9 2026 MC Enterprise. Integrity check: detects a copy of this file that no longer matches the
     official release and locks it with a notice. This checks the FILE as served, not live memory --
@@ -54219,7 +54219,7 @@ html.fos-theme-swap *, html.fos-theme-swap *::before, html.fos-theme-swap *::aft
 (function () {
   var FN = 'fin-ai', LS_ON = 'fai_smart', SS_CONV = 'fai_conv_id';
   var $ = function (id) { return document.getElementById(id); };
-  var busy = false, avail = null, left = null, limit = null, userScrolled = false;   // avail: null unknown, true ok, false not for this account
+  var busy = false, avail = null, left = null, limit = null, unlimited = false, userScrolled = false;   // avail: null unknown, true ok, false not for this account
   function esc(s) { return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]; }); }
   function lsGet(k) { try { return localStorage.getItem(k); } catch (e) { return null; } }
   function lsSet(k, v) { try { localStorage.setItem(k, v); } catch (e) { } }
@@ -54418,7 +54418,7 @@ html.fos-theme-swap *, html.fos-theme-swap *::before, html.fos-theme-swap *::aft
     }
     var m = $('fai-mem-btn'); if (m) m.style.display = (avail === false || !isOn()) ? 'none' : '';
     if (st && !st.__base) st.__base = st.innerHTML;
-    if (st) st.innerHTML = isOn() && avail !== false ? '<i></i> Smart on · ' + (left != null && limit ? esc(left + ' of ' + limit + ' credits left today') : 'uses daily credits') : st.__base;
+    if (st) st.innerHTML = isOn() && avail !== false ? '<i></i> Smart on · ' + (unlimited ? 'no daily limit (admin)' : left != null && limit ? esc(left + ' of ' + limit + ' credits left today') : 'uses daily credits') : st.__base;
   }
   function modal(inner) {
     var o = $('fai-smart-modal'); if (o) o.remove();
@@ -54438,7 +54438,7 @@ html.fos-theme-swap *, html.fos-theme-swap *::before, html.fos-theme-swap *::aft
     }
     checkAvail();
   }
-  function creditsText() { return (left != null && limit ? esc(left + ' of ' + limit + ' credits left today.') : 'You get a set number of credits each day.') + ' Credits refill daily, so use them wisely.'; }
+  function creditsText() { if (unlimited) return 'You\u2019re an admin, so you have no daily limit.'; return (left != null && limit ? esc(left + ' of ' + limit + ' credits left today.') : 'You get a set number of credits each day.') + ' Credits refill daily, so use them wisely.'; }
   function toggle() { if (isOn()) { lsSet(LS_ON, 'off'); var h = $('fai-smart-hi'); if (h) h.remove(); syncBtn(); } else turnOn(); }
   async function memory() {
     var o = modal('<h3>What Fin AI remembers</h3><div id="fai-mem-list"><p>Loading…</p></div>' +
@@ -54472,7 +54472,7 @@ html.fos-theme-swap *, html.fos-theme-swap *::before, html.fos-theme-swap *::aft
       if (r.status === 404) { syncBtn(); return; }      // function not deployed yet: keep the switch, answers fall back to the built-in engine
       var j = await r.json();
       avail = !!(j && j.ok) ? true : (j && j.reason === 'plan') ? false : avail;   // only a plan without Fin AI hides the switch
-      if (j && j.ok && j.limit != null) { left = j.remaining; limit = j.limit; var cl = $('fai-smart-left'); if (cl) cl.textContent = creditsText(); }
+      unlimited = !!(j && j.unlimited); if (j && j.ok && (j.limit != null || unlimited)) { left = j.remaining; limit = j.limit; var cl = $('fai-smart-left'); if (cl) cl.textContent = creditsText(); }
     } catch (e) { }
     syncBtn();
   }
@@ -54632,6 +54632,22 @@ body[data-fos-view="finai"] #view-finai .fai-thread { overflow-y:auto !important
 /* the chat is the only thing on the Fin AI page now */
 #view-finai .fai-plan { display:none !important; }
 #view-networth .fai-plan.fos-nw-plan { margin-top:var(--fxl-gap, 20px); }
+/* Net Worth tiles on phones and tablets: a tidy grid instead of five squeezed columns (numbers overlapped) */
+@media (max-width:900px) {
+  html body #view-networth .nw-row { display:grid !important; grid-template-columns:repeat(auto-fit, minmax(min(100%, 150px), 1fr)); gap:.7rem; }
+  html body #view-networth .nw-row > .nw-card { min-width:0; }
+}
+@media (max-width:600px) {
+  html body #view-networth .nw-row { grid-template-columns:1fr 1fr; }
+  html body #view-networth .nw-row > .nw-card:nth-child(3) { grid-column:1 / -1; }
+  html body #view-networth .nw-row .nw-val { font-size:clamp(1rem, 5.2vw, 1.35rem) !important; overflow-wrap:anywhere; }
+}
+/* Budgets: smoother scrolling in the limits list (no blur behind the window, no glow and shadow on every row) */
+#budget-modal.modal-overlay { -webkit-backdrop-filter:none !important; backdrop-filter:none !important; background:rgba(2,6,8,.78) !important; }
+body.light-mode #budget-modal.modal-overlay { background:rgba(15,23,42,.45) !important; }
+#budget-modal .modal-box.budget-modal { box-shadow:0 18px 50px rgba(0,0,0,.45) !important; }
+#budget-modal .budget-row-v2 { box-shadow:none !important; }
+#budget-modal .budget-modal-list { overscroll-behavior:contain; -webkit-overflow-scrolling:touch; transform:translateZ(0); }
 .fos-fast-offer { position:fixed; left:12px; right:12px; bottom:calc(14px + env(safe-area-inset-bottom, 0px)); z-index:100001; max-width:440px; margin:0 auto;
   background:#0d1416; color:#e8f5f2; border:1px solid rgba(32,205,181,.35); border-radius:16px; padding:14px 14px 12px; box-shadow:0 18px 50px rgba(0,0,0,.5); font:500 .86rem/1.5 'DM Sans',sans-serif; }
 body.light-mode .fos-fast-offer { background:#fff; color:#0f1d1a; }
@@ -54707,7 +54723,8 @@ body.light-mode .fos-fast-offer { background:#fff; color:#0f1d1a; }
   /* ════════ mouse wheel and touchpad over the Fin AI chat always scroll the chat ════════ */
   document.addEventListener('wheel', function (e) {
     if (e.ctrlKey || e.defaultPrevented) return;
-    var t = $('fai-thread'); if (!t || !t.offsetParent || document.body.getAttribute('data-fos-view') !== 'finai') return;
+    if (document.body.getAttribute('data-fos-view') !== 'finai') return;   // cheap check first: no layout work on other pages
+    var t = $('fai-thread'); if (!t || !t.offsetParent) return;
     var r = t.getBoundingClientRect();
     if (e.clientX < r.left || e.clientX > r.right || e.clientY < r.top || e.clientY > r.bottom) return;
     var top = document.elementFromPoint(e.clientX, e.clientY);
@@ -54729,6 +54746,7 @@ body.light-mode .fos-fast-offer { background:#fff; color:#0f1d1a; }
     var plan = document.querySelector('section.fai-plan'), nw = $('view-networth'); if (!plan || !nw) return null;
     if (plan.parentElement !== nw) { nw.appendChild(plan); }
     plan.classList.add('fos-nw-plan');
+    plan.setAttribute('data-no-count', '');   // Debt Command Center and Goals numbers stay still (no count-up on hover)
     var ok = true; try { if (typeof fosPlanAllows === 'function') ok = fosPlanAllows('finai') !== false; } catch (e) { }
     plan.style.display = ok ? '' : 'none';
     return ok ? plan : null;
